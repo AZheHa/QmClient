@@ -74,6 +74,8 @@ public:
 	bool IsActive() const { return m_Active; }
 	void UpdateVisibleRect(EHudEditorElement Element, const CUIRect &RenderedRect);
 
+	STransformScope PreviewTransform(EHudEditorElement Element, const CUIRect &DefaultRect, bool Scalable = true);
+	STransformScope PreviewTransform(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable = true);
 	STransformScope BeginTransform(EHudEditorElement Element, const CUIRect &DefaultRect, bool Scalable = true, bool ApplyMapScreen = true);
 	STransformScope BeginTransform(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable = true, bool ApplyMapScreen = true);
 	void EndTransform(const STransformScope &Scope);
@@ -133,6 +135,7 @@ private:
 	bool HandleElementDoubleClick(EHudEditorElement Element);
 	bool DoJumpHintTextArea(CLineInput *pLineInput, const CUIRect *pRect, float FontSize);
 	void RenderJumpHintTextEditor(const CUIRect &Screen);
+	bool ComputeTransformPlacement(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable, STransformScope &Scope, SVisibleElement *pVisible);
 	static const char *ElementToken(EHudEditorElement Element);
 	static int ElementFromToken(const char *pToken);
 };

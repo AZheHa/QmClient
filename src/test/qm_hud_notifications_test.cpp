@@ -1,5 +1,11 @@
 #include <game/client/components/qmclient/hud_notifications.h>
+#include <game/client/components/qmclient/hud_notification_catalog.h>
 #include <game/client/components/qmclient/hud_notification_rules.h>
+#include <game/client/components/qmclient/hud_notification_static_rules.h>
+
+#ifdef QM_HUD_NOTIFICATION_STATIC_RULES
+#error Old mixed static rule table should not be exposed through hud_notification_rules.h
+#endif
 
 #include <base/color.h>
 
@@ -37,6 +43,29 @@ namespace
 	{
 	public:
 	};
+
+	bool HasLegacyStaticCompatibilityLiteral(const char *pNeedle)
+	{
+		struct SLiteralPair
+		{
+			const char *m_pOriginal;
+			const char *m_pLocalized;
+		};
+		static const SLiteralPair s_aLegacyLiterals[] = {
+#define QM_LEGACY_LITERAL(pOriginal, pLocalized) {pOriginal, pLocalized},
+			QM_HUD_NOTIFICATION_STATIC_TEAM_RULES(QM_LEGACY_LITERAL)
+			QM_HUD_NOTIFICATION_STATIC_SWAP_RESCUE_RULES(QM_LEGACY_LITERAL)
+			QM_HUD_NOTIFICATION_STATIC_VOTE_MODERATION_RULES(QM_LEGACY_LITERAL)
+			QM_HUD_NOTIFICATION_STATIC_STATUS_RULES(QM_LEGACY_LITERAL)
+#undef QM_LEGACY_LITERAL
+		};
+		for(const SLiteralPair &Literal : s_aLegacyLiterals)
+		{
+			if(str_comp(Literal.m_pOriginal, pNeedle) == 0 || str_comp(Literal.m_pLocalized, pNeedle) == 0)
+				return true;
+		}
+		return false;
+	}
 } // namespace
 
 TEST(QmHudNotifications, MatchesKnownSoloPrompts)
@@ -46,6 +75,19 @@ TEST(QmHudNotifications, MatchesKnownSoloPrompts)
 	EXPECT_EQ(QmHudNotifications::MatchKnownSoloPrompt("你现在处于单人区域"), QmHudNotifications::ESoloPrompt::Enter);
 	EXPECT_EQ(QmHudNotifications::MatchKnownSoloPrompt("你现在已离开单人区域"), QmHudNotifications::ESoloPrompt::Leave);
 	EXPECT_EQ(QmHudNotifications::MatchKnownSoloPrompt("regular server message"), QmHudNotifications::ESoloPrompt::None);
+}
+
+TEST(QmHudNotifications, CatalogProvidesCanonicalTextAndMetadata)
+{
+	using namespace QmHudNotifications;
+
+	const auto *pMeta = FindMessageMetadata(EMessageKey::WhispersOn);
+	ASSERT_NE(pMeta, nullptr);
+	EXPECT_EQ(FindMessageMetadata(EMessageKey::Count), nullptr);
+	EXPECT_EQ(pMeta->m_Domain, EServerMessageDomain::Status);
+	EXPECT_EQ(pMeta->m_Class, EServerMessageClass::Prompt);
+	EXPECT_STREQ(CanonicalMessageText(EMessageKey::WhispersOn), "你现在会收到私聊消息");
+	EXPECT_STREQ(CanonicalMessageText(EMessageKey::TeamSaveInProgress), "队伍存档已在进行中");
 }
 
 TEST(QmHudNotifications, SuppressesOnlyMatchedSoloChatMessages)
@@ -61,6 +103,7 @@ TEST(QmHudNotifications, RoutesServerSystemMessagesWhenEnabled)
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("regular server message", QmHudNotifications::ESoloPrompt::None, false), QmHudNotifications::EServerMessageRoute::None);
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("regular server message", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::System);
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("Team save already in progress", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("队伍存档已在进行中", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::System);
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("You are now in a solo part", QmHudNotifications::ESoloPrompt::Enter, true), QmHudNotifications::EServerMessageRoute::Solo);
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("You are now in a solo part", QmHudNotifications::ESoloPrompt::Enter, false), QmHudNotifications::EServerMessageRoute::None);
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("You are now in a solo part", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::Solo);
@@ -68,6 +111,8 @@ TEST(QmHudNotifications, RoutesServerSystemMessagesWhenEnabled)
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("请访问 DDNet.org，或输入 /info，并确保阅读 /rules", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::None);
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("'nameless tee' entered and joined the game", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::None);
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("'nameless tee' joined the game", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::None);
+	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("'nameless tee' has left the game", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::None);
+	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("'nameless tee' has left the game (Disconnected)", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::None);
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::None);
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute(nullptr, QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::None);
 }
@@ -77,9 +122,12 @@ TEST(QmHudNotifications, ClassifiesServerSystemMessagesForFocusMode)
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass("DDraceNetwork 版本: 18.9", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::BasicInfo);
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass("请访问 DDNet.org，或输入 /info，并确保阅读 /rules", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::BasicInfo);
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass("'nameless tee' joined the game", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::BasicInfo);
+	EXPECT_EQ(QmHudNotifications::ServerMessageClass("'nameless tee' has left the game", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::BasicInfo);
+	EXPECT_EQ(QmHudNotifications::ServerMessageClass("'nameless tee' has left the game (Disconnected)", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::BasicInfo);
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass("请友善交流。", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::BasicInfo);
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass("未设置服务器规则，请联系管理员。", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::BasicInfo);
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass("Team save already in progress", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(QmHudNotifications::ServerMessageClass("队伍存档已在进行中", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::Prompt);
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass("You are now in a solo part", QmHudNotifications::ESoloPrompt::Enter), QmHudNotifications::EServerMessageClass::Prompt);
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass("", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::None);
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass(nullptr, QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::None);
@@ -91,6 +139,7 @@ TEST(QmHudNotifications, KeepsShortSystemFeedbackOutOfBlacklist)
 	EXPECT_FALSE(QmHudNotifications::ShouldExcludeSystemNotification("You can see other players. To disable this use DDNet client and type /showothers"));
 	EXPECT_FALSE(QmHudNotifications::ShouldExcludeSystemNotification("Unknown emote... Say /emote"));
 	EXPECT_FALSE(QmHudNotifications::ShouldExcludeSystemNotification("Your timeout code has been set. 0.7 clients can not reclaim their tees on timeout; however, a 0.6 client can claim your tee "));
+	EXPECT_FALSE(QmHudNotifications::ShouldExcludeSystemNotification("你的超时保护码已设置。0.7 客户端在超时后无法重新认领自己的 tee；不过 0.6 客户端可以认领你的 tee "));
 
 	EXPECT_EQ(QmHudNotifications::ServerMessageRoute("Players are not allowed to chat from VPNs at this time", QmHudNotifications::ESoloPrompt::None, true), QmHudNotifications::EServerMessageRoute::System);
 	EXPECT_EQ(QmHudNotifications::ServerMessageClass("Players are not allowed to chat from VPNs at this time", QmHudNotifications::ESoloPrompt::None), QmHudNotifications::EServerMessageClass::Prompt);
@@ -102,6 +151,9 @@ TEST(QmHudNotifications, ExcludesHelpAndExampleMessagesFromNotifications)
 	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("Available rescue modes: auto, manual"));
 	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("Example: /map adr3 to call vote for Adrenaline 3. This means that the map name must start with 'a' and contain the characters 'd', 'r' and '3' in that order"));
 	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("See /practicecmdlist for a list of all available practice commands. Most commonly used ones are /telecursor, /lasttp and /rescue"));
+	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("可用表情命令：/emote surprise /emote blink /emote close /emote angry /emote happy /emote pain /emote normal"));
+	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("'nameless tee' has left the game"));
+	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("'nameless tee' has left the game (Disconnected)"));
 }
 
 TEST(QmHudNotifications, FormatsKnownSystemNotifications)
@@ -112,10 +164,46 @@ TEST(QmHudNotifications, FormatsKnownSystemNotifications)
 	EXPECT_STREQ(aBuf, "当前使用 VPN 的玩家不允许发言");
 
 	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("Unknown argument. Check '/rescuemode list'", aBuf, sizeof(aBuf)));
-	EXPECT_STREQ(aBuf, "未知 rescue 模式参数");
+	EXPECT_STREQ(aBuf, "未知救援模式参数");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("未知救援模式参数", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "未知救援模式参数");
 
 	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("Team save already in progress", aBuf, sizeof(aBuf)));
 	EXPECT_STREQ(aBuf, "队伍存档已在进行中");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("队伍存档已在进行中", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "队伍存档已在进行中");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("Your timeout code has been set. 0.7 clients can not reclaim their tees on timeout; however, a 0.6 client can claim your tee ", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "你的超时保护码已设置");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("你的超时保护码已设置。0.7 客户端在超时后无法重新认领自己的 tee；不过 0.6 客户端可以认领你的 tee ", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "你的超时保护码已设置");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("你现在会收到私聊消息", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "你现在会收到私聊消息");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("你现在可以看到本服所有 tee，不受距离限制", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "你现在可以看到本服所有 tee，不受距离限制");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("本服务器未开启救援功能，而你所在的队伍也没有开启 /practice。注意：练习模式下无法获得排名。", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "本服务器未开启救援功能，而你所在的队伍也没有开启 /practice。注意：练习模式下无法获得排名。");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("未知表情。输入 /emote 查看帮助", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "未知表情。输入 /emote 查看帮助");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("本服务器允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "本服务器允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("本服务器允许玩家碰撞", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "本服务器允许玩家碰撞");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("本服务器允许玩家互钩", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "本服务器允许玩家互钩");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("本服务器的成绩是私密的", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "本服务器的成绩是私密的");
 
 	str_copy(aBuf, "sentinel", sizeof(aBuf));
 	EXPECT_FALSE(QmHudNotifications::TryFormatLocalizedNotificationMessage("regular server message", aBuf, sizeof(aBuf)));
@@ -161,22 +249,276 @@ TEST(QmHudNotificationRules, AnalyzesStaticTeamMessage)
 	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
 }
 
+TEST(QmHudNotificationRules, StaticMessageKeyPropagatesForCatalogMessages)
+{
+	auto Analysis = QmHudNotifications::AnalyzeServerMessage("You will receive whispers", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_MessageKey, QmHudNotifications::EMessageKey::WhispersOn);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你现在会收到私聊消息");
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("Team save already in progress", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_MessageKey, QmHudNotifications::EMessageKey::TeamSaveInProgress);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+}
+
+TEST(QmHudNotifications, StaticEnglishAndChineseMessagesShareTheSameSemanticKey)
+{
+	const auto English = QmHudNotifications::AnalyzeServerMessage("Your timeout code has been set. 0.7 clients can not reclaim their tees on timeout; however, a 0.6 client can claim your tee ", QmHudNotifications::ESoloPrompt::None);
+	const auto Chinese = QmHudNotifications::AnalyzeServerMessage("你的超时保护码已设置。0.7 客户端在超时后无法重新认领自己的 tee；不过 0.6 客户端可以认领你的 tee ", QmHudNotifications::ESoloPrompt::None);
+
+	EXPECT_EQ(English.m_MessageKey, Chinese.m_MessageKey);
+	EXPECT_STREQ(English.m_aLocalizedText, Chinese.m_aLocalizedText);
+}
+
+TEST(QmHudNotifications, TimeoutCodeSetRequiresTheExplicitSemanticAliasText)
+{
+	char aBuf[256];
+	str_copy(aBuf, "sentinel", sizeof(aBuf));
+
+	EXPECT_FALSE(QmHudNotifications::TryFormatLocalizedNotificationMessage("你的超时保护码已设置。并非 0.7/0.6 reclaim 提示的其他文本", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "");
+
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("你的超时保护码已设置。并非 0.7/0.6 reclaim 提示的其他文本", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_MessageKey, QmHudNotifications::EMessageKey::None);
+	EXPECT_TRUE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotifications, LegacyStaticCompatibilityStillFormatsNonSemanticCategories)
+{
+	char aBuf[256];
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("You are running a vote, please try again after the vote is done!", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "你正在发起投票，请等当前投票结束后再试");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("Unknown argument. Check '/rescuemode list'", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "未知救援模式参数");
+}
+
+TEST(QmHudNotifications, LegacyStaticCompatibilityLayerExcludesMigratedSemanticStatics)
+{
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("Team save already in progress"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("队伍存档已在进行中"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("Rescue is not enabled on this server and you're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled."));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("本服务器未开启救援功能，而你所在的队伍也没有开启 /practice。注意：练习模式下无法获得排名。"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("You will now see all tees on this server, no matter the distance"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("你现在可以看到本服所有 tee，不受距离限制"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("You will no longer see all tees on this server"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("你将不再看到本服所有 tee"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("You will receive whispers"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("你现在会收到私聊消息"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("You will not receive any further whispers"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("你将不再收到私聊消息"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("Unknown emote... Say /emote"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("未知表情。输入 /emote 查看帮助"));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("Your timeout code has been set. 0.7 clients can not reclaim their tees on timeout; however, a 0.6 client can claim your tee "));
+	EXPECT_FALSE(HasLegacyStaticCompatibilityLiteral("你的超时保护码已设置。0.7 客户端在超时后无法重新认领自己的 tee；不过 0.6 客户端可以认领你的 tee "));
+
+	EXPECT_TRUE(HasLegacyStaticCompatibilityLiteral("You are running a vote, please try again after the vote is done!"));
+	EXPECT_TRUE(HasLegacyStaticCompatibilityLiteral("你正在发起投票，请等当前投票结束后再试"));
+	EXPECT_TRUE(HasLegacyStaticCompatibilityLiteral("Unknown argument. Check '/rescuemode list'"));
+	EXPECT_TRUE(HasLegacyStaticCompatibilityLiteral("未知救援模式参数"));
+}
+
+TEST(QmHudNotifications, SemanticMetadataDrivesStaticAndDynamicRoutingClassificationAndBlacklist)
+{
+	const auto *pStaticMeta = QmHudNotifications::FindMessageMetadata(QmHudNotifications::EMessageKey::UnknownEmote);
+	ASSERT_NE(pStaticMeta, nullptr);
+	EXPECT_FALSE(pStaticMeta->m_ExcludeFromNotifications);
+
+	const auto StaticEnglish = QmHudNotifications::AnalyzeServerMessage("Unknown emote... Say /emote", QmHudNotifications::ESoloPrompt::None);
+	const auto StaticChinese = QmHudNotifications::AnalyzeServerMessage("未知表情。输入 /emote 查看帮助", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(StaticEnglish.m_Route, pStaticMeta->m_Route);
+	EXPECT_EQ(StaticEnglish.m_Class, pStaticMeta->m_Class);
+	EXPECT_EQ(StaticEnglish.m_Domain, pStaticMeta->m_Domain);
+	EXPECT_EQ(StaticChinese.m_Route, pStaticMeta->m_Route);
+	EXPECT_EQ(StaticChinese.m_Class, pStaticMeta->m_Class);
+	EXPECT_EQ(StaticChinese.m_Domain, pStaticMeta->m_Domain);
+	EXPECT_FALSE(QmHudNotifications::ShouldExcludeSystemNotification("Unknown emote... Say /emote"));
+	EXPECT_FALSE(QmHudNotifications::ShouldExcludeSystemNotification("未知表情。输入 /emote 查看帮助"));
+	EXPECT_EQ(QmHudNotifications::ShouldExcludeSystemNotification("Unknown emote... Say /emote"), pStaticMeta->m_ExcludeFromNotifications);
+	EXPECT_EQ(QmHudNotifications::ShouldExcludeSystemNotification("未知表情。输入 /emote 查看帮助"), pStaticMeta->m_ExcludeFromNotifications);
+
+	const auto *pTeamJoinedMeta = QmHudNotifications::FindMessageMetadata(QmHudNotifications::EDynamicMessageKey::TeamJoined);
+	ASSERT_NE(pTeamJoinedMeta, nullptr);
+	const auto TeamJoinedEnglish = QmHudNotifications::AnalyzeServerMessage("'Alpha' joined team 5", QmHudNotifications::ESoloPrompt::None);
+	const auto TeamJoinedChinese = QmHudNotifications::AnalyzeServerMessage("'Alpha' 加入了 5 队", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(TeamJoinedEnglish.m_Route, pTeamJoinedMeta->m_Route);
+	EXPECT_EQ(TeamJoinedEnglish.m_Class, pTeamJoinedMeta->m_Class);
+	EXPECT_EQ(TeamJoinedEnglish.m_Domain, pTeamJoinedMeta->m_Domain);
+	EXPECT_EQ(TeamJoinedEnglish.m_DynamicSemantic.m_Key, QmHudNotifications::EDynamicMessageKey::TeamJoined);
+	EXPECT_EQ(TeamJoinedChinese.m_DynamicSemantic.m_Key, QmHudNotifications::EDynamicMessageKey::TeamJoined);
+	EXPECT_FALSE(pTeamJoinedMeta->m_ExcludeFromNotifications);
+	EXPECT_EQ(QmHudNotifications::ShouldExcludeSystemNotification("'Alpha' joined team 5"), pTeamJoinedMeta->m_ExcludeFromNotifications);
+	EXPECT_EQ(QmHudNotifications::ShouldExcludeSystemNotification("'Alpha' 加入了 5 队"), pTeamJoinedMeta->m_ExcludeFromNotifications);
+
+	const auto *pSwapMeta = QmHudNotifications::FindMessageMetadata(QmHudNotifications::EDynamicMessageKey::SwapRequestSent);
+	ASSERT_NE(pSwapMeta, nullptr);
+	const auto SwapEnglish = QmHudNotifications::AnalyzeServerMessage("You have requested to swap with Beta. Use /cancelswap to cancel the request.", QmHudNotifications::ESoloPrompt::None);
+	const auto SwapChinese = QmHudNotifications::AnalyzeServerMessage("你已向 Beta 发出交换请求。输入 /cancelswap 可取消", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(SwapEnglish.m_Route, pSwapMeta->m_Route);
+	EXPECT_EQ(SwapEnglish.m_Class, pSwapMeta->m_Class);
+	EXPECT_EQ(SwapEnglish.m_Domain, pSwapMeta->m_Domain);
+	EXPECT_EQ(SwapEnglish.m_DynamicSemantic.m_Key, QmHudNotifications::EDynamicMessageKey::SwapRequestSent);
+	EXPECT_EQ(SwapChinese.m_DynamicSemantic.m_Key, QmHudNotifications::EDynamicMessageKey::SwapRequestSent);
+	EXPECT_FALSE(pSwapMeta->m_ExcludeFromNotifications);
+	EXPECT_EQ(QmHudNotifications::ShouldExcludeSystemNotification("You have requested to swap with Beta. Use /cancelswap to cancel the request."), pSwapMeta->m_ExcludeFromNotifications);
+	EXPECT_EQ(QmHudNotifications::ShouldExcludeSystemNotification("你已向 Beta 发出交换请求。输入 /cancelswap 可取消"), pSwapMeta->m_ExcludeFromNotifications);
+}
+
+TEST(QmHudNotificationRules, AnalyzesStaticTeamMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("队伍存档已在进行中", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "队伍存档已在进行中");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesUpdatedChineseTeamValidationMessages)
+{
+	auto Analysis = QmHudNotifications::AnalyzeServerMessage("这个队伍已经开始比赛了", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "这个队伍已经开始比赛了");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("你死亡或处于旁观状态时，不能切换队伍。", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你死亡或处于旁观状态时，不能切换队伍。");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("你已经使用过练习模式了", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你已经使用过练习模式了");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("这个队伍当前正在存档", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "这个队伍当前正在存档");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesUpdatedChineseSettingsMessages)
+{
+	auto Analysis = QmHudNotifications::AnalyzeServerMessage("本服务器允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "本服务器允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("本服务器允许玩家碰撞", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "本服务器允许玩家碰撞");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("本服务器允许玩家互钩", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "本服务器允许玩家互钩");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("本服务器的成绩是私密的", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "本服务器的成绩是私密的");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
 TEST(QmHudNotificationRules, AnalyzesTeamDynamicMessage)
 {
 	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("'Alpha' joined team 5", QmHudNotifications::ESoloPrompt::None);
 	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
 	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
 	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_EQ(Analysis.m_DynamicSemantic.m_Key, QmHudNotifications::EDynamicMessageKey::TeamJoined);
+	EXPECT_STREQ(Analysis.m_DynamicSemantic.m_aParamA, "Alpha");
+	EXPECT_STREQ(Analysis.m_DynamicSemantic.m_aParamB, "5");
 	EXPECT_STREQ(Analysis.m_aLocalizedText, "'Alpha' 加入了 5 队");
 	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
 }
 
+TEST(QmHudNotificationRules, AnalyzesTeamDynamicMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("'Alpha' 加入了 5 队", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_EQ(Analysis.m_DynamicSemantic.m_Key, QmHudNotifications::EDynamicMessageKey::TeamJoined);
+	EXPECT_STREQ(Analysis.m_DynamicSemantic.m_aParamA, "Alpha");
+	EXPECT_STREQ(Analysis.m_DynamicSemantic.m_aParamB, "5");
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "'Alpha' 加入了 5 队");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesLockTeamMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("'Alpha' 锁定了你们的队伍", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "'Alpha' 锁定了你们的队伍");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesUnlockTeamMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("'Alpha' 解锁了你们的队伍", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "'Alpha' 解锁了你们的队伍");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesInviteMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("'Alpha' 邀请你加入 5 队。输入 /team 5 即可加入。", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "'Alpha' 邀请你加入 5 队。输入 /team 5 即可加入");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesTeamAnnouncementInviteMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("'Alpha' 邀请了 'Beta' 加入你们的队伍。", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "'Alpha' 邀请了 'Beta' 加入你们的队伍");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesTeam0ModeMessagesInChinese)
+{
+	auto Analysis = QmHudNotifications::AnalyzeServerMessage("'Alpha' 关闭了 team 0 模式。", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "'Alpha' 关闭了 team 0 模式");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("'Alpha' 开启了 team 0 模式。你们的队伍现在会按 team 0 规则运作。", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Team);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "'Alpha' 开启了 team 0 模式。你们的队伍现在会按 team 0 规则运作");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
 TEST(QmHudNotificationRules, AnalyzesSwapDynamicMessage)
 {
 	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("You have requested to swap with Beta. Use /cancelswap to cancel the request.", QmHudNotifications::ESoloPrompt::None);
 	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
 	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
 	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::SwapRescue);
+	EXPECT_EQ(Analysis.m_DynamicSemantic.m_Key, QmHudNotifications::EDynamicMessageKey::SwapRequestSent);
+	EXPECT_STREQ(Analysis.m_DynamicSemantic.m_aParamA, "Beta");
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你已向 Beta 发出交换请求。输入 /cancelswap 可取消");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesSwapDynamicMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("你已向 Beta 发出交换请求。输入 /cancelswap 可取消", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::SwapRescue);
+	EXPECT_EQ(Analysis.m_DynamicSemantic.m_Key, QmHudNotifications::EDynamicMessageKey::SwapRequestSent);
+	EXPECT_STREQ(Analysis.m_DynamicSemantic.m_aParamA, "Beta");
+	EXPECT_STREQ(Analysis.m_DynamicSemantic.m_aParamB, "");
 	EXPECT_STREQ(Analysis.m_aLocalizedText, "你已向 Beta 发出交换请求。输入 /cancelswap 可取消");
 	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
 }
@@ -187,7 +529,90 @@ TEST(QmHudNotificationRules, AnalyzesStaticSwapRescueMessage)
 	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
 	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
 	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::SwapRescue);
-	EXPECT_STREQ(Analysis.m_aLocalizedText, "未知 rescue 模式参数");
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "未知救援模式参数");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesStaticSwapRescueMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("未知救援模式参数", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::SwapRescue);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "未知救援模式参数");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesWhisperToggleMessagesInChinese)
+{
+	auto Analysis = QmHudNotifications::AnalyzeServerMessage("你现在会收到私聊消息", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你现在会收到私聊消息");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("你将不再收到私聊消息", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你将不再收到私聊消息");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesShowAllMessagesInChinese)
+{
+	auto Analysis = QmHudNotifications::AnalyzeServerMessage("你现在可以看到本服所有 tee，不受距离限制", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你现在可以看到本服所有 tee，不受距离限制");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("你将不再看到本服所有 tee", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你将不再看到本服所有 tee");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesRescueDisabledMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("本服务器未开启救援功能，而你所在的队伍也没有开启 /practice。注意：练习模式下无法获得排名。", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::SwapRescue);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "本服务器未开启救援功能，而你所在的队伍也没有开启 /practice。注意：练习模式下无法获得排名。");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesUnknownEmoteMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("未知表情。输入 /emote 查看帮助", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "未知表情。输入 /emote 查看帮助");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesTimeoutCodeMessageInChinese)
+{
+	const auto Analysis = QmHudNotifications::AnalyzeServerMessage("你的超时保护码已设置。0.7 客户端在超时后无法重新认领自己的 tee；不过 0.6 客户端可以认领你的 tee ", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你的超时保护码已设置");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
+TEST(QmHudNotificationRules, AnalyzesTimerAndRaceTimeMessagesInChinese)
+{
+	auto Analysis = QmHudNotifications::AnalyzeServerMessage("计时器显示在 广播。", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "计时器当前显示在 广播。");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("你的当前用时是 01:23", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "你当前的比赛用时是 01:23");
 	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
 }
 
@@ -395,4 +820,52 @@ TEST(QmHudNotifications, SelectsTextColorByNotificationKind)
 	const QmHudNotifications::STextColorConfig EchoOverride = QmHudNotifications::TextColorConfig(QmHudNotifications::ETextSource::Echo, 0, SystemColor, EchoOverrideColor, ChatEchoColor);
 	EXPECT_EQ(EchoOverride.m_Color, EchoOverrideColor);
 	EXPECT_TRUE(EchoOverride.m_HasAlpha);
+}
+
+TEST(QmHudNotificationsGeometry, ResolvesHorizontalFlowFromAnchorsAndScreenSide)
+{
+	EXPECT_EQ(QmHudNotifications::ResolveHorizontalFlow(true, false, 240.0f, 200.0f), QmHudNotifications::EHorizontalFlow::LeftToRight);
+	EXPECT_EQ(QmHudNotifications::ResolveHorizontalFlow(false, true, 120.0f, 200.0f), QmHudNotifications::EHorizontalFlow::RightToLeft);
+	EXPECT_EQ(QmHudNotifications::ResolveHorizontalFlow(false, false, 120.0f, 200.0f), QmHudNotifications::EHorizontalFlow::LeftToRight);
+	EXPECT_EQ(QmHudNotifications::ResolveHorizontalFlow(false, false, 280.0f, 200.0f), QmHudNotifications::EHorizontalFlow::RightToLeft);
+}
+
+TEST(QmHudNotificationsGeometry, ComputesVisibleRectFromRealContentWidth)
+{
+	const CUIRect BaseRect = {100.0f, 40.0f, 172.0f, 68.0f};
+
+	const CUIRect LeftVisible = QmHudNotifications::NotificationVisibleRect(BaseRect, 96.0f, 34.0f, QmHudNotifications::EHorizontalFlow::LeftToRight);
+	EXPECT_FLOAT_EQ(LeftVisible.x, 100.0f);
+	EXPECT_FLOAT_EQ(LeftVisible.y, 40.0f);
+	EXPECT_FLOAT_EQ(LeftVisible.w, 96.0f);
+	EXPECT_FLOAT_EQ(LeftVisible.h, 34.0f);
+
+	const CUIRect RightVisible = QmHudNotifications::NotificationVisibleRect(BaseRect, 96.0f, 34.0f, QmHudNotifications::EHorizontalFlow::RightToLeft);
+	EXPECT_FLOAT_EQ(RightVisible.x, 176.0f);
+	EXPECT_FLOAT_EQ(RightVisible.y, 40.0f);
+	EXPECT_FLOAT_EQ(RightVisible.w, 96.0f);
+	EXPECT_FLOAT_EQ(RightVisible.h, 34.0f);
+}
+
+TEST(QmHudNotificationsGeometry, PlacesBoxesDifferentlyForLeftAndRightFlow)
+{
+	const CUIRect BaseRect = {100.0f, 40.0f, 172.0f, 68.0f};
+
+	EXPECT_FLOAT_EQ(QmHudNotifications::NotificationBoxX(BaseRect, 60.0f, QmHudNotifications::EHorizontalFlow::LeftToRight, 0.0f), 100.0f);
+	EXPECT_FLOAT_EQ(QmHudNotifications::NotificationBoxX(BaseRect, 60.0f, QmHudNotifications::EHorizontalFlow::RightToLeft, 0.0f), 212.0f);
+	EXPECT_FLOAT_EQ(QmHudNotifications::NotificationBoxX(BaseRect, 60.0f, QmHudNotifications::EHorizontalFlow::LeftToRight, 12.0f), 88.0f);
+	EXPECT_FLOAT_EQ(QmHudNotifications::NotificationBoxX(BaseRect, 60.0f, QmHudNotifications::EHorizontalFlow::RightToLeft, 12.0f), 224.0f);
+}
+
+TEST(QmHudNotificationsGeometry, ExpandsVisibleRectForSlideAnimation)
+{
+	const CUIRect BaseRect = {100.0f, 40.0f, 172.0f, 68.0f};
+
+	const CUIRect LeftVisible = QmHudNotifications::NotificationVisibleRect(BaseRect, 96.0f, 34.0f, QmHudNotifications::EHorizontalFlow::LeftToRight, 32.0f);
+	EXPECT_FLOAT_EQ(LeftVisible.x, 68.0f);
+	EXPECT_FLOAT_EQ(LeftVisible.w, 128.0f);
+
+	const CUIRect RightVisible = QmHudNotifications::NotificationVisibleRect(BaseRect, 96.0f, 34.0f, QmHudNotifications::EHorizontalFlow::RightToLeft, 32.0f);
+	EXPECT_FLOAT_EQ(RightVisible.x, 176.0f);
+	EXPECT_FLOAT_EQ(RightVisible.w, 128.0f);
 }

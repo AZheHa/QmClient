@@ -421,11 +421,10 @@ CHudEditor::STransformScope CHudEditor::BeginTransform(EHudEditorElement Element
 	return BeginTransform(Element, DefaultRect, DefaultRect, Scalable, ApplyMapScreen);
 }
 
-CHudEditor::STransformScope CHudEditor::BeginTransform(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable, bool ApplyMapScreen)
+bool CHudEditor::ComputeTransformPlacement(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable, STransformScope &Scope, SVisibleElement *pVisible)
 {
-	STransformScope Scope;
 	if(TransformRect.w <= 0.0f || TransformRect.h <= 0.0f || VisibleRect.w <= 0.0f || VisibleRect.h <= 0.0f)
-		return Scope;
+		return false;
 
 	SyncLayoutConfig();
 
@@ -439,7 +438,7 @@ CHudEditor::STransformScope CHudEditor::BeginTransform(EHudEditorElement Element
 
 	const CUIRect *pUiScreen = Ui()->Screen();
 	if(pUiScreen == nullptr || pUiScreen->w <= 0.0f || pUiScreen->h <= 0.0f)
-		return Scope;
+		return false;
 
 	const float DefaultNormX = Clamp01((TransformRect.x - ScreenX0) / ScreenW);
 	const float DefaultNormY = Clamp01((TransformRect.y - ScreenY0) / ScreenH);
@@ -479,21 +478,12 @@ CHudEditor::STransformScope CHudEditor::BeginTransform(EHudEditorElement Element
 	AnchorX = std::clamp(AnchorX, MinAnchorX, MaxAnchorX);
 	AnchorY = std::clamp(AnchorY, MinAnchorY, MaxAnchorY);
 
-	SVisibleElement Visible;
-	Visible.m_Element = Element;
-	Visible.m_Rect = {
-			pUiScreen->x + (AnchorX + VisibleOffsetX - ScreenX0) * pUiScreen->w / ScreenW,
-			pUiScreen->y + (AnchorY + VisibleOffsetY - ScreenY0) * pUiScreen->h / ScreenH,
-			BaseUiWidth * Scale,
-			BaseUiHeight * Scale};
-	Visible.m_BaseWidth = BaseUiWidth;
-	Visible.m_BaseHeight = BaseUiHeight;
-	Visible.m_StateOffsetX = TransformToVisibleOffsetX * pUiScreen->w / ScreenW;
-	Visible.m_StateOffsetY = TransformToVisibleOffsetY * pUiScreen->h / ScreenH;
-	Visible.m_Scalable = Scalable;
-	m_vVisibleElements.push_back(Visible);
 	Scope.m_TargetRect = {AnchorX, AnchorY, TransformWidth, TransformHeight};
 	Scope.m_VisibleRect = {AnchorX + VisibleOffsetX, AnchorY + VisibleOffsetY, VisibleWidth, VisibleHeight};
+	Scope.m_ScreenX0 = ScreenX0;
+	Scope.m_ScreenY0 = ScreenY0;
+	Scope.m_ScreenX1 = ScreenX1;
+	Scope.m_ScreenY1 = ScreenY1;
 	Scope.m_AnchoredLeft = std::fabs(Scope.m_VisibleRect.x - ScreenX0) <= HUD_EDITOR_EDGE_ANCHOR_DISTANCE;
 	Scope.m_AnchoredRight = std::fabs(Scope.m_VisibleRect.x + Scope.m_VisibleRect.w - ScreenX1) <= HUD_EDITOR_EDGE_ANCHOR_DISTANCE;
 	Scope.m_AnchoredTop = std::fabs(Scope.m_VisibleRect.y - ScreenY0) <= HUD_EDITOR_EDGE_ANCHOR_DISTANCE;
@@ -507,21 +497,57 @@ CHudEditor::STransformScope CHudEditor::BeginTransform(EHudEditorElement Element
 	if(Scope.m_AnchoredBottom)
 		Scope.m_Corners &= ~IGraphics::CORNER_B;
 
+	if(pVisible != nullptr)
+	{
+		pVisible->m_Element = Element;
+		pVisible->m_Rect = {
+			pUiScreen->x + (AnchorX + VisibleOffsetX - ScreenX0) * pUiScreen->w / ScreenW,
+			pUiScreen->y + (AnchorY + VisibleOffsetY - ScreenY0) * pUiScreen->h / ScreenH,
+			BaseUiWidth * Scale,
+			BaseUiHeight * Scale};
+		pVisible->m_BaseWidth = BaseUiWidth;
+		pVisible->m_BaseHeight = BaseUiHeight;
+		pVisible->m_StateOffsetX = TransformToVisibleOffsetX * pUiScreen->w / ScreenW;
+		pVisible->m_StateOffsetY = TransformToVisibleOffsetY * pUiScreen->h / ScreenH;
+		pVisible->m_Scalable = Scalable;
+	}
+	return true;
+}
+
+CHudEditor::STransformScope CHudEditor::PreviewTransform(EHudEditorElement Element, const CUIRect &DefaultRect, bool Scalable)
+{
+	return PreviewTransform(Element, DefaultRect, DefaultRect, Scalable);
+}
+
+CHudEditor::STransformScope CHudEditor::PreviewTransform(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable)
+{
+	STransformScope Scope;
+	ComputeTransformPlacement(Element, TransformRect, VisibleRect, Scalable, Scope, nullptr);
+	return Scope;
+}
+
+CHudEditor::STransformScope CHudEditor::BeginTransform(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable, bool ApplyMapScreen)
+{
+	STransformScope Scope;
+	SVisibleElement Visible;
+	if(!ComputeTransformPlacement(Element, TransformRect, VisibleRect, Scalable, Scope, &Visible))
+		return Scope;
+	m_vVisibleElements.push_back(Visible);
+
+	const float Scale = TransformRect.w > EPSILON ? Scope.m_TargetRect.w / TransformRect.w : 1.0f;
 	const bool Transformed =
-		std::fabs(AnchorX - TransformRect.x) > EPSILON ||
-		std::fabs(AnchorY - TransformRect.y) > EPSILON ||
+		std::fabs(Scope.m_TargetRect.x - TransformRect.x) > EPSILON ||
+		std::fabs(Scope.m_TargetRect.y - TransformRect.y) > EPSILON ||
 		std::fabs(Scale - 1.0f) > EPSILON;
 	if(!Transformed || !ApplyMapScreen)
 		return Scope;
 
 	Scope.m_Applied = true;
-	Scope.m_ScreenX0 = ScreenX0;
-	Scope.m_ScreenY0 = ScreenY0;
-	Scope.m_ScreenX1 = ScreenX1;
-	Scope.m_ScreenY1 = ScreenY1;
+	const float ScreenW = maximum(EPSILON, Scope.m_ScreenX1 - Scope.m_ScreenX0);
+	const float ScreenH = maximum(EPSILON, Scope.m_ScreenY1 - Scope.m_ScreenY0);
 
-	const float NewScreenX0 = TransformRect.x - (AnchorX - ScreenX0) / Scale;
-	const float NewScreenY0 = TransformRect.y - (AnchorY - ScreenY0) / Scale;
+	const float NewScreenX0 = TransformRect.x - (Scope.m_TargetRect.x - Scope.m_ScreenX0) / Scale;
+	const float NewScreenY0 = TransformRect.y - (Scope.m_TargetRect.y - Scope.m_ScreenY0) / Scale;
 	Graphics()->MapScreen(NewScreenX0, NewScreenY0, NewScreenX0 + ScreenW / Scale, NewScreenY0 + ScreenH / Scale);
 	return Scope;
 }

@@ -18,6 +18,12 @@
 
 namespace QmHudNotifications
 {
+	enum class EHorizontalFlow
+	{
+		LeftToRight,
+		RightToLeft,
+	};
+
 	enum class ETextSource
 	{
 		System,
@@ -89,6 +95,30 @@ namespace QmHudNotifications
 	inline float MinBoxWidth(float FontSize)
 	{
 		return 82.0f * SmallTextScale(FontSize);
+	}
+
+	inline EHorizontalFlow ResolveHorizontalFlow(bool AnchoredLeft, bool AnchoredRight, float VisibleCenterX, float ScreenCenterX)
+	{
+		if(AnchoredLeft)
+			return EHorizontalFlow::LeftToRight;
+		if(AnchoredRight)
+			return EHorizontalFlow::RightToLeft;
+		return VisibleCenterX <= ScreenCenterX ? EHorizontalFlow::LeftToRight : EHorizontalFlow::RightToLeft;
+	}
+
+	inline float NotificationBoxX(const CUIRect &BaseRect, float BoxW, EHorizontalFlow Flow, float SlideOffset)
+	{
+		if(Flow == EHorizontalFlow::LeftToRight)
+			return BaseRect.x - SlideOffset;
+		return BaseRect.x + BaseRect.w - BoxW + SlideOffset;
+	}
+
+	inline CUIRect NotificationVisibleRect(const CUIRect &BaseRect, float VisibleWidth, float UsedHeight, EHorizontalFlow Flow, float MaxSlideOffset = 0.0f)
+	{
+		const float Width = maximum(0.0f, VisibleWidth) + maximum(0.0f, MaxSlideOffset);
+		const float Height = maximum(0.0f, UsedHeight);
+		const float X = Flow == EHorizontalFlow::LeftToRight ? BaseRect.x - maximum(0.0f, MaxSlideOffset) : BaseRect.x + BaseRect.w - maximum(0.0f, VisibleWidth);
+		return {X, BaseRect.y, Width, Height};
 	}
 
 	inline STextColorConfig TextColorConfig(ETextSource Source, int EchoInheritChatColor, unsigned SystemColor, unsigned EchoOverrideColor, unsigned ChatEchoColor)
@@ -203,6 +233,9 @@ private:
 	QmHudNotifications::ESoloPrompt m_PendingCompatPrompt = QmHudNotifications::ESoloPrompt::None;
 	int64_t m_PendingCompatUntil = 0;
 
+	int BuildVisibleNotificationList(bool Preview, const SNotification *(&apVisible)[8], SNotification &PreviewNotification);
+	CUIRect MeasureVisibleRect(const CUIRect &BaseRect, bool Preview, QmHudNotifications::EHorizontalFlow Flow);
+
 	void Queue(EKind Kind, const char *pText, unsigned EchoColor = 0, bool HasEchoColor = false)
 	{
 		if(pText == nullptr || pText[0] == '\0')
@@ -227,7 +260,7 @@ private:
 			Queue(EKind::SoloLeave, Localize("你现在已离开单人区域"));
 	}
 	bool LocalSoloState(bool &Solo) const;
-	void RenderNotifications(const CUIRect &BaseRect, bool Preview);
+	void RenderNotifications(const CUIRect &BaseRect, const CUIRect &VisibleRect, bool Preview, QmHudNotifications::EHorizontalFlow Flow);
 };
 
 #endif

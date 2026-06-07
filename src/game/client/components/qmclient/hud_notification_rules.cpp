@@ -1,4 +1,8 @@
 #include "hud_notification_rules.h"
+#include "hud_notification_catalog.h"
+#include "hud_notification_static_rules.h"
+#include "hud_notification_static_alias_rules.h"
+#include "hud_notification_static_upstream_rules.h"
 
 #include <game/localization.h>
 
@@ -23,6 +27,81 @@ namespace
 		Analysis.m_SoloPrompt = QmHudNotifications::ESoloPrompt::None;
 		Analysis.m_UseFallbackLocalization = true;
 		Analysis.m_aLocalizedText[0] = '\0';
+	}
+
+	void SetDynamicSemantic(QmHudNotifications::SServerMessageAnalysis &Analysis, QmHudNotifications::EDynamicMessageKey Key, const char *pParamA = "", const char *pParamB = "", const char *pParamC = "")
+	{
+		Analysis.m_DynamicSemantic.m_Key = Key;
+		str_copy(Analysis.m_DynamicSemantic.m_aParamA, pParamA, sizeof(Analysis.m_DynamicSemantic.m_aParamA));
+		str_copy(Analysis.m_DynamicSemantic.m_aParamB, pParamB, sizeof(Analysis.m_DynamicSemantic.m_aParamB));
+		str_copy(Analysis.m_DynamicSemantic.m_aParamC, pParamC, sizeof(Analysis.m_DynamicSemantic.m_aParamC));
+	}
+
+	void SetSemanticLocalizedAnalysis(QmHudNotifications::SServerMessageAnalysis &Analysis)
+	{
+		if(Analysis.m_MessageKey != QmHudNotifications::EMessageKey::None)
+		{
+			if(const auto *pMeta = QmHudNotifications::FindMessageMetadata(Analysis.m_MessageKey))
+				SetLocalizedAnalysis(Analysis, pMeta->m_Route, pMeta->m_Class, pMeta->m_Domain, Analysis.m_aLocalizedText, Analysis.m_SoloPrompt);
+			return;
+		}
+
+		if(Analysis.m_DynamicSemantic.m_Key != QmHudNotifications::EDynamicMessageKey::None)
+		{
+			if(const auto *pMeta = QmHudNotifications::FindMessageMetadata(Analysis.m_DynamicSemantic.m_Key))
+				SetLocalizedAnalysis(Analysis, pMeta->m_Route, pMeta->m_Class, pMeta->m_Domain, Analysis.m_aLocalizedText, Analysis.m_SoloPrompt);
+		}
+	}
+
+	void FormatDynamicLocalizedText(const QmHudNotifications::SDynamicMessageSemantic &Semantic, char *pBuf, size_t BufSize)
+	{
+		if(BufSize == 0)
+			return;
+		pBuf[0] = '\0';
+
+		switch(Semantic.m_Key)
+		{
+		case QmHudNotifications::EDynamicMessageKey::TeamJoined:
+			str_format(pBuf, BufSize, Localize(QmHudNotifications::FindMessageMetadata(QmHudNotifications::EDynamicMessageKey::TeamJoined)->m_pCanonicalText), Semantic.m_aParamA, Semantic.m_aParamB);
+			break;
+		case QmHudNotifications::EDynamicMessageKey::SwapRequestSent:
+			str_format(pBuf, BufSize, Localize(QmHudNotifications::FindMessageMetadata(QmHudNotifications::EDynamicMessageKey::SwapRequestSent)->m_pCanonicalText), Semantic.m_aParamA);
+			break;
+		case QmHudNotifications::EDynamicMessageKey::None:
+			break;
+		}
+	}
+
+	bool SemanticAnalysisExcludedByMetadata(const QmHudNotifications::SServerMessageAnalysis &Analysis)
+	{
+		if(Analysis.m_MessageKey != QmHudNotifications::EMessageKey::None)
+		{
+			const auto *pMeta = QmHudNotifications::FindMessageMetadata(Analysis.m_MessageKey);
+			return pMeta != nullptr && pMeta->m_ExcludeFromNotifications;
+		}
+		if(Analysis.m_DynamicSemantic.m_Key != QmHudNotifications::EDynamicMessageKey::None)
+		{
+			const auto *pMeta = QmHudNotifications::FindMessageMetadata(Analysis.m_DynamicSemantic.m_Key);
+			return pMeta != nullptr && pMeta->m_ExcludeFromNotifications;
+		}
+		return false;
+	}
+
+	bool TryMatchStaticMessageKey(const char *pMessage, QmHudNotifications::EMessageKey &Key)
+	{
+		Key = QmHudNotifications::EMessageKey::None;
+
+#define QM_TRY_STATIC_KEY(pLiteral, KeyName) \
+		if(str_comp(pMessage, pLiteral) == 0) \
+		{ \
+			Key = QmHudNotifications::EMessageKey::KeyName; \
+			return true; \
+		}
+		QM_HUD_NOTIFICATION_STATIC_UPSTREAM_RULES(QM_TRY_STATIC_KEY)
+		QM_HUD_NOTIFICATION_STATIC_ALIAS_RULES(QM_TRY_STATIC_KEY)
+#undef QM_TRY_STATIC_KEY
+
+		return false;
 	}
 
 	bool ExtractWrappedValue(const char *pMessage, const char *pPrefix, const char *pSuffix, char *pValue, size_t ValueSize)
@@ -59,10 +138,11 @@ namespace
 		return true;
 	}
 
-	bool TryCopyStaticLocalizedNotification(const char *pMessage, char *pBuf, size_t BufSize, QmHudNotifications::EServerMessageDomain &Domain, QmHudNotifications::ESoloPrompt &SoloPrompt)
+	bool TryCopyStaticLocalizedNotification(const char *pMessage, char *pBuf, size_t BufSize, QmHudNotifications::EMessageKey &MessageKey, QmHudNotifications::EServerMessageDomain &Domain, QmHudNotifications::ESoloPrompt &SoloPrompt)
 	{
 		if(BufSize > 0)
 			pBuf[0] = '\0';
+		MessageKey = QmHudNotifications::EMessageKey::None;
 
 		SoloPrompt = QmHudNotifications::MatchKnownSoloPrompt(pMessage);
 		if(SoloPrompt == QmHudNotifications::ESoloPrompt::Enter)
@@ -77,9 +157,25 @@ namespace
 			str_copy(pBuf, Localize("你现在已离开单人区域"), BufSize);
 			return true;
 		}
+		if(TryMatchStaticMessageKey(pMessage, MessageKey))
+		{
+			const auto *pMeta = QmHudNotifications::FindMessageMetadata(MessageKey);
+			if(pMeta != nullptr)
+			{
+				Domain = pMeta->m_Domain;
+				str_copy(pBuf, Localize(QmHudNotifications::CanonicalMessageText(MessageKey)), BufSize);
+				return true;
+			}
+		}
 
 #define QM_TRY_FORMAT_STATIC_NOTIFICATION(pDomain, pOriginal, pLocalized) \
 		if(str_comp(pMessage, pOriginal) == 0) \
+		{ \
+			Domain = pDomain; \
+			str_copy(pBuf, Localize(pLocalized), BufSize); \
+			return true; \
+		} \
+		if(str_comp(pMessage, pLocalized) == 0) \
 		{ \
 			Domain = pDomain; \
 			str_copy(pBuf, Localize(pLocalized), BufSize); \
@@ -172,13 +268,31 @@ namespace
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
+		if(ExtractWrappedValue(pMessage, "'", "' 锁定了你们的队伍", aValueA, sizeof(aValueA)))
+		{
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 锁定了你们的队伍"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
+			return true;
+		}
 		if(ExtractWrappedValue(pMessage, "'", "' locked your team. After the race starts, killing will kill everyone in your team.", aValueA, sizeof(aValueA)))
 		{
 			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 锁定了你们的队伍。比赛开始后，任何人 kill 都会导致整队死亡"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
+		if(ExtractWrappedValue(pMessage, "'", "' 锁定了你们的队伍。比赛开始后，任何人 kill 都会导致整队死亡", aValueA, sizeof(aValueA)))
+		{
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 锁定了你们的队伍。比赛开始后，任何人 kill 都会导致整队死亡"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
+			return true;
+		}
 		if(ExtractWrappedValue(pMessage, "'", "' unlocked your team.", aValueA, sizeof(aValueA)))
+		{
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 解锁了你们的队伍"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
+			return true;
+		}
+		if(ExtractWrappedValue(pMessage, "'", "' 解锁了你们的队伍", aValueA, sizeof(aValueA)))
 		{
 			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 解锁了你们的队伍"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
@@ -196,13 +310,32 @@ namespace
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
+		if(str_startswith(pMessage, "无法关闭 team 0 模式。该队伍人数已超过普通队伍允许上限 "))
+		{
+			str_copy(aValueA, pMessage + str_length("无法关闭 team 0 模式。该队伍人数已超过普通队伍允许上限 "), sizeof(aValueA));
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("无法关闭 team 0 模式。该队伍人数已超过普通队伍允许上限 %s"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
+			return true;
+		}
 		if(ExtractWrappedValue(pMessage, "'", "' disabled team 0 mode.", aValueA, sizeof(aValueA)))
 		{
 			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 关闭了 team 0 模式"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
+		if(ExtractWrappedValue(pMessage, "'", "' 关闭了 team 0 模式。", aValueA, sizeof(aValueA)))
+		{
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 关闭了 team 0 模式"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
+			return true;
+		}
 		if(ExtractWrappedValue(pMessage, "'", "' enabled team 0 mode. This will make your team behave like team 0.", aValueA, sizeof(aValueA)))
+		{
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 开启了 team 0 模式。你们的队伍现在会按 team 0 规则运作"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
+			return true;
+		}
+		if(ExtractWrappedValue(pMessage, "'", "' 开启了 team 0 模式。你们的队伍现在会按 team 0 规则运作。", aValueA, sizeof(aValueA)))
 		{
 			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 开启了 team 0 模式。你们的队伍现在会按 team 0 规则运作"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
@@ -230,8 +363,23 @@ namespace
 				str_truncate(aValueA, sizeof(aValueA), pMessage + 1, pTeamPos - (pMessage + 1));
 				const char *pTeamStart = pTeamPos + str_length("' joined team ");
 				str_truncate(aValueB, sizeof(aValueB), pTeamStart, str_length(pTeamStart));
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 加入了 %s 队"), aValueA, aValueB);
-				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
+				SetDynamicSemantic(Analysis, QmHudNotifications::EDynamicMessageKey::TeamJoined, aValueA, aValueB);
+				FormatDynamicLocalizedText(Analysis.m_DynamicSemantic, Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText));
+				SetSemanticLocalizedAnalysis(Analysis);
+				return true;
+			}
+		}
+		if(pMessage[0] == '\'' && str_find(pMessage + 1, "' 加入了 ") != nullptr && str_endswith(pMessage, " 队"))
+		{
+			const char *pTeamPos = str_find(pMessage, "' 加入了 ");
+			if(pTeamPos != nullptr)
+			{
+				str_truncate(aValueA, sizeof(aValueA), pMessage + 1, pTeamPos - (pMessage + 1));
+				const char *pTeamStart = pTeamPos + str_length("' 加入了 ");
+				str_truncate(aValueB, sizeof(aValueB), pTeamStart, pMessage + str_length(pMessage) - str_length(" 队") - pTeamStart);
+				SetDynamicSemantic(Analysis, QmHudNotifications::EDynamicMessageKey::TeamJoined, aValueA, aValueB);
+				FormatDynamicLocalizedText(Analysis.m_DynamicSemantic, Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText));
+				SetSemanticLocalizedAnalysis(Analysis);
 				return true;
 			}
 		}
@@ -248,6 +396,21 @@ namespace
 				return true;
 			}
 		}
+		if(pMessage[0] == '\'' && str_find(pMessage + 1, "' 邀请你加入 ") != nullptr && str_find(pMessage, "。输入 /team ") != nullptr)
+		{
+			const char *pTeamPos = str_find(pMessage, "' 邀请你加入 ");
+			const char *pUsePos = pTeamPos == nullptr ? nullptr : str_find(pTeamPos + str_length("' 邀请你加入 "), "。输入 /team ");
+			if(pTeamPos != nullptr && pUsePos != nullptr)
+			{
+				str_truncate(aValueA, sizeof(aValueA), pMessage + 1, pTeamPos - (pMessage + 1));
+				str_truncate(aValueB, sizeof(aValueB), pTeamPos + str_length("' 邀请你加入 "), pUsePos - (pTeamPos + str_length("' 邀请你加入 ")));
+				if(str_endswith(aValueB, " 队"))
+					aValueB[str_length(aValueB) - str_length(" 队")] = '\0';
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 邀请你加入 %s 队。输入 /team %s 即可加入"), aValueA, aValueB, aValueB);
+				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
+				return true;
+			}
+		}
 		if(str_startswith(pMessage, "'") && str_find(pMessage, "' invited '") != nullptr && str_endswith(pMessage, "' to your team."))
 		{
 			const char *pMiddle = "' invited '";
@@ -257,6 +420,20 @@ namespace
 				str_truncate(aValueA, sizeof(aValueA), pMessage + 1, pMiddlePos - (pMessage + 1));
 				const char *pTargetStart = pMiddlePos + str_length(pMiddle);
 				str_truncate(aValueB, sizeof(aValueB), pTargetStart, pMessage + str_length(pMessage) - str_length("' to your team.") - pTargetStart);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 邀请了 '%s' 加入你们的队伍"), aValueA, aValueB);
+				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
+				return true;
+			}
+		}
+		if(str_startswith(pMessage, "'") && str_find(pMessage, "' 邀请了 '") != nullptr && str_endswith(pMessage, "' 加入你们的队伍。"))
+		{
+			const char *pMiddle = "' 邀请了 '";
+			const char *pMiddlePos = str_find(pMessage, pMiddle);
+			if(pMiddlePos != nullptr)
+			{
+				str_truncate(aValueA, sizeof(aValueA), pMessage + 1, pMiddlePos - (pMessage + 1));
+				const char *pTargetStart = pMiddlePos + str_length(pMiddle);
+				str_truncate(aValueB, sizeof(aValueB), pTargetStart, pMessage + str_length(pMessage) - str_length("' 加入你们的队伍。") - pTargetStart);
 				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 邀请了 '%s' 加入你们的队伍"), aValueA, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 				return true;
@@ -283,10 +460,24 @@ namespace
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
+		if(ExtractWrappedValue(pMessage, "你已经向 ", " 发过交换请求了", aValueA, sizeof(aValueA)))
+		{
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你已经向 %s 发过交换请求了"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
+			return true;
+		}
 		if(ExtractWrappedValue(pMessage, "You have requested to swap with ", ". Use /cancelswap to cancel the request.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你已向 %s 发出交换请求。输入 /cancelswap 可取消"), aValueA);
-			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
+			SetDynamicSemantic(Analysis, QmHudNotifications::EDynamicMessageKey::SwapRequestSent, aValueA);
+			FormatDynamicLocalizedText(Analysis.m_DynamicSemantic, Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText));
+			SetSemanticLocalizedAnalysis(Analysis);
+			return true;
+		}
+		if(ExtractWrappedValue(pMessage, "你已向 ", " 发出交换请求。输入 /cancelswap 可取消", aValueA, sizeof(aValueA)))
+		{
+			SetDynamicSemantic(Analysis, QmHudNotifications::EDynamicMessageKey::SwapRequestSent, aValueA);
+			FormatDynamicLocalizedText(Analysis.m_DynamicSemantic, Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText));
+			SetSemanticLocalizedAnalysis(Analysis);
 			return true;
 		}
 		if(str_endswith(pMessage, ".") && str_find(pMessage, " has requested to swap with you. To complete the swap process please wait ") != nullptr)
@@ -332,7 +523,19 @@ namespace
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
+		if(ExtractWrappedValue(pMessage, "救援模式已切换为 ", "。", aValueA, sizeof(aValueA)))
+		{
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("救援模式已切换为 %s"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
+			return true;
+		}
 		if(ExtractWrappedValue(pMessage, "Current rescue mode: ", ".", aValueA, sizeof(aValueA)))
+		{
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("当前救援模式：%s"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
+			return true;
+		}
+		if(ExtractWrappedValue(pMessage, "当前救援模式：", "。", aValueA, sizeof(aValueA)))
 		{
 			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("当前救援模式：%s"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
@@ -632,6 +835,18 @@ namespace
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 			return true;
 		}
+		if(str_startswith(pMessage, "计时器显示在 "))
+		{
+			str_copy(aValueA, pMessage + str_length("计时器显示在 "), sizeof(aValueA));
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("计时器当前显示在 %s"), aValueA);
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
+			return true;
+		}
+		if(str_comp(pMessage, "计时器不会显示。") == 0)
+		{
+			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Localize("计时器不会显示"));
+			return true;
+		}
 		if(str_startswith(pMessage, "Time to wait before changing team: "))
 		{
 			str_copy(aValueA, pMessage + str_length("Time to wait before changing team: "), sizeof(aValueA));
@@ -653,6 +868,21 @@ namespace
 				str_truncate(aValueA, sizeof(aValueA), pMessage, pMiddle - pMessage);
 				str_copy(aValueB, pMiddle + str_length(" current race time is "), sizeof(aValueB));
 				if(str_comp(aValueA, "Your") == 0)
+					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你当前的比赛用时是 %s"), aValueB);
+				else
+					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s 当前的比赛用时是 %s"), aValueA, aValueB);
+				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
+				return true;
+			}
+		}
+		if(str_find(pMessage, "当前用时是 ") != nullptr)
+		{
+			const char *pMiddle = str_find(pMessage, "当前用时是 ");
+			if(pMiddle != nullptr)
+			{
+				str_truncate(aValueA, sizeof(aValueA), pMessage, pMiddle - pMessage);
+				str_copy(aValueB, pMiddle + str_length("当前用时是 "), sizeof(aValueB));
+				if(str_comp(aValueA, "你的") == 0)
 					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你当前的比赛用时是 %s"), aValueB);
 				else
 					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s 当前的比赛用时是 %s"), aValueA, aValueB);
@@ -695,6 +925,40 @@ namespace
 		}
 		return false;
 	}
+
+	bool TryAnalyzeRecognizedSemanticMessage(const char *pMessage, QmHudNotifications::SServerMessageAnalysis &Analysis)
+	{
+		if(pMessage == nullptr || pMessage[0] == '\0')
+			return false;
+
+		QmHudNotifications::EMessageKey StaticMessageKey = QmHudNotifications::EMessageKey::None;
+		QmHudNotifications::EServerMessageDomain StaticDomain = QmHudNotifications::EServerMessageDomain::None;
+		QmHudNotifications::ESoloPrompt StaticSoloPrompt = QmHudNotifications::ESoloPrompt::None;
+		if(TryCopyStaticLocalizedNotification(pMessage, Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), StaticMessageKey, StaticDomain, StaticSoloPrompt) &&
+			StaticMessageKey != QmHudNotifications::EMessageKey::None)
+		{
+			Analysis.m_MessageKey = StaticMessageKey;
+			Analysis.m_SoloPrompt = StaticSoloPrompt;
+			SetSemanticLocalizedAnalysis(Analysis);
+			return Analysis.m_MessageKey != QmHudNotifications::EMessageKey::None;
+		}
+
+		QmHudNotifications::SServerMessageAnalysis DynamicAnalysis;
+		if((AnalyzeTeamMessage(pMessage, DynamicAnalysis) || AnalyzeSwapRescueMessage(pMessage, DynamicAnalysis)) &&
+			DynamicAnalysis.m_DynamicSemantic.m_Key != QmHudNotifications::EDynamicMessageKey::None)
+		{
+			Analysis = DynamicAnalysis;
+			return true;
+		}
+
+		return false;
+	}
+
+	bool RecognizedSemanticMessageExcludedByMetadata(const char *pMessage)
+	{
+		QmHudNotifications::SServerMessageAnalysis Analysis;
+		return TryAnalyzeRecognizedSemanticMessage(pMessage, Analysis) && SemanticAnalysisExcludedByMetadata(Analysis);
+	}
 } // namespace
 
 namespace QmHudNotifications
@@ -722,13 +986,24 @@ namespace QmHudNotifications
 	{
 		if(pMessage == nullptr || pMessage[0] == '\0')
 			return true;
+		const char *pLeaveGameMarker = pMessage[0] == '\'' ? str_find(pMessage + 1, "' has left the game") : nullptr;
+		const bool IsLeaveGameBroadcast = pLeaveGameMarker != nullptr &&
+			(str_comp(pLeaveGameMarker, "' has left the game") == 0 ||
+				(str_comp_num(pLeaveGameMarker, "' has left the game (", str_length("' has left the game (")) == 0 && str_endswith(pMessage, ")") != nullptr));
 		if(str_startswith(pMessage, "Usage:") ||
 			str_startswith(pMessage, "用法：") ||
 			str_startswith(pMessage, "Example:") ||
+			str_startswith(pMessage, "示例：") ||
 			str_startswith(pMessage, "Bad:") ||
+			str_startswith(pMessage, "错误示例：") ||
 			str_startswith(pMessage, "Available practice commands:") ||
 			str_startswith(pMessage, "Available rescue modes:") ||
-			str_startswith(pMessage, "Emote commands are:"))
+			str_startswith(pMessage, "可用救援模式：") ||
+			str_startswith(pMessage, "Emote commands are:") ||
+			str_comp_num(pMessage, "可用表情命令：", str_length("可用表情命令：")) == 0)
+			return true;
+		// Stable semantic notifications use catalog metadata; help/example shaped text stays literal-based until it has a real semantic family.
+		if(RecognizedSemanticMessageExcludedByMetadata(pMessage))
 			return true;
 		if(str_startswith(pMessage, "DDraceNetwork 版本:") ||
 			str_startswith(pMessage, "DDraceNetwork Version:") ||
@@ -747,7 +1022,10 @@ namespace QmHudNotifications
 			str_comp(pMessage, "No Rules Defined, Kill em all!!") == 0 ||
 			str_endswith(pMessage, " entered and joined the game") ||
 			str_endswith(pMessage, " joined the game") ||
+			IsLeaveGameBroadcast ||
 			str_comp(pMessage, "See /practicecmdlist for a list of all available practice commands. Most commonly used ones are /telecursor, /lasttp and /rescue") == 0 ||
+			str_comp(pMessage, "输入 /practicecmdlist 可以查看所有可用的练习命令。最常用的是 /telecursor、/lasttp 和 /rescue") == 0 ||
+			str_comp(pMessage, "示例：/map adr3 可以发起 Adrenaline 3 的换图投票。这表示地图名必须以 'a' 开头，并按顺序包含 'd'、'r'、'3'") == 0 ||
 			str_comp(pMessage, "Example: /map adr3 to call vote for Adrenaline 3. This means that the map name must start with 'a' and contain the characters 'd', 'r' and '3' in that order") == 0)
 			return true;
 		return false;
@@ -766,6 +1044,16 @@ namespace QmHudNotifications
 			return Analysis;
 		}
 
+		if(TryAnalyzeRecognizedSemanticMessage(pMessage, Analysis))
+		{
+			if(SemanticAnalysisExcludedByMetadata(Analysis))
+			{
+				Analysis.m_Route = EServerMessageRoute::None;
+				Analysis.m_Class = EServerMessageClass::BasicInfo;
+			}
+			return Analysis;
+		}
+
 		if(ShouldExcludeSystemNotification(pMessage))
 		{
 			Analysis.m_Class = EServerMessageClass::BasicInfo;
@@ -776,9 +1064,21 @@ namespace QmHudNotifications
 		// 单次分析既决定是否进通知栏，也决定如何本地化，避免黑名单和格式化规则继续分叉漂移。
 		EServerMessageDomain StaticDomain = EServerMessageDomain::None;
 		ESoloPrompt StaticSoloPrompt = ESoloPrompt::None;
-		if(TryCopyStaticLocalizedNotification(pMessage, Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), StaticDomain, StaticSoloPrompt))
+		EMessageKey StaticMessageKey = EMessageKey::None;
+		if(TryCopyStaticLocalizedNotification(pMessage, Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), StaticMessageKey, StaticDomain, StaticSoloPrompt))
 		{
-			SetLocalizedAnalysis(Analysis, EServerMessageRoute::System, EServerMessageClass::Prompt, StaticDomain, Analysis.m_aLocalizedText, StaticSoloPrompt);
+			if(StaticMessageKey != EMessageKey::None)
+			{
+				Analysis.m_MessageKey = StaticMessageKey;
+				Analysis.m_SoloPrompt = StaticSoloPrompt;
+				SetSemanticLocalizedAnalysis(Analysis);
+				if(Analysis.m_Route != EServerMessageRoute::None || Analysis.m_Class != EServerMessageClass::None)
+					return Analysis;
+				else
+					SetLocalizedAnalysis(Analysis, EServerMessageRoute::System, EServerMessageClass::Prompt, StaticDomain, Analysis.m_aLocalizedText, StaticSoloPrompt);
+			}
+			else
+				SetLocalizedAnalysis(Analysis, EServerMessageRoute::System, EServerMessageClass::Prompt, StaticDomain, Analysis.m_aLocalizedText, StaticSoloPrompt);
 			return Analysis;
 		}
 		if(AnalyzeTeamMessage(pMessage, Analysis) || AnalyzeSwapRescueMessage(pMessage, Analysis) || AnalyzeVoteModerationMessage(pMessage, Analysis) || AnalyzeStatusMessage(pMessage, Analysis))
