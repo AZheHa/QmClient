@@ -364,9 +364,9 @@ TEST(QmNewUiMenuBranches, SettingsShellKeepsExplicitQmNewUiContainerBranch)
 TEST(QmNewUiMenuBranches, LegacyMenusKeepTabAndPanelShellConnected)
 {
 	const std::string MenusSource = ReadTextFile("src/game/client/components/menus.cpp");
-	EXPECT_NE(MenusSource.find("Screen.HSplitTop(34.0f, &TabBar, &MainView);\n\t\t\tconst bool UseNewUi = g_Config.m_QmNewUi != 0;\n\t\t\tif(UseNewUi)\n\t\t\t\tMainView.HSplitTop(10.0f, nullptr, &MainView);"), std::string::npos);
+	EXPECT_NE(MenusSource.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;\n\t\t\tconst float MenubarHeight = UseNewUi ? 30.0f : 34.0f;\n\t\t\tScreen.HSplitTop(MenubarHeight, &TabBar, &MainView);\n\t\t\tif(UseNewUi)\n\t\t\t\tMainView.HSplitTop(8.0f, nullptr, &MainView);"), std::string::npos);
 	EXPECT_NE(MenusSource.find("case IClient::STATE_ONLINE:"), std::string::npos);
-	EXPECT_NE(MenusSource.find("Screen.HSplitTop(34.0f, &TabBar, &MainView);\n\t\t\tconst bool UseNewUi = g_Config.m_QmNewUi != 0;\n\t\t\tif(UseNewUi)\n\t\t\t\tMainView.HSplitTop(10.0f, nullptr, &MainView);"), std::string::npos);
+	EXPECT_NE(MenusSource.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;\n\t\t\tconst float MenubarHeight = UseNewUi ? 30.0f : 34.0f;\n\t\t\tScreen.HSplitTop(MenubarHeight, &TabBar, &MainView);\n\t\t\tif(UseNewUi)\n\t\t\t\tMainView.HSplitTop(8.0f, nullptr, &MainView);"), std::string::npos);
 
 	const std::string QmClientSource = ReadTextFile("src/game/client/components/qmclient/menus_qmclient.cpp");
 	EXPECT_NE(QmClientSource.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;"), std::string::npos);

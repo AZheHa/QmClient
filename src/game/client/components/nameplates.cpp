@@ -2341,7 +2341,12 @@ void CNamePlates::OnRender()
 			}
 
 			// Each player can also have a spectator char whose name plate is displayed independently
-			if(GameClient()->m_aClients[i].m_SpecCharPresent && RenderNameplates)
+			const bool FollowedCharacterWillRender =
+				GameClient()->m_Snap.m_SpecInfo.m_Active &&
+				!GameClient()->m_MultiViewActivated &&
+				GameClient()->m_Snap.m_SpecInfo.m_SpectatorId == i &&
+				GameClient()->m_Snap.m_aCharacters[i].m_Active;
+			if(GameClient()->m_aClients[i].m_SpecCharPresent && RenderNameplates && !FollowedCharacterWillRender)
 			{
 				const vec2 RenderPos = GameClient()->m_aClients[i].m_SpecChar;
 				RenderNamePlateGame(RenderPos, pInfo, 0.4f, false);

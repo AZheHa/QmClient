@@ -1806,6 +1806,10 @@ void CPlayers::OnRender()
 		RenderHook(&pLocalClientData->m_RenderPrev, &pLocalClientData->m_RenderCur, &aRenderInfo[LocalClientId], LocalClientId);
 	}
 
+	// Render everyone else's tee, then either our own or the tee we are spectating.
+	const bool FollowingPlayer = GameClient()->m_Snap.m_SpecInfo.m_SpectatorId != SPEC_FREEVIEW && GameClient()->m_Snap.m_SpecInfo.m_Active;
+	const int RenderLastId = FollowingPlayer ? GameClient()->m_Snap.m_SpecInfo.m_SpectatorId : LocalClientId;
+
 	// render spectating players
 	for(const auto &Client : GameClient()->m_aClients)
 	{
@@ -1815,6 +1819,9 @@ void CPlayers::OnRender()
 		}
 
 		const int ClientId = Client.ClientId();
+		if(FollowingPlayer && ClientId == RenderLastId && IsPlayerInfoAvailable(ClientId))
+			continue;
+
 		float Alpha = GameClient()->LiveObserverClientAlpha(ClientId);
 		if(Alpha >= 1.0f)
 			Alpha = (GameClient()->IsOtherTeam(ClientId) || ClientId < 0) ? g_Config.m_ClShowOthersAlpha / 100.f : 1.f;
@@ -1824,9 +1831,6 @@ void CPlayers::OnRender()
 		}
 		RenderTools()->RenderTee(CAnimState::GetIdle(), &SpectatorTeeRenderInfo()->TeeRenderInfo(), EMOTE_BLINK, vec2(1, 0), Client.m_SpecChar, Alpha);
 	}
-
-	// render everyone else's tee, then either our own or the tee we are spectating.
-	const int RenderLastId = (GameClient()->m_Snap.m_SpecInfo.m_SpectatorId != SPEC_FREEVIEW && GameClient()->m_Snap.m_SpecInfo.m_Active) ? GameClient()->m_Snap.m_SpecInfo.m_SpectatorId : LocalClientId;
 
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ClientId++)
 	{

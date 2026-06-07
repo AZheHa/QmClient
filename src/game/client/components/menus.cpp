@@ -395,8 +395,8 @@ CMenus::CMenus()
 		Animator.m_ScaleLabel = false;
 		Animator.m_RepositionLabel = false;
 		Animator.m_XOffset = 0.0f;
-		Animator.m_YOffset = -5.0f;
-		Animator.m_HOffset = 5.0f;
+		Animator.m_YOffset = 0.0f;
+		Animator.m_HOffset = 0.0f;
 		Animator.m_WOffset = 0.0f;
 		Animator.m_Value = 0.0f;
 		Animator.m_Time = std::chrono::nanoseconds::zero();
@@ -408,8 +408,8 @@ CMenus::CMenus()
 		Animator.m_ScaleLabel = false;
 		Animator.m_RepositionLabel = false;
 		Animator.m_XOffset = 0.0f;
-		Animator.m_YOffset = -2.5f;
-		Animator.m_HOffset = 2.5f;
+		Animator.m_YOffset = 0.0f;
+		Animator.m_HOffset = 0.0f;
 		Animator.m_WOffset = 0.0f;
 		Animator.m_Value = 0.0f;
 		Animator.m_Time = std::chrono::nanoseconds::zero();
@@ -1117,13 +1117,13 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 	{
 		const float MenubarOuterInsetX = 6.0f;
 		const float MenubarOuterInsetY = 2.0f;
-		Box.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.12f), IGraphics::CORNER_ALL, 12.0f);
+		Box.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.12f), IGraphics::CORNER_ALL, 10.0f);
 		Box.VMargin(MenubarOuterInsetX, &Box);
 		Box.HMargin(MenubarOuterInsetY, &Box);
 
 		const float MenubarIconButtonSize = Box.h;
-		const float MenubarIconGap = 10.0f;
-		const float MenubarItemGap = 6.0f;
+		const float MenubarIconGap = 8.0f;
+		const float MenubarItemGap = 5.0f;
 		const ColorRGBA IconButtonDefault = MenuIconButtonDefaultColor();
 		const ColorRGBA IconButtonActive = MenuTabActiveColor();
 		const ColorRGBA IconButtonHover = MenuMenubarHoverColor();
@@ -1243,8 +1243,8 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 			}
 			GameClient()->m_Tooltips.DoToolTip(&s_StartButton, &Button, Localize("Main menu"));
 
-			const float BrowserButtonWidth = 75.0f;
-			Box.VSplitLeft(10.0f, nullptr, &Box);
+			const float BrowserButtonWidth = 68.0f;
+			Box.VSplitLeft(8.0f, nullptr, &Box);
 			Box.VSplitLeft(BrowserButtonWidth, &Button, &Box);
 			static CButtonContainer s_InternetButton;
 			if(DoMenuTabV2(&s_InternetButton, FONT_ICON_EARTH_AMERICAS, ActivePage == PAGE_INTERNET, &Button, IGraphics::CORNER_ALL))
@@ -2460,10 +2460,11 @@ void CMenus::Render()
 		else
 		{
 			CUIRect TabBar, MainView;
-			Screen.HSplitTop(34.0f, &TabBar, &MainView);
 			const bool UseNewUi = g_Config.m_QmNewUi != 0;
+			const float MenubarHeight = UseNewUi ? 30.0f : 34.0f;
+			Screen.HSplitTop(MenubarHeight, &TabBar, &MainView);
 			if(UseNewUi)
-				MainView.HSplitTop(10.0f, nullptr, &MainView);
+				MainView.HSplitTop(8.0f, nullptr, &MainView);
 			const CUIRect MainViewClip = MainView;
 			const float TransitionStrength = ReadUiSwitchAnimation(UiAnimNodeKey("menu_page_switch"));
 			const bool TransitionActive = TransitionStrength > 0.0f && m_MenuPageTransitionDirection != 0.0f;
@@ -2556,10 +2557,11 @@ void CMenus::Render()
 		else
 		{
 			CUIRect TabBar, MainView;
-			Screen.HSplitTop(34.0f, &TabBar, &MainView);
 			const bool UseNewUi = g_Config.m_QmNewUi != 0;
+			const float MenubarHeight = UseNewUi ? 30.0f : 34.0f;
+			Screen.HSplitTop(MenubarHeight, &TabBar, &MainView);
 			if(UseNewUi)
-				MainView.HSplitTop(10.0f, nullptr, &MainView);
+				MainView.HSplitTop(8.0f, nullptr, &MainView);
 			const CUIRect MainViewClip = MainView;
 			const float TransitionStrength = ReadUiSwitchAnimation(UiAnimNodeKey("game_page_switch"));
 			const bool TransitionActive = TransitionStrength > 0.0f && m_GamePageTransitionDirection != 0.0f;
