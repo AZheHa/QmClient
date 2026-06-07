@@ -738,6 +738,14 @@ TEST(SettingsResourceJobs, SkinPreviewFitsInsideListRow)
 	EXPECT_FLOAT_EQ(SettingsSkinPreviewCenterOffset(-35.0f, 15.0f), 10.0f);
 }
 
+TEST(SettingsResourceJobs, CachedSkinPreviewCountsAsReady)
+{
+	EXPECT_FALSE(SettingsSkinListEntryReady(false, false, false));
+	EXPECT_TRUE(SettingsSkinListEntryReady(true, false, false));
+	EXPECT_TRUE(SettingsSkinListEntryReady(false, true, false));
+	EXPECT_TRUE(SettingsSkinListEntryReady(false, false, true));
+}
+
 TEST(SettingsResourceJobs, CountryFlagPlanDeduplicatesAndKeepsOrder)
 {
 	const std::vector<int> vPlan = BuildSettingsCountryFlagWarmupPlan({156, 840, 156, -1});

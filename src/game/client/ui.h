@@ -9,6 +9,7 @@
 #include <engine/input.h>
 #include <engine/textrender.h>
 
+#include <algorithm>
 #include <chrono>
 #include <string>
 #include <vector>
@@ -169,6 +170,7 @@ public:
 		float m_Height;
 		float m_Rounding;
 		int m_Corners;
+		float m_BackgroundAlphaScale;
 
 		std::string m_Text;
 		int m_ReadCursorGlyphCount;
@@ -452,6 +454,7 @@ private:
 	IGraphics *m_pGraphics;
 	IInput *m_pInput;
 	ITextRender *m_pTextRender;
+	float m_BackgroundAlphaScale = 1.0f;
 
 	std::vector<CUIElement *> m_vpOwnUIElements; // ui elements maintained by CUi class
 	std::vector<CUIElement *> m_vpUIElements;
@@ -470,6 +473,13 @@ public:
 	IGraphics *Graphics() const { return m_pGraphics; }
 	IInput *Input() const { return m_pInput; }
 	ITextRender *TextRender() const { return m_pTextRender; }
+	float BackgroundAlphaScale() const { return m_BackgroundAlphaScale; }
+	void SetBackgroundAlphaScale(float AlphaScale) { m_BackgroundAlphaScale = std::clamp(AlphaScale, 0.0f, 1.0f); }
+	ColorRGBA ScaleBackgroundAlpha(ColorRGBA Color) const
+	{
+		Color.a *= m_BackgroundAlphaScale;
+		return Color;
+	}
 
 	CUi();
 	~CUi();

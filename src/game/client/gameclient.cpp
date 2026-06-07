@@ -85,6 +85,13 @@
 
 namespace
 {
+	void NormalizeSixupSkinName(char *pSkinName, int SkinNameSize)
+	{
+		if(!CSkin::IsValidName(pSkinName))
+		{
+			str_copy(pSkinName, "default", SkinNameSize);
+		}
+	}
 
 	void LogSettingsLoadingPrewarmEvent(const IClient *pClient, const char *pEvent, int CompletedSteps, int MaxAttempts, int TeeWarmupEntries, int ConsecutiveNoProgressSteps, uint64_t UploadsCompleted, uint64_t LoadsCompleted)
 	{
@@ -5244,6 +5251,7 @@ void CGameClient::CClientData::BuildLocalSkinDescriptor(CSkinDescriptor &SkinDes
 	{
 		SkinDescriptor.m_Flags |= CSkinDescriptor::FLAG_SIX;
 		str_copy(SkinDescriptor.m_aSkinName, Dummy ? g_Config.m_ClDummySkin : g_Config.m_ClPlayerSkin);
+		NormalizeSixupSkinName(SkinDescriptor.m_aSkinName, sizeof(SkinDescriptor.m_aSkinName));
 	}
 	else if(TranslatedClient.m_Active)
 	{
@@ -5654,6 +5662,7 @@ CSkinDescriptor CGameClient::CClientData::ToSkinDescriptor() const
 	{
 		SkinDescriptor.m_Flags |= CSkinDescriptor::FLAG_SIX;
 		str_copy(SkinDescriptor.m_aSkinName, m_aSkinName);
+		NormalizeSixupSkinName(SkinDescriptor.m_aSkinName, sizeof(SkinDescriptor.m_aSkinName));
 	}
 	else if(TranslatedClient.m_Active)
 	{
@@ -7351,7 +7360,7 @@ void CGameClient::RefreshSkin(const std::shared_ptr<CManagedTeeRenderInfo> &pMan
 
 	if(SkinDescriptor.m_Flags & CSkinDescriptor::FLAG_SIX)
 	{
-		TeeInfo.Apply(m_Skins.Find(SkinDescriptor.m_aSkinName));
+		TeeInfo.Apply(m_Skins.Find(CSkin::IsValidName(SkinDescriptor.m_aSkinName) ? SkinDescriptor.m_aSkinName : "default"));
 	}
 
 	if(SkinDescriptor.m_Flags & CSkinDescriptor::FLAG_SEVEN)
@@ -7504,7 +7513,8 @@ void CGameClient::CollectManagedTeeRenderInfos(const std::function<void(const ch
 {
 	for(const std::shared_ptr<CManagedTeeRenderInfo> &pManagedTeeRenderInfo : m_vpManagedTeeRenderInfos)
 	{
-		if(pManagedTeeRenderInfo->m_SkinDescriptor.m_Flags & CSkinDescriptor::FLAG_SIX)
+		if((pManagedTeeRenderInfo->m_SkinDescriptor.m_Flags & CSkinDescriptor::FLAG_SIX) &&
+			CSkin::IsValidName(pManagedTeeRenderInfo->m_SkinDescriptor.m_aSkinName))
 		{
 			ActiveSkinAcceptor(pManagedTeeRenderInfo->m_SkinDescriptor.m_aSkinName);
 		}

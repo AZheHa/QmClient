@@ -177,29 +177,31 @@ namespace
 
 	ColorRGBA MenuUiColorSurface(float AlphaScale, float ColorScale)
 	{
-		ColorHSLA UiHsla(g_Config.m_UiColor, true);
+		ColorHSLA UiHsla(g_Config.m_QmUiColor);
 		UiHsla = UiHsla.UnclampLighting(0.42f);
 		const ColorRGBA UiColor = color_cast<ColorRGBA>(UiHsla);
 		const float BaseAlpha = maximum(UiColor.a, 0.70f);
+		const float UiAlpha = g_Config.m_QmUiOpacity / 100.0f;
 		return ColorRGBA(
 			std::clamp(UiColor.r * ColorScale, 0.0f, 1.0f),
 			std::clamp(UiColor.g * ColorScale, 0.0f, 1.0f),
 			std::clamp(UiColor.b * ColorScale, 0.0f, 1.0f),
-			std::clamp(BaseAlpha * AlphaScale, 0.0f, 1.0f));
+			std::clamp(BaseAlpha * UiAlpha * AlphaScale, 0.0f, 1.0f));
 	}
 
 	ColorRGBA MenuUiColorAccent(float AlphaScale)
 	{
-		ColorHSLA UiHsla(g_Config.m_UiColor, true);
+		ColorHSLA UiHsla(g_Config.m_QmUiColor);
 		UiHsla = UiHsla.UnclampLighting(0.48f);
 		const ColorRGBA UiColor = color_cast<ColorRGBA>(UiHsla);
-		return UiColor.WithAlpha(std::clamp(maximum(UiColor.a, 0.85f) * AlphaScale, 0.0f, 1.0f));
+		const float UiAlpha = g_Config.m_QmUiOpacity / 100.0f;
+		return UiColor.WithAlpha(std::clamp(maximum(UiColor.a, 0.85f) * UiAlpha * AlphaScale, 0.0f, 1.0f));
 	}
 
 	ColorRGBA MenuTabDefaultColor()
 	{
-		const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClMenuPanelColor));
-		return Base.WithAlpha(std::clamp(g_Config.m_ClSettingsTabbarOpacity / 100.0f, 0.0f, 1.0f));
+		const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmUiColor));
+		return Base.WithAlpha(std::clamp(g_Config.m_QmUiOpacity / 100.0f, 0.0f, 1.0f));
 	}
 
 	ColorRGBA MenuIconButtonDefaultColor()
@@ -210,18 +212,14 @@ namespace
 
 	ColorRGBA MenuTabActiveColor()
 	{
-		const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClMenuPanelColor));
-		const float PanelAlpha = g_Config.m_ClMenuPanelElevatedOpacity / 100.0f;
-		const float SettingsAlpha = g_Config.m_ClSettingsTabbarOpacity / 100.0f;
-		return Base.WithAlpha(std::clamp(maximum(PanelAlpha, SettingsAlpha + 0.08f), 0.0f, 1.0f));
+		const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmUiColor));
+		return Base.WithAlpha(std::clamp(g_Config.m_QmUiOpacity / 100.0f, 0.0f, 1.0f));
 	}
 
 	ColorRGBA MenuTabHoverColor()
 	{
-		const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClMenuPanelColor));
-		const float SettingsAlpha = g_Config.m_ClSettingsTabbarOpacity / 100.0f;
-		const float PanelAlpha = g_Config.m_ClMenuPanelOpacity / 100.0f;
-		return Base.WithAlpha(std::clamp(maximum(SettingsAlpha + 0.05f, PanelAlpha), 0.0f, 1.0f));
+		const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmUiColor));
+		return Base.WithAlpha(std::clamp(g_Config.m_QmUiOpacity / 100.0f, 0.0f, 1.0f));
 	}
 
 	ColorRGBA MenuMenubarHoverColor()
@@ -478,20 +476,32 @@ float CMenus::ResolveMenuTabAnimationValue(const void *pButtonId, const bool Act
 
 ColorRGBA CMenus::MenuPanelColor(float AlphaScale) const
 {
-	const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClMenuPanelColor));
-	return Base.WithAlpha(std::clamp((g_Config.m_ClMenuPanelOpacity / 100.0f) * AlphaScale, 0.0f, 1.0f));
+	const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmUiColor));
+	return Base.WithAlpha(std::clamp((g_Config.m_QmUiOpacity / 100.0f) * AlphaScale, 0.0f, 1.0f));
 }
 
 ColorRGBA CMenus::MenuPanelElevatedColor(float AlphaScale) const
 {
-	const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClMenuPanelColor));
-	return Base.WithAlpha(std::clamp((g_Config.m_ClMenuPanelElevatedOpacity / 100.0f) * AlphaScale, 0.0f, 1.0f));
+	const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmUiColor));
+	return Base.WithAlpha(std::clamp((g_Config.m_QmUiOpacity / 100.0f) * AlphaScale, 0.0f, 1.0f));
+}
+
+ColorRGBA CMenus::BrowserPanelColor(float AlphaScale) const
+{
+	const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmMapBrowserColor));
+	return Base.WithAlpha(std::clamp((g_Config.m_QmMapBrowserOpacity / 100.0f) * AlphaScale, 0.0f, 1.0f));
+}
+
+ColorRGBA CMenus::BrowserPanelElevatedColor(float AlphaScale) const
+{
+	const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmMapBrowserColor));
+	return Base.WithAlpha(std::clamp((g_Config.m_QmMapBrowserOpacity / 100.0f) * AlphaScale, 0.0f, 1.0f));
 }
 
 ColorRGBA CMenus::SettingsTabbarColor(float AlphaScale) const
 {
-	const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClMenuPanelColor));
-	return Base.WithAlpha(std::clamp((g_Config.m_ClSettingsTabbarOpacity / 100.0f) * AlphaScale, 0.0f, 1.0f));
+	const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmUiColor));
+	return Base.WithAlpha(std::clamp((g_Config.m_QmUiOpacity / 100.0f) * AlphaScale, 0.0f, 1.0f));
 }
 
 int CMenus::DoButton_Toggle(const void *pId, int Checked, const CUIRect *pRect, bool Active, const unsigned Flags)
@@ -1058,7 +1068,7 @@ int CMenus::DoMenuTabV2(CButtonContainer *pButtonContainer, const char *pText, b
 	const uint64_t NodeKey = BuildUiAnimNodeKey(MakeUiScopeHash("menubar_v2_tab"), reinterpret_cast<uint64_t>(pButtonContainer));
 	CUiV2AnimationRuntime &AnimRt = GameClient()->UiRuntimeV2()->AnimRuntime();
 	const ColorRGBA Resolved = ResolveUiAnimValueColor(AnimRt, NodeKey, Target, ui_token::motion::BTN_HOVER.m_DurationSec, ui_token::motion::BTN_HOVER.m_Easing);
-	pRect->Draw(Resolved, Corners, 10.0f);
+	pRect->Draw(Resolved, Corners, UseNewUi ? 7.0f : 10.0f);
 
 	if(pCommunityIcon != nullptr)
 	{
@@ -1070,7 +1080,8 @@ int CMenus::DoMenuTabV2(CButtonContainer *pButtonContainer, const char *pText, b
 	{
 		CUIRect Label;
 		pRect->HMargin(2.0f, &Label);
-		Ui()->DoLabel(&Label, pText, Label.h * CUi::ms_FontmodHeight, TEXTALIGN_MC);
+		const float LabelFontSize = UseNewUi ? minimum(Label.h * CUi::ms_FontmodHeight, 13.0f) : Label.h * CUi::ms_FontmodHeight;
+		Ui()->DoLabel(&Label, pText, LabelFontSize, TEXTALIGN_MC);
 	}
 
 	return Ui()->DoButtonLogic(pButtonContainer, Active ? 1 : 0, pRect, BUTTONFLAG_LEFT);
@@ -1116,14 +1127,14 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 	if(UseNewUi)
 	{
 		const float MenubarOuterInsetX = 6.0f;
-		const float MenubarOuterInsetY = 2.0f;
+		const float MenubarOuterInsetY = 2.5f;
 		Box.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.12f), IGraphics::CORNER_ALL, 10.0f);
 		Box.VMargin(MenubarOuterInsetX, &Box);
 		Box.HMargin(MenubarOuterInsetY, &Box);
 
 		const float MenubarIconButtonSize = Box.h;
-		const float MenubarIconGap = 8.0f;
-		const float MenubarItemGap = 5.0f;
+		const float MenubarIconGap = 6.0f;
+		const float MenubarItemGap = 4.0f;
 		const ColorRGBA IconButtonDefault = MenuIconButtonDefaultColor();
 		const ColorRGBA IconButtonActive = MenuTabActiveColor();
 		const ColorRGBA IconButtonHover = MenuMenubarHoverColor();
@@ -1243,8 +1254,8 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 			}
 			GameClient()->m_Tooltips.DoToolTip(&s_StartButton, &Button, Localize("Main menu"));
 
-			const float BrowserButtonWidth = 68.0f;
-			Box.VSplitLeft(8.0f, nullptr, &Box);
+			const float BrowserButtonWidth = 58.0f;
+			Box.VSplitLeft(6.0f, nullptr, &Box);
 			Box.VSplitLeft(BrowserButtonWidth, &Button, &Box);
 			static CButtonContainer s_InternetButton;
 			if(DoMenuTabV2(&s_InternetButton, FONT_ICON_EARTH_AMERICAS, ActivePage == PAGE_INTERNET, &Button, IGraphics::CORNER_ALL))
@@ -1407,13 +1418,13 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 			TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
 
 			const bool CompactOnlineMenuTabs = Graphics()->ScreenAspect() <= 1.45f || Box.w < 690.0f;
-			const float GameButtonWidth = CompactOnlineMenuTabs ? 78.0f : 90.0f;
-			const float PlayersButtonWidth = CompactOnlineMenuTabs ? 78.0f : 90.0f;
-			const float ServerInfoButtonWidth = CompactOnlineMenuTabs ? 112.0f : 130.0f;
-			const float BrowserButtonWidth = CompactOnlineMenuTabs ? 78.0f : 90.0f;
-			const float GhostButtonWidth = CompactOnlineMenuTabs ? 78.0f : 90.0f;
-			const float CallVoteButtonWidth = CompactOnlineMenuTabs ? 88.0f : 100.0f;
-			const float OnlineTabGap = 6.0f;
+			const float GameButtonWidth = CompactOnlineMenuTabs ? 56.0f : 64.0f;
+			const float PlayersButtonWidth = CompactOnlineMenuTabs ? 56.0f : 64.0f;
+			const float ServerInfoButtonWidth = CompactOnlineMenuTabs ? 94.0f : 104.0f;
+			const float BrowserButtonWidth = CompactOnlineMenuTabs ? 56.0f : 64.0f;
+			const float GhostButtonWidth = CompactOnlineMenuTabs ? 56.0f : 64.0f;
+			const float CallVoteButtonWidth = CompactOnlineMenuTabs ? 80.0f : 88.0f;
+			const float OnlineTabGap = 4.0f;
 
 			Box.VSplitLeft(GameButtonWidth, &Button, &Box);
 			static CButtonContainer s_GameButton;
@@ -1813,7 +1824,7 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 	// Draw a 2px ui_color underline below the active tab. The X/W position
 	// eases between tabs via the v2 runtime so changing pages glides instead of
 	// snapping. Indicator is omitted when there is no determinable active tab.
-	if(MenubarHaveActive)
+	if(!UseNewUi && MenubarHaveActive)
 	{
 		CUIRect IndicatorTarget;
 		IndicatorTarget.x = MenubarActiveRect.x + MenubarActiveRect.w * 0.15f;
@@ -1857,7 +1868,7 @@ void CMenus::RenderLoading(const char *pCaption, const char *pContent, int Incre
 		return;
 
 	// need up date this here to get correct
-	ms_GuiColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_UiColor, true));
+	ms_GuiColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmUiColor));
 
 	Ui()->MapScreen();
 
@@ -2461,10 +2472,10 @@ void CMenus::Render()
 		{
 			CUIRect TabBar, MainView;
 			const bool UseNewUi = g_Config.m_QmNewUi != 0;
-			const float MenubarHeight = UseNewUi ? 30.0f : 34.0f;
+			const float MenubarHeight = UseNewUi ? 24.0f : 34.0f;
 			Screen.HSplitTop(MenubarHeight, &TabBar, &MainView);
 			if(UseNewUi)
-				MainView.HSplitTop(8.0f, nullptr, &MainView);
+				MainView.HSplitTop(6.0f, nullptr, &MainView);
 			const CUIRect MainViewClip = MainView;
 			const float TransitionStrength = ReadUiSwitchAnimation(UiAnimNodeKey("menu_page_switch"));
 			const bool TransitionActive = TransitionStrength > 0.0f && m_MenuPageTransitionDirection != 0.0f;
@@ -2558,10 +2569,10 @@ void CMenus::Render()
 		{
 			CUIRect TabBar, MainView;
 			const bool UseNewUi = g_Config.m_QmNewUi != 0;
-			const float MenubarHeight = UseNewUi ? 30.0f : 34.0f;
+			const float MenubarHeight = UseNewUi ? 24.0f : 34.0f;
 			Screen.HSplitTop(MenubarHeight, &TabBar, &MainView);
 			if(UseNewUi)
-				MainView.HSplitTop(8.0f, nullptr, &MainView);
+				MainView.HSplitTop(6.0f, nullptr, &MainView);
 			const CUIRect MainViewClip = MainView;
 			const float TransitionStrength = ReadUiSwitchAnimation(UiAnimNodeKey("game_page_switch"));
 			const bool TransitionActive = TransitionStrength > 0.0f && m_GamePageTransitionDirection != 0.0f;
@@ -4400,7 +4411,7 @@ void CMenus::OnRender()
 
 void CMenus::UpdateColors()
 {
-	ms_GuiColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_UiColor, true));
+	ms_GuiColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmUiColor));
 
 	ms_ColorTabbarInactiveOutgame = MenuUiColorSurface(0.45f, 0.16f);
 	ms_ColorTabbarActiveOutgame = MenuUiColorSurface(0.70f, 0.16f);

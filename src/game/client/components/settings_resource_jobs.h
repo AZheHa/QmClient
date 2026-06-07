@@ -258,6 +258,7 @@ struct SSettingsAssetPreviewHandle
 float SettingsSkinPreviewSize(float RowHeight, float PreviewWidth, float RequestedSize);
 float SettingsSkinPreviewSize(float RowHeight, float PreviewWidth, float RequestedSize, float PreviewBoundsWidth, float PreviewBoundsHeight);
 float SettingsSkinPreviewCenterOffset(float PreviewMinX, float PreviewMaxX);
+bool SettingsSkinListEntryReady(bool SourceReady, bool TerminalFailure, bool PreviewCacheReady);
 SSettingsSkinListPlan BuildSettingsSkinListPlan(std::vector<SSettingsSkinListEntry> vEntries);
 std::vector<int> BuildSettingsCountryFlagWarmupPlan(const std::vector<int> &vCountryCodes);
 bool SettingsResourceConsumeMergeEntry(SSettingsResourceMergeBudget &Budget);

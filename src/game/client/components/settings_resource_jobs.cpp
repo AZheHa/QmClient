@@ -27,6 +27,11 @@ float SettingsSkinPreviewCenterOffset(float PreviewMinX, float PreviewMaxX)
 	return -(PreviewMinX + PreviewMaxX) * 0.5f;
 }
 
+bool SettingsSkinListEntryReady(bool SourceReady, bool TerminalFailure, bool PreviewCacheReady)
+{
+	return SourceReady || TerminalFailure || PreviewCacheReady;
+}
+
 SSettingsSkinListPlan BuildSettingsSkinListPlan(std::vector<SSettingsSkinListEntry> vEntries)
 {
 	std::stable_sort(vEntries.begin(), vEntries.end(), [](const SSettingsSkinListEntry &A, const SSettingsSkinListEntry &B) {

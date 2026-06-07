@@ -31,6 +31,38 @@ using namespace FontIcons;
 
 static constexpr ColorRGBA gs_HighlightedTextColor = ColorRGBA(0.4f, 0.4f, 1.0f, 1.0f);
 
+static ColorRGBA BrowserOpacityColor(ColorRGBA Color, float AlphaScale = 1.0f)
+{
+	if(Color.r == Color.g && Color.g == Color.b)
+	{
+		const ColorRGBA Base = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmMapBrowserColor));
+		Color.r = std::clamp(Base.r * (0.35f + Color.r * 0.65f), 0.0f, 1.0f);
+		Color.g = std::clamp(Base.g * (0.35f + Color.g * 0.65f), 0.0f, 1.0f);
+		Color.b = std::clamp(Base.b * (0.35f + Color.b * 0.65f), 0.0f, 1.0f);
+	}
+	Color.a = std::clamp(Color.a * (g_Config.m_QmMapBrowserOpacity / 100.0f) * AlphaScale, 0.0f, 1.0f);
+	return Color;
+}
+
+class CUiBackgroundAlphaScaleScope
+{
+	CUi *m_pUi;
+	float m_SavedAlphaScale;
+
+public:
+	CUiBackgroundAlphaScaleScope(CUi *pUi, float AlphaScale) :
+		m_pUi(pUi),
+		m_SavedAlphaScale(pUi->BackgroundAlphaScale())
+	{
+		m_pUi->SetBackgroundAlphaScale(AlphaScale);
+	}
+
+	~CUiBackgroundAlphaScaleScope()
+	{
+		m_pUi->SetBackgroundAlphaScale(m_SavedAlphaScale);
+	}
+};
+
 static const char *FavoriteMapCategoryKeyFromText(const char *pText)
 {
 	if(!pText || pText[0] == '\0')
@@ -410,9 +442,9 @@ void CMenus::RenderServerbrowserServerList(CUIRect View, bool &WasListboxItemAct
 
 	CUIRect Headers;
 	View.HSplitTop(ms_ListheaderHeight, &Headers, &View);
-	Headers.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, 0.25f), IGraphics::CORNER_T, 5.0f);
+	Headers.Draw(BrowserOpacityColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.25f)), IGraphics::CORNER_T, 5.0f);
 	Headers.VSplitRight(s_ListBox.ScrollbarWidthMax(), &Headers, nullptr);
-	View.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.15f), IGraphics::CORNER_NONE, 0.0f);
+	View.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.15f)), IGraphics::CORNER_NONE, 0.0f);
 
 	{
 		CUIRect ResetBtn;
@@ -717,7 +749,7 @@ void CMenus::RenderServerbrowserServerList(CUIRect View, bool &WasListboxItemAct
 		Line.y = s_aCols[ColIdx].m_Rect.y;
 		Line.w = LineW;
 		Line.h = s_aCols[ColIdx].m_Rect.h;
-		Line.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, Alpha), IGraphics::CORNER_NONE, 0.0f);
+		Line.Draw(BrowserOpacityColor(ColorRGBA(1.0f, 1.0f, 1.0f, Alpha)), IGraphics::CORNER_NONE, 0.0f);
 	}
 
 	const int NumServers = ServerBrowser()->NumSortedServers();
@@ -1033,7 +1065,7 @@ void CMenus::RenderServerbrowserStatusBox(CUIRect StatusBox, bool WasListboxItem
 		const float RefreshBarAlpha = minimum(LoadingProgressionTimeDiff, 0.8f);
 		RefreshBar.h = 2.0f;
 		RefreshBar.w *= ServerBrowser()->LoadingProgression() / 100.0f;
-		RefreshBar.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, RefreshBarAlpha), IGraphics::CORNER_NONE, 0.0f);
+		RefreshBar.Draw(BrowserOpacityColor(ColorRGBA(1.0f, 1.0f, 1.0f, RefreshBarAlpha)), IGraphics::CORNER_NONE, 0.0f);
 	}
 
 	TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
@@ -1345,8 +1377,8 @@ void CMenus::RenderServerbrowserFilters(CUIRect View)
 	// countries and types filters
 	if(ServerBrowser()->CommunityCache().CountriesTypesFilterAvailable())
 	{
-		const ColorRGBA ColorActive = ColorRGBA(0.0f, 0.0f, 0.0f, 0.3f);
-		const ColorRGBA ColorInactive = ColorRGBA(0.0f, 0.0f, 0.0f, 0.15f);
+		const ColorRGBA ColorActive = BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.3f));
+		const ColorRGBA ColorInactive = BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.15f));
 
 		CUIRect TabContents, CountriesTab, TypesTab;
 		View.HSplitTop(6.0f, nullptr, &View);
@@ -1404,7 +1436,7 @@ void CMenus::RenderServerbrowserFilters(CUIRect View)
 		if(TransitionActive)
 		{
 			if(TransitionAlpha > 0.0f)
-				TabContents.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha), IGraphics::CORNER_NONE, 0.0f);
+				TabContents.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha)), IGraphics::CORNER_NONE, 0.0f);
 			Ui()->ClipDisable();
 		}
 	}
@@ -1562,7 +1594,7 @@ void CMenus::RenderServerbrowserDDNetFilter(CUIRect View,
 		}
 
 		if(Ui()->HotItem() == pItemId && !ScrollRegion.Animating())
-			Item.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, 0.33f), IGraphics::CORNER_ALL, 2.0f);
+			Item.Draw(BrowserOpacityColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.33f)), IGraphics::CORNER_ALL, 2.0f);
 		RenderItem(ItemIndex, Item, pItemId, Active);
 	}
 
@@ -1573,9 +1605,9 @@ void CMenus::RenderServerbrowserCommunitiesFilter(CUIRect View)
 {
 	CUIRect Tab;
 	View.HSplitTop(19.0f, &Tab, &View);
-	Tab.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.3f), IGraphics::CORNER_T, 4.0f);
+	Tab.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.3f)), IGraphics::CORNER_T, 4.0f);
 	Ui()->DoLabel(&Tab, Localize("Communities"), 12.0f, TEXTALIGN_MC);
-	View.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.15f), IGraphics::CORNER_B, 4.0f);
+	View.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.15f)), IGraphics::CORNER_B, 4.0f);
 
 	const int MaxEntries = ServerBrowser()->Communities().size();
 	if(MaxEntries == 0)
@@ -2595,7 +2627,7 @@ void CMenus::RenderServerbrowserFriends(CUIRect View)
 		CUIRect Shadow = Ghost;
 		Shadow.x += 1.5f;
 		Shadow.y += 2.0f;
-		Shadow.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.45f), IGraphics::CORNER_ALL, 5.0f);
+		Shadow.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.45f)), IGraphics::CORNER_ALL, 5.0f);
 
 		Ghost.Draw(CategoryDragGhostColor, IGraphics::CORNER_ALL, 5.0f);
 		DrawCategoryDragOutline(Ghost);
@@ -3203,7 +3235,7 @@ void CMenus::RenderServerbrowserQm(CUIRect View)
 		CUIRect ItemRect, TextRect, CountRect, TitleRect, DetailRect, UsersRect, DummiesRect;
 		Item.m_Rect.Margin(4.0f, &ItemRect);
 		if(Item.m_Selected)
-			ItemRect.Draw(ColorRGBA(0.23f, 0.51f, 0.82f, 0.12f), IGraphics::CORNER_ALL, 6.0f);
+			ItemRect.Draw(BrowserOpacityColor(ColorRGBA(0.23f, 0.51f, 0.82f, 0.12f)), IGraphics::CORNER_ALL, 6.0f);
 
 		ItemRect.VSplitRight(100.0f, &TextRect, &CountRect);
 		TextRect.HSplitTop(18.0f, &TitleRect, &DetailRect);
@@ -3285,13 +3317,13 @@ void CMenus::RenderServerbrowserFavoriteMaps(CUIRect View)
 	}
 
 	auto RenderPanelHeader = [this](CUIRect &Panel, const char *pTitle, const char *pSubTitle, bool &Expanded, CButtonContainer &HeaderButton) {
-		Panel.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.22f), IGraphics::CORNER_ALL, 8.0f);
+		Panel.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.22f)), IGraphics::CORNER_ALL, 8.0f);
 		Panel.Margin(10.0f, &Panel);
 
 		CUIRect Header;
 		Panel.HSplitTop(38.0f, &Header, &Panel);
 		if(Ui()->MouseHovered(&Header))
-			Header.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, 0.08f), IGraphics::CORNER_ALL, 5.0f);
+			Header.Draw(BrowserOpacityColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.08f)), IGraphics::CORNER_ALL, 5.0f);
 		if(Ui()->DoButtonLogic(&HeaderButton, Expanded ? 1 : 0, &Header, BUTTONFLAG_LEFT))
 			Expanded = !Expanded;
 
@@ -3461,7 +3493,7 @@ void CMenus::RenderServerbrowserFavoriteMaps(CUIRect View)
 				{
 					CUIRect Row = Item.m_Rect;
 					Row.Margin(4.0f, &Row);
-					Row.Draw(ColorRGBA(1.0f, 0.85f, 0.0f, 0.08f), IGraphics::CORNER_ALL, 5.0f);
+					Row.Draw(BrowserOpacityColor(ColorRGBA(1.0f, 0.85f, 0.0f, 0.08f)), IGraphics::CORNER_ALL, 5.0f);
 					Row.Margin(6.0f, &Row);
 					CUIRect MapColumn, CategoryColumn, DifficultyColumn, NoteColumn, SavedColumn;
 					SplitFavoriteMapColumns(Row, &MapColumn, &CategoryColumn, &DifficultyColumn, &NoteColumn, &SavedColumn);
@@ -3514,7 +3546,7 @@ void CMenus::RenderServerbrowserFavoriteMaps(CUIRect View)
 
 		CUIRect Row, TopLine, BottomLine, TimeLabel;
 		Item.m_Rect.Margin(4.0f, &Row);
-		Row.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, 0.06f), IGraphics::CORNER_ALL, 5.0f);
+		Row.Draw(BrowserOpacityColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.06f)), IGraphics::CORNER_ALL, 5.0f);
 		Row.Margin(6.0f, &Row);
 		Row.HSplitTop(17.0f, &TopLine, &BottomLine);
 		BottomLine.VSplitRight(105.0f, &BottomLine, &TimeLabel);
@@ -3559,9 +3591,9 @@ void CMenus::RenderServerbrowserTabBar(CUIRect TabBar)
 	FriendsTabButton.VSplitRight(3.0f, &FriendsTabButton, nullptr);
 	QmTabButton.VSplitLeft(3.0f, nullptr, &QmTabButton);
 
-	const ColorRGBA ColorActive = UseNewUi ? MenuPanelElevatedColor(0.92f) : ms_ColorTabbarActive;
-	const ColorRGBA ColorInactive = UseNewUi ? MenuPanelColor(0.70f) : ms_ColorTabbarInactive;
-	const ColorRGBA ColorHover = UseNewUi ? MenuPanelElevatedColor(0.82f) : ms_ColorTabbarHover;
+	const ColorRGBA ColorActive = UseNewUi ? BrowserPanelElevatedColor(0.92f) : ms_ColorTabbarActive;
+	const ColorRGBA ColorInactive = UseNewUi ? BrowserPanelColor(0.70f) : ms_ColorTabbarInactive;
+	const ColorRGBA ColorHover = UseNewUi ? BrowserPanelElevatedColor(0.82f) : ms_ColorTabbarHover;
 
 	if(!Ui()->IsPopupOpen() && Ui()->ConsumeHotkey(CUi::HOTKEY_TAB))
 	{
@@ -3649,13 +3681,15 @@ void CMenus::RenderServerbrowserToolBox(CUIRect ToolBox)
 	if(TransitionActive)
 	{
 		if(TransitionAlpha > 0.0f)
-			ContentClip.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha), IGraphics::CORNER_NONE, 0.0f);
+			ContentClip.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha)), IGraphics::CORNER_NONE, 0.0f);
 		Ui()->ClipDisable();
 	}
 }
 
 void CMenus::RenderServerbrowser(CUIRect MainView, bool DrawBackground)
 {
+	CUiBackgroundAlphaScaleScope BackgroundAlphaScaleScope(Ui(), g_Config.m_QmMapBrowserOpacity / 100.0f);
+
 	UpdateCommunityCache(false);
 
 	switch(g_Config.m_UiPage)
@@ -3734,9 +3768,9 @@ void CMenus::RenderServerbrowser(CUIRect MainView, bool DrawBackground)
 	ServerListBase.h = maximum(StatusBox.y - ColumnGap - ServerListBase.y, 0.0f);
 	if(UseNewUi)
 	{
-		ServerListBase.Draw(MenuPanelColor(), IGraphics::CORNER_ALL, 10.0f);
-		StatusBox.Draw(MenuPanelElevatedColor(), IGraphics::CORNER_ALL, 10.0f);
-		ToolBoxBase.Draw(MenuPanelColor(), IGraphics::CORNER_ALL, 10.0f);
+		ServerListBase.Draw(BrowserPanelColor(), IGraphics::CORNER_ALL, 10.0f);
+		StatusBox.Draw(BrowserPanelElevatedColor(), IGraphics::CORNER_ALL, 10.0f);
+		ToolBoxBase.Draw(BrowserPanelColor(), IGraphics::CORNER_ALL, 10.0f);
 		ServerListBase.Margin(10.0f, &ServerListBase);
 		StatusBox.Margin(10.0f, &StatusBox);
 		ToolBoxBase.Margin(10.0f, &ToolBoxBase);
@@ -3770,7 +3804,7 @@ void CMenus::RenderServerbrowser(CUIRect MainView, bool DrawBackground)
 		{
 			if(TransitionAlpha > 0.0f)
 			{
-				ServerListBase.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha), IGraphics::CORNER_NONE, 0.0f);
+				ServerListBase.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha)), IGraphics::CORNER_NONE, 0.0f);
 			}
 			Ui()->ClipDisable();
 		}
@@ -3802,7 +3836,7 @@ void CMenus::RenderServerbrowser(CUIRect MainView, bool DrawBackground)
 		{
 			if(TransitionAlpha > 0.0f)
 			{
-				ToolBoxBase.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha), IGraphics::CORNER_NONE, 0.0f);
+				ToolBoxBase.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha)), IGraphics::CORNER_NONE, 0.0f);
 			}
 			Ui()->ClipDisable();
 		}
