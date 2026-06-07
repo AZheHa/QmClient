@@ -4692,7 +4692,7 @@ bool CEditor::BuildCollabUrl(const char *pPath, char *pBuffer, int BufferSize, c
 		str_format(pBuffer, BufferSize, "%s%s?%s", QM_EDITOR_COLLAB_BASE_URL, pPath, pQuery);
 	else
 		str_format(pBuffer, BufferSize, "%s%s", QM_EDITOR_COLLAB_BASE_URL, pPath);
-	return str_length(pBuffer) + 1 < (size_t)BufferSize;
+	return (size_t)(str_length(pBuffer) + 1) < (size_t)BufferSize;
 }
 
 std::shared_ptr<CHttpRequest> CEditor::MakeCollabJsonRequest(const char *pPath, const std::string &Body)

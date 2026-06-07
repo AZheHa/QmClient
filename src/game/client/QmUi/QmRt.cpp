@@ -16,20 +16,10 @@
 
 namespace
 {
-bool PerfDebugEnabled()
-{
-	return QmPerfEnabled();
-}
-
-double PerfDebugThresholdMs()
-{
-	return g_Config.m_QmPerfDebugThresholdMs > 0 ? g_Config.m_QmPerfDebugThresholdMs : 1.0;
-}
-
-void LogPerfStage(IClient *pClient, const char *pStage, const double DurationMs, const bool Force = false, const char *pExtra = nullptr)
-{
-	QmPerfLogStage("perf/ui_runtime", pStage, DurationMs, Force, pClient, nullptr, nullptr, pExtra);
-}
+	void LogPerfStage(IClient *pClient, const char *pStage, const double DurationMs, const bool Force = false, const char *pExtra = nullptr)
+	{
+		QmPerfLogStage("perf/ui_runtime", pStage, DurationMs, Force, pClient, nullptr, nullptr, pExtra);
+	}
 }
 
 void CUiRuntimeV2::Init(CGameClient *pGameClient)
@@ -104,7 +94,7 @@ void CUiRuntimeV2::OnRender()
 	if(g_Config.m_QmUiRuntimeV2Debug)
 	{
 		m_DebugLogAccumulator += Dt;
-		if(m_DebugLogAccumulator >= 2.0f && m_LastStats.m_AnimMs >= PerfDebugThresholdMs())
+		if(m_DebugLogAccumulator >= 2.0f && m_LastStats.m_AnimMs >= QmPerfThresholdMs())
 		{
 			m_DebugLogAccumulator = 0.0f;
 			dbg_msg("qm_ui", "runtime active: nodes=%d, anim_ms=%.3f", m_LastStats.m_NodeCount, m_LastStats.m_AnimMs);

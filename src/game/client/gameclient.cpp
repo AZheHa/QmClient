@@ -124,16 +124,6 @@ namespace
 {
 	constexpr int DEMO_INPUT_KEY_STATE_SIZE = KEY_LAST / 8;
 
-	bool PerfDebugEnabled()
-	{
-		return QmPerfEnabled();
-	}
-
-	double PerfDebugThresholdMs()
-	{
-		return QmPerfThresholdMs();
-	}
-
 #if defined(CONF_QM_LIVE_CLIENT)
 	constexpr float LIVE_OBSERVER_UI_HEIGHT = 1200.0f;
 	constexpr float LIVE_OBSERVER_PANEL_WIDTH = 230.0f;
@@ -539,18 +529,6 @@ static void GenerateTimeoutCode(char *pTimeoutCode)
 				pTimeoutCode[i] = (char)((rand() % ('Z' - 'A' + 1)) + 'A');
 		}
 	}
-}
-
-static void MigrateChatBubbleConfig()
-{
-	auto MigrateInt = [](int &NewValue, int LegacyValue, int NewDefault, int LegacyDefault) {
-		if(NewValue == NewDefault && LegacyValue != LegacyDefault)
-			NewValue = LegacyValue;
-	};
-	auto MigrateCol = [](unsigned &NewValue, unsigned LegacyValue, unsigned NewDefault, unsigned LegacyDefault) {
-		if(NewValue == NewDefault && LegacyValue != LegacyDefault)
-			NewValue = LegacyValue;
-	};
 }
 
 static void MigrateQmHudConfig()

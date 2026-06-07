@@ -1767,15 +1767,15 @@ public:
 		IGraphics::CQuadItem aCursorQuads[2];
 		bool HasCursor = false;
 
-		const auto &&SetCursorQuad = [&](float CursorX, float CursorY) {
+		const auto &&SetCursorQuad = [&](float CursorPosX, float CursorPosY) {
 			HasCursor = true;
-			aCursorQuads[0] = IGraphics::CQuadItem(CursorX - CursorOuterInnerDiff, CursorY, CursorOuterWidth, pCursor->m_AlignedFontSize);
-			aCursorQuads[1] = IGraphics::CQuadItem(CursorX, CursorY + CursorOuterInnerDiff, CursorInnerWidth, pCursor->m_AlignedFontSize - CursorOuterInnerDiff * 2);
-			pCursor->m_CursorRenderedPosition = vec2(CursorX, CursorY);
+			aCursorQuads[0] = IGraphics::CQuadItem(CursorPosX - CursorOuterInnerDiff, CursorPosY, CursorOuterWidth, pCursor->m_AlignedFontSize);
+			aCursorQuads[1] = IGraphics::CQuadItem(CursorPosX, CursorPosY + CursorOuterInnerDiff, CursorInnerWidth, pCursor->m_AlignedFontSize - CursorOuterInnerDiff * 2);
+			pCursor->m_CursorRenderedPosition = vec2(CursorPosX, CursorPosY);
 		};
-		const auto &&CheckCursorAtCharacter = [&](float CursorX, float CursorY) {
+		const auto &&CheckCursorAtCharacter = [&](float CursorPosX, float CursorPosY) {
 			if(pCursor->m_CursorMode != TEXT_CURSOR_CURSOR_MODE_NONE && pCursor->m_GlyphCount == pCursor->m_CursorCharacter)
-				SetCursorQuad(CursorX, CursorY);
+				SetCursorQuad(CursorPosX, CursorPosY);
 		};
 		const auto &&CheckSelectionSetAtCharacter = [&]() {
 			if(pCursor->m_CalculateSelectionMode != TEXT_CURSOR_SELECTION_MODE_SET)
