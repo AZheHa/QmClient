@@ -1,0 +1,39 @@
+#include <game/client/components/tclient/swap_countdown_message.h>
+
+#include <gtest/gtest.h>
+
+TEST(SwapCountdownMessage, ParsesEnglishStartMessage)
+{
+	ESwapCountdownMessageAction Action = ESwapCountdownMessageAction::None;
+	char aRequester[64];
+	EXPECT_TRUE(ParseSwapCountdownMessage("Alpha has requested to swap with you. To complete the swap process please wait 3 seconds and then type /swap Alpha.", Action, aRequester, sizeof(aRequester)));
+	EXPECT_EQ(Action, ESwapCountdownMessageAction::Start);
+	EXPECT_STREQ(aRequester, "Alpha");
+}
+
+TEST(SwapCountdownMessage, ParsesChineseStartMessage)
+{
+	ESwapCountdownMessageAction Action = ESwapCountdownMessageAction::None;
+	char aRequester[64];
+	EXPECT_TRUE(ParseSwapCountdownMessage("Alpha 请求与你交换位置。请等待 3 秒后输入 /swap Alpha 完成交换。", Action, aRequester, sizeof(aRequester)));
+	EXPECT_EQ(Action, ESwapCountdownMessageAction::Start);
+	EXPECT_STREQ(aRequester, "Alpha");
+}
+
+TEST(SwapCountdownMessage, ParsesChineseCancelMessage)
+{
+	ESwapCountdownMessageAction Action = ESwapCountdownMessageAction::None;
+	char aRequester[64];
+	EXPECT_TRUE(ParseSwapCountdownMessage("Alpha 已取消与你的交换。", Action, aRequester, sizeof(aRequester)));
+	EXPECT_EQ(Action, ESwapCountdownMessageAction::Cancel);
+	EXPECT_STREQ(aRequester, "Alpha");
+}
+
+TEST(SwapCountdownMessage, ParsesChineseCompleteMessage)
+{
+	ESwapCountdownMessageAction Action = ESwapCountdownMessageAction::None;
+	char aRequester[64];
+	EXPECT_TRUE(ParseSwapCountdownMessage("Alpha 与 Beta 已完成交换。", Action, aRequester, sizeof(aRequester)));
+	EXPECT_EQ(Action, ESwapCountdownMessageAction::Complete);
+	EXPECT_STREQ(aRequester, "");
+}

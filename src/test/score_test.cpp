@@ -90,6 +90,24 @@ struct Score : public testing::TestWithParam<IDbConnection *>
 		ASSERT_TRUE(CScoreWorker::SaveScore(m_pConn, &ScoreData, Write::NORMAL, m_aError, sizeof(m_aError))) << m_aError;
 	}
 
+	void InsertRawSave(const char *pMap, const char *pCode, const char *pSavegame, const char *pServer, const char *pSaveId)
+	{
+		char aBuf[512];
+		str_format(aBuf, sizeof(aBuf),
+			"INSERT INTO %s_saves(Savegame, Map, Code, Timestamp, Server, SaveId, DDNet7) "
+			"VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?, %s)",
+			m_pConn->GetPrefix(), m_pConn->False());
+		ASSERT_TRUE(m_pConn->PrepareStatement(aBuf, m_aError, sizeof(m_aError))) << m_aError;
+		m_pConn->BindString(1, pSavegame);
+		m_pConn->BindString(2, pMap);
+		m_pConn->BindString(3, pCode);
+		m_pConn->BindString(4, pServer);
+		m_pConn->BindString(5, pSaveId);
+		int NumInserted = 0;
+		ASSERT_TRUE(m_pConn->ExecuteUpdate(&NumInserted, m_aError, sizeof(m_aError))) << m_aError;
+		ASSERT_EQ(NumInserted, 1);
+	}
+
 	void ExpectLines(const std::shared_ptr<CScorePlayerResult> &pPlayerResult, std::initializer_list<const char *> Lines, bool All = false)
 	{
 		EXPECT_EQ(pPlayerResult->m_MessageKind, All ? CScorePlayerResult::ALL : CScorePlayerResult::DIRECT);
@@ -131,9 +149,9 @@ TEST_P(SingleScore, TopRegional)
 	g_Config.m_SvRegionalRankings = true;
 	ASSERT_TRUE(CScoreWorker::ShowTop(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"------------ Global Top ------------",
-			"1. nameless tee Time: 01:40.00",
-			"------------ GER Top ------------"});
+		{"------------ 全局排行 ------------",
+			"1. nameless tee 时间：01:40.00",
+			"------------ GER 排行 ------------"});
 }
 
 TEST_P(SingleScore, Top)
@@ -141,8 +159,8 @@ TEST_P(SingleScore, Top)
 	g_Config.m_SvRegionalRankings = false;
 	ASSERT_TRUE(CScoreWorker::ShowTop(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"------------ Global Top ------------",
-			"1. nameless tee Time: 01:40.00",
+		{"------------ 全局排行 ------------",
+			"1. nameless tee 时间：01:40.00",
 			"-----------------------------------------"});
 }
 
@@ -150,14 +168,14 @@ TEST_P(SingleScore, RankRegional)
 {
 	g_Config.m_SvRegionalRankings = true;
 	ASSERT_TRUE(CScoreWorker::ShowRank(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"nameless tee - 01:40.00 - better than 100% - requested by brainless tee", "Global rank 1 - GER unranked"}, true);
+	ExpectLines(m_pPlayerResult, {"nameless tee - 01:40.00 - 超过 100% 的玩家 - 由 brainless tee 查询", "全局排名 1 - GER 未上榜"}, true);
 }
 
 TEST_P(SingleScore, Rank)
 {
 	g_Config.m_SvRegionalRankings = false;
 	ASSERT_TRUE(CScoreWorker::ShowRank(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"nameless tee - 01:40.00 - better than 100% - requested by brainless tee", "Global rank 1"}, true);
+	ExpectLines(m_pPlayerResult, {"nameless tee - 01:40.00 - 超过 100% 的玩家 - 由 brainless tee 查询", "全局排名 1"}, true);
 }
 
 TEST_P(SingleScore, TopServerRegional)
@@ -166,10 +184,10 @@ TEST_P(SingleScore, TopServerRegional)
 	str_copy(m_PlayerRequest.m_aServer, "USA", sizeof(m_PlayerRequest.m_aServer));
 	ASSERT_TRUE(CScoreWorker::ShowTop(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"------------ Global Top ------------",
-			"1. nameless tee Time: 01:40.00",
-			"------------ USA Top ------------",
-			"1. nameless tee Time: 01:40.00"});
+		{"------------ 全局排行 ------------",
+			"1. nameless tee 时间：01:40.00",
+			"------------ USA 排行 ------------",
+			"1. nameless tee 时间：01:40.00"});
 }
 
 TEST_P(SingleScore, TopServer)
@@ -178,8 +196,8 @@ TEST_P(SingleScore, TopServer)
 	str_copy(m_PlayerRequest.m_aServer, "USA", sizeof(m_PlayerRequest.m_aServer));
 	ASSERT_TRUE(CScoreWorker::ShowTop(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"------------ Global Top ------------",
-			"1. nameless tee Time: 01:40.00",
+		{"------------ 全局排行 ------------",
+			"1. nameless tee 时间：01:40.00",
 			"-----------------------------------------"});
 }
 
@@ -188,7 +206,7 @@ TEST_P(SingleScore, RankServerRegional)
 	g_Config.m_SvRegionalRankings = true;
 	str_copy(m_PlayerRequest.m_aServer, "USA", sizeof(m_PlayerRequest.m_aServer));
 	ASSERT_TRUE(CScoreWorker::ShowRank(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"nameless tee - 01:40.00 - better than 100% - requested by brainless tee", "Global rank 1 - USA rank 1"}, true);
+	ExpectLines(m_pPlayerResult, {"nameless tee - 01:40.00 - 超过 100% 的玩家 - 由 brainless tee 查询", "全局排名 1 - USA 排名 1"}, true);
 }
 
 TEST_P(SingleScore, RankServer)
@@ -196,7 +214,7 @@ TEST_P(SingleScore, RankServer)
 	g_Config.m_SvRegionalRankings = false;
 	str_copy(m_PlayerRequest.m_aServer, "USA", sizeof(m_PlayerRequest.m_aServer));
 	ASSERT_TRUE(CScoreWorker::ShowRank(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"nameless tee - 01:40.00 - better than 100% - requested by brainless tee", "Global rank 1"}, true);
+	ExpectLines(m_pPlayerResult, {"nameless tee - 01:40.00 - 超过 100% 的玩家 - 由 brainless tee 查询", "全局排名 1"}, true);
 }
 
 TEST_P(SingleScore, LoadPlayerData)
@@ -236,17 +254,24 @@ TEST_P(SingleScore, LoadPlayerData)
 	}
 }
 
+TEST_P(SingleScore, TimeCpDoesntExist)
+{
+	str_copy(m_PlayerRequest.m_aName, "foo", sizeof(m_PlayerRequest.m_aName));
+	ASSERT_TRUE(CScoreWorker::LoadPlayerTimeCp(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
+	ExpectLines(m_pPlayerResult, {"'foo' 没有可用的检查点时间"});
+}
+
 TEST_P(SingleScore, TimesExists)
 {
 	ASSERT_TRUE(CScoreWorker::ShowTimes(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	EXPECT_EQ(m_pPlayerResult->m_MessageKind, CScorePlayerResult::DIRECT);
-	EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[0], "------------- Last Times -------------");
+	EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[0], "------------- 最近成绩 -------------");
 	char aBuf[128];
 	str_copy(aBuf, m_pPlayerResult->m_Data.m_aaMessages[1], 7);
 	EXPECT_STREQ(aBuf, "[USA] ");
 
-	str_copy(aBuf, m_pPlayerResult->m_Data.m_aaMessages[1] + str_length(m_pPlayerResult->m_Data.m_aaMessages[1]) - 10, 11);
-	EXPECT_STREQ(aBuf, ", 01:40.00");
+	str_copy(aBuf, m_pPlayerResult->m_Data.m_aaMessages[1] + str_length(m_pPlayerResult->m_Data.m_aaMessages[1]) - 11, 12);
+	EXPECT_STREQ(aBuf, "，01:40.00");
 	EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[2], "-------------------------------------------");
 	for(int i = 3; i < CScorePlayerResult::MAX_MESSAGES; i++)
 	{
@@ -258,7 +283,7 @@ TEST_P(SingleScore, TimesDoesntExist)
 {
 	str_copy(m_PlayerRequest.m_aName, "foo", sizeof(m_PlayerRequest.m_aMap));
 	ASSERT_TRUE(CScoreWorker::ShowTimes(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"There are no times in the specified range"});
+	ExpectLines(m_pPlayerResult, {"指定范围内没有成绩记录"});
 }
 
 struct TeamScore : public Score
@@ -307,8 +332,8 @@ TEST_P(TeamScore, All)
 	g_Config.m_SvRegionalRankings = false;
 	ASSERT_TRUE(CScoreWorker::ShowTeamTop5(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"------- Team Top 5 -------",
-			"1. brainless tee & nameless tee Team Time: 01:40.00",
+		{"------- 队伍前 5 名 -------",
+			"1. brainless tee & nameless tee 队伍时间：01:40.00",
 			"-------------------------------"});
 }
 
@@ -318,10 +343,10 @@ TEST_P(TeamScore, TeamTop5Regional)
 	str_copy(m_PlayerRequest.m_aServer, "USA", sizeof(m_PlayerRequest.m_aServer));
 	ASSERT_TRUE(CScoreWorker::ShowTeamTop5(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"------- Team Top 5 -------",
-			"1. brainless tee & nameless tee Team Time: 01:40.00",
-			"----- USA Team Top -----",
-			"1. brainless tee & nameless tee Team Time: 01:40.00"});
+		{"------- 队伍前 5 名 -------",
+			"1. brainless tee & nameless tee 队伍时间：01:40.00",
+			"----- USA 队伍排行 -----",
+			"1. brainless tee & nameless tee 队伍时间：01:40.00"});
 }
 
 TEST_P(TeamScore, PlayerExists)
@@ -329,8 +354,8 @@ TEST_P(TeamScore, PlayerExists)
 	str_copy(m_PlayerRequest.m_aName, "brainless tee", sizeof(m_PlayerRequest.m_aName));
 	ASSERT_TRUE(CScoreWorker::ShowPlayerTeamTop5(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"------- Team Top 5 -------",
-			"1. brainless tee & nameless tee Team Time: 01:40.00",
+		{"------- 队伍前 5 名 -------",
+			"1. brainless tee & nameless tee 队伍时间：01:40.00",
 			"---------------------------------"});
 }
 
@@ -338,7 +363,7 @@ TEST_P(TeamScore, PlayerDoesntExist)
 {
 	str_copy(m_PlayerRequest.m_aName, "foo", sizeof(m_PlayerRequest.m_aName));
 	ASSERT_TRUE(CScoreWorker::ShowPlayerTeamTop5(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"foo has no team ranks"});
+	ExpectLines(m_pPlayerResult, {"foo 没有队伍排名"});
 }
 
 TEST_P(TeamScore, RankUpdates)
@@ -347,8 +372,8 @@ TEST_P(TeamScore, RankUpdates)
 	str_copy(m_PlayerRequest.m_aName, "brainless tee", sizeof(m_PlayerRequest.m_aName));
 	ASSERT_TRUE(CScoreWorker::ShowPlayerTeamTop5(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"------- Team Top 5 -------",
-			"1. brainless tee & nameless tee Team Time: 01:38.00",
+		{"------- 队伍前 5 名 -------",
+			"1. brainless tee & nameless tee 队伍时间：01:38.00",
 			"---------------------------------"});
 }
 
@@ -366,7 +391,7 @@ TEST_P(MapInfo, ExactNoFinish)
 	ASSERT_TRUE(CScoreWorker::MapInfo(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 
 	EXPECT_EQ(m_pPlayerResult->m_MessageKind, CScorePlayerResult::DIRECT);
-	EXPECT_THAT(m_pPlayerResult->m_Data.m_aaMessages[0], testing::MatchesRegex("\"Kobra 3\" by Zerodin on Novice, ★★★★★, 5 points, released .* ago, 0 finishes by 0 tees"));
+	EXPECT_THAT(m_pPlayerResult->m_Data.m_aaMessages[0], testing::MatchesRegex("\"Kobra 3\"，作者 Zerodin，服务器 Novice，★★★★★，5 积分，发布于 .* 前，0 次通关，0 名玩家通关"));
 	for(int i = 1; i < CScorePlayerResult::MAX_MESSAGES; i++)
 	{
 		EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[i], "");
@@ -380,7 +405,7 @@ TEST_P(MapInfo, ExactFinish)
 	ASSERT_TRUE(CScoreWorker::MapInfo(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 
 	EXPECT_EQ(m_pPlayerResult->m_MessageKind, CScorePlayerResult::DIRECT);
-	EXPECT_THAT(m_pPlayerResult->m_Data.m_aaMessages[0], testing::MatchesRegex("\"Kobra 3\" by Zerodin on Novice, ★★★★★, 5 points, released .* ago, 1 finish by 1 tee in 01:40 median"));
+	EXPECT_THAT(m_pPlayerResult->m_Data.m_aaMessages[0], testing::MatchesRegex("\"Kobra 3\"，作者 Zerodin，服务器 Novice，★★★★★，5 积分，发布于 .* 前，1 次通关，1 名玩家通关，中位时间 01:40"));
 	for(int i = 1; i < CScorePlayerResult::MAX_MESSAGES; i++)
 	{
 		EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[i], "");
@@ -394,7 +419,7 @@ TEST_P(MapInfo, Fuzzy)
 	ASSERT_TRUE(CScoreWorker::MapInfo(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 
 	EXPECT_EQ(m_pPlayerResult->m_MessageKind, CScorePlayerResult::DIRECT);
-	EXPECT_THAT(m_pPlayerResult->m_Data.m_aaMessages[0], testing::MatchesRegex("\"Kobra 3\" by Zerodin on Novice, ★★★★★, 5 points, released .* ago, 1 finish by 1 tee in 01:40 median"));
+	EXPECT_THAT(m_pPlayerResult->m_Data.m_aaMessages[0], testing::MatchesRegex("\"Kobra 3\"，作者 Zerodin，服务器 Novice，★★★★★，5 积分，发布于 .* 前，1 次通关，1 名玩家通关，中位时间 01:40"));
 	for(int i = 1; i < CScorePlayerResult::MAX_MESSAGES; i++)
 	{
 		EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[i], "");
@@ -409,7 +434,7 @@ TEST_P(MapInfo, FuzzyCase)
 	ASSERT_TRUE(CScoreWorker::MapInfo(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 
 	EXPECT_EQ(m_pPlayerResult->m_MessageKind, CScorePlayerResult::DIRECT);
-	EXPECT_THAT(m_pPlayerResult->m_Data.m_aaMessages[0], testing::MatchesRegex("\"Reflect\" by DarkOort on Dummy, ★★★✰✰, 20 points, released .* ago, 0 finishes by 0 tees"));
+	EXPECT_THAT(m_pPlayerResult->m_Data.m_aaMessages[0], testing::MatchesRegex("\"Reflect\"，作者 DarkOort，服务器 Dummy，★★★✰✰，20 积分，发布于 .* 前，0 次通关，0 名玩家通关"));
 	for(int i = 1; i < CScorePlayerResult::MAX_MESSAGES; i++)
 	{
 		EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[i], "");
@@ -420,7 +445,7 @@ TEST_P(MapInfo, DoesntExit)
 {
 	str_copy(m_PlayerRequest.m_aName, "f", sizeof(m_PlayerRequest.m_aName));
 	ASSERT_TRUE(CScoreWorker::MapInfo(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"No map like \"f\" found."});
+	ExpectLines(m_pPlayerResult, {"没有找到类似于 \"f\" 的地图。"});
 }
 
 struct MapVote : public Score
@@ -467,7 +492,7 @@ TEST_P(MapVote, DoesntExist)
 {
 	str_copy(m_PlayerRequest.m_aName, "f", sizeof(m_PlayerRequest.m_aName));
 	ASSERT_TRUE(CScoreWorker::MapVote(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"No map like \"f\" found. Try adding a '%' at the start if you don't know the first character. Example: /map %castle for \"Out of Castle\""});
+	ExpectLines(m_pPlayerResult, {"没有找到类似于 \"f\" 的地图。如果不知道首字母，可以在开头加 '%'。例如：/map %castle 可以找到 \"Out of Castle\""});
 }
 
 struct Points : public Score
@@ -483,13 +508,13 @@ struct Points : public Score
 TEST_P(Points, NoPoints)
 {
 	ASSERT_TRUE(CScoreWorker::ShowPoints(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"nameless tee has not collected any points so far"});
+	ExpectLines(m_pPlayerResult, {"nameless tee 目前还没有获得任何积分"});
 }
 
 TEST_P(Points, NoPointsTop)
 {
 	ASSERT_TRUE(CScoreWorker::ShowTopPoints(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"-------- Top Points --------",
+	ExpectLines(m_pPlayerResult, {"-------- 积分排行 --------",
 					     "-------------------------------"});
 }
 
@@ -497,7 +522,7 @@ TEST_P(Points, OnePoints)
 {
 	m_pConn->AddPoints("nameless tee", 2, m_aError, sizeof(m_aError));
 	ASSERT_TRUE(CScoreWorker::ShowPoints(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"1. nameless tee Points: 2, requested by brainless tee"}, true);
+	ExpectLines(m_pPlayerResult, {"1. nameless tee 积分：2，由 brainless tee 查询"}, true);
 }
 
 TEST_P(Points, OnePointsTop)
@@ -505,8 +530,8 @@ TEST_P(Points, OnePointsTop)
 	m_pConn->AddPoints("nameless tee", 2, m_aError, sizeof(m_aError));
 	ASSERT_TRUE(CScoreWorker::ShowTopPoints(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"-------- Top Points --------",
-			"1. nameless tee Points: 2",
+		{"-------- 积分排行 --------",
+			"1. nameless tee 积分：2",
 			"-------------------------------"});
 }
 
@@ -515,7 +540,7 @@ TEST_P(Points, TwoPoints)
 	m_pConn->AddPoints("nameless tee", 2, m_aError, sizeof(m_aError));
 	m_pConn->AddPoints("brainless tee", 3, m_aError, sizeof(m_aError));
 	ASSERT_TRUE(CScoreWorker::ShowPoints(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"2. nameless tee Points: 2, requested by brainless tee"}, true);
+	ExpectLines(m_pPlayerResult, {"2. nameless tee 积分：2，由 brainless tee 查询"}, true);
 }
 
 TEST_P(Points, TwoPointsTop)
@@ -524,9 +549,9 @@ TEST_P(Points, TwoPointsTop)
 	m_pConn->AddPoints("brainless tee", 3, m_aError, sizeof(m_aError));
 	ASSERT_TRUE(CScoreWorker::ShowTopPoints(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"-------- Top Points --------",
-			"1. brainless tee Points: 3",
-			"2. nameless tee Points: 2",
+		{"-------- 积分排行 --------",
+			"1. brainless tee 积分：3",
+			"2. nameless tee 积分：2",
 			"-------------------------------"});
 }
 
@@ -536,7 +561,7 @@ TEST_P(Points, EqualPoints)
 	m_pConn->AddPoints("brainless tee", 3, m_aError, sizeof(m_aError));
 	m_pConn->AddPoints("nameless tee", 1, m_aError, sizeof(m_aError));
 	ASSERT_TRUE(CScoreWorker::ShowPoints(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
-	ExpectLines(m_pPlayerResult, {"1. nameless tee Points: 3, requested by brainless tee"}, true);
+	ExpectLines(m_pPlayerResult, {"1. nameless tee 积分：3，由 brainless tee 查询"}, true);
 }
 
 TEST_P(Points, EqualPointsTop)
@@ -546,9 +571,9 @@ TEST_P(Points, EqualPointsTop)
 	m_pConn->AddPoints("nameless tee", 1, m_aError, sizeof(m_aError));
 	ASSERT_TRUE(CScoreWorker::ShowTopPoints(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
 	ExpectLines(m_pPlayerResult,
-		{"-------- Top Points --------",
-			"1. brainless tee Points: 3",
-			"1. nameless tee Points: 3",
+		{"-------- 积分排行 --------",
+			"1. brainless tee 积分：3",
+			"1. nameless tee 积分：3",
 			"-------------------------------"});
 }
 
@@ -602,7 +627,7 @@ TEST_P(RandomMap, StarsDoesntExist)
 	ASSERT_TRUE(CScoreWorker::RandomMap(m_pConn, &m_RandomMapRequest, m_aError, sizeof(m_aError))) << m_aError;
 	EXPECT_EQ(m_pRandomMapResult->m_ClientId, 0);
 	EXPECT_STREQ(m_pRandomMapResult->m_aMap, "");
-	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "No maps found on this server!");
+	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "这个服务器上没有找到符合条件的地图！");
 }
 
 TEST_P(RandomMap, UnfinishedExists)
@@ -621,7 +646,37 @@ TEST_P(RandomMap, UnfinishedDoesntExist)
 	ASSERT_TRUE(CScoreWorker::RandomUnfinishedMap(m_pConn, &m_RandomMapRequest, m_aError, sizeof(m_aError))) << m_aError;
 	EXPECT_EQ(m_pRandomMapResult->m_ClientId, 0);
 	EXPECT_STREQ(m_pRandomMapResult->m_aMap, "");
-	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "nameless tee has no more unfinished maps on this server!");
+	EXPECT_STREQ(m_pRandomMapResult->m_aMessage, "nameless tee 在这个服务器上已经没有未完成的地图了！");
+}
+
+TEST_P(Score, LoadTeamReportsCorruptedSaveIdInChinese)
+{
+	InsertRawSave("Kobra 3", "broken-code", "broken-save", "GER", "not-a-uuid");
+
+	auto pSaveResult = std::make_shared<CScoreSaveResult>(0, "nameless tee", "GER");
+	CSqlTeamLoadRequest Request(pSaveResult);
+	str_copy(Request.m_aMap, "Kobra 3", sizeof(Request.m_aMap));
+	str_copy(Request.m_aCode, "broken-code", sizeof(Request.m_aCode));
+	str_copy(Request.m_aRequestingPlayer, "nameless tee", sizeof(Request.m_aRequestingPlayer));
+
+	ASSERT_TRUE(CScoreWorker::LoadTeam(m_pConn, &Request, Write::NORMAL, m_aError, sizeof(m_aError))) << m_aError;
+	EXPECT_EQ(pSaveResult->m_Status, CScoreSaveResult::LOAD_FAILED);
+	EXPECT_STREQ(pSaveResult->m_aMessage, "无法载入存档：存档编号已损坏");
+}
+
+TEST_P(Score, ListSavesUsesChineseUnknownPlayerPlaceholder)
+{
+	str_copy(m_PlayerRequest.m_aMap, "Kobra 3", sizeof(m_PlayerRequest.m_aMap));
+	InsertRawSave("Kobra 3", "mystery", "broken-save", "GER", "11111111-1111-1111-1111-111111111111");
+
+	ASSERT_TRUE(CScoreWorker::ListSaves(m_pConn, &m_PlayerRequest, m_aError, sizeof(m_aError))) << m_aError;
+	EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[0], "------- Kobra 3 的存档 -------");
+	EXPECT_THAT(m_pPlayerResult->m_Data.m_aaMessages[1], testing::MatchesRegex("\\[未知玩家\\] mystery（.* 前）"));
+	EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[2], "---------------------------");
+	for(int i = 3; i < CScorePlayerResult::MAX_MESSAGES; i++)
+	{
+		EXPECT_STREQ(m_pPlayerResult->m_Data.m_aaMessages[i], "");
+	}
 }
 
 auto g_pSqliteConn = CreateSqliteConnection(":memory:", true);
@@ -663,3 +718,4 @@ INSTANTIATE(MapInfo);
 INSTANTIATE(MapVote);
 INSTANTIATE(Points);
 INSTANTIATE(RandomMap);
+INSTANTIATE(Score);

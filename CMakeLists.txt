@@ -2766,6 +2766,8 @@ if(CLIENT)
     components/qmclient/collision_hitbox.h
     components/qmclient/colored_parts.h
     components/qmclient/data_version.h
+    components/qmclient/hud_notification_catalog.cpp
+    components/qmclient/hud_notification_catalog.h
     components/qmclient/hud_notification_rules.cpp
     components/qmclient/hud_notification_rules.h
     components/qmclient/hud_notification_static_rules.h
@@ -2865,6 +2867,8 @@ if(CLIENT)
     components/tclient/skinprofiles.h
     components/tclient/statusbar.cpp
     components/tclient/statusbar.h
+    components/tclient/swap_countdown_message.cpp
+    components/tclient/swap_countdown_message.h
     components/tclient/tclient.cpp
     components/tclient/tclient.h
     components/tclient/trails.cpp
@@ -3717,8 +3721,10 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     qmclient_update_version_test.cpp
     QmUiTokensTest.cpp
     qmclient_monitoring_test.cpp
+    race_test.cpp
     score_test.cpp
     section_loader_test.cpp
+    swap_countdown_message_test.cpp
     secure_random_test.cpp
     server_test.cpp
     serverbrowser_test.cpp
@@ -3754,7 +3760,9 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
   )
   set(TESTS_EXTRA
     src/game/client/animstate.cpp
+    src/game/client/race.cpp
     src/game/client/skin.cpp
+    src/game/client/components/tclient/swap_countdown_message.cpp
     src/test/render_tee_offset_helpers.cpp
     src/game/client/components/section_loader.cpp
     src/game/client/components/settings_runtime_cache.cpp
@@ -3765,6 +3773,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     src/game/client/components/assets_resource_registry.cpp
     src/generated/client_data.h
     src/generated/client_data7.h
+    src/game/client/components/qmclient/hud_notification_catalog.cpp
     src/game/client/components/qmclient/hud_notification_rules.cpp
     src/game/client/components/qmclient/monitoring_device_perf.cpp
     src/game/client/live/live_director.cpp

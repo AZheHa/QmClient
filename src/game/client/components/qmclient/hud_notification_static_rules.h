@@ -1,8 +1,11 @@
 #ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATION_STATIC_RULES_H
 #define GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATION_STATIC_RULES_H
 
+// Compatibility layer for pre-semantic static categories that are still consumed by
+// hud_notification_rules.cpp. The semantic upstream/alias tables are the canonical
+// source for the migrated static families; do not reintroduce a mixed total-table macro here.
+
 #define QM_HUD_NOTIFICATION_STATIC_TEAM_RULES(X) \
-	X("Team save already in progress", "队伍存档已在进行中") \
 	X("Team save disabled for teams in practice mode", "练习模式下不能保存队伍存档") \
 	X("Team load already in progress", "队伍读档已在进行中") \
 	X("You have to be in a team (from 1-63)", "你必须在队伍中（1 到 63 队）") \
@@ -15,14 +18,14 @@
 	X("Team can't be saved while in team 0 mode", "处于 0 队模式时不能保存队伍存档") \
 	X("Team can't be saved while a dragger is active", "有拖拽器生效时不能保存队伍存档") \
 	X("Your team was killed because it couldn't finish anymore and hasn't entered /practice mode", "你的队伍因已无法完赛且未进入 /practice 模式而被处死") \
-	X("This team started already", "这个队伍已经开始了") \
+	X("This team started already", "这个队伍已经开始比赛了") \
 	X("You are in this team already", "你已经在这个队伍里了") \
-	X("You can't change teams while you are dead/a spectator.", "死亡或旁观时不能切换队伍") \
+	X("You can't change teams while you are dead/a spectator.", "你死亡或处于旁观状态时，不能切换队伍。") \
 	X("You can't join super team if you don't have super rights", "没有 super 权限时不能加入 super 队伍") \
 	X("You have started racing already", "你已经开始比赛了") \
-	X("You have used practice mode already", "你已经用过练习模式了") \
-	X("This team is currently saving", "这个队伍当前正在保存") \
-	X("Your team is currently saving", "你的队伍当前正在保存") \
+	X("You have used practice mode already", "你已经使用过练习模式了") \
+	X("This team is currently saving", "这个队伍当前正在存档") \
+	X("Your team is currently saving", "你的队伍当前正在存档") \
 	X("Start holding the hook before loading the savegame to keep the hook", "如果想保留钩子状态，请在读档前先按住钩子") \
 	X("Your team has been killed because it contains an invalid tee state", "你的队伍因包含无效 tee 状态而被处死") \
 	X("You died, but will stay in practice until you use kill.", "你已经死亡，但会继续保持练习模式，直到你输入 kill") \
@@ -55,8 +58,7 @@
 	X("Team mode can't be changed while racing", "比赛进行中时不能切换队伍模式")
 
 #define QM_HUD_NOTIFICATION_STATIC_SWAP_RESCUE_RULES(X) \
-	X("Rescue is not enabled on this server and you're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.", "本服未开启 rescue，且你所在队伍也没有开启 /practice。注意：练习模式下无法获得排名") \
-	X("Unknown argument. Check '/rescuemode list'", "未知 rescue 模式参数") \
+	X("Unknown argument. Check '/rescuemode list'", "未知救援模式参数") \
 	X("There is nowhere to go back to.", "没有可回退的位置") \
 	X("You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.", "你当前不在开启了 /practice 的队伍中。注意：练习模式下无法获得排名") \
 	X("You haven't previously teleported. Use /tp before using this command.", "你之前没有传送过，请先使用 /tp") \
@@ -93,8 +95,6 @@
 	X("Wait for current vote to end before calling a new one.", "请先等待当前投票结束，再发起新的投票")
 
 #define QM_HUD_NOTIFICATION_STATIC_STATUS_RULES(X) \
-	X("You will now see all tees on this server, no matter the distance", "你现在会看到本服所有 tee，不再受距离限制") \
-	X("You will no longer see all tees on this server", "你现在不会再看到本服所有 tee 了") \
 	X("Unknown parameter. Accepted values: default, gametimer, broadcast, both, none", "未知参数。可用值：default、gametimer、broadcast、both、none") \
 	X("Selected timertype is not supported by your client", "你当前客户端不支持所选计时器类型") \
 	X("Timer isn't displayed.", "计时器当前不显示") \
@@ -118,15 +118,21 @@
 	X("Showing the global top points is not allowed on this server.", "本服务器不允许查看全局积分排行榜") \
 	X("Showing the checkpoint times is not allowed on this server.", "本服务器不允许查看 checkpoint 时间") \
 	X("Showing players from other teams is disabled", "本服务器已禁用显示其他队伍玩家") \
+	X("Teams are available on this server ；队伍上锁后，队内任意玩家死亡都会导致全队死亡", "本服务器允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡") \
+	X("Teams are not available on this server ；队伍上锁后，队内任意玩家死亡都会导致全队死亡", "本服务器不允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡") \
+	X("You have to be in a team to play on this server and all of your team will die if the team is locked", "你必须加入队伍才能在本服务器游玩；队伍上锁后，队内任意玩家死亡都会导致全队死亡") \
+	X("Players can collide on this server", "本服务器允许玩家碰撞") \
+	X("Players can't collide on this server", "本服务器不允许玩家碰撞") \
+	X("Players can hook each other on this server", "本服务器允许玩家互钩") \
+	X("Players can't hook each other on this server", "本服务器不允许玩家互钩") \
+	X("Scores are private on this server", "本服务器的成绩是私密的") \
+	X("Scores are public on this server", "本服务器的成绩是公开的") \
 	X("You will not receive any further global chat and server messages", "你将不再接收全局聊天和服务器消息") \
 	X("You will receive global chat and server messages", "你将继续接收全局聊天和服务器消息") \
-	X("You will receive whispers", "你将继续接收悄悄话") \
-	X("You will not receive any further whispers", "你将不再接收悄悄话") \
 	X("Command is not available on solo servers", "这个命令在 solo 服务器上不可用") \
 	X("Emotes are disabled.", "本服务器已禁用表情功能") \
 	X("You can now use the preset eye emotes.", "你现在可以使用预设眼部表情") \
 	X("You don't have any eye emotes, remember to bind some.", "你当前没有可用的眼部表情，记得先绑定") \
-	X("Unknown emote... Say /emote", "未知表情命令") \
 	X("No player with this name found.", "没有找到这个名字的玩家") \
 	X("Invalid X coordinate.", "无效的 X 坐标") \
 	X("Invalid Y coordinate.", "无效的 Y 坐标") \
@@ -156,13 +162,6 @@
 	X("You can shoot others with laser", "你现在可以用激光攻击其他玩家") \
 	X("You can't shoot others with laser", "你现在不能用激光攻击其他玩家") \
 	X("Endless hook has been activated", "无限钩已开启") \
-	X("Endless hook has been deactivated", "无限钩已关闭") \
-	X("Your timeout code has been set. 0.7 clients can not reclaim their tees on timeout; however, a 0.6 client can claim your tee ", "你的 timeout code 已设置")
-
-#define QM_HUD_NOTIFICATION_STATIC_RULES(X) \
-	QM_HUD_NOTIFICATION_STATIC_TEAM_RULES(X) \
-	QM_HUD_NOTIFICATION_STATIC_SWAP_RESCUE_RULES(X) \
-	QM_HUD_NOTIFICATION_STATIC_VOTE_MODERATION_RULES(X) \
-	QM_HUD_NOTIFICATION_STATIC_STATUS_RULES(X)
+	X("Endless hook has been deactivated", "无限钩已关闭")
 
 #endif

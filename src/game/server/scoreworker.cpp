@@ -131,7 +131,7 @@ bool CTeamrank::GetSqlTop5Team(IDbConnection *pSqlServer, bool *pEnd, char *pErr
 				break;
 			}
 		}
-		str_format(paMessages[*Line], sizeof(paMessages[*Line]), "%d. %s Team Time: %s",
+		str_format(paMessages[*Line], sizeof(paMessages[*Line]), "%d. %s 队伍时间：%s",
 			Rank, aNames, aTime);
 		if(Last)
 		{
@@ -298,7 +298,7 @@ bool CScoreWorker::LoadPlayerTimeCp(IDbConnection *pSqlServer, const ISqlData *p
 	else
 	{
 		pResult->SetVariant(CScorePlayerResult::DIRECT);
-		str_format(paMessages[0], sizeof(paMessages[0]), "'%s' has no checkpoint times available", pPlayer);
+		str_format(paMessages[0], sizeof(paMessages[0]), "'%s' 没有可用的检查点时间", pPlayer);
 	}
 	return true;
 }
@@ -356,9 +356,9 @@ bool CScoreWorker::MapVote(IDbConnection *pSqlServer, const ISqlData *pGameData,
 	{
 		pResult->SetVariant(CScorePlayerResult::DIRECT);
 		str_format(paMessages[0], sizeof(paMessages[0]),
-			"No map like \"%s\" found. "
-			"Try adding a '%%' at the start if you don't know the first character. "
-			"Example: /map %%castle for \"Out of Castle\"",
+			"没有找到类似于 \"%s\" 的地图。"
+			"如果不知道首字母，可以在开头加 '%%'。"
+			"例如：/map %%castle 可以找到 \"Out of Castle\"",
 			pData->m_aName);
 	}
 	return true;
@@ -443,14 +443,14 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 		if(Stamp != 0)
 		{
 			sqlstr::AgoTimeToString(Ago, aAgoString, sizeof(aAgoString));
-			str_format(aReleasedString, sizeof(aReleasedString), ", released %s ago", aAgoString);
+			str_format(aReleasedString, sizeof(aReleasedString), "，发布于 %s 前", aAgoString);
 		}
 
 		char aMedianString[60] = "\0";
 		if(Median > 0)
 		{
 			str_time((int64_t)Median * 100, TIME_HOURS, aBuf, sizeof(aBuf));
-			str_format(aMedianString, sizeof(aMedianString), " in %s median", aBuf);
+			str_format(aMedianString, sizeof(aMedianString), "，中位时间 %s", aBuf);
 		}
 
 		char aStars[20];
@@ -470,22 +470,21 @@ bool CScoreWorker::MapInfo(IDbConnection *pSqlServer, const ISqlData *pGameData,
 		{
 			str_time_float(OwnTime, TIME_HOURS_CENTISECS, aBuf, sizeof(aBuf));
 			str_format(aOwnFinishesString, sizeof(aOwnFinishesString),
-				", your time: %s", aBuf);
+				"，你的成绩：%s", aBuf);
 		}
 
 		str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-			"\"%s\" by %s on %s, %s, %d %s%s, %d %s by %d %s%s%s",
+			"\"%s\"，作者 %s，服务器 %s，%s，%d 积分%s，%d 次通关，%d 名玩家通关%s%s",
 			aMap, aMapper, aServer, aStars,
-			Points, Points == 1 ? "point" : "points",
+			Points,
 			aReleasedString,
-			Finishes, Finishes == 1 ? "finish" : "finishes",
-			Finishers, Finishers == 1 ? "tee" : "tees",
+			Finishes, Finishers,
 			aMedianString, aOwnFinishesString);
 	}
 	else
 	{
 		str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-			"No map like \"%s\" found.", pData->m_aName);
+			"没有找到类似于 \"%s\" 的地图。", pData->m_aName);
 	}
 	return true;
 }
@@ -605,8 +604,8 @@ bool CScoreWorker::SaveScore(IDbConnection *pSqlServer, const ISqlData *pGameDat
 					return false;
 				}
 				str_format(paMessages[0], sizeof(paMessages[0]),
-					"You earned %d point%s for finishing this map!",
-					Points, Points == 1 ? "" : "s");
+					"你完成这张地图后获得了 %d 积分！",
+					Points);
 			}
 		}
 	}
@@ -859,11 +858,11 @@ bool CScoreWorker::ShowRank(IDbConnection *pSqlServer, const ISqlData *pGameData
 	char aRegionalRank[16];
 	if(End)
 	{
-		str_copy(aRegionalRank, "unranked", sizeof(aRegionalRank));
+		str_copy(aRegionalRank, "未上榜", sizeof(aRegionalRank));
 	}
 	else
 	{
-		str_format(aRegionalRank, sizeof(aRegionalRank), "rank %d", pSqlServer->GetInt(1));
+		str_format(aRegionalRank, sizeof(aRegionalRank), "排名 %d", pSqlServer->GetInt(1));
 	}
 
 	const char *pAny = "%";
@@ -890,7 +889,7 @@ bool CScoreWorker::ShowRank(IDbConnection *pSqlServer, const ISqlData *pGameData
 		if(g_Config.m_SvHideScore)
 		{
 			str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-				"Your time: %s", aBuf);
+				"你的时间：%s", aBuf);
 		}
 		else
 		{
@@ -901,33 +900,33 @@ bool CScoreWorker::ShowRank(IDbConnection *pSqlServer, const ISqlData *pGameData
 			if(str_comp_nocase(pData->m_aRequestingPlayer, pData->m_aName) == 0)
 			{
 				str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-					"%s - %s - better than %d%%",
+					"%s - %s - 超过 %d%% 的玩家",
 					pData->m_aName, aBuf, BetterThanPercent);
 			}
 			else
 			{
 				str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-					"%s - %s - better than %d%% - requested by %s",
+					"%s - %s - 超过 %d%% 的玩家 - 由 %s 查询",
 					pData->m_aName, aBuf, BetterThanPercent, pData->m_aRequestingPlayer);
 			}
 
 			if(g_Config.m_SvRegionalRankings)
 			{
 				str_format(pResult->m_Data.m_aaMessages[1], sizeof(pResult->m_Data.m_aaMessages[1]),
-					"Global rank %d - %s %s",
+					"全局排名 %d - %s %s",
 					Rank, pData->m_aServer, aRegionalRank);
 			}
 			else
 			{
 				str_format(pResult->m_Data.m_aaMessages[1], sizeof(pResult->m_Data.m_aaMessages[1]),
-					"Global rank %d", Rank);
+					"全局排名 %d", Rank);
 			}
 		}
 	}
 	else
 	{
 		str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-			"%s is not ranked", pData->m_aName);
+			"%s 尚未上榜", pData->m_aName);
 	}
 	return true;
 }
@@ -997,20 +996,20 @@ bool CScoreWorker::ShowTeamRank(IDbConnection *pSqlServer, const ISqlData *pGame
 		if(g_Config.m_SvHideScore)
 		{
 			str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-				"Your team time: %s, better than %d%%", aBuf, BetterThanPercent);
+				"你的队伍时间：%s，超过 %d%% 的队伍", aBuf, BetterThanPercent);
 		}
 		else
 		{
 			pResult->m_MessageKind = CScorePlayerResult::ALL;
 			str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-				"%d. %s Team time: %s, better than %d%%, requested by %s",
+				"%d. %s 队伍时间：%s，超过 %d%% 的队伍，由 %s 查询",
 				Rank, aFormattedNames, aBuf, BetterThanPercent, pData->m_aRequestingPlayer);
 		}
 	}
 	else
 	{
 		str_format(pResult->m_Data.m_aaMessages[0], sizeof(pResult->m_Data.m_aaMessages[0]),
-			"%s has no team ranks", pData->m_aName);
+			"%s 没有队伍排名", pData->m_aName);
 	}
 	return true;
 }
@@ -1052,7 +1051,7 @@ bool CScoreWorker::ShowTop(IDbConnection *pSqlServer, const ISqlData *pGameData,
 
 	// show top
 	int Line = 0;
-	str_copy(pResult->m_Data.m_aaMessages[Line], "------------ Global Top ------------", sizeof(pResult->m_Data.m_aaMessages[Line]));
+	str_copy(pResult->m_Data.m_aaMessages[Line], "------------ 全局排行 ------------", sizeof(pResult->m_Data.m_aaMessages[Line]));
 	Line++;
 
 	char aTime[32];
@@ -1066,7 +1065,7 @@ bool CScoreWorker::ShowTop(IDbConnection *pSqlServer, const ISqlData *pGameData,
 		str_time_float(Time, TIME_HOURS_CENTISECS, aTime, sizeof(aTime));
 		int Rank = pSqlServer->GetInt(3);
 		str_format(pResult->m_Data.m_aaMessages[Line], sizeof(pResult->m_Data.m_aaMessages[Line]),
-			"%d. %s Time: %s", Rank, aName, aTime);
+			"%d. %s 时间：%s", Rank, aName, aTime);
 
 		Line++;
 	}
@@ -1089,7 +1088,7 @@ bool CScoreWorker::ShowTop(IDbConnection *pSqlServer, const ISqlData *pGameData,
 	pSqlServer->BindInt(3, 3);
 
 	str_format(pResult->m_Data.m_aaMessages[Line], sizeof(pResult->m_Data.m_aaMessages[Line]),
-		"------------ %s Top ------------", pData->m_aServer);
+		"------------ %s 排行 ------------", pData->m_aServer);
 	Line++;
 
 	// show top
@@ -1101,7 +1100,7 @@ bool CScoreWorker::ShowTop(IDbConnection *pSqlServer, const ISqlData *pGameData,
 		str_time_float(Time, TIME_HOURS_CENTISECS, aTime, sizeof(aTime));
 		int Rank = pSqlServer->GetInt(3);
 		str_format(pResult->m_Data.m_aaMessages[Line], sizeof(pResult->m_Data.m_aaMessages[Line]),
-			"%d. %s Time: %s", Rank, aName, aTime);
+			"%d. %s 时间：%s", Rank, aName, aTime);
 		Line++;
 	}
 
@@ -1155,7 +1154,7 @@ bool CScoreWorker::ShowTeamTop5(IDbConnection *pSqlServer, const ISqlData *pGame
 	pSqlServer->BindInt(3, 5);
 
 	int Line = 0;
-	str_copy(paMessages[Line++], "------- Team Top 5 -------", sizeof(paMessages[Line]));
+	str_copy(paMessages[Line++], "------- 队伍前 5 名 -------", sizeof(paMessages[Line]));
 
 	bool End;
 	if(!pSqlServer->Step(&End, pError, ErrorSize))
@@ -1188,7 +1187,7 @@ bool CScoreWorker::ShowTeamTop5(IDbConnection *pSqlServer, const ISqlData *pGame
 	pSqlServer->BindInt(3, 3);
 
 	str_format(pResult->m_Data.m_aaMessages[Line], sizeof(pResult->m_Data.m_aaMessages[Line]),
-		"----- %s Team Top -----", pData->m_aServer);
+		"----- %s 队伍排行 -----", pData->m_aServer);
 	Line++;
 
 	if(!pSqlServer->Step(&End, pError, ErrorSize))
@@ -1252,7 +1251,7 @@ bool CScoreWorker::ShowPlayerTeamTop5(IDbConnection *pSqlServer, const ISqlData 
 	{
 		// show teamtop5
 		int Line = 0;
-		str_copy(paMessages[Line++], "------- Team Top 5 -------", sizeof(paMessages[Line]));
+		str_copy(paMessages[Line++], "------- 队伍前 5 名 -------", sizeof(paMessages[Line]));
 
 		for(Line = 1; Line < 6; Line++) // print
 		{
@@ -1277,7 +1276,7 @@ bool CScoreWorker::ShowPlayerTeamTop5(IDbConnection *pSqlServer, const ISqlData 
 					str_append(aFormattedNames, " & ");
 			}
 
-			str_format(paMessages[Line], sizeof(paMessages[Line]), "%d. %s Team Time: %s",
+			str_format(paMessages[Line], sizeof(paMessages[Line]), "%d. %s 队伍时间：%s",
 				Rank, aFormattedNames, aBuf);
 			if(Last)
 			{
@@ -1290,9 +1289,9 @@ bool CScoreWorker::ShowPlayerTeamTop5(IDbConnection *pSqlServer, const ISqlData 
 	else
 	{
 		if(pData->m_Offset == 0)
-			str_format(paMessages[0], sizeof(paMessages[0]), "%s has no team ranks", pData->m_aName);
+			str_format(paMessages[0], sizeof(paMessages[0]), "%s 没有队伍排名", pData->m_aName);
 		else
-			str_format(paMessages[0], sizeof(paMessages[0]), "%s has no team ranks in the specified range", pData->m_aName);
+			str_format(paMessages[0], sizeof(paMessages[0]), "%s 在指定范围内没有队伍排名", pData->m_aName);
 	}
 	return true;
 }
@@ -1355,11 +1354,11 @@ bool CScoreWorker::ShowTimes(IDbConnection *pSqlServer, const ISqlData *pGameDat
 	}
 	if(End)
 	{
-		str_copy(paMessages[0], "There are no times in the specified range", sizeof(paMessages[0]));
+		str_copy(paMessages[0], "指定范围内没有成绩记录", sizeof(paMessages[0]));
 		return true;
 	}
 
-	str_copy(paMessages[0], "------------- Last Times -------------", sizeof(paMessages[0]));
+	str_copy(paMessages[0], "------------- 最近成绩 -------------", sizeof(paMessages[0]));
 	int Line = 1;
 
 	do
@@ -1381,10 +1380,10 @@ bool CScoreWorker::ShowTimes(IDbConnection *pSqlServer, const ISqlData *pGameDat
 		{
 			if(Stamp == 0) // stamp is 00:00:00 cause it's an old entry from old times where there where no stamps yet
 				str_format(paMessages[Line], sizeof(paMessages[Line]),
-					"%s%s, don't know how long ago", aServerFormatted, aBuf);
+					"%s%s，时间未知", aServerFormatted, aBuf);
 			else
 				str_format(paMessages[Line], sizeof(paMessages[Line]),
-					"%s%s ago, %s", aServerFormatted, aAgoString, aBuf);
+					"%s%s 前，%s", aServerFormatted, aAgoString, aBuf);
 		}
 		else // last 5 times of the server
 		{
@@ -1393,12 +1392,12 @@ bool CScoreWorker::ShowTimes(IDbConnection *pSqlServer, const ISqlData *pGameDat
 			if(Stamp == 0) // stamp is 00:00:00 cause it's an old entry from old times where there where no stamps yet
 			{
 				str_format(paMessages[Line], sizeof(paMessages[Line]),
-					"%s%s, %s, don't know when", aServerFormatted, aName, aBuf);
+					"%s%s，%s，时间未知", aServerFormatted, aName, aBuf);
 			}
 			else
 			{
 				str_format(paMessages[Line], sizeof(paMessages[Line]),
-					"%s%s, %s ago, %s", aServerFormatted, aName, aAgoString, aBuf);
+					"%s%s，%s 前，%s", aServerFormatted, aName, aAgoString, aBuf);
 			}
 		}
 		Line++;
@@ -1446,13 +1445,13 @@ bool CScoreWorker::ShowPoints(IDbConnection *pSqlServer, const ISqlData *pGameDa
 		pSqlServer->GetString(3, aName, sizeof(aName));
 		pResult->m_MessageKind = CScorePlayerResult::ALL;
 		str_format(paMessages[0], sizeof(paMessages[0]),
-			"%d. %s Points: %d, requested by %s",
+			"%d. %s 积分：%d，由 %s 查询",
 			Rank, aName, Count, pData->m_aRequestingPlayer);
 	}
 	else
 	{
 		str_format(paMessages[0], sizeof(paMessages[0]),
-			"%s has not collected any points so far", pData->m_aName);
+			"%s 目前还没有获得任何积分", pData->m_aName);
 	}
 	return true;
 }
@@ -1483,7 +1482,7 @@ bool CScoreWorker::ShowTopPoints(IDbConnection *pSqlServer, const ISqlData *pGam
 	pSqlServer->BindInt(2, LimitStart);
 
 	// show top points
-	str_copy(paMessages[0], "-------- Top Points --------", sizeof(paMessages[0]));
+	str_copy(paMessages[0], "-------- 积分排行 --------", sizeof(paMessages[0]));
 
 	bool End = false;
 	int Line = 1;
@@ -1494,7 +1493,7 @@ bool CScoreWorker::ShowTopPoints(IDbConnection *pSqlServer, const ISqlData *pGam
 		char aName[MAX_NAME_LENGTH];
 		pSqlServer->GetString(3, aName, sizeof(aName));
 		str_format(paMessages[Line], sizeof(paMessages[Line]),
-			"%d. %s Points: %d", Rank, aName, Points);
+			"%d. %s 积分：%d", Rank, aName, Points);
 		Line++;
 	}
 	if(!End)
@@ -1552,7 +1551,7 @@ bool CScoreWorker::RandomMap(IDbConnection *pSqlServer, const ISqlData *pGameDat
 	}
 	else
 	{
-		str_copy(pResult->m_aMessage, "No maps found on this server!", sizeof(pResult->m_aMessage));
+		str_copy(pResult->m_aMessage, "这个服务器上没有找到符合条件的地图！", sizeof(pResult->m_aMessage));
 	}
 	return true;
 }
@@ -1617,7 +1616,7 @@ bool CScoreWorker::RandomUnfinishedMap(IDbConnection *pSqlServer, const ISqlData
 	}
 	else
 	{
-		str_format(aBuf, sizeof(aBuf), "%s has no more unfinished maps on this server!", pData->m_aRequestingPlayer);
+		str_format(aBuf, sizeof(aBuf), "%s 在这个服务器上已经没有未完成的地图了！", pData->m_aRequestingPlayer);
 		str_copy(pResult->m_aMessage, aBuf, sizeof(pResult->m_aMessage));
 	}
 	return true;
@@ -1742,7 +1741,7 @@ bool CScoreWorker::SaveTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 	{
 		dbg_msg("sql", "ERROR: This save-code already exists");
 		pResult->m_Status = CScoreSaveResult::SAVE_FAILED;
-		str_copy(pResult->m_aMessage, "This save-code already exists", sizeof(pResult->m_aMessage));
+		str_copy(pResult->m_aMessage, "这个存档码已存在", sizeof(pResult->m_aMessage));
 	}
 	return true;
 }
@@ -1781,7 +1780,7 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 	}
 	if(End)
 	{
-		str_copy(pResult->m_aMessage, "No such savegame for this map", sizeof(pResult->m_aMessage));
+		str_copy(pResult->m_aMessage, "这张地图没有对应的存档", sizeof(pResult->m_aMessage));
 		return true;
 	}
 
@@ -1792,7 +1791,7 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 		pSqlServer->GetString(3, aSaveId, sizeof(aSaveId));
 		if(ParseUuid(&pResult->m_SaveId, aSaveId) || pResult->m_SaveId == UUID_NO_SAVE_ID)
 		{
-			str_copy(pResult->m_aMessage, "Unable to load savegame: SaveId corrupted", sizeof(pResult->m_aMessage));
+			str_copy(pResult->m_aMessage, "无法载入存档：存档编号已损坏", sizeof(pResult->m_aMessage));
 			return true;
 		}
 	}
@@ -1803,7 +1802,7 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 
 	if(Num != 0)
 	{
-		str_copy(pResult->m_aMessage, "Unable to load savegame: data corrupted", sizeof(pResult->m_aMessage));
+		str_copy(pResult->m_aMessage, "无法载入存档：数据已损坏", sizeof(pResult->m_aMessage));
 		return true;
 	}
 
@@ -1818,10 +1817,10 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 	}
 	if(!Found)
 	{
-		str_copy(pResult->m_aMessage, "This save exists, but you are not part of it. "
-					      "Make sure you use the same name as you had when saving. "
-					      "If you saved with an already used code, you get a new random save code, "
-					      "check ddnet-saves.txt in config_directory.",
+		str_copy(pResult->m_aMessage, "这个存档存在，但你不在其中。"
+					      "请确认你现在使用的名字与存档时相同。"
+					      "如果你保存时使用了已被占用的存档码，系统会分配一个新的随机存档码，"
+					      "请查看 config_directory 下的 ddnet-saves.txt。",
 			sizeof(pResult->m_aMessage));
 		return true;
 	}
@@ -1830,7 +1829,7 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 	if(Since < g_Config.m_SvSaveSwapGamesDelay)
 	{
 		str_format(pResult->m_aMessage, sizeof(pResult->m_aMessage),
-			"You have to wait %d seconds until you can load this savegame",
+			"你还需要等待 %d 秒才能载入这个存档",
 			g_Config.m_SvSaveSwapGamesDelay - Since);
 		return true;
 	}
@@ -1868,12 +1867,12 @@ bool CScoreWorker::LoadTeam(IDbConnection *pSqlServer, const ISqlData *pGameData
 
 	if(NumDeleted != 1)
 	{
-		str_copy(pResult->m_aMessage, "Unable to load savegame: loaded on a different server", sizeof(pResult->m_aMessage));
+		str_copy(pResult->m_aMessage, "无法载入存档：该存档已在其他服务器载入", sizeof(pResult->m_aMessage));
 		return true;
 	}
 
 	pResult->m_Status = CScoreSaveResult::LOAD_SUCCESS;
-	str_copy(pResult->m_aMessage, "Loading successfully done", sizeof(pResult->m_aMessage));
+	str_copy(pResult->m_aMessage, "存档载入成功", sizeof(pResult->m_aMessage));
 	return true;
 }
 
@@ -1923,14 +1922,14 @@ bool CScoreWorker::GetSaves(IDbConnection *pSqlServer, const ISqlData *pGameData
 			int Ago = pSqlServer->GetInt(2);
 			char aAgoString[40] = "\0";
 			sqlstr::AgoTimeToString(Ago, aAgoString, sizeof(aAgoString));
-			str_format(aLastSavedString, sizeof(aLastSavedString), ", last saved %s ago", aAgoString);
+			str_format(aLastSavedString, sizeof(aLastSavedString), "，上次保存于 %s 前", aAgoString);
 		}
 
 		str_format(paMessages[0], sizeof(paMessages[0]),
-			"%s has %d save%s on %s%s",
+			"%s 在 %s 上有 %d 个存档%s",
 			pData->m_aRequestingPlayer,
-			NumSaves, NumSaves == 1 ? "" : "s",
-			pData->m_aMap, aLastSavedString);
+			pData->m_aMap,
+			NumSaves, aLastSavedString);
 	}
 	return true;
 }
@@ -1962,7 +1961,7 @@ bool CScoreWorker::ListSaves(IDbConnection *pSqlServer, const ISqlData *pGameDat
 	pSqlServer->BindString(1, pData->m_aMap);
 
 	int Line = 0;
-	str_format(paMessages[Line++], sizeof(paMessages[Line]), "------- Saves on %s -------", pData->m_aMap);
+	str_format(paMessages[Line++], sizeof(paMessages[Line]), "------- %s 的存档 -------", pData->m_aMap);
 
 	bool End = false;
 	while(!End && Line < CScorePlayerResult::MAX_MESSAGES - 1)
@@ -1981,7 +1980,7 @@ bool CScoreWorker::ListSaves(IDbConnection *pSqlServer, const ISqlData *pGameDat
 
 			// Extract player name from savegame string
 			// Format: "TeamState\tMembersCount\t...\nPlayerName\t..."
-			char aPlayerName[MAX_NAME_LENGTH] = "Unknown";
+			char aPlayerName[MAX_NAME_LENGTH] = "未知玩家";
 			const char *pNameStart = str_find(aSaveString, "\n");
 			if(pNameStart)
 			{
@@ -1997,14 +1996,14 @@ bool CScoreWorker::ListSaves(IDbConnection *pSqlServer, const ISqlData *pGameDat
 			char aAgoString[40];
 			sqlstr::AgoTimeToString(Ago, aAgoString, sizeof(aAgoString));
 			str_format(paMessages[Line++], sizeof(paMessages[Line]),
-				"[%s] %s (%s ago)",
+				"[%s] %s（%s 前）",
 				aPlayerName, aCode, aAgoString);
 		}
 	}
 
 	if(Line == 1)
 	{
-		str_copy(paMessages[0], "No saves found on this map", sizeof(paMessages[0]));
+		str_copy(paMessages[0], "这张地图上没有找到存档", sizeof(paMessages[0]));
 	}
 	else
 	{

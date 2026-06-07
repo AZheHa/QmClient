@@ -304,6 +304,9 @@ Notification text
 Text size
 == 文字大小
 
+Edge margin
+== 贴边边距
+
 Hold time
 == 停留时间
 
@@ -4707,6 +4710,9 @@ Edit HUD
 
 Drag HUD modules with the left mouse button
 == 按住鼠标左键拖动 HUD 模块
+
+Modules snap to screen edges while dragging
+== 拖动时 HUD 模块会吸附到屏幕边缘
 
 Use the mouse wheel on a hovered module to scale it by 5%
 == 将鼠标悬停在 HUD 模块上并滚动滚轮可按 5% 缩放

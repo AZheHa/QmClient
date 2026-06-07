@@ -8,8 +8,38 @@
 
 #include <engine/graphics.h>
 
+#include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstring>
 #include <vector>
+
+namespace QmHudEditor
+{
+	inline constexpr float SNAP_DISTANCE = 6.0f;
+	inline constexpr float EPSILON = 0.001f;
+
+	inline float SnapAxisToScreenEdges(float Position, float Size, float ScreenStart, float ScreenSize)
+	{
+		const float ScreenEnd = ScreenStart + ScreenSize;
+		const float MinPosition = ScreenStart;
+		const float MaxPosition = Size >= ScreenSize ? ScreenStart : ScreenEnd - Size;
+		float SnappedPosition = std::clamp(Position, MinPosition, MaxPosition);
+		float BestDistance = SNAP_DISTANCE + EPSILON;
+
+		const auto TrySnap = [&](float Candidate, float Distance) {
+			if(Distance <= SNAP_DISTANCE && Distance < BestDistance)
+			{
+				SnappedPosition = std::clamp(Candidate, MinPosition, MaxPosition);
+				BestDistance = Distance;
+			}
+		};
+
+		TrySnap(ScreenStart, std::fabs(Position - ScreenStart));
+		TrySnap(ScreenEnd - Size, std::fabs(Position + Size - ScreenEnd));
+		return SnappedPosition;
+	}
+} // namespace QmHudEditor
 
 enum class EHudEditorElement
 {
@@ -39,6 +69,52 @@ enum class EHudEditorElement
 
 	Count,
 };
+
+namespace QmHudEditor
+{
+	inline const char *ElementToken(EHudEditorElement Element)
+	{
+		switch(Element)
+		{
+		case EHudEditorElement::HudMain: return "hud_main";
+		case EHudEditorElement::HudPlayerState: return "hud_player_state";
+		case EHudEditorElement::GameTimer: return "game_timer";
+		case EHudEditorElement::PauseNotification: return "pause_notification";
+		case EHudEditorElement::SuddenDeath: return "sudden_death";
+		case EHudEditorElement::ScoreHud: return "score_hud";
+		case EHudEditorElement::WarmupTimer: return "warmup_timer";
+		case EHudEditorElement::DummyActions: return "dummy_actions";
+		case EHudEditorElement::DummyMiniMap: return "dummy_minimap";
+		case EHudEditorElement::TextInfo: return "text_info";
+		case EHudEditorElement::SpectatorCount: return "spectator_count";
+		case EHudEditorElement::MovementInfo: return "movement_info";
+		case EHudEditorElement::JumpHint: return "jump_hint";
+		case EHudEditorElement::MapProgressBar: return "map_progress_bar";
+		case EHudEditorElement::SpectatorHud: return "spectator_hud";
+		case EHudEditorElement::LocalTime: return "local_time";
+		case EHudEditorElement::LegacyMediaInfo: return "legacy_media_info";
+		case EHudEditorElement::MediaIsland: return "media_island";
+		case EHudEditorElement::Voting: return "voting";
+		case EHudEditorElement::Chat: return "chat";
+		case EHudEditorElement::VoiceOverlay: return "voice_overlay";
+		case EHudEditorElement::InputOverlay: return "input_overlay";
+		case EHudEditorElement::HudNotifications: return "hud_notifications";
+		case EHudEditorElement::Count: break;
+		}
+		return "";
+	}
+
+	inline int ElementFromToken(const char *pToken)
+	{
+		for(int i = 0; i < static_cast<int>(EHudEditorElement::Count); ++i)
+		{
+			const auto Element = static_cast<EHudEditorElement>(i);
+			if(std::strcmp(ElementToken(Element), pToken) == 0)
+				return i;
+		}
+		return -1;
+	}
+} // namespace QmHudEditor
 
 class CHudEditor : public CComponent
 {
@@ -74,6 +150,8 @@ public:
 	bool IsActive() const { return m_Active; }
 	void UpdateVisibleRect(EHudEditorElement Element, const CUIRect &RenderedRect);
 
+	STransformScope PreviewTransform(EHudEditorElement Element, const CUIRect &DefaultRect, bool Scalable = true);
+	STransformScope PreviewTransform(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable = true);
 	STransformScope BeginTransform(EHudEditorElement Element, const CUIRect &DefaultRect, bool Scalable = true, bool ApplyMapScreen = true);
 	STransformScope BeginTransform(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable = true, bool ApplyMapScreen = true);
 	void EndTransform(const STransformScope &Scope);
@@ -133,6 +211,7 @@ private:
 	bool HandleElementDoubleClick(EHudEditorElement Element);
 	bool DoJumpHintTextArea(CLineInput *pLineInput, const CUIRect *pRect, float FontSize);
 	void RenderJumpHintTextEditor(const CUIRect &Screen);
+	bool ComputeTransformPlacement(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable, STransformScope &Scope, SVisibleElement *pVisible);
 	static const char *ElementToken(EHudEditorElement Element);
 	static int ElementFromToken(const char *pToken);
 };
