@@ -210,6 +210,7 @@ Dynamic Island
 Each tab has a clear purpose
 Echo follows the original chat color
 Echo text color when not inheriting chat color
+Edge margin
 Elevated
 Emotes are disabled.
 Emoticon ID
@@ -470,6 +471,10 @@ Player range
 Player stats and info display
 Players
 Players are not allowed to chat from VPNs at this time
+Players can collide on this server
+Players can hook each other on this server
+Players can't collide on this server
+Players can't hook each other on this server
 Please enable voice first
 Please use %s as friend name
 Popup animation
@@ -541,6 +546,8 @@ SMTC
 Save failed!
 Save-function is disabled on this server
 Scoreboard point check
+Scores are private on this server
+Scores are public on this server
 Seconds
 SecretId
 SecretKey
@@ -662,7 +669,9 @@ Team save in progress. You'll be able to load with '/load %s'
 Team save in progress. You'll be able to load with '/load %s' if save is successful or with '/load %s' if it fails
 Team successfully saved by %s. The database connection failed, using generated save code instead to avoid collisions. Use '/load %s' on %s to continue
 Team successfully saved by %s. The database connection failed, using generated save code instead to avoid collisions. Use '/load %s' to continue
+Teams are available on this server; if the team is locked, any team member dying will kill the whole team
 Teams are disabled
+Teams are not available on this server; if the team is locked, any team member dying will kill the whole team
 Tee hitbox
 Tee hitbox color
 Teleport grenade disabled
@@ -822,6 +831,7 @@ You have already requested to swap with %s.
 You have requested to swap with %s. Use /cancelswap to cancel the request.
 You have started racing already
 You have to be in a team (from 1-63)
+You have to be in a team to play on this server and all of your team will die if the team is locked
 You have to wait %s seconds until you can swap
 You have unlimited air jumps
 You have used practice mode already

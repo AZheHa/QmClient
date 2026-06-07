@@ -952,6 +952,18 @@ Player range
 Players are not allowed to chat from VPNs at this time
 == 当前使用 VPN 的玩家不允许发言
 
+Players can collide on this server
+== 本服务器允许玩家碰撞
+
+Players can hook each other on this server
+== 本服务器允许玩家互钩
+
+Players can't collide on this server
+== 本服务器不允许玩家碰撞
+
+Players can't hook each other on this server
+== 本服务器不允许玩家互钩
+
 Please enable voice first
 == 请先启用语音
 
@@ -1065,6 +1077,12 @@ Save-function is disabled on this server
 
 Scoreboard point check
 == 计分板查分
+
+Scores are private on this server
+== 本服务器的成绩是私密的
+
+Scores are public on this server
+== 本服务器的成绩是公开的
 
 See how much you act
 == 看看你有多演
@@ -1345,8 +1363,14 @@ Team save already in progress
 Team save disabled for teams in practice mode
 == 练习模式下不能保存队伍存档
 
+Teams are available on this server; if the team is locked, any team member dying will kill the whole team
+== 本服务器允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡
+
 Teams are disabled
 == 队伍功能已禁用
+
+Teams are not available on this server; if the team is locked, any team member dying will kill the whole team
+== 本服务器不允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡
 
 Tee hitbox
 == Tee 碰撞箱
@@ -1752,6 +1776,9 @@ You have started racing already
 
 You have to be in a team (from 1-63)
 == 你必须在队伍中（1 到 63 队）
+
+You have to be in a team to play on this server and all of your team will die if the team is locked
+== 你必须加入队伍才能在本服务器游玩；队伍上锁后，队内任意玩家死亡都会导致全队死亡
 
 You have to wait %s seconds until you can swap
 == 你还需要等待 %s 秒才能交换

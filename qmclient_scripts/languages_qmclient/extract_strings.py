@@ -166,6 +166,15 @@ def extract_known_indirect_strings(path, content):
         )
         strings.update(match.group(2) for match in static_rule_pattern.finditer(content))
 
+    if normalized.endswith("src/game/client/components/qmclient/hud_notification_catalog.cpp"):
+        catalog_pattern = re.compile(
+            rf'\{{\s*EServerMessageRoute::[A-Za-z]+,\s*'
+            rf'EServerMessageClass::[A-Za-z]+,\s*'
+            rf'EServerMessageDomain::[A-Za-z]+,\s*'
+            rf'(?:true|false),\s*{string_literal}\s*\}}'
+        )
+        strings.update(match.group(1) for match in catalog_pattern.finditer(content) if match.group(1))
+
     if normalized.endswith("src/game/client/components/tclient/statusbar.cpp"):
         body = extract_function_body(content, "ConnectionGradeLabel")
         strings.update(re.findall(rf'return\s+{string_literal}\s*;', body))

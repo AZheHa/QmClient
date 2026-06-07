@@ -580,6 +580,9 @@ Echo follows the original chat color
 Echo text color when not inheriting chat color
 == Echo text color when not inheriting chat color
 
+Edge margin
+== Edge margin
+
 Elevated
 == Elevated
 
@@ -1282,6 +1285,18 @@ Player stats and info display
 Players are not allowed to chat from VPNs at this time
 == Players are not allowed to chat from VPNs at this time
 
+Players can collide on this server
+== Players can collide on this server
+
+Players can hook each other on this server
+== Players can hook each other on this server
+
+Players can't collide on this server
+== Players can't collide on this server
+
+Players can't hook each other on this server
+== Players can't hook each other on this server
+
 Please enable voice first
 == Please enable voice first
 
@@ -1458,6 +1473,12 @@ Save-function is disabled on this server
 
 Scoreboard point check
 == Scoreboard point check
+
+Scores are private on this server
+== Scores are private on this server
+
+Scores are public on this server
+== Scores are public on this server
 
 Seconds
 == Seconds
@@ -1798,8 +1819,14 @@ Team save already in progress
 Team save disabled for teams in practice mode
 == Team save disabled for teams in practice mode
 
+Teams are available on this server; if the team is locked, any team member dying will kill the whole team
+== Teams are available on this server; if the team is locked, any team member dying will kill the whole team
+
 Teams are disabled
 == Teams are disabled
+
+Teams are not available on this server; if the team is locked, any team member dying will kill the whole team
+== Teams are not available on this server; if the team is locked, any team member dying will kill the whole team
 
 Tee hitbox
 == Tee hitbox
@@ -2253,6 +2280,9 @@ You have started racing already
 
 You have to be in a team (from 1-63)
 == You have to be in a team (from 1-63)
+
+You have to be in a team to play on this server and all of your team will die if the team is locked
+== You have to be in a team to play on this server and all of your team will die if the team is locked
 
 You have to wait %s seconds until you can swap
 == You have to wait %s seconds until you can swap

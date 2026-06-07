@@ -1,14 +1,42 @@
 #ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATION_RULES_H
 #define GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATION_RULES_H
 
-#include "hud_notification_static_rules.h"
-
 #include <base/system.h>
 
 #include <cstddef>
 
 namespace QmHudNotifications
 {
+	enum class EMessageKey
+	{
+		None,
+		WhispersOn,
+		WhispersOff,
+		ShowAllOn,
+		ShowAllOff,
+		RescueDisabled,
+		UnknownEmote,
+		TimeoutCodeSet,
+		TeamSaveInProgress,
+		Count,
+	};
+
+	enum class EDynamicMessageKey
+	{
+		None,
+		TeamJoined,
+		SwapRequestSent,
+		Count,
+	};
+
+	struct SDynamicMessageSemantic
+	{
+		EDynamicMessageKey m_Key = EDynamicMessageKey::None;
+		char m_aParamA[128] = {};
+		char m_aParamB[128] = {};
+		char m_aParamC[128] = {};
+	};
+
 	enum class ESoloPrompt
 	{
 		None,
@@ -47,6 +75,8 @@ namespace QmHudNotifications
 		EServerMessageClass m_Class = EServerMessageClass::None;
 		EServerMessageDomain m_Domain = EServerMessageDomain::None;
 		ESoloPrompt m_SoloPrompt = ESoloPrompt::None;
+		EMessageKey m_MessageKey = EMessageKey::None;
+		SDynamicMessageSemantic m_DynamicSemantic;
 		bool m_UseFallbackLocalization = false;
 		char m_aLocalizedText[256] = {};
 	};

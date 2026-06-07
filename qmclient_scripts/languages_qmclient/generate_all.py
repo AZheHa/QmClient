@@ -683,6 +683,8 @@ QMCLIENT_SIMPLIFIED_STATIC_NOTIFICATION_TRANSLATIONS = {
     "本服务器不允许查看其他玩家的队伍排名": "Showing the team rank of other players is not allowed on this server.",
     "本服务器不允许查看排行榜": "Showing the top is not allowed on this server.",
     "本服务器不允许查看队伍前 5 名": "Showing the team top 5 is not allowed on this server.",
+    "本服务器不允许玩家互钩": "Players can't hook each other on this server",
+    "本服务器不允许玩家碰撞": "Players can't collide on this server",
     "本服务器已禁用 /map": "/map is disabled",
     "本服务器已禁用交换功能": "Swap is disabled on this server.",
     "本服务器已禁用存档功能": "Save-function is disabled on this server",
@@ -691,6 +693,12 @@ QMCLIENT_SIMPLIFIED_STATIC_NOTIFICATION_TRANSLATIONS = {
     "本服务器已禁用表情功能": "Emotes are disabled.",
     "本服务器已禁用队伍模式切换": "Team mode change is disabled on this server.",
     "本服务器已禁用队伍邀请": "Invites are disabled",
+    "本服务器不允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡": "Teams are not available on this server; if the team is locked, any team member dying will kill the whole team",
+    "本服务器的成绩是公开的": "Scores are public on this server",
+    "本服务器的成绩是私密的": "Scores are private on this server",
+    "本服务器允许玩家互钩": "Players can hook each other on this server",
+    "本服务器允许玩家碰撞": "Players can collide on this server",
+    "本服务器允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡": "Teams are available on this server; if the team is locked, any team member dying will kill the whole team",
     "本服未开启 rescue，且你所在队伍也没有开启 /practice。注意：练习模式下无法获得排名": "Rescue is not enabled on this server and you're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.",
     "死亡或旁观时不能切换队伍": "You can't change teams while you are dead/a spectator.",
     "死亡或旁观时不能查看当前队伍": "You can't check your team while you are dead/a spectator.",
@@ -725,6 +733,7 @@ QMCLIENT_SIMPLIFIED_STATIC_NOTIFICATION_TRANSLATIONS = {
     "队伍已经处于练习模式": "Team is already in practice mode",
     "队伍正在存档或读档时，不能开启练习模式": "Practice mode can't be enabled while team save or load is in progress",
     "队伍读档已在进行中": "Team load already in progress",
+    "你必须加入队伍才能在本服务器游玩；队伍上锁后，队内任意玩家死亡都会导致全队死亡": "You have to be in a team to play on this server and all of your team will die if the team is locked",
 }
 
 # Additional Chinese-to-English translations for strings that appear in the extracted list

@@ -1,4 +1,5 @@
 #include "tclient.h"
+#include "swap_countdown_message.h"
 
 #include <base/hash.h>
 #include <base/log.h>
@@ -1556,47 +1557,26 @@ void CTClient::OnMessage(int MsgType, void *pRawMsg)
 	}
 }
 
-namespace
-{
-	bool ExtractSwapRequesterName(const char *pText, const char *pMarker, char *pOut, int OutSize)
-	{
-		if(OutSize <= 0)
-			return false;
-		pOut[0] = '\0';
-		if(pText == nullptr || pMarker == nullptr)
-			return false;
-
-		const char *pMarkerPos = str_find_nocase(pText, pMarker);
-		if(pMarkerPos == nullptr || pMarkerPos == pText)
-			return false;
-
-		const int NameLength = minimum<int>(pMarkerPos - pText, OutSize - 1);
-		str_truncate(pOut, OutSize, pText, NameLength);
-		return pOut[0] != '\0';
-	}
-}
-
 void CTClient::HandleSwapCountdownMessage(const char *pText, int Dummy)
 {
 	if(Dummy < 0 || Dummy >= NUM_DUMMIES || pText == nullptr)
 		return;
 
-	if(str_find_nocase(pText, "has requested to swap with you"))
-	{
-		char aRequester[MAX_NAME_LENGTH] = "";
-		ExtractSwapRequesterName(pText, " has requested to swap with you", aRequester, sizeof(aRequester));
+	ESwapCountdownMessageAction Action = ESwapCountdownMessageAction::None;
+	char aRequester[MAX_NAME_LENGTH] = "";
+	if(!ParseSwapCountdownMessage(pText, Action, aRequester, sizeof(aRequester)))
+		return;
+
+	if(Action == ESwapCountdownMessageAction::Start)
 		StartSwapCountdown(Dummy, aRequester);
-	}
-	else if(str_find_nocase(pText, "has canceled swap with you"))
+	else if(Action == ESwapCountdownMessageAction::Cancel)
 	{
-		char aRequester[MAX_NAME_LENGTH] = "";
-		if(!ExtractSwapRequesterName(pText, " has canceled swap with you", aRequester, sizeof(aRequester)) ||
-			str_comp_nocase(aRequester, m_aaSwapCountdownRequester[Dummy]) == 0)
+		if(str_comp_nocase(aRequester, m_aaSwapCountdownRequester[Dummy]) == 0)
 		{
 			ClearSwapCountdown(Dummy);
 		}
 	}
-	else if(str_find_nocase(pText, "has swapped with"))
+	else if(Action == ESwapCountdownMessageAction::Complete)
 	{
 		const char *pTargetName = Dummy == 0 ? g_Config.m_PlayerName : g_Config.m_ClDummyName;
 		if(pTargetName[0] != '\0' && str_find_nocase(pText, pTargetName))

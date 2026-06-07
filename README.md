@@ -36,14 +36,14 @@ Use the repository wrapper so `cmake` always runs inside a configured MSVC devel
 
 ```bat
 qmclient_scripts/cmake-windows.cmd -S . -B cmake-build-release
-qmclient_scripts/cmake-windows.cmd --build cmake-build-release --target game-client -j 10
+qmclient_scripts/cmake-windows.cmd --build cmake-build-release --target game-client -j 14
 ```
 
 ### macOS / Linux / already-initialised developer shell
 
 ```sh
 cmake -S . -B cmake-build-release
-cmake --build cmake-build-release --target game-client -j 10
+cmake --build cmake-build-release --target game-client -j 14
 ```
 
 ## ✅ Test

@@ -1,8 +1,11 @@
 #ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATION_STATIC_RULES_H
 #define GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATION_STATIC_RULES_H
 
+// Compatibility layer for pre-semantic static categories that are still consumed by
+// hud_notification_rules.cpp. The semantic upstream/alias tables are the canonical
+// source for the migrated static families; do not reintroduce a mixed total-table macro here.
+
 #define QM_HUD_NOTIFICATION_STATIC_TEAM_RULES(X) \
-	X("Team save already in progress", "Team save already in progress") \
 	X("Team save disabled for teams in practice mode", "Team save disabled for teams in practice mode") \
 	X("Team load already in progress", "Team load already in progress") \
 	X("You have to be in a team (from 1-63)", "You have to be in a team (from 1-63)") \
@@ -16,12 +19,16 @@
 	X("Team can't be saved while a dragger is active", "Team can't be saved while a dragger is active") \
 	X("Your team was killed because it couldn't finish anymore and hasn't entered /practice mode", "Your team was killed because it couldn't finish anymore and hasn't entered /practice mode") \
 	X("This team started already", "This team started already") \
+	X("这个队伍已经开始比赛了", "This team started already") \
 	X("You are in this team already", "You are in this team already") \
 	X("You can't change teams while you are dead/a spectator.", "You can't change teams while you are dead/a spectator.") \
+	X("你死亡或处于旁观状态时，不能切换队伍。", "You can't change teams while you are dead/a spectator.") \
 	X("You can't join super team if you don't have super rights", "You can't join super team if you don't have super rights") \
 	X("You have started racing already", "You have started racing already") \
 	X("You have used practice mode already", "You have used practice mode already") \
+	X("你已经使用过练习模式了", "You have used practice mode already") \
 	X("This team is currently saving", "This team is currently saving") \
+	X("这个队伍当前正在存档", "This team is currently saving") \
 	X("Your team is currently saving", "Your team is currently saving") \
 	X("Start holding the hook before loading the savegame to keep the hook", "Start holding the hook before loading the savegame to keep the hook") \
 	X("Your team has been killed because it contains an invalid tee state", "Your team has been killed because it contains an invalid tee state") \
@@ -55,8 +62,8 @@
 	X("Team mode can't be changed while racing", "Team mode can't be changed while racing")
 
 #define QM_HUD_NOTIFICATION_STATIC_SWAP_RESCUE_RULES(X) \
-	X("Rescue is not enabled on this server and you're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.", "Rescue is not enabled on this server and you're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.") \
 	X("Unknown argument. Check '/rescuemode list'", "Unknown argument. Check '/rescuemode list'") \
+	X("未知救援模式参数", "Unknown argument. Check '/rescuemode list'") \
 	X("There is nowhere to go back to.", "There is nowhere to go back to.") \
 	X("You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.", "You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.") \
 	X("You haven't previously teleported. Use /tp before using this command.", "You haven't previously teleported. Use /tp before using this command.") \
@@ -75,6 +82,7 @@
 
 #define QM_HUD_NOTIFICATION_STATIC_VOTE_MODERATION_RULES(X) \
 	X("You are running a vote, please try again after the vote is done!", "You are running a vote, please try again after the vote is done!") \
+	X("你正在发起投票，请等当前投票结束后再试", "You are running a vote, please try again after the vote is done!") \
 	X("Invalid option", "Invalid option") \
 	X("Server does not allow voting to kick players", "Server does not allow voting to kick players") \
 	X("Invalid client id to kick", "Invalid client id to kick") \
@@ -93,8 +101,6 @@
 	X("Wait for current vote to end before calling a new one.", "Wait for current vote to end before calling a new one.")
 
 #define QM_HUD_NOTIFICATION_STATIC_STATUS_RULES(X) \
-	X("You will now see all tees on this server, no matter the distance", "You will now see all tees on this server, no matter the distance") \
-	X("You will no longer see all tees on this server", "You will no longer see all tees on this server") \
 	X("Unknown parameter. Accepted values: default, gametimer, broadcast, both, none", "Unknown parameter. Accepted values: default, gametimer, broadcast, both, none") \
 	X("Selected timertype is not supported by your client", "Selected timertype is not supported by your client") \
 	X("Timer isn't displayed.", "Timer isn't displayed.") \
@@ -118,15 +124,32 @@
 	X("Showing the global top points is not allowed on this server.", "Showing the global top points is not allowed on this server.") \
 	X("Showing the checkpoint times is not allowed on this server.", "Showing the checkpoint times is not allowed on this server.") \
 	X("Showing players from other teams is disabled", "Showing players from other teams is disabled") \
+	X("本服务器不允许查看全局积分排行榜", "Showing the global top points is not allowed on this server.") \
+	X("本服务器不允许查看 checkpoint 时间", "Showing the checkpoint times is not allowed on this server.") \
+	X("Teams are available on this server ；队伍上锁后，队内任意玩家死亡都会导致全队死亡", "Teams are available on this server; if the team is locked, any team member dying will kill the whole team") \
+	X("Teams are not available on this server ；队伍上锁后，队内任意玩家死亡都会导致全队死亡", "Teams are not available on this server; if the team is locked, any team member dying will kill the whole team") \
+	X("本服务器允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡", "Teams are available on this server; if the team is locked, any team member dying will kill the whole team") \
+	X("本服务器不允许组队；队伍上锁后，队内任意玩家死亡都会导致全队死亡", "Teams are not available on this server; if the team is locked, any team member dying will kill the whole team") \
+	X("You have to be in a team to play on this server and all of your team will die if the team is locked", "You have to be in a team to play on this server and all of your team will die if the team is locked") \
+	X("你必须加入队伍才能在本服务器游玩；队伍上锁后，队内任意玩家死亡都会导致全队死亡", "You have to be in a team to play on this server and all of your team will die if the team is locked") \
+	X("Players can collide on this server", "Players can collide on this server") \
+	X("Players can't collide on this server", "Players can't collide on this server") \
+	X("Players can hook each other on this server", "Players can hook each other on this server") \
+	X("Players can't hook each other on this server", "Players can't hook each other on this server") \
+	X("Scores are private on this server", "Scores are private on this server") \
+	X("Scores are public on this server", "Scores are public on this server") \
+	X("本服务器允许玩家碰撞", "Players can collide on this server") \
+	X("本服务器不允许玩家碰撞", "Players can't collide on this server") \
+	X("本服务器允许玩家互钩", "Players can hook each other on this server") \
+	X("本服务器不允许玩家互钩", "Players can't hook each other on this server") \
+	X("本服务器的成绩是私密的", "Scores are private on this server") \
+	X("本服务器的成绩是公开的", "Scores are public on this server") \
 	X("You will not receive any further global chat and server messages", "You will not receive any further global chat and server messages") \
 	X("You will receive global chat and server messages", "You will receive global chat and server messages") \
-	X("You will receive whispers", "You will receive whispers") \
-	X("You will not receive any further whispers", "You will not receive any further whispers") \
 	X("Command is not available on solo servers", "Command is not available on solo servers") \
 	X("Emotes are disabled.", "Emotes are disabled.") \
 	X("You can now use the preset eye emotes.", "You can now use the preset eye emotes.") \
 	X("You don't have any eye emotes, remember to bind some.", "You don't have any eye emotes, remember to bind some.") \
-	X("Unknown emote... Say /emote", "Unknown emote... Say /emote") \
 	X("No player with this name found.", "No player with this name found.") \
 	X("Invalid X coordinate.", "Invalid X coordinate.") \
 	X("Invalid Y coordinate.", "Invalid Y coordinate.") \
@@ -156,13 +179,6 @@
 	X("You can shoot others with laser", "You can shoot others with laser") \
 	X("You can't shoot others with laser", "You can't shoot others with laser") \
 	X("Endless hook has been activated", "Endless hook has been activated") \
-	X("Endless hook has been deactivated", "Endless hook has been deactivated") \
-	X("Your timeout code has been set. 0.7 clients can not reclaim their tees on timeout; however, a 0.6 client can claim your tee ", "Your timeout code has been set. 0.7 clients can not reclaim their tees on timeout; however, a 0.6 client can claim your tee")
-
-#define QM_HUD_NOTIFICATION_STATIC_RULES(X) \
-	QM_HUD_NOTIFICATION_STATIC_TEAM_RULES(X) \
-	QM_HUD_NOTIFICATION_STATIC_SWAP_RESCUE_RULES(X) \
-	QM_HUD_NOTIFICATION_STATIC_VOTE_MODERATION_RULES(X) \
-	QM_HUD_NOTIFICATION_STATIC_STATUS_RULES(X)
+	X("Endless hook has been deactivated", "Endless hook has been deactivated")
 
 #endif

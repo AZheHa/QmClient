@@ -1,10 +1,53 @@
 # Git / PR 规范
 
-这份文档只定义提交信息、PR 描述和最终汇报的稳定格式。
+这份文档定义 4 类输出的写法：
+
+- commit subject
+- commit body
+- PR 标题与正文
+- 最终汇报
+
+目标只有 3 个：
+
+- 让人快速看懂这次改了什么
+- 让验证证据足够短，但足够用
+- 让文案和实际改动边界一致
+
+## 一般原则
+
+- 先写问题，再写做法。尤其是 `fix`，优先说明“修复了什么问题”。
+- 文案直接描述行为和结果，不写“收口”“调整相关逻辑”“优化若干细节”这类空话。
+- 正文分组默认使用提交类型体系，而不是临时自造分类。
+- 文档、测试、脚本、构建相关改动都应放进对应分组，不要全部挤进 `fix`。
+- 如果某类改动这轮不存在，就省略该分组，不写占位。
+- 已经人工确认的内容，不要继续写成风险或 gap。
+
+## 分组类型
+
+正文分组默认使用以下类型：
+
+- `feat`
+- `fix`
+- `perf`
+- `refactor`
+- `docs`
+- `test`
+- `chore`
+- `ci`
+- `revert`
+
+使用规则：
+
+- 只要这轮改动涉及对应类型，就使用对应分组。
+- 一个提交、PR 或最终汇报可以同时包含多个分组。
+- `FEAT`、`FIX`、`DEL` 只作为最低限度的退化方案；只有在没有必要继续细分时才使用。
+- `DEL` 不是默认分组。只有确实存在删除行为，且上面的标准类型不足以表达时，才额外补充。
 
 ## Commit 规范
 
-提交信息使用：
+### Commit Subject
+
+格式：
 
 ```text
 <type>(<scope>): <中文简述>
@@ -12,42 +55,49 @@
 
 规则：
 
-- `type` 用英文小写：`feat`、`fix`、`perf`、`refactor`、`docs`、`test`、`chore`、`ci`、`revert`
-- `scope` 用短英文或仓库内模块名：如 `ui`、`skins`、`gate`、`docs`、`hud`
-- 冒号后面用中文简述
-- 不写空话，如“修改代码”“更新一下”
+- `type` 使用英文小写：`feat`、`fix`、`perf`、`refactor`、`docs`、`test`、`chore`、`ci`、`revert`
+- `scope` 使用短英文或仓库内模块名，如 `hud`、`docs`、`gate`、`settings`
+- subject 使用中文动宾短语
+- 不写“修改代码”“更新一下”这种无信息标题
 
 示例：
 
 ```text
-fix(skins): 修正本地换肤动画立即触发链路
-perf(settings): 收紧资源页预览缓存失效范围
-docs(ai): 精简 agent 文档体系并补充 git 规范
+fix(hud): 修复通知栏编辑位置错误
+docs(ai): 重写 git 和 PR 文案规范
+test(score): 补充完赛消息解析回归测试
 ```
 
-## Commit Body
+### Commit Body
 
-本仓库默认写 body，不把 body 省略为例外。
+本仓库默认写 body。
 
-建议写：
+推荐结构：
 
-- 改动原因
-- 关键做法
-- 影响范围
-- 需要时按 `## FEAT`、`## FIX`、`## DEL` 分组展开
+```text
+<为什么要改>
 
-如果一轮交付天然包含多项彼此相关、但类型不同的改动（例如源码、测试、脚本、翻译、文档一起收口），默认允许整体使用一次提交，不要求为了“每个 commit 只写一个点”而强行拆分多次提交。
+## fix
+- ...
 
-这类整体提交仍然要满足：
+## test
+- ...
 
-- subject 继续使用单行 `<type>(<scope>): <中文简述>`
-- body 必须写清楚混合改动的原因和范围
-- body 里用多行条目或 `## FEAT`、`## FIX`、`## DEL` 分组展开，不把多个点挤成一行
-- 只有明显属于本地运行产物、临时文件或与本轮交付无关的内容才应排除在本次提交之外
+## docs
+- ...
+```
 
-不要把验证日志整段贴进 commit body。
+规则：
 
-## PR 标题
+- 开头先写背景、原因或边界
+- 正文按类型分组，不把不相干的内容塞进同一段
+- `fix` 先写修复了什么问题，再写必要的实现变化
+- 不要把大段验证日志贴进 body
+- 只有明显属于本地临时产物或与本轮无关的内容才排除在提交外
+
+## PR 规范
+
+### PR 标题
 
 PR 标题默认与最终 squash commit 保持同一风格：
 
@@ -55,37 +105,138 @@ PR 标题默认与最终 squash commit 保持同一风格：
 <type>(<scope>): <中文简述>
 ```
 
-## PR 描述
+### PR 正文结构
 
-PR 描述保持短而完整，至少包含：
-
-### 1. Summary
-
-写这次改了什么。
-
-### 2. Verification
-
-按下面格式列验证证据：
+PR 正文默认使用以下结构：
 
 ```text
-- Command: <命令>
-  Result: <PASS/FAIL 与关键结果>
-  Scope: <证明了什么>
+## Summary
+<1 到 2 句总体说明>
+
+## fix
+- ...
+
+## test
+- ...
+
+## docs
+- ...
+
+## Verification
+- [x] ...
+
+## Risks / Gaps
+- ...
 ```
 
-### 3. Risks / Gaps
+#### 1. Summary
 
-明确还没验证的部分，尤其是：
+`Summary` 不能省略。
+
+要求：
+
+- 用 1 句到 2 句写清楚这次 PR 解决了什么问题、涉及哪些核心改动
+- 先写主问题，再写伴随修改
+- 不在 `Summary` 里堆细节，细节放到各类型分组
+
+#### 2. 类型分组
+
+规则：
+
+- 正文分组默认使用 `feat`、`fix`、`perf`、`refactor`、`docs`、`test`、`chore`、`ci`、`revert`
+- 只要涉及对应改动，就使用对应分组
+- `fix` 优先写用户实际遇到的问题，不要只写底层实现细节
+- 文档类改动写到 `docs`
+- 测试类改动写到 `test`
+- 构建、打包、脚本整理写到 `chore`
+
+示例：
+
+```text
+## fix
+- 修复 HUD 编辑器中通知栏位置无法正确拖拽的问题。
+- 修复中文练习命令列表被误显示为通知的问题。
+
+## test
+- 补充通知栏锚点和完赛消息解析测试。
+
+## docs
+- 补充服务端汉化现状探索文档。
+```
+
+#### 3. Verification
+
+`Verification` 默认使用 checklist。
+
+格式：
+
+```text
+## Verification
+- [x] 文档检查：`<命令>`
+- [x] gate 门禁：`<命令>`
+- [x] 客户端构建：`<命令>`
+```
+
+规则：
+
+- 只保留通用检查和本次任务直接相关的检查
+- 同类检查合并写，不要拆成很多行
+- 默认只保留命令和高信号结果
+- 不重复解释“证明了什么”
+- 没有运行的检查不要勾选
+
+常见检查项：
+
+- [x] 文档检查
+- [x] gate 门禁
+- [x] 客户端构建
+- [x] 相关测试
+- [x] 完整包构建
+
+#### 4. Risks / Gaps
+
+只写真实还没覆盖的风险和缺口。
+
+优先写：
 
 - 视觉验收
 - 运行时行为
 - 上游兼容性风险
 
+规则：
+
+- 已经人工确认的内容，明确写“已人工确认”，不要继续列为 gap
+- 不要把已经有明确证据覆盖的内容重复写成风险
+- 如果没有额外 gap，可以只保留真正没覆盖的 1 到 2 项
+
+## 最终汇报
+
+最终汇报默认也沿用类型分组：
+
+- `feat`
+- `fix`
+- `perf`
+- `refactor`
+- `docs`
+- `test`
+- `chore`
+- `ci`
+- `revert`
+
+要求：
+
+- 先说结果，再分组
+- 只写用户需要知道的高信号内容
+- 不按文件罗列变更
+- 不把验证日志原样贴出来
+
+如果这轮改动非常简单，允许退化为短段落，不强制展开全部分组。
+
 ## Release 说明
 
 GitHub release 说明由 `qmclient_scripts/generate_release_notes.py` 统一生成。
 
-默认来源是 tag 区间内的 commit subject；为了让 release 说明更稳定，commit body 可以额外提供：
+如果某个提交需要更稳定的发布说明，可以在 commit body 里补：
 
 ```text
 Release-ZH: 中文发布说明
@@ -94,52 +245,39 @@ Release-EN: English release note
 
 规则：
 
-- `Release-ZH` / `Release-EN` 都是可选项
-- 如果缺失，脚本会回退到 commit subject 的 description
-- 真正面向用户的重要功能或修复，优先补这两个字段，避免 release 页只看到生硬的 commit 标题
+- 这两个字段都是可选项
+- 如果缺失，脚本回退到 commit subject
+- 面向用户的重要功能或修复，优先补这两个字段
 
 ## 版本 / Tag / Release
 
 - 仓库内版本统一通过 `python qmclient_scripts/bump_version.py --version X.Y.Z` 或 `--tag vX.Y.Z` 更新
-- 不要在 workflow 或本地脚本里直接 `sed version.h`
-- tag 构建时，CI 也应调用同一个 `bump_version.py`，保证 `src/game/version.h` 和 `docs/info.json` 同步
-- `CLIENT_RELEASE_VERSION` 的源头是 `QMCLIENT_VERSION`；如果版本口径变了，先改这里，再看文档与 release 流程
+- 不要在 workflow 或本地脚本里直接改 `version.h`
+- tag 构建时，CI 也应调用同一个 `bump_version.py`
+- `CLIENT_RELEASE_VERSION` 的源头是 `QMCLIENT_VERSION`
 
-## 最终汇报格式
+## 简例
 
-用户确认后，最终汇报里的提交说明分三组：
+```text
+## Summary
+本次 PR 主要修复 HUD 编辑器无法正确编辑通知栏的问题，并同步修正通知栏相关的中文系统消息识别。
 
-- `FEAT`
-- `FIX`
-- `DEL`
+## fix
+- 修复通知栏预览区域和拖拽区域不一致，导致位置不能正确编辑的问题。
+- 修复中文练习命令列表进入通知栏的问题。
 
-这三组既可用于最终汇报，也可用于 commit body 分组；真正必须固定的是 commit subject 的格式。
+## test
+- 补充通知栏锚点和完赛消息解析测试。
 
+## docs
+- 补充服务端汉化现状探索文档。
 
-# 最终汇报示例（不是 commit message）
+## Verification
+- [x] 文档检查：`python qmclient_scripts/gate/check_docs.py`
+- [x] gate 门禁：`python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main`
+- [x] 客户端构建：`cmd /c qmclient_scripts/cmake-windows.cmd --build cmake-build-release --target game-client -j 14`
 
-```
-FEAT: 添加显示丢包率功能并优化投票设置
-
-## DEL
-- 取消丢包率显示对 `cl_showpred` 的依赖，现在预测时间和丢包率可以分开控制。
-- 移除 TC 设置里“只能自动拒绝换图”的单一模式限制。
-## FEAT
-- 新增独立开关 `cl_show_packet_loss`，用于单独控制游戏内丢包率显示。
-- TC 界面的自动换图投票改为三段模式：`Off / Agree / Reject`。
-- `tc_auto_vote_when_far` 扩展为模式配置：0 关闭，1 自动拒绝，2 自动同意
-- 赞助名单新增
-- 版本号更新至 2.61.16。
-## FIX
-- 修复举报扫描请求在 `HTTP` 失败或取消时读取状态码导致断言的问题。
-- 修复举报功能可在 `Axiom` 服务器内使用的问题：入口按钮会禁用，逻辑层也会拦截。
-- 修复丢包率独立显示后与右上角消息、冻结 `HUD` 布局避让不一致的问题。
-- 引入 `CBackgroundParticles` 组件，用于管理和渲染背景粒子。
-- 实现了粒子生成、更新和渲染逻辑，并支持自定义大小、速度和颜色等属性。
-- 在设置菜单中添加了粒子数量、深度和光晕效果的配置选项。
-- 增强了队伍切换功能，支持在快速练习模式下使用观战命令。
-- 更新了皮肤随机生成机制，支持根据所选皮肤使用自定义颜色。
-- 改进了移动方块的逻辑，使其能够识别水域图像以实现动态交互。
-- 重构了现有代码，以提高可读性和可维护性。
-- 修正部分 UI 控件 ID，避免滑条和数值输入冲突。 ）
+## Risks / Gaps
+- HUD 编辑器相关改动已人工确认。
+- 第三方客户端实机联调未覆盖。
 ```
