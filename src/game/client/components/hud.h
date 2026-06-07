@@ -336,6 +336,9 @@ private:
 	int m_TimeCpLastReceivedTick;
 	bool m_ShowFinishTime;
 	int m_SpeedrunTimerExpiredTick = 0;
+	int m_aHudWeaponSwitchLastWeapons[MAX_CLIENTS];
+	int m_aHudWeaponSwitchPrevWeapons[MAX_CLIENTS];
+	double m_aHudWeaponSwitchStartTimes[MAX_CLIENTS];
 
 	inline float GetMovementInformationBoxHeight();
 	inline int GetDigitsIndex(int Value, int Max);

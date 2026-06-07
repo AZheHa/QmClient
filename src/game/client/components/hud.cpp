@@ -38,6 +38,25 @@ namespace
 constexpr const char *JUMP_HINT_DEFAULT_TEXT = "3 Tiles Edge Jump:\\nLeft Jump: .34|.31|.16\\nLeft Double Jump: .41|.28|.25|.13\\nRight Jump: .63|.66|.81\\nRight Double Jump: .56|.69|.72|.84";
 constexpr int JUMP_HINT_DEFAULT_COLOR = 255;
 constexpr int JUMP_HINT_LEGACY_BLACK_COLOR = 256;
+constexpr float HUD_CURRENT_WEAPON_SCALE = 1.2f;
+constexpr float HUD_CURRENT_WEAPON_SWITCH_DURATION = 0.14f;
+constexpr float HUD_CURRENT_WEAPON_SWITCH_PEAK_PROGRESS = 0.45f;
+constexpr float HUD_CURRENT_WEAPON_SWITCH_PEAK_SCALE = 1.32f;
+
+float HudWeaponSwitchEase(float Progress)
+{
+	const float ClampedProgress = std::clamp(Progress, 0.0f, 1.0f);
+	const float InvProgress = 1.0f - ClampedProgress;
+	return 1.0f - InvProgress * InvProgress * InvProgress;
+}
+
+float HudActiveWeaponSwitchScale(float Progress)
+{
+	if(Progress < HUD_CURRENT_WEAPON_SWITCH_PEAK_PROGRESS)
+		return mix(1.0f, HUD_CURRENT_WEAPON_SWITCH_PEAK_SCALE, HudWeaponSwitchEase(Progress / HUD_CURRENT_WEAPON_SWITCH_PEAK_PROGRESS));
+
+	return mix(HUD_CURRENT_WEAPON_SWITCH_PEAK_SCALE, HUD_CURRENT_WEAPON_SCALE, HudWeaponSwitchEase((Progress - HUD_CURRENT_WEAPON_SWITCH_PEAK_PROGRESS) / (1.0f - HUD_CURRENT_WEAPON_SWITCH_PEAK_PROGRESS)));
+}
 
 void DecodeEscapedNewlines(const char *pInput, char *pOutput, size_t OutputSize)
 {
@@ -890,6 +909,9 @@ void CHud::OnReset()
 	m_aMapProgressInitialized[1] = false;
 	m_MediaIslandAnimState.Reset();
 	m_RecordingStatusAnimState.Reset();
+	std::fill(std::begin(m_aHudWeaponSwitchLastWeapons), std::end(m_aHudWeaponSwitchLastWeapons), -1);
+	std::fill(std::begin(m_aHudWeaponSwitchPrevWeapons), std::end(m_aHudWeaponSwitchPrevWeapons), -1);
+	std::fill(std::begin(m_aHudWeaponSwitchStartTimes), std::end(m_aHudWeaponSwitchStartTimes), 0.0);
 
 	ResetHudContainers();
 }
@@ -3912,32 +3934,67 @@ void CHud::RenderPlayerState(const int ClientId)
 	float y = (5 + 12 + (GameClient()->m_GameInfo.m_HudHealthArmor && g_Config.m_ClShowhudHealthAmmo ? 24 : 0) +
 		   (GameClient()->m_GameInfo.m_HudAmmo && g_Config.m_ClShowhudHealthAmmo ? 12 : 0));
 
+	float WeaponSwitchProgress = 1.0f;
+	bool WeaponSwitchAnimating = false;
+	if(ClientId >= 0 && ClientId < MAX_CLIENTS)
+	{
+		if(m_aHudWeaponSwitchLastWeapons[ClientId] != pPlayer->m_Weapon)
+		{
+			m_aHudWeaponSwitchPrevWeapons[ClientId] = m_aHudWeaponSwitchLastWeapons[ClientId];
+			if(m_aHudWeaponSwitchLastWeapons[ClientId] != -1)
+				m_aHudWeaponSwitchStartTimes[ClientId] = Client()->LocalTime();
+			m_aHudWeaponSwitchLastWeapons[ClientId] = pPlayer->m_Weapon;
+		}
+
+		const float TimeSinceSwitch = (float)(Client()->LocalTime() - m_aHudWeaponSwitchStartTimes[ClientId]);
+		if(TimeSinceSwitch >= 0.0f && TimeSinceSwitch < HUD_CURRENT_WEAPON_SWITCH_DURATION)
+		{
+			WeaponSwitchProgress = TimeSinceSwitch / HUD_CURRENT_WEAPON_SWITCH_DURATION;
+			WeaponSwitchAnimating = true;
+		}
+	}
+
 	// render weapons
 	{
 		constexpr float aWeaponWidth[NUM_WEAPONS] = {16, 12, 12, 12, 12, 12};
 		constexpr float aWeaponInitialOffset[NUM_WEAPONS] = {-3, -4, -1, -1, -2, -4};
-			bool InitialOffsetAdded = false;
-			for(int Weapon = 0; Weapon < NUM_WEAPONS; ++Weapon)
+		bool InitialOffsetAdded = false;
+		for(int Weapon = 0; Weapon < NUM_WEAPONS; ++Weapon)
+		{
+			if(!pCharacter->m_aWeapons[Weapon].m_Got)
+				continue;
+			if(!InitialOffsetAdded)
 			{
-				if(!pCharacter->m_aWeapons[Weapon].m_Got)
-					continue;
-				if(!InitialOffsetAdded)
-				{
-					x += aWeaponInitialOffset[Weapon];
-					InitialOffsetAdded = true;
-				}
-				if(pPlayer->m_Weapon != Weapon)
-					Graphics()->SetColor(1.0f, 1.0f, 1.0f, 0.4f);
-				Graphics()->QuadsSetRotation(pi * 7 / 4);
-				Graphics()->TextureSet(GameClient()->m_GameSkin.m_aSpritePickupWeapons[Weapon]);
-				Graphics()->RenderQuadContainerAsSprite(m_HudQuadContainerIndex, m_aWeaponOffset[Weapon], x, y);
-				Graphics()->QuadsSetRotation(0);
-				Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
-				x += aWeaponWidth[Weapon];
+				x += aWeaponInitialOffset[Weapon];
+				InitialOffsetAdded = true;
 			}
-			if(pCharacter->m_aWeapons[WEAPON_NINJA].m_Got)
+			const bool ActiveWeapon = pPlayer->m_Weapon == Weapon;
+			const bool PrevWeapon = WeaponSwitchAnimating && m_aHudWeaponSwitchPrevWeapons[ClientId] == Weapon;
+			float WeaponAlpha = ActiveWeapon ? 1.0f : 0.4f;
+			float WeaponScale = ActiveWeapon ? HUD_CURRENT_WEAPON_SCALE : 1.0f;
+			if(WeaponSwitchAnimating)
 			{
-				const int Max = g_pData->m_Weapons.m_Ninja.m_Duration * Client()->GameTickSpeed() / 1000;
+				const float Ease = HudWeaponSwitchEase(WeaponSwitchProgress);
+				if(ActiveWeapon)
+					WeaponScale = HudActiveWeaponSwitchScale(WeaponSwitchProgress);
+				else if(PrevWeapon)
+				{
+					WeaponScale = mix(HUD_CURRENT_WEAPON_SCALE, 1.0f, Ease);
+					WeaponAlpha = mix(1.0f, 0.4f, Ease);
+				}
+			}
+			if(WeaponAlpha != 1.0f)
+				Graphics()->SetColor(1.0f, 1.0f, 1.0f, WeaponAlpha);
+			Graphics()->QuadsSetRotation(pi * 7 / 4);
+			Graphics()->TextureSet(GameClient()->m_GameSkin.m_aSpritePickupWeapons[Weapon]);
+			Graphics()->RenderQuadContainerAsSprite(m_HudQuadContainerIndex, m_aWeaponOffset[Weapon], x, y, WeaponScale, WeaponScale);
+			Graphics()->QuadsSetRotation(0);
+			Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+			x += aWeaponWidth[Weapon];
+		}
+		if(pCharacter->m_aWeapons[WEAPON_NINJA].m_Got)
+		{
+			const int Max = g_pData->m_Weapons.m_Ninja.m_Duration * Client()->GameTickSpeed() / 1000;
 			float NinjaProgress = std::clamp(pCharacter->m_Ninja.m_ActivationTick + g_pData->m_Weapons.m_Ninja.m_Duration * Client()->GameTickSpeed() / 1000 - Client()->GameTick(g_Config.m_ClDummy), 0, Max) / (float)Max;
 			if(NinjaProgress > 0.0f && GameClient()->m_Snap.m_aCharacters[ClientId].m_HasExtendedDisplayInfo)
 			{
