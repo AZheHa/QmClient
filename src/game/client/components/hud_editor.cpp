@@ -17,35 +17,13 @@
 
 namespace
 {
-constexpr float EPSILON = 0.001f;
-constexpr float HUD_EDITOR_SNAP_DISTANCE = 6.0f;
-constexpr float HUD_EDITOR_EDGE_ANCHOR_DISTANCE = EPSILON;
+constexpr float EPSILON = QmHudEditor::EPSILON;
+constexpr float HUD_EDITOR_EDGE_ANCHOR_DISTANCE = QmHudEditor::EPSILON;
 constexpr const char *JUMP_HINT_DEFAULT_TEXT = "这是示例文本";
 
 float Clamp01(float Value)
 {
 	return std::clamp(Value, 0.0f, 1.0f);
-}
-
-float SnapHudEditorAxis(float Position, float Size, float ScreenStart, float ScreenSize)
-{
-	const float ScreenEnd = ScreenStart + ScreenSize;
-	const float ScreenCenter = ScreenStart + ScreenSize * 0.5f;
-	const float MinPosition = ScreenStart;
-	const float MaxPosition = Size >= ScreenSize ? ScreenStart : ScreenEnd - Size;
-	float SnappedPosition = std::clamp(Position, MinPosition, MaxPosition);
-	float BestDistance = HUD_EDITOR_SNAP_DISTANCE + EPSILON;
-
-	const auto TrySnap = [&](float Candidate, float Distance) {
-		if(Distance <= HUD_EDITOR_SNAP_DISTANCE && Distance < BestDistance)
-		{
-			SnappedPosition = std::clamp(Candidate, MinPosition, MaxPosition);
-			BestDistance = Distance;
-		}
-	};
-
-	TrySnap(ScreenCenter - Size * 0.5f, std::fabs(Position + Size * 0.5f - ScreenCenter));
-	return SnappedPosition;
 }
 
 void DecodeEscapedNewlines(const char *pInput, char *pOutput, size_t OutputSize)
@@ -229,44 +207,12 @@ void CHudEditor::UpdateVisibleRect(EHudEditorElement Element, const CUIRect &Ren
 
 const char *CHudEditor::ElementToken(EHudEditorElement Element)
 {
-	switch(Element)
-	{
-	case EHudEditorElement::HudMain: return "hud_main";
-	case EHudEditorElement::HudPlayerState: return "hud_player_state";
-	case EHudEditorElement::GameTimer: return "game_timer";
-	case EHudEditorElement::PauseNotification: return "pause_notification";
-	case EHudEditorElement::SuddenDeath: return "sudden_death";
-	case EHudEditorElement::ScoreHud: return "score_hud";
-	case EHudEditorElement::WarmupTimer: return "warmup_timer";
-	case EHudEditorElement::DummyActions: return "dummy_actions";
-	case EHudEditorElement::DummyMiniMap: return "dummy_minimap";
-	case EHudEditorElement::TextInfo: return "text_info";
-	case EHudEditorElement::SpectatorCount: return "spectator_count";
-	case EHudEditorElement::MovementInfo: return "movement_info";
-	case EHudEditorElement::JumpHint: return "jump_hint";
-	case EHudEditorElement::MapProgressBar: return "map_progress_bar";
-	case EHudEditorElement::SpectatorHud: return "spectator_hud";
-	case EHudEditorElement::LocalTime: return "local_time";
-	case EHudEditorElement::LegacyMediaInfo: return "legacy_media_info";
-	case EHudEditorElement::MediaIsland: return "media_island";
-	case EHudEditorElement::Voting: return "voting";
-	case EHudEditorElement::Chat: return "chat";
-	case EHudEditorElement::VoiceOverlay: return "voice_overlay";
-	case EHudEditorElement::InputOverlay: return "input_overlay";
-	case EHudEditorElement::Count: break;
-	}
-	return "";
+	return QmHudEditor::ElementToken(Element);
 }
 
 int CHudEditor::ElementFromToken(const char *pToken)
 {
-	for(int i = 0; i < ELEMENT_COUNT; ++i)
-	{
-		const auto Element = static_cast<EHudEditorElement>(i);
-		if(str_comp(ElementToken(Element), pToken) == 0)
-			return i;
-	}
-	return -1;
+	return QmHudEditor::ElementFromToken(pToken);
 }
 
 void CHudEditor::ParseLayoutConfig(const char *pConfig)
@@ -857,8 +803,8 @@ void CHudEditor::OnRender()
 			const float Scale = std::clamp(State.m_ScalePercent / 100.0f, MIN_SCALE_PERCENT / 100.0f, MAX_SCALE_PERCENT / 100.0f);
 			const float Width = Visible.m_BaseWidth * Scale;
 			const float Height = Visible.m_BaseHeight * Scale;
-			const float X = SnapHudEditorAxis(Ui()->MouseX() - m_DragGrabOffset.x, Width, pUiScreen->x, pUiScreen->w);
-			const float Y = SnapHudEditorAxis(Ui()->MouseY() - m_DragGrabOffset.y, Height, pUiScreen->y, pUiScreen->h);
+			const float X = QmHudEditor::SnapAxisToScreenEdges(Ui()->MouseX() - m_DragGrabOffset.x, Width, pUiScreen->x, pUiScreen->w);
+			const float Y = QmHudEditor::SnapAxisToScreenEdges(Ui()->MouseY() - m_DragGrabOffset.y, Height, pUiScreen->y, pUiScreen->h);
 			const bool SnapLeft = std::fabs(X - pUiScreen->x) <= HUD_EDITOR_EDGE_ANCHOR_DISTANCE;
 			const bool SnapRight = std::fabs(X + Width - (pUiScreen->x + pUiScreen->w)) <= HUD_EDITOR_EDGE_ANCHOR_DISTANCE;
 			const bool SnapTop = std::fabs(Y - pUiScreen->y) <= HUD_EDITOR_EDGE_ANCHOR_DISTANCE;
@@ -927,7 +873,7 @@ void CHudEditor::OnRender()
 	constexpr float HelpLineHeight = 8.0f;
 	const char *apHelpLines[] = {
 		Localize("Drag HUD modules with the left mouse button"),
-		Localize("Modules snap to screen edges and center lines while dragging"),
+		Localize("Modules snap to screen edges while dragging"),
 		Localize("Use the mouse wheel on a hovered module to scale it by 5%"),
 		Localize("Press Esc to exit the HUD editor"),
 	};

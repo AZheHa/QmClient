@@ -36,14 +36,14 @@ QmClient客户端是基于 DDNet 和 TaterClient 构建的定制版本。
 
 ```bat
 qmclient_scripts\cmake-windows.cmd -S . -B cmake-build-release
-qmclient_scripts\cmake-windows.cmd --build cmake-build-release --target game-client -j 10
+qmclient_scripts\cmake-windows.cmd --build cmake-build-release --target game-client -j 14
 ```
 
 ### macOS / Linux / 已初始化的开发人员环境
 
 ```sh
 cmake -S . -B cmake-build-release
-cmake --build cmake-build-release --target game-client -j 10
+cmake --build cmake-build-release --target game-client -j 14
 ```
 
 ## ✅ 测试

@@ -84,12 +84,12 @@ namespace QmHudNotifications
 
 	inline float PaddingX(float FontSize)
 	{
-		return 6.0f * SmallTextScale(FontSize);
+		return 4.0f * SmallTextScale(FontSize);
 	}
 
 	inline float PaddingY(float FontSize)
 	{
-		return 4.0f * SmallTextScale(FontSize);
+		return 2.5f * SmallTextScale(FontSize);
 	}
 
 	inline float MinBoxWidth(float FontSize)
@@ -113,12 +113,51 @@ namespace QmHudNotifications
 		return BaseRect.x + BaseRect.w - BoxW + SlideOffset;
 	}
 
+	inline float StackedVisibleHeight(float BoxHeight, float Gap, int VisibleCount)
+	{
+		if(VisibleCount <= 0)
+			return 0.0f;
+		return BoxHeight * VisibleCount + Gap * (VisibleCount - 1);
+	}
+
+	inline float NotificationBoxWidth(const CUIRect &BaseRect, float NaturalBoxWidth)
+	{
+		return minimum(BaseRect.w, NaturalBoxWidth);
+	}
+
 	inline CUIRect NotificationVisibleRect(const CUIRect &BaseRect, float VisibleWidth, float UsedHeight, EHorizontalFlow Flow, float MaxSlideOffset = 0.0f)
 	{
 		const float Width = maximum(0.0f, VisibleWidth) + maximum(0.0f, MaxSlideOffset);
 		const float Height = maximum(0.0f, UsedHeight);
 		const float X = Flow == EHorizontalFlow::LeftToRight ? BaseRect.x - maximum(0.0f, MaxSlideOffset) : BaseRect.x + BaseRect.w - maximum(0.0f, VisibleWidth);
 		return {X, BaseRect.y, Width, Height};
+	}
+
+	inline CUIRect EditorPreviewVisibleRect(const CUIRect &BaseRect, float StableWidth, float BoxHeight, float Gap, int VisibleCount, EHorizontalFlow Flow)
+	{
+		return NotificationVisibleRect(BaseRect, StableWidth, StackedVisibleHeight(BoxHeight, Gap, VisibleCount), Flow);
+	}
+
+	inline CUIRect EditorPreviewDragRect(const CUIRect &BaseRect, float StableWidth, float BoxHeight, float Gap, int VisibleCount)
+	{
+		return {BaseRect.x, BaseRect.y, maximum(0.0f, StableWidth), StackedVisibleHeight(BoxHeight, Gap, VisibleCount)};
+	}
+
+	inline CUIRect EditorPreviewRenderBaseRect(const CUIRect &AnchorRect, float RenderWidth, EHorizontalFlow Flow)
+	{
+		const float Width = maximum(AnchorRect.w, RenderWidth);
+		const float X = Flow == EHorizontalFlow::LeftToRight ? AnchorRect.x : AnchorRect.x + AnchorRect.w - Width;
+		return {X, AnchorRect.y, Width, AnchorRect.h};
+	}
+
+	inline CUIRect InsetAnchoredRect(const CUIRect &Rect, float Margin, bool AnchoredLeft, bool AnchoredRight, bool AnchoredTop, bool AnchoredBottom)
+	{
+		const float SafeMargin = maximum(0.0f, Margin);
+		return {
+			Rect.x + (AnchoredLeft ? SafeMargin : (AnchoredRight ? -SafeMargin : 0.0f)),
+			Rect.y + (AnchoredTop ? SafeMargin : (AnchoredBottom ? -SafeMargin : 0.0f)),
+			Rect.w,
+			Rect.h};
 	}
 
 	inline STextColorConfig TextColorConfig(ETextSource Source, int EchoInheritChatColor, unsigned SystemColor, unsigned EchoOverrideColor, unsigned ChatEchoColor)
@@ -227,14 +266,26 @@ private:
 		bool m_HasEchoColor = false;
 	};
 
+	struct SEditorPreviewMetrics
+	{
+		float m_BoxWidth = 0.0f;
+		float m_BoxHeight = 0.0f;
+		float m_Gap = 0.0f;
+		int m_VisibleCount = 0;
+		bool m_Valid = false;
+	};
+
 	std::deque<SNotification> m_vNotifications;
 	bool m_HasLastSolo = false;
 	bool m_LastSolo = false;
 	QmHudNotifications::ESoloPrompt m_PendingCompatPrompt = QmHudNotifications::ESoloPrompt::None;
 	int64_t m_PendingCompatUntil = 0;
 
-	int BuildVisibleNotificationList(bool Preview, const SNotification *(&apVisible)[8], SNotification &PreviewNotification);
-	CUIRect MeasureVisibleRect(const CUIRect &BaseRect, bool Preview, QmHudNotifications::EHorizontalFlow Flow);
+	int BuildVisibleNotificationList(bool EditorPreview, const SNotification *(&apVisible)[8], SNotification &PreviewNotification);
+	CUIRect MeasureVisibleRect(const CUIRect &BaseRect, bool EditorPreview, QmHudNotifications::EHorizontalFlow Flow);
+	SEditorPreviewMetrics MeasureEditorPreviewMetrics(const CUIRect &BaseRect);
+	CUIRect MeasureEditorPreviewRect(const CUIRect &BaseRect, QmHudNotifications::EHorizontalFlow Flow);
+	CUIRect MeasureEditorPreviewDragRect(const CUIRect &BaseRect);
 
 	void Queue(EKind Kind, const char *pText, unsigned EchoColor = 0, bool HasEchoColor = false)
 	{
@@ -260,7 +311,7 @@ private:
 			Queue(EKind::SoloLeave, Localize("你现在已离开单人区域"));
 	}
 	bool LocalSoloState(bool &Solo) const;
-	void RenderNotifications(const CUIRect &BaseRect, const CUIRect &VisibleRect, bool Preview, QmHudNotifications::EHorizontalFlow Flow);
+	void RenderNotifications(const CUIRect &BaseRect, const CUIRect &VisibleRect, bool Preview, bool StableEditorGeometry, QmHudNotifications::EHorizontalFlow Flow);
 };
 
 #endif

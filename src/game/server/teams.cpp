@@ -115,7 +115,7 @@ void CGameTeams::OnCharacterStart(int ClientId)
 			str_format(
 				aBuf,
 				sizeof(aBuf),
-				"%s has finished and didn't go through start yet, wait for him or join another team.",
+				"%s 已经完成，但还没有重新经过起点。请等待他，或加入其他队伍。",
 				Server()->ClientName(i));
 			GameServer()->SendChatTarget(ClientId, aBuf);
 			m_aLastChat[ClientId] = Tick;
@@ -126,7 +126,7 @@ void CGameTeams::OnCharacterStart(int ClientId)
 			str_format(
 				aBuf,
 				sizeof(aBuf),
-				"%s wants to start a new round, kill or walk to start.",
+				"%s 想开始新一轮。请自杀或走回起点。",
 				Server()->ClientName(ClientId));
 			GameServer()->SendChatTarget(i, aBuf);
 			m_aLastChat[i] = Tick;
@@ -150,10 +150,9 @@ void CGameTeams::OnCharacterStart(int ClientId)
 		str_format(
 			aBuf,
 			sizeof(aBuf),
-			"Team %d started with %d player%s: ",
+			"%d 队已由 %d 名玩家开始：",
 			m_Core.Team(ClientId),
-			NumPlayers,
-			NumPlayers == 1 ? "" : "s");
+			NumPlayers);
 
 		bool First = true;
 
@@ -248,7 +247,7 @@ void CGameTeams::Tick()
 				m_aTeamUnfinishableKillTick[i] = -1;
 				continue;
 			}
-			GameServer()->SendChatTeam(i, "Your team was killed because it couldn't finish anymore and hasn't entered /practice mode");
+			GameServer()->SendChatTeam(i, "你的队伍因已无法完赛且未进入 /practice 模式而被处死");
 			KillTeam(i, -1);
 		}
 	}
@@ -308,10 +307,8 @@ void CGameTeams::Tick()
 		}
 		char aBuf[512];
 		str_format(aBuf, sizeof(aBuf),
-			"Your team has %d %s not started yet, they need "
-			"to touch the start before this team can finish: %s",
+			"你的队伍里还有 %d 名玩家尚未开始，他们需要先碰到起点，这个队伍才能完赛：%s",
 			NumPlayersNotStarted,
-			NumPlayersNotStarted == 1 ? "player that has" : "players that have",
 			aPlayerNames);
 		GameServer()->SendChatTeam(i, aBuf);
 	}
@@ -357,7 +354,7 @@ void CGameTeams::CheckTeamFinished(int Team)
 
 				char aBuf[256];
 				str_format(aBuf, sizeof(aBuf),
-					"Your team would've finished in: %d minute(s) %5.2f second(s). Since you had practice mode enabled your rank doesn't count.",
+					"你的队伍本可以在 %d 分钟 %5.2f 秒内完赛。但由于开启了练习模式，本次成绩不计入排名。",
 					Minutes, Seconds);
 				GameServer()->SendChatTeam(Team, aBuf);
 
@@ -386,43 +383,43 @@ bool CGameTeams::CanJoinTeam(int ClientId, int Team, char *pError, int ErrorSize
 
 	if(ClientId < 0 || ClientId >= MAX_CLIENTS)
 	{
-		str_format(pError, ErrorSize, "Invalid client ID: %d", ClientId);
+		str_format(pError, ErrorSize, "无效的客户端 ID：%d", ClientId);
 		return false;
 	}
 	if(Team < 0 || Team > NUM_DDRACE_TEAMS)
 	{
-		str_format(pError, ErrorSize, "Invalid team number: %d", Team);
+		str_format(pError, ErrorSize, "无效的队伍编号：%d", Team);
 		return false;
 	}
 	if(Team != TEAM_SUPER && m_aTeamState[Team] > ETeamState::OPEN && !m_aPractice[Team] && !m_aTeamFlock[Team])
 	{
-		str_copy(pError, "This team started already", ErrorSize);
+		str_copy(pError, "这个队伍已经开始比赛了", ErrorSize);
 		return false;
 	}
 	if(CurrentTeam == Team)
 	{
-		str_copy(pError, "You are in this team already", ErrorSize);
+		str_copy(pError, "你已经在这个队伍里了", ErrorSize);
 		return false;
 	}
 	if(!Character(ClientId))
 	{
-		str_copy(pError, "You can't change teams while you are dead/a spectator.", ErrorSize);
+		str_copy(pError, "你死亡或处于旁观状态时，不能切换队伍。", ErrorSize);
 		return false;
 	}
 	if(Team == TEAM_SUPER && !Character(ClientId)->IsSuper())
 	{
-		str_copy(pError, "You can't join super team if you don't have super rights", ErrorSize);
+		str_copy(pError, "你没有 super 权限，不能加入 super 队伍", ErrorSize);
 		return false;
 	}
 	if(Team != TEAM_SUPER && Character(ClientId)->m_DDRaceState != ERaceState::NONE && (m_aTeamState[CurrentTeam] < ETeamState::FINISHED || Team != 0))
 	{
-		str_copy(pError, "You have started racing already", ErrorSize);
+		str_copy(pError, "你已经开始比赛了", ErrorSize);
 		return false;
 	}
 	// No cheating through noob filter with practice and then leaving team
 	if(m_aPractice[CurrentTeam] && !m_pGameContext->PracticeByDefault())
 	{
-		str_copy(pError, "You have used practice mode already", ErrorSize);
+		str_copy(pError, "你已经使用过练习模式了", ErrorSize);
 		return false;
 	}
 
@@ -430,12 +427,12 @@ bool CGameTeams::CanJoinTeam(int ClientId, int Team, char *pError, int ErrorSize
 	// because the save-process can fail and then the team is reset into the game
 	if(Team != TEAM_SUPER && GetSaving(Team))
 	{
-		str_copy(pError, "This team is currently saving", ErrorSize);
+		str_copy(pError, "这个队伍当前正在存档", ErrorSize);
 		return false;
 	}
 	if(CurrentTeam != TEAM_SUPER && GetSaving(CurrentTeam))
 	{
-		str_copy(pError, "Your team is currently saving", ErrorSize);
+		str_copy(pError, "你的队伍当前正在存档", ErrorSize);
 		return false;
 	}
 
@@ -731,7 +728,7 @@ void CGameTeams::OnTeamFinish(int Team, CPlayer **Players, unsigned int Size, in
 		{
 			SetForceCharacterTeam(Players[i]->GetCid(), TEAM_FLOCK);
 			char aBuf[512];
-			str_format(aBuf, sizeof(aBuf), "'%s' joined team 0",
+			str_format(aBuf, sizeof(aBuf), "'%s' 加入了 0 队",
 				GameServer()->Server()->ClientName(Players[i]->GetCid()));
 			GameServer()->SendChat(-1, TEAM_ALL, aBuf);
 		}
@@ -773,10 +770,10 @@ void CGameTeams::OnFinish(CPlayer *Player, int TimeTicks, const char *pTimestamp
 		pData->m_RecordFinishTime = Time;
 
 		if(Diff >= 60)
-			str_format(aBuf, sizeof(aBuf), "New record: %d minute(s) %5.2f second(s) better.",
+			str_format(aBuf, sizeof(aBuf), "新纪录：快了 %d 分钟 %5.2f 秒。",
 				(int)Diff / 60, Diff - ((int)Diff / 60 * 60));
 		else
-			str_format(aBuf, sizeof(aBuf), "New record: %5.2f second(s) better.",
+			str_format(aBuf, sizeof(aBuf), "新纪录：快了 %5.2f 秒。",
 				Diff);
 		if(g_Config.m_SvHideScore)
 			GameServer()->SendChatTarget(ClientId, aBuf, CGameContext::FLAG_SIX);
@@ -790,16 +787,16 @@ void CGameTeams::OnFinish(CPlayer *Player, int TimeTicks, const char *pTimestamp
 		if(Diff <= 0.005f)
 		{
 			GameServer()->SendChatTarget(ClientId,
-				"You finished with your best time.");
+				"你跑出了自己的最佳成绩。");
 		}
 		else
 		{
 			if(Diff >= 60)
-				str_format(aBuf, sizeof(aBuf), "%d minute(s) %5.2f second(s) worse, better luck next time.",
+				str_format(aBuf, sizeof(aBuf), "慢了 %d 分钟 %5.2f 秒，下次加油。",
 					(int)Diff / 60, Diff - ((int)Diff / 60 * 60));
 			else
 				str_format(aBuf, sizeof(aBuf),
-					"%5.2f second(s) worse, better luck next time.",
+					"慢了 %5.2f 秒，下次加油。",
 					Diff);
 			GameServer()->SendChatTarget(ClientId, aBuf, CGameContext::FLAG_SIX); // this is private, sent only to the tee
 		}
@@ -908,7 +905,7 @@ void CGameTeams::RequestTeamSwap(CPlayer *pPlayer, CPlayer *pTargetPlayer, int T
 	if(pPlayer->m_SwapTargetsClientId == pTargetPlayer->GetCid())
 	{
 		str_format(aBuf, sizeof(aBuf),
-			"You have already requested to swap with %s.", Server()->ClientName(pTargetPlayer->GetCid()));
+			"你已经向 %s 发过交换请求了。", Server()->ClientName(pTargetPlayer->GetCid()));
 
 		GameServer()->SendChatTarget(pPlayer->GetCid(), aBuf);
 		return;
@@ -916,19 +913,19 @@ void CGameTeams::RequestTeamSwap(CPlayer *pPlayer, CPlayer *pTargetPlayer, int T
 
 	// Notification for the swap initiator
 	str_format(aBuf, sizeof(aBuf),
-		"You have requested to swap with %s. Use /cancelswap to cancel the request.",
+		"你已向 %s 发出交换请求。输入 /cancelswap 可取消",
 		Server()->ClientName(pTargetPlayer->GetCid()));
 	GameServer()->SendChatTarget(pPlayer->GetCid(), aBuf);
 
 	// Notification to the target swap player
 	str_format(aBuf, sizeof(aBuf),
-		"%s has requested to swap with you. To complete the swap process please wait %d seconds and then type /swap %s.",
+		"%s 请求与你交换位置。请等待 %d 秒后输入 /swap %s 完成交换。",
 		Server()->ClientName(pPlayer->GetCid()), g_Config.m_SvSaveSwapGamesDelay, Server()->ClientName(pPlayer->GetCid()));
 	GameServer()->SendChatTarget(pTargetPlayer->GetCid(), aBuf);
 
 	// Notification for the remaining team
 	str_format(aBuf, sizeof(aBuf),
-		"%s has requested to swap with %s.",
+		"%s 请求与 %s 交换位置。",
 		Server()->ClientName(pPlayer->GetCid()), Server()->ClientName(pTargetPlayer->GetCid()));
 	// Do not send the team notification for team 0
 	if(Team != 0)
@@ -957,7 +954,7 @@ void CGameTeams::SwapTeamCharacters(CPlayer *pPrimaryPlayer, CPlayer *pTargetPla
 	if(Since < g_Config.m_SvSaveSwapGamesDelay)
 	{
 		str_format(aBuf, sizeof(aBuf),
-			"You have to wait %d seconds until you can swap.",
+			"你还需要等待 %d 秒才能交换位置。",
 			g_Config.m_SvSaveSwapGamesDelay - Since);
 
 		GameServer()->SendChatTarget(pPrimaryPlayer->GetCid(), aBuf);
@@ -972,7 +969,7 @@ void CGameTeams::SwapTeamCharacters(CPlayer *pPrimaryPlayer, CPlayer *pTargetPla
 	if(Since >= TimeoutAfterDelay)
 	{
 		str_format(aBuf, sizeof(aBuf),
-			"Your swap request timed out %d seconds ago. Use /swap again to re-initiate it.",
+			"你的交换请求已在 %d 秒前超时，请重新输入 /swap 发起。",
 			Since - g_Config.m_SvSwapTimeout);
 
 		GameServer()->SendChatTarget(pPrimaryPlayer->GetCid(), aBuf);
@@ -1011,7 +1008,7 @@ void CGameTeams::SwapTeamCharacters(CPlayer *pPrimaryPlayer, CPlayer *pTargetPla
 	}
 
 	str_format(aBuf, sizeof(aBuf),
-		"%s has swapped with %s.",
+		"%s 与 %s 已完成交换。",
 		Server()->ClientName(pPrimaryPlayer->GetCid()), Server()->ClientName(pTargetPlayer->GetCid()));
 
 	GameServer()->SendChatTeam(Team, aBuf);
@@ -1026,19 +1023,19 @@ void CGameTeams::CancelTeamSwap(CPlayer *pPlayer, int Team)
 
 	// Notification for the swap initiator
 	str_format(aBuf, sizeof(aBuf),
-		"You have canceled swap with %s.",
+		"你已取消与 %s 的交换。",
 		Server()->ClientName(pPlayer->m_SwapTargetsClientId));
 	GameServer()->SendChatTarget(pPlayer->GetCid(), aBuf);
 
 	// Notification to the target swap player
 	str_format(aBuf, sizeof(aBuf),
-		"%s has canceled swap with you.",
+		"%s 已取消与你的交换。",
 		Server()->ClientName(pPlayer->GetCid()));
 	GameServer()->SendChatTarget(pPlayer->m_SwapTargetsClientId, aBuf);
 
 	// Notification for the remaining team
 	str_format(aBuf, sizeof(aBuf),
-		"%s has canceled swap with %s.",
+		"%s 已取消与 %s 的交换。",
 		Server()->ClientName(pPlayer->GetCid()), Server()->ClientName(pPlayer->m_SwapTargetsClientId));
 	// Do not send the team notification for team 0
 	if(Team != 0)
@@ -1120,7 +1117,7 @@ void CGameTeams::ProcessSaveTeam()
 				{
 					int ClientId = m_apSaveTeamResult[Team]->m_SavedTeam.m_pSavedTees->GetClientId();
 					if(GameServer()->m_apPlayers[ClientId] != nullptr)
-						GameServer()->SendChatTarget(ClientId, "Start holding the hook before loading the savegame to keep the hook");
+						GameServer()->SendChatTarget(ClientId, "载入存档前先按住钩子，这样可以保留当前钩子状态");
 				}
 			}
 			ResetSavedTeam(m_apSaveTeamResult[Team]->m_RequestingPlayer, Team);
@@ -1157,7 +1154,7 @@ void CGameTeams::ProcessSaveTeam()
 
 			if(!TeamValid)
 			{
-				GameServer()->SendChatTeam(Team, "Your team has been killed because it contains an invalid tee state");
+				GameServer()->SendChatTeam(Team, "你的队伍因为包含无效的 tee 状态而被处死");
 				KillTeam(Team, -1, -1);
 			}
 
@@ -1216,7 +1213,7 @@ void CGameTeams::OnCharacterDeath(int ClientId, int Weapon)
 			}
 			else
 			{
-				GameServer()->SendChatTeam(Team, "You died, but will stay in practice until you use kill.");
+				GameServer()->SendChatTeam(Team, "你已经死亡，但会继续保持练习模式，直到你输入 kill。");
 			}
 		}
 		else
@@ -1240,7 +1237,7 @@ void CGameTeams::OnCharacterDeath(int ClientId, int Weapon)
 				// Disband team if the team has more players than allowed.
 				if(Count(Team) > g_Config.m_SvMaxTeamSize)
 				{
-					GameServer()->SendChatTeam(Team, "This team was disbanded because there are more players than allowed in the team.");
+					GameServer()->SendChatTeam(Team, "这个队伍因人数超过允许上限而被解散。");
 					SetTeamLock(Team, false);
 					KillTeam(Team, Weapon == WEAPON_SELF ? ClientId : -1, ClientId);
 					return;
@@ -1249,7 +1246,7 @@ void CGameTeams::OnCharacterDeath(int ClientId, int Weapon)
 				KillTeam(Team, Weapon == WEAPON_SELF ? ClientId : -1, ClientId);
 
 				char aBuf[512];
-				str_format(aBuf, sizeof(aBuf), "Everyone in your locked team was killed because '%s' %s.", Server()->ClientName(ClientId), Weapon == WEAPON_SELF ? "killed" : "died");
+				str_format(aBuf, sizeof(aBuf), "你们的锁队全员都被处死了，因为 '%s' %s。", Server()->ClientName(ClientId), Weapon == WEAPON_SELF ? "kill 了自己" : "死亡了");
 
 				GameServer()->SendChatTeam(Team, aBuf);
 			}
@@ -1260,9 +1257,9 @@ void CGameTeams::OnCharacterDeath(int ClientId, int Weapon)
 		if(m_aTeamState[m_Core.Team(ClientId)] == ETeamState::STARTED && !m_aTeeStarted[ClientId] && !m_aTeamFlock[m_Core.Team(ClientId)])
 		{
 			char aBuf[128];
-			str_format(aBuf, sizeof(aBuf), "This team cannot finish anymore because '%s' left the team before hitting the start", Server()->ClientName(ClientId));
+			str_format(aBuf, sizeof(aBuf), "这个队伍已无法完赛，因为 '%s' 在碰到起点前离开了队伍", Server()->ClientName(ClientId));
 			GameServer()->SendChatTeam(Team, aBuf);
-			GameServer()->SendChatTeam(Team, "Enter /practice mode or restart to avoid the entire team being killed in 60 seconds");
+			GameServer()->SendChatTeam(Team, "输入 /practice 或重新开始，避免整队在 60 秒后被处死");
 
 			m_aTeamUnfinishableKillTick[Team] = Server()->Tick() + 60 * Server()->TickSpeed();
 			ChangeTeamState(Team, ETeamState::STARTED_UNFINISHABLE);

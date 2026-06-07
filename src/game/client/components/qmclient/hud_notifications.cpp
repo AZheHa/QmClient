@@ -25,10 +25,10 @@ namespace
 	}
 } // namespace
 
-int CQmHudNotifications::BuildVisibleNotificationList(bool Preview, const SNotification *(&apVisible)[8], SNotification &PreviewNotification)
+int CQmHudNotifications::BuildVisibleNotificationList(bool PreviewContent, const SNotification *(&apVisible)[8], SNotification &PreviewNotification)
 {
 	int NumVisible = 0;
-	if(Preview)
+	if(PreviewContent)
 	{
 		PreviewNotification.m_Kind = EKind::SoloEnter;
 		str_copy(PreviewNotification.m_aText, Localize("你现在处于单人区域"));
@@ -44,7 +44,7 @@ int CQmHudNotifications::BuildVisibleNotificationList(bool Preview, const SNotif
 	return NumVisible;
 }
 
-CUIRect CQmHudNotifications::MeasureVisibleRect(const CUIRect &BaseRect, bool Preview, QmHudNotifications::EHorizontalFlow Flow)
+CUIRect CQmHudNotifications::MeasureVisibleRect(const CUIRect &BaseRect, bool PreviewContent, QmHudNotifications::EHorizontalFlow Flow)
 {
 	const float FontSize = (float)QmHudNotifications::ClampTextSize(g_Config.m_QmHudNotificationsTextSize);
 	const float PaddingX = QmHudNotifications::PaddingX(FontSize);
@@ -55,7 +55,7 @@ CUIRect CQmHudNotifications::MeasureVisibleRect(const CUIRect &BaseRect, bool Pr
 
 	SNotification PreviewNotification;
 	const SNotification *apVisible[8] = {};
-	const int NumVisible = BuildVisibleNotificationList(Preview, apVisible, PreviewNotification);
+	const int NumVisible = BuildVisibleNotificationList(PreviewContent, apVisible, PreviewNotification);
 	if(NumVisible == 0)
 		return {BaseRect.x, BaseRect.y, 0.0f, 0.0f};
 
@@ -74,6 +74,44 @@ CUIRect CQmHudNotifications::MeasureVisibleRect(const CUIRect &BaseRect, bool Pr
 	}
 
 	return QmHudNotifications::NotificationVisibleRect(BaseRect, MaxWidth, UsedHeight, Flow, MaxSlideOffset);
+}
+
+CQmHudNotifications::SEditorPreviewMetrics CQmHudNotifications::MeasureEditorPreviewMetrics(const CUIRect &BaseRect)
+{
+	const float FontSize = (float)QmHudNotifications::ClampTextSize(g_Config.m_QmHudNotificationsTextSize);
+	const float PaddingX = QmHudNotifications::PaddingX(FontSize);
+	const float PaddingY = QmHudNotifications::PaddingY(FontSize);
+	const float MinBoxWidth = QmHudNotifications::MinBoxWidth(FontSize);
+	const float Gap = 4.0f * QmHudNotifications::SmallTextScale(FontSize);
+	const float TextMaxWidth = maximum(1.0f, BaseRect.w - PaddingX * 2.0f);
+	const int PreviewCount = QmHudNotifications::ClampVisibleCount(g_Config.m_QmHudNotificationsMaxVisible);
+
+	SNotification PreviewNotification;
+	const SNotification *apVisible[8] = {};
+	const int NumVisible = BuildVisibleNotificationList(true, apVisible, PreviewNotification);
+	if(NumVisible == 0)
+		return {};
+
+	const STextBoundingBox TextBox = TextRender()->TextBoundingBox(FontSize, apVisible[0]->m_aText, -1, TextMaxWidth);
+	const float BoxW = minimum(BaseRect.w, maximum(MinBoxWidth, TextBox.m_W + PaddingX * 2.0f));
+	const float BoxH = maximum(FontSize + PaddingY * 2.0f, TextBox.m_H + PaddingY * 2.0f);
+	return {BoxW, BoxH, Gap, PreviewCount, true};
+}
+
+CUIRect CQmHudNotifications::MeasureEditorPreviewRect(const CUIRect &BaseRect, QmHudNotifications::EHorizontalFlow Flow)
+{
+	const SEditorPreviewMetrics Metrics = MeasureEditorPreviewMetrics(BaseRect);
+	if(!Metrics.m_Valid)
+		return {BaseRect.x, BaseRect.y, 0.0f, 0.0f};
+	return QmHudNotifications::EditorPreviewVisibleRect(BaseRect, Metrics.m_BoxWidth, Metrics.m_BoxHeight, Metrics.m_Gap, Metrics.m_VisibleCount, Flow);
+}
+
+CUIRect CQmHudNotifications::MeasureEditorPreviewDragRect(const CUIRect &BaseRect)
+{
+	const SEditorPreviewMetrics Metrics = MeasureEditorPreviewMetrics(BaseRect);
+	if(!Metrics.m_Valid)
+		return {BaseRect.x, BaseRect.y, 0.0f, 0.0f};
+	return QmHudNotifications::EditorPreviewDragRect(BaseRect, Metrics.m_BoxWidth, Metrics.m_BoxHeight, Metrics.m_Gap, Metrics.m_VisibleCount);
 }
 
 void CQmHudNotifications::OnReset()
@@ -120,10 +158,11 @@ void CQmHudNotifications::OnNewSnapshot()
 
 void CQmHudNotifications::OnRender()
 {
-	const bool Preview = GameClient()->m_HudEditor.IsActive() && m_vNotifications.empty();
-	if(!Preview && m_vNotifications.empty())
+	const bool HudEditorPreview = GameClient()->m_HudEditor.IsActive();
+	const bool PreviewContent = HudEditorPreview && m_vNotifications.empty();
+	if(!HudEditorPreview && m_vNotifications.empty())
 		return;
-	if(!Preview && Client()->State() != IClient::STATE_ONLINE && Client()->State() != IClient::STATE_DEMOPLAYBACK)
+	if(!HudEditorPreview && Client()->State() != IClient::STATE_ONLINE && Client()->State() != IClient::STATE_DEMOPLAYBACK)
 		return;
 
 	const int HoldMs = QmHudNotifications::ClampHoldMs(g_Config.m_QmHudNotificationsHoldMs);
@@ -132,7 +171,7 @@ void CQmHudNotifications::OnRender()
 	const int64_t Lifetime = (int64_t)(HoldMs + 2 * AnimMs) * time_freq() / 1000;
 	while(!m_vNotifications.empty() && Now - m_vNotifications.front().m_StartTime > Lifetime)
 		m_vNotifications.pop_front();
-	if(!Preview && m_vNotifications.empty())
+	if(!HudEditorPreview && m_vNotifications.empty())
 		return;
 
 	const float Height = 300.0f;
@@ -150,22 +189,25 @@ void CQmHudNotifications::OnRender()
 	DefaultRect.x = Width - DefaultRect.w - 8.0f;
 	DefaultRect.y = 96.0f;
 
-	const auto InitialPreviewScope = GameClient()->m_HudEditor.PreviewTransform(EHudEditorElement::HudNotifications, DefaultRect);
-	const auto InitialFlow = QmHudNotifications::ResolveHorizontalFlow(
-		InitialPreviewScope.m_AnchoredLeft,
-		InitialPreviewScope.m_AnchoredRight,
-		InitialPreviewScope.m_VisibleRect.x + InitialPreviewScope.m_VisibleRect.w * 0.5f,
-		Width * 0.5f);
-	const CUIRect InitialVisibleRect = MeasureVisibleRect(DefaultRect, Preview, InitialFlow);
-	const auto PreviewScope = GameClient()->m_HudEditor.PreviewTransform(EHudEditorElement::HudNotifications, DefaultRect, InitialVisibleRect);
+	const CUIRect AnchorRect = MeasureEditorPreviewDragRect(DefaultRect);
+	const auto PreviewScope = GameClient()->m_HudEditor.PreviewTransform(EHudEditorElement::HudNotifications, AnchorRect, AnchorRect);
 	const auto Flow = QmHudNotifications::ResolveHorizontalFlow(
 		PreviewScope.m_AnchoredLeft,
 		PreviewScope.m_AnchoredRight,
 		PreviewScope.m_VisibleRect.x + PreviewScope.m_VisibleRect.w * 0.5f,
 		Width * 0.5f);
-	const CUIRect VisibleRect = MeasureVisibleRect(DefaultRect, Preview, Flow);
-	const auto HudEditorScope = GameClient()->m_HudEditor.BeginTransform(EHudEditorElement::HudNotifications, DefaultRect, VisibleRect);
-	RenderNotifications(HudEditorScope.m_TargetRect, HudEditorScope.m_VisibleRect, Preview, Flow);
+	const CUIRect RenderAnchorRect = QmHudNotifications::InsetAnchoredRect(
+		AnchorRect,
+		(float)std::clamp(g_Config.m_QmHudNotificationsEdgeMargin, 0, 32),
+		PreviewScope.m_AnchoredLeft,
+		PreviewScope.m_AnchoredRight,
+		PreviewScope.m_AnchoredTop,
+		PreviewScope.m_AnchoredBottom);
+	const CUIRect RenderBaseRect = QmHudNotifications::EditorPreviewRenderBaseRect(RenderAnchorRect, DefaultRect.w, Flow);
+	const CUIRect RuntimeVisibleRect = MeasureVisibleRect(RenderBaseRect, false, Flow);
+	const CUIRect ReportedVisibleRect = HudEditorPreview ? AnchorRect : RuntimeVisibleRect;
+	const auto HudEditorScope = GameClient()->m_HudEditor.BeginTransform(EHudEditorElement::HudNotifications, AnchorRect, AnchorRect);
+	RenderNotifications(RenderBaseRect, ReportedVisibleRect, PreviewContent, HudEditorPreview, Flow);
 	GameClient()->m_HudEditor.EndTransform(HudEditorScope);
 	Graphics()->MapScreen(SavedScreenX0, SavedScreenY0, SavedScreenX1, SavedScreenY1);
 }
@@ -215,7 +257,7 @@ bool CQmHudNotifications::LocalSoloState(bool &Solo) const
 	return true;
 }
 
-void CQmHudNotifications::RenderNotifications(const CUIRect &BaseRect, const CUIRect &VisibleRect, bool Preview, QmHudNotifications::EHorizontalFlow Flow)
+void CQmHudNotifications::RenderNotifications(const CUIRect &BaseRect, const CUIRect &VisibleRect, bool PreviewContent, bool StableEditorGeometry, QmHudNotifications::EHorizontalFlow Flow)
 {
 	const int HoldMs = QmHudNotifications::ClampHoldMs(g_Config.m_QmHudNotificationsHoldMs);
 	const int AnimMs = QmHudNotifications::ClampAnimationMs(g_Config.m_QmHudNotificationsAnimMs);
@@ -230,7 +272,7 @@ void CQmHudNotifications::RenderNotifications(const CUIRect &BaseRect, const CUI
 
 	SNotification PreviewNotification;
 	const SNotification *apVisible[8] = {};
-	const int NumVisible = BuildVisibleNotificationList(Preview, apVisible, PreviewNotification);
+	const int NumVisible = BuildVisibleNotificationList(PreviewContent, apVisible, PreviewNotification);
 
 	if(NumVisible == 0)
 		return;
@@ -242,10 +284,10 @@ void CQmHudNotifications::RenderNotifications(const CUIRect &BaseRect, const CUI
 	for(int i = 0; i < NumVisible; ++i)
 	{
 		const SNotification &Notification = *apVisible[i];
-		const int ElapsedMs = Preview ? AnimMs : (int)((Now - Notification.m_StartTime) * 1000 / time_freq());
+		const int ElapsedMs = (PreviewContent || StableEditorGeometry) ? AnimMs : (int)((Now - Notification.m_StartTime) * 1000 / time_freq());
 		float Alpha = 1.0f;
 		float OffsetX = 0.0f;
-		if(AnimType != 2 && AnimMs > 0)
+		if(!StableEditorGeometry && AnimType != 2 && AnimMs > 0)
 		{
 			if(ElapsedMs < AnimMs)
 				Alpha = EaseOutCubic(ElapsedMs / (float)AnimMs);
@@ -256,7 +298,8 @@ void CQmHudNotifications::RenderNotifications(const CUIRect &BaseRect, const CUI
 		}
 
 		const STextBoundingBox TextBox = TextRender()->TextBoundingBox(FontSize, Notification.m_aText, -1, TextMaxWidth);
-		const float BoxW = minimum(BaseRect.w, maximum(MinBoxWidth, TextBox.m_W + PaddingX * 2.0f));
+		const float NaturalBoxW = maximum(MinBoxWidth, TextBox.m_W + PaddingX * 2.0f);
+		const float BoxW = QmHudNotifications::NotificationBoxWidth(BaseRect, NaturalBoxW);
 		const float BoxH = maximum(FontSize + PaddingY * 2.0f, TextBox.m_H + PaddingY * 2.0f);
 		CUIRect Box = {QmHudNotifications::NotificationBoxX(BaseRect, BoxW, Flow, OffsetX), Y, BoxW, BoxH};
 		const float CornerRadius = minimum(6.0f, BoxH / 2.0f);

@@ -150,7 +150,7 @@ void CGameContext::ConSettings(IConsole::IResult *pResult, void *pUserData)
 	if(pResult->NumArguments() == 0)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"to check a server setting say /settings and setting's name, setting names are:");
+			"输入 /settings 加设置名即可查看服务器设置。可用设置有：");
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 			"teams, cheats, collision, hooking, endlesshooking,");
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
@@ -168,95 +168,95 @@ void CGameContext::ConSettings(IConsole::IResult *pResult, void *pUserData)
 		{
 			str_format(aBuf, sizeof(aBuf), "%s %s",
 				g_Config.m_SvTeam == SV_TEAM_ALLOWED ?
-					"Teams are available on this server" :
+					"本服务器允许组队" :
 				(g_Config.m_SvTeam == SV_TEAM_FORBIDDEN || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO) ?
-					"Teams are not available on this server" :
-					"You have to be in a team to play on this server", /*g_Config.m_SvTeamStrict ? "and if you die in a team all of you die" : */
-				"and all of your team will die if the team is locked");
+					"本服务器不允许组队" :
+					"你必须加入队伍才能在本服务器游玩",
+				"；队伍上锁后，队内任意玩家死亡都会导致全队死亡");
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
 		}
 		else if(str_comp_nocase(pArg, "cheats") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 				g_Config.m_SvTestingCommands ?
-					"Cheats are enabled on this server" :
-					"Cheats are disabled on this server");
+					"本服务器已开启作弊功能" :
+					"本服务器已关闭作弊功能");
 		}
 		else if(str_comp_nocase(pArg, "collision") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 				ColTemp ?
-					"Players can collide on this server" :
-					"Players can't collide on this server");
+					"本服务器允许玩家碰撞" :
+					"本服务器不允许玩家碰撞");
 		}
 		else if(str_comp_nocase(pArg, "hooking") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 				HookTemp ?
-					"Players can hook each other on this server" :
-					"Players can't hook each other on this server");
+					"本服务器允许玩家互钩" :
+					"本服务器不允许玩家互钩");
 		}
 		else if(str_comp_nocase(pArg, "endlesshooking") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 				g_Config.m_SvEndlessDrag ?
-					"Players hook time is unlimited" :
-					"Players hook time is limited");
+					"本服务器的钩子时长不受限制" :
+					"本服务器的钩子时长受限制");
 		}
 		else if(str_comp_nocase(pArg, "hitting") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 				g_Config.m_SvHit ?
-					"Players weapons affect others" :
-					"Players weapons has no affect on others");
+					"本服务器允许武器影响其他玩家" :
+					"本服务器的武器不会影响其他玩家");
 		}
 		else if(str_comp_nocase(pArg, "oldlaser") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 				g_Config.m_SvOldLaser ?
-					"Lasers can hit you if you shot them and they pull you towards the bounce origin (Like DDRace Beta)" :
-					"Lasers can't hit you if you shot them, and they pull others towards the shooter");
+					"你自己发射的激光也会命中自己，并把你拉向反弹起点（类似 DDRace Beta）" :
+					"你自己发射的激光不会命中自己，激光会把其他玩家拉向发射者");
 		}
 		else if(str_comp_nocase(pArg, "timeout") == 0)
 		{
-			str_format(aBuf, sizeof(aBuf), "The Server Timeout is currently set to %d seconds", g_Config.m_ConnTimeout);
+			str_format(aBuf, sizeof(aBuf), "当前服务器超时时间为 %d 秒", g_Config.m_ConnTimeout);
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
 		}
 		else if(str_comp_nocase(pArg, "votes") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 				g_Config.m_SvVoteKick ?
-					"Players can use Callvote menu tab to kick offenders" :
-					"Players can't use the Callvote menu tab to kick offenders");
+					"玩家可以通过 Callvote 菜单发起踢人投票" :
+					"玩家不能通过 Callvote 菜单发起踢人投票");
 			if(g_Config.m_SvVoteKick)
 			{
 				str_format(aBuf, sizeof(aBuf),
-					"Players are banned for %d minute(s) if they get voted off", g_Config.m_SvVoteKickBantime);
+					"被投票踢出的玩家会被封禁 %d 分钟", g_Config.m_SvVoteKickBantime);
 
 				pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 					g_Config.m_SvVoteKickBantime ?
 						aBuf :
-						"Players are just kicked and not banned if they get voted off");
+						"被投票踢出的玩家只会被踢出，不会被封禁");
 			}
 		}
 		else if(str_comp_nocase(pArg, "pause") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 				g_Config.m_SvPauseable ?
-					"/spec will pause you and your tee will vanish" :
-					"/spec will pause you but your tee will not vanish");
+					"输入 /spec 后你会暂停，tee 也会消失" :
+					"输入 /spec 后你会暂停，但 tee 不会消失");
 		}
 		else if(str_comp_nocase(pArg, "scores") == 0)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 				g_Config.m_SvHideScore ?
-					"Scores are private on this server" :
-					"Scores are public on this server");
+					"本服务器的成绩是私密的" :
+					"本服务器的成绩是公开的");
 		}
 		else
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-				"no matching settings found, type /settings to view them");
+				"没有找到对应设置。输入 /settings 可以查看可用设置");
 		}
 	}
 }
@@ -316,7 +316,7 @@ static void ToggleSpecPause(IConsole::IResult *pResult, void *pUserData, int Pau
 	if(PauseState > 0)
 	{
 		char aBuf[128];
-		str_format(aBuf, sizeof(aBuf), "You are force-paused for %d seconds.", (PauseState - pServ->Tick()) / pServ->TickSpeed());
+		str_format(aBuf, sizeof(aBuf), "你被强制暂停，还需等待 %d 秒。", (PauseState - pServ->Tick()) / pServ->TickSpeed());
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
 	}
 	else if(pResult->NumArguments() > 0)
@@ -356,7 +356,7 @@ static void ToggleSpecPauseVoted(IConsole::IResult *pResult, void *pUserData, in
 	{
 		IServer *pServ = pSelf->Server();
 		char aBuf[128];
-		str_format(aBuf, sizeof(aBuf), "You are force-paused for %d seconds.", (PauseState - pServ->Tick()) / pServ->TickSpeed());
+		str_format(aBuf, sizeof(aBuf), "你被强制暂停，还需等待 %d 秒。", (PauseState - pServ->Tick()) / pServ->TickSpeed());
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
 		return;
 	}
@@ -423,7 +423,7 @@ void CGameContext::ConTeamTop5(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvHideScore)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Showing the team top 5 is not allowed on this server.");
+			"本服务器不允许查看队伍前 5 名");
 		return;
 	}
 
@@ -454,9 +454,9 @@ void CGameContext::ConTeamTop5(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "/top5team needs 0, 1 or 2 parameter. 1. = name, 2. = start number");
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Example: /top5team, /top5team me, /top5team Hans, /top5team \"Papa Smurf\" 5");
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Bad: /top5team Papa Smurf 5 # Good: /top5team \"Papa Smurf\" 5 ");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "/top5team 需要 0、1 或 2 个参数。第 1 个是名字，第 2 个是起始名次");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "示例：/top5team、/top5team me、/top5team Hans、/top5team \"Papa Smurf\" 5");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "错误示例：/top5team Papa Smurf 5；正确示例：/top5team \"Papa Smurf\" 5");
 	}
 }
 
@@ -469,7 +469,7 @@ void CGameContext::ConTop(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvHideScore)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Showing the top is not allowed on this server.");
+			"本服务器不允许查看排行榜");
 		return;
 	}
 
@@ -507,9 +507,9 @@ void CGameContext::ConTimes(IConsole::IResult *pResult, void *pUserData)
 	}
 	else if(pResult->NumArguments() > 2)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "/times needs 0, 1 or 2 parameter. 1. = name, 2. = start number");
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Example: /times, /times me, /times Hans, /times \"Papa Smurf\" 5");
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Bad: /times Papa Smurf 5 # Good: /times \"Papa Smurf\" 5 ");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "/times 需要 0、1 或 2 个参数。第 1 个是名字，第 2 个是起始名次");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "示例：/times、/times me、/times Hans、/times \"Papa Smurf\" 5");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "错误示例：/times Papa Smurf 5；正确示例：/times \"Papa Smurf\" 5");
 		return;
 	}
 
@@ -518,7 +518,7 @@ void CGameContext::ConTimes(IConsole::IResult *pResult, void *pUserData)
 	{
 		if(pRequestedName && str_comp_nocase(pRequestedName, "me") != 0 && str_comp_nocase(pRequestedName, pSelf->Server()->ClientName(pResult->m_ClientId)) != 0)
 		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Showing the times of others is not allowed on this server.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "本服务器不允许查看其他玩家的成绩");
 			return;
 		}
 		pRequestedName = pSelf->Server()->ClientName(pResult->m_ClientId);
@@ -547,7 +547,7 @@ void CGameContext::ConDND(IConsole::IResult *pResult, void *pUserData)
 		return;
 
 	pPlayer->m_DND = pResult->NumArguments() == 0 ? !pPlayer->m_DND : pResult->GetInteger(0);
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", pPlayer->m_DND ? "You will not receive any further global chat and server messages" : "You will receive global chat and server messages");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", pPlayer->m_DND ? "你将不再接收全局聊天和服务器消息" : "你将继续接收全局聊天和服务器消息");
 }
 
 void CGameContext::ConWhispers(IConsole::IResult *pResult, void *pUserData)
@@ -561,7 +561,7 @@ void CGameContext::ConWhispers(IConsole::IResult *pResult, void *pUserData)
 		return;
 
 	pPlayer->m_Whispers = pResult->NumArguments() == 0 ? !pPlayer->m_Whispers : pResult->GetInteger(0);
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", pPlayer->m_Whispers ? "You will receive whispers" : "You will not receive any further whispers");
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", pPlayer->m_Whispers ? "你现在会收到私聊消息" : "你将不再收到私聊消息");
 }
 
 void CGameContext::ConMap(IConsole::IResult *pResult, void *pUserData)
@@ -573,13 +573,13 @@ void CGameContext::ConMap(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvMapVote == 0)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"/map is disabled");
+			"本服务器已禁用 /map");
 		return;
 	}
 
 	if(pResult->NumArguments() <= 0)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Example: /map adr3 to call vote for Adrenaline 3. This means that the map name must start with 'a' and contain the characters 'd', 'r' and '3' in that order");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "示例：/map adr3 可以发起 Adrenaline 3 的换图投票。这表示地图名必须以 'a' 开头，并按顺序包含 'd'、'r'、'3'");
 		return;
 	}
 
@@ -642,7 +642,7 @@ void CGameContext::ConTimeout(IConsole::IResult *pResult, void *pUserData)
 	else
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Your timeout code has been set. 0.7 clients can not reclaim their tees on timeout; however, a 0.6 client can claim your tee ");
+			"你的超时保护码已设置。0.7 客户端在超时后无法重新认领自己的 tee；不过 0.6 客户端可以认领你的 tee ");
 	}
 
 	pSelf->Server()->SetTimeoutProtected(pResult->m_ClientId);
@@ -667,7 +667,7 @@ void CGameContext::ConPractice(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Practice mode is disabled");
+			"本服务器已禁用练习模式");
 		return;
 	}
 
@@ -680,7 +680,7 @@ void CGameContext::ConPractice(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Join a team to enable practice mode, which means you can use /r, but can't earn a rank.");
+			"先加入队伍才能开启练习模式。开启后可以使用 /r，但不会获得排名");
 		return;
 	}
 
@@ -689,7 +689,7 @@ void CGameContext::ConPractice(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Practice mode can't be enabled in team 0 mode.");
+			"0 队模式下不能开启练习模式");
 		return;
 	}
 
@@ -698,7 +698,7 @@ void CGameContext::ConPractice(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Practice mode can't be enabled while team save or load is in progress");
+			"队伍正在存档或读档时，不能开启练习模式");
 		return;
 	}
 
@@ -707,7 +707,7 @@ void CGameContext::ConPractice(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Team is already in practice mode");
+			"队伍已经处于练习模式");
 		return;
 	}
 
@@ -735,14 +735,14 @@ void CGameContext::ConPractice(IConsole::IResult *pResult, void *pUserData)
 	int NumRequiredVotes = TeamSize / 2 + 1;
 
 	char aBuf[512];
-	str_format(aBuf, sizeof(aBuf), "'%s' voted to %s /practice mode for your team, which means you can use practice commands, but you can't earn a rank. Type /practice to vote (%d/%d required votes)", pSelf->Server()->ClientName(pResult->m_ClientId), VotedForPractice ? "enable" : "disable", NumCurrentVotes, NumRequiredVotes);
+	str_format(aBuf, sizeof(aBuf), "'%s' 发起了%s队伍练习模式投票。开启后可以使用练习命令，但不会获得排名。输入 /practice 投票（当前 %d/%d 票）", pSelf->Server()->ClientName(pResult->m_ClientId), VotedForPractice ? "开启" : "关闭", NumCurrentVotes, NumRequiredVotes);
 	pSelf->SendChatTeam(Team, aBuf);
 
 	if(NumCurrentVotes >= NumRequiredVotes)
 	{
 		Teams.SetPractice(Team, true);
-		pSelf->SendChatTeam(Team, "Practice mode enabled for your team, happy practicing!");
-		pSelf->SendChatTeam(Team, "See /practicecmdlist for a list of all available practice commands. Most commonly used ones are /telecursor, /lasttp and /rescue");
+		pSelf->SendChatTeam(Team, "你的队伍已开启练习模式，祝你练习愉快！");
+		pSelf->SendChatTeam(Team, "输入 /practicecmdlist 可以查看所有可用的练习命令。最常用的是 /telecursor、/lasttp 和 /rescue");
 	}
 }
 
@@ -805,7 +805,7 @@ void CGameContext::ConUnPractice(IConsole::IResult *pResult, void *pUserData)
 
 	// send before kill, in case team isn't locked
 	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "'%s' disabled practice mode for your team", pSelf->Server()->ClientName(pResult->m_ClientId));
+	str_format(aBuf, sizeof(aBuf), "'%s' 关闭了你们队伍的练习模式", pSelf->Server()->ClientName(pResult->m_ClientId));
 	pSelf->SendChatTeam(Team, aBuf);
 
 	Teams.KillCharacterOrTeam(pResult->m_ClientId, Team);
@@ -816,7 +816,7 @@ void CGameContext::ConPracticeCmdList(IConsole::IResult *pResult, void *pUserDat
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
-	char aPracticeCommands[256] = "Available practice commands: ";
+	char aPracticeCommands[256] = "可用练习命令：";
 	for(const IConsole::ICommandInfo *pCmd = pSelf->Console()->FirstCommandInfo(pResult->m_ClientId, CMDFLAG_PRACTICE);
 		pCmd; pCmd = pSelf->Console()->NextCommandInfo(pCmd, pResult->m_ClientId, CMDFLAG_PRACTICE))
 	{
@@ -851,7 +851,7 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Swap is disabled on this server.");
+			"本服务器已禁用交换功能");
 		return;
 	}
 
@@ -860,7 +860,7 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Swap is not available on forced solo servers.");
+			"强制 solo 服务器上不能使用交换功能");
 		return;
 	}
 
@@ -873,7 +873,7 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Join a team to use swap feature, which means you can swap positions with each other.");
+			"先加入队伍后才能使用交换功能，也就是和队友互换位置");
 		return;
 	}
 
@@ -906,20 +906,20 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 
 	if(TargetClientId < 0)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Player not found");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "未找到该玩家");
 		return;
 	}
 
 	if(TargetClientId == pResult->m_ClientId)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Can't swap with yourself");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "你不能和自己交换位置");
 		return;
 	}
 
 	int TargetTeam = Teams.m_Core.Team(TargetClientId);
 	if(TargetTeam != Team)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Player is on a different team");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "目标玩家不在你的队伍里");
 		return;
 	}
 
@@ -930,18 +930,18 @@ void CGameContext::ConSwap(IConsole::IResult *pResult, void *pUserData)
 		CCharacter *pSwapChr = pSwapPlayer->GetCharacter();
 		if(!pChr || !pSwapChr || pChr->m_DDRaceState != ERaceState::STARTED || pSwapChr->m_DDRaceState != ERaceState::STARTED)
 		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "You and other player need to have started the map");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "你和对方都需要先开始地图，才能交换位置");
 			return;
 		}
 	}
 	else if(!Teams.IsStarted(Team) && !Teams.TeamFlock(Team))
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Need to have started the map to swap with a player.");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "你需要先开始地图，才能和其他玩家交换位置");
 		return;
 	}
 	if(pSelf->m_World.m_Core.m_apCharacters[pResult->m_ClientId] == nullptr || pSelf->m_World.m_Core.m_apCharacters[TargetClientId] == nullptr)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "You and the other player must not be paused.");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "你和对方都不能处于暂停状态，才能交换位置");
 		return;
 	}
 
@@ -974,7 +974,7 @@ void CGameContext::ConCancelSwap(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Swap is disabled on this server.");
+			"本服务器已禁用交换功能");
 		return;
 	}
 
@@ -983,7 +983,7 @@ void CGameContext::ConCancelSwap(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Swap is not available on forced solo servers.");
+			"强制 solo 服务器上不能使用交换功能");
 		return;
 	}
 
@@ -996,7 +996,7 @@ void CGameContext::ConCancelSwap(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Join a team to use swap feature, which means you can swap positions with each other.");
+			"先加入队伍后才能使用交换功能，也就是和队友互换位置");
 		return;
 	}
 
@@ -1007,7 +1007,7 @@ void CGameContext::ConCancelSwap(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"You do not have a pending swap request.");
+			"你当前没有待处理的交换请求");
 		return;
 	}
 
@@ -1022,7 +1022,7 @@ void CGameContext::ConSave(IConsole::IResult *pResult, void *pUserData)
 
 	if(!g_Config.m_SvSaveGames)
 	{
-		pSelf->SendChatTarget(pResult->m_ClientId, "Save-function is disabled on this server");
+		pSelf->SendChatTarget(pResult->m_ClientId, "本服务器已禁用存档功能");
 		return;
 	}
 
@@ -1041,7 +1041,7 @@ void CGameContext::ConLoad(IConsole::IResult *pResult, void *pUserData)
 
 	if(!g_Config.m_SvSaveGames)
 	{
-		pSelf->SendChatTarget(pResult->m_ClientId, "Save-function is disabled on this server");
+		pSelf->SendChatTarget(pResult->m_ClientId, "本服务器已禁用存档功能");
 		return;
 	}
 
@@ -1059,7 +1059,7 @@ void CGameContext::ConSaveList(IConsole::IResult *pResult, void *pUserData)
 
 	if(!g_Config.m_SvSaveGames)
 	{
-		pSelf->SendChatTarget(pResult->m_ClientId, "Save-function is disabled on this server");
+		pSelf->SendChatTarget(pResult->m_ClientId, "本服务器已禁用存档功能");
 		return;
 	}
 
@@ -1080,7 +1080,7 @@ void CGameContext::ConTeamRank(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Console()->Print(
 				IConsole::OUTPUT_LEVEL_STANDARD,
 				"chatresp",
-				"Showing the team rank of other players is not allowed on this server.");
+				"本服务器不允许查看其他玩家的队伍排名");
 	}
 	else
 		pSelf->Score()->ShowTeamRank(pResult->m_ClientId,
@@ -1101,7 +1101,7 @@ void CGameContext::ConRank(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Console()->Print(
 				IConsole::OUTPUT_LEVEL_STANDARD,
 				"chatresp",
-				"Showing the rank of other players is not allowed on this server.");
+				"本服务器不允许查看其他玩家的排名");
 	}
 	else
 		pSelf->Score()->ShowRank(pResult->m_ClientId,
@@ -1117,7 +1117,7 @@ void CGameContext::ConLock(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvTeam == SV_TEAM_FORBIDDEN || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Teams are disabled");
+			"队伍功能已禁用");
 		return;
 	}
 
@@ -1133,7 +1133,7 @@ void CGameContext::ConLock(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"This team can't be locked");
+			"这个队伍不能被锁定");
 		return;
 	}
 
@@ -1150,9 +1150,9 @@ void CGameContext::ConLock(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_pController->Teams().SetTeamLock(Team, true);
 
 		if(pSelf->m_pController->Teams().TeamFlock(Team))
-			str_format(aBuf, sizeof(aBuf), "'%s' locked your team.", pSelf->Server()->ClientName(pResult->m_ClientId));
+			str_format(aBuf, sizeof(aBuf), "'%s' 锁定了你们的队伍", pSelf->Server()->ClientName(pResult->m_ClientId));
 		else
-			str_format(aBuf, sizeof(aBuf), "'%s' locked your team. After the race starts, killing will kill everyone in your team.", pSelf->Server()->ClientName(pResult->m_ClientId));
+			str_format(aBuf, sizeof(aBuf), "'%s' 锁定了你们的队伍。比赛开始后，任何人 kill 都会导致整队死亡", pSelf->Server()->ClientName(pResult->m_ClientId));
 		pSelf->SendChatTeam(Team, aBuf);
 	}
 }
@@ -1166,7 +1166,7 @@ void CGameContext::ConUnlock(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvTeam == SV_TEAM_FORBIDDEN || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Teams are disabled");
+			"队伍功能已禁用");
 		return;
 	}
 
@@ -1186,7 +1186,7 @@ void CGameContext::UnlockTeam(int ClientId, int Team) const
 	m_pController->Teams().SetTeamLock(Team, false);
 
 	char aBuf[512];
-	str_format(aBuf, sizeof(aBuf), "'%s' unlocked your team.", Server()->ClientName(ClientId));
+	str_format(aBuf, sizeof(aBuf), "'%s' 解锁了你们的队伍", Server()->ClientName(ClientId));
 	SendChatTeam(Team, aBuf);
 }
 
@@ -1201,13 +1201,13 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 		Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"You are running a vote, please try again after the vote is done!");
+			"你正在发起投票，请等当前投票结束后再试");
 		return;
 	}
 	else if(g_Config.m_SvTeam == SV_TEAM_FORBIDDEN || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
 	{
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Teams are disabled");
+			"队伍功能已禁用");
 		return;
 	}
 	else if(g_Config.m_SvTeam == SV_TEAM_MANDATORY && Team == 0 && pPlayer->GetCharacter() && pPlayer->GetCharacter()->m_LastStartWarning < Server()->Tick() - 3 * Server()->TickSpeed())
@@ -1215,7 +1215,7 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 		Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"You must join a team and play with somebody or else you can't play");
+			"你必须加入一个队伍并和其他人一起玩，否则无法开始");
 		pPlayer->GetCharacter()->m_LastStartWarning = Server()->Tick();
 	}
 
@@ -1225,7 +1225,7 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 		if(!EmptyTeam.has_value())
 		{
 			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-				"No empty team left.");
+				"已经没有空队伍了");
 			return;
 		}
 		Team = EmptyTeam.value();
@@ -1235,19 +1235,19 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 	if(pPlayer->m_LastDDRaceTeamChange + (int64_t)Server()->TickSpeed() * g_Config.m_SvTeamChangeDelay > Server()->Tick())
 	{
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"You can't change teams that fast!");
+			"你切换队伍太快了");
 	}
 	else if(Team != TEAM_FLOCK && m_pController->Teams().TeamLocked(Team) && !m_pController->Teams().IsInvited(Team, ClientId))
 	{
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
 			g_Config.m_SvInvite ?
-				"This team is locked using /lock. Only members of the team can unlock it using /lock." :
-				"This team is locked using /lock. Only members of the team can invite you or unlock it using /lock.");
+				"这个队伍已用 /lock 锁定，只有队伍成员才能用 /lock 解锁" :
+				"这个队伍已用 /lock 锁定，只有队伍成员才能邀请你或用 /lock 解锁");
 	}
 	else if(Team != TEAM_FLOCK && m_pController->Teams().Count(Team) >= g_Config.m_SvMaxTeamSize && !m_pController->Teams().TeamFlock(Team) && !m_pController->Teams().IsPractice(Team))
 	{
 		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf), "This team already has the maximum allowed size of %d players", g_Config.m_SvMaxTeamSize);
+		str_format(aBuf, sizeof(aBuf), "这个队伍已经达到最大人数上限 %d", g_Config.m_SvMaxTeamSize);
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
 	}
 	else if(!m_pController->Teams().SetCharacterTeam(pPlayer->GetCid(), Team, aError, sizeof(aError)))
@@ -1264,17 +1264,17 @@ void CGameContext::AttemptJoinTeam(int ClientId, int Team)
 		}
 
 		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf), "'%s' joined team %d",
+		str_format(aBuf, sizeof(aBuf), "'%s' 加入了 %d 队",
 			Server()->ClientName(pPlayer->GetCid()),
 			Team);
 		SendChat(-1, TEAM_ALL, aBuf);
 		pPlayer->m_LastDDRaceTeamChange = Server()->Tick();
 
 		if(m_pController->Teams().IsPractice(Team))
-			SendChatTarget(pPlayer->GetCid(), "Practice mode enabled for your team, happy practicing!");
+			SendChatTarget(pPlayer->GetCid(), "你的队伍已开启练习模式，祝你练习愉快！");
 
 		if(m_pController->Teams().TeamFlock(Team))
-			SendChatTarget(pPlayer->GetCid(), "Team 0 mode enabled for your team. This will make your team behave like team 0.");
+			SendChatTarget(pPlayer->GetCid(), "你的队伍已开启 team 0 模式。现在会按 team 0 的规则运作。");
 	}
 }
 
@@ -1287,13 +1287,13 @@ void CGameContext::ConInvite(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvTeam == SV_TEAM_FORBIDDEN || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Teams are disabled");
+			"队伍功能已禁用");
 		return;
 	}
 
 	if(!g_Config.m_SvInvite)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Invites are disabled");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "邀请功能已禁用");
 		return;
 	}
 
@@ -1312,19 +1312,19 @@ void CGameContext::ConInvite(IConsole::IResult *pResult, void *pUserData)
 
 		if(Target < 0)
 		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Player not found");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "未找到该玩家");
 			return;
 		}
 
 		if(pController->Teams().IsInvited(Team, Target))
 		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Player already invited");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "该玩家已经被邀请过了");
 			return;
 		}
 
 		if(pSelf->m_apPlayers[pResult->m_ClientId] && pSelf->m_apPlayers[pResult->m_ClientId]->m_LastInvited + g_Config.m_SvInviteFrequency * pSelf->Server()->TickSpeed() > pSelf->Server()->Tick())
 		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Can't invite this quickly");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "邀请过于频繁，请稍后再试");
 			return;
 		}
 
@@ -1332,14 +1332,14 @@ void CGameContext::ConInvite(IConsole::IResult *pResult, void *pUserData)
 		pSelf->m_apPlayers[pResult->m_ClientId]->m_LastInvited = pSelf->Server()->Tick();
 
 		char aBuf[512];
-		str_format(aBuf, sizeof(aBuf), "'%s' invited you to team %d. Use /team %d to join.", pSelf->Server()->ClientName(pResult->m_ClientId), Team, Team);
+		str_format(aBuf, sizeof(aBuf), "'%s' 邀请你加入 %d 队。输入 /team %d 即可加入。", pSelf->Server()->ClientName(pResult->m_ClientId), Team, Team);
 		pSelf->SendChatTarget(Target, aBuf);
 
-		str_format(aBuf, sizeof(aBuf), "'%s' invited '%s' to your team.", pSelf->Server()->ClientName(pResult->m_ClientId), pSelf->Server()->ClientName(Target));
+		str_format(aBuf, sizeof(aBuf), "'%s' 邀请了 '%s' 加入你们的队伍。", pSelf->Server()->ClientName(pResult->m_ClientId), pSelf->Server()->ClientName(Target));
 		pSelf->SendChatTeam(Team, aBuf);
 	}
 	else
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Can't invite players to this team");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "这个队伍不能邀请玩家");
 }
 
 void CGameContext::ConTeam0Mode(IConsole::IResult *pResult, void *pUserData)
@@ -1353,7 +1353,7 @@ void CGameContext::ConTeam0Mode(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvTeam == SV_TEAM_FORBIDDEN || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO || g_Config.m_SvTeam == SV_TEAM_MANDATORY)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Team mode change disabled");
+			"队伍模式切换已禁用");
 		return;
 	}
 
@@ -1362,7 +1362,7 @@ void CGameContext::ConTeam0Mode(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Team mode change is disabled on this server.");
+			"本服务器已禁用队伍模式切换。");
 		return;
 	}
 
@@ -1374,13 +1374,13 @@ void CGameContext::ConTeam0Mode(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"This team can't have the mode changed");
+			"这个队伍不能切换模式");
 		return;
 	}
 
 	if(pController->Teams().GetTeamState(Team) != ETeamState::OPEN)
 	{
-		pSelf->SendChatTarget(pResult->m_ClientId, "Team mode can't be changed while racing");
+		pSelf->SendChatTarget(pResult->m_ClientId, "比赛进行中不能切换队伍模式");
 		return;
 	}
 
@@ -1395,14 +1395,14 @@ void CGameContext::ConTeam0Mode(IConsole::IResult *pResult, void *pUserData)
 	{
 		if(pController->Teams().Count(Team) > g_Config.m_SvMaxTeamSize)
 		{
-			str_format(aBuf, sizeof(aBuf), "Can't disable team 0 mode. This team exceeds the maximum allowed size of %d players for regular team", g_Config.m_SvMaxTeamSize);
+			str_format(aBuf, sizeof(aBuf), "无法关闭 team 0 模式。该队伍人数已超过普通队伍允许上限 %d", g_Config.m_SvMaxTeamSize);
 			pSelf->SendChatTarget(pResult->m_ClientId, aBuf);
 		}
 		else
 		{
 			pController->Teams().SetTeamFlock(Team, false);
 
-			str_format(aBuf, sizeof(aBuf), "'%s' disabled team 0 mode.", pSelf->Server()->ClientName(pResult->m_ClientId));
+			str_format(aBuf, sizeof(aBuf), "'%s' 关闭了 team 0 模式。", pSelf->Server()->ClientName(pResult->m_ClientId));
 			pSelf->SendChatTeam(Team, aBuf);
 		}
 	}
@@ -1410,13 +1410,13 @@ void CGameContext::ConTeam0Mode(IConsole::IResult *pResult, void *pUserData)
 	{
 		if(pController->Teams().IsPractice(Team))
 		{
-			pSelf->SendChatTarget(pResult->m_ClientId, "Can't enable team 0 mode with practice mode on.");
+			pSelf->SendChatTarget(pResult->m_ClientId, "练习模式开启时不能启用 team 0 模式。");
 		}
 		else
 		{
 			pController->Teams().SetTeamFlock(Team, true);
 
-			str_format(aBuf, sizeof(aBuf), "'%s' enabled team 0 mode. This will make your team behave like team 0.", pSelf->Server()->ClientName(pResult->m_ClientId));
+			str_format(aBuf, sizeof(aBuf), "'%s' 开启了 team 0 模式。你们的队伍现在会按 team 0 规则运作。", pSelf->Server()->ClientName(pResult->m_ClientId));
 			pSelf->SendChatTeam(Team, aBuf);
 		}
 	}
@@ -1441,7 +1441,7 @@ void CGameContext::ConTeam(IConsole::IResult *pResult, void *pUserData)
 		char aBuf[512];
 		if(!pPlayer->IsPlaying())
 		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "You can't check your team while you are dead/a spectator.");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "你死亡或处于旁观状态时，不能查看自己的队伍。");
 		}
 		else
 		{
@@ -1459,7 +1459,7 @@ void CGameContext::ConTeam(IConsole::IResult *pResult, void *pUserData)
 					TeamSize++;
 			}
 
-			str_format(aBuf, sizeof(aBuf), "You are in team %d having %d %s", PlayerTeam, TeamSize, TeamSize > 1 ? "players" : "player");
+			str_format(aBuf, sizeof(aBuf), "你当前在 %d 队，队伍里有 %d 人", PlayerTeam, TeamSize);
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
 		}
 	}
@@ -1484,7 +1484,7 @@ void CGameContext::ConJoin(IConsole::IResult *pResult, void *pUserData)
 
 	if(Target == -1)
 	{
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Player not found");
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "未找到该玩家");
 		return;
 	}
 
@@ -1521,8 +1521,8 @@ void CGameContext::ConSetEyeEmote(IConsole::IResult *pResult,
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
 			(pPlayer->m_EyeEmoteEnabled) ?
-				"You can now use the preset eye emotes." :
-				"You don't have any eye emotes, remember to bind some.");
+				"你现在可以使用预设眼睛表情了。" :
+				"你还没有绑定任何眼睛表情，记得先绑定。");
 		return;
 	}
 	else if(str_comp_nocase(pResult->GetString(0), "on") == 0)
@@ -1535,8 +1535,8 @@ void CGameContext::ConSetEyeEmote(IConsole::IResult *pResult,
 		IConsole::OUTPUT_LEVEL_STANDARD,
 		"chatresp",
 		(pPlayer->m_EyeEmoteEnabled) ?
-			"You can now use the preset eye emotes." :
-			"You don't have any eye emotes, remember to bind some.");
+			"你现在可以使用预设眼睛表情了。" :
+			"你还没有绑定任何眼睛表情，记得先绑定。");
 }
 
 void CGameContext::ConEyeEmote(IConsole::IResult *pResult, void *pUserData)
@@ -1545,7 +1545,7 @@ void CGameContext::ConEyeEmote(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvEmotionalTees == -1)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Emotes are disabled.");
+			"表情功能已禁用。");
 		return;
 	}
 
@@ -1561,11 +1561,11 @@ void CGameContext::ConEyeEmote(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Emote commands are: /emote surprise /emote blink /emote close /emote angry /emote happy /emote pain /emote normal");
+			"可用表情命令：/emote surprise /emote blink /emote close /emote angry /emote happy /emote pain /emote normal");
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Example: /emote surprise 10 for 10 seconds or /emote surprise (default 1 second)");
+			"示例：/emote surprise 10 表示持续 10 秒，或直接 /emote surprise（默认 1 秒）");
 	}
 	else
 	{
@@ -1590,7 +1590,7 @@ void CGameContext::ConEyeEmote(IConsole::IResult *pResult, void *pUserData)
 		else
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD,
-				"chatresp", "Unknown emote... Say /emote");
+				"chatresp", "未知表情。输入 /emote 查看帮助");
 			return;
 		}
 
@@ -1637,7 +1637,7 @@ void CGameContext::ConShowOthers(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Console()->Print(
 			IConsole::OUTPUT_LEVEL_STANDARD,
 			"chatresp",
-			"Showing players from other teams is disabled");
+			"本服务器已禁用显示其他队伍玩家");
 }
 
 void CGameContext::ConShowAll(IConsole::IResult *pResult, void *pUserData)
@@ -1663,9 +1663,9 @@ void CGameContext::ConShowAll(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	if(pPlayer->m_ShowAll)
-		pSelf->SendChatTarget(pResult->m_ClientId, "You will now see all tees on this server, no matter the distance");
+		pSelf->SendChatTarget(pResult->m_ClientId, "你现在可以看到本服所有 tee，不受距离限制");
 	else
-		pSelf->SendChatTarget(pResult->m_ClientId, "You will no longer see all tees on this server");
+		pSelf->SendChatTarget(pResult->m_ClientId, "你将不再看到本服所有 tee");
 }
 
 void CGameContext::ConSpecTeam(IConsole::IResult *pResult, void *pUserData)
@@ -1702,11 +1702,11 @@ void CGameContext::ConSayTime(IConsole::IResult *pResult, void *pUserData)
 		if(ClientId == MAX_CLIENTS)
 			return;
 
-		str_format(aBufName, sizeof(aBufName), "%s's", pSelf->Server()->ClientName(ClientId));
+		str_format(aBufName, sizeof(aBufName), "%s 的", pSelf->Server()->ClientName(ClientId));
 	}
 	else
 	{
-		str_copy(aBufName, "Your", sizeof(aBufName));
+		str_copy(aBufName, "你的", sizeof(aBufName));
 		ClientId = pResult->m_ClientId;
 	}
 
@@ -1723,7 +1723,7 @@ void CGameContext::ConSayTime(IConsole::IResult *pResult, void *pUserData)
 	char aBuf[64];
 	int64_t Time = (int64_t)100 * (float)(pSelf->Server()->Tick() - pChr->m_StartTime) / ((float)pSelf->Server()->TickSpeed());
 	str_time(Time, TIME_HOURS, aBufTime, sizeof(aBufTime));
-	str_format(aBuf, sizeof(aBuf), "%s current race time is %s", aBufName, aBufTime);
+	str_format(aBuf, sizeof(aBuf), "%s当前用时是 %s", aBufName, aBufTime);
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
 }
 
@@ -1747,7 +1747,7 @@ void CGameContext::ConSayTimeAll(IConsole::IResult *pResult, void *pUserData)
 	int64_t Time = (int64_t)100 * (float)(pSelf->Server()->Tick() - pChr->m_StartTime) / ((float)pSelf->Server()->TickSpeed());
 	const char *pName = pSelf->Server()->ClientName(pResult->m_ClientId);
 	str_time(Time, TIME_HOURS, aBufTime, sizeof(aBufTime));
-	str_format(aBuf, sizeof(aBuf), "%s's current race time is %s", pName, aBufTime);
+	str_format(aBuf, sizeof(aBuf), "%s 当前用时是 %s", pName, aBufTime);
 	pSelf->SendChat(-1, TEAM_ALL, aBuf, pResult->m_ClientId);
 }
 
@@ -1768,11 +1768,11 @@ void CGameContext::ConTime(IConsole::IResult *pResult, void *pUserData)
 	char aBuf[64];
 	int64_t Time = (int64_t)100 * (float)(pSelf->Server()->Tick() - pChr->m_StartTime) / ((float)pSelf->Server()->TickSpeed());
 	str_time(Time, TIME_HOURS, aBufTime, sizeof(aBufTime));
-	str_format(aBuf, sizeof(aBuf), "Your time is %s", aBufTime);
+	str_format(aBuf, sizeof(aBuf), "你的用时是 %s", aBufTime);
 	pSelf->SendBroadcast(aBuf, pResult->m_ClientId);
 }
 
-static const char s_aaMsg[4][128] = {"game/round timer.", "broadcast.", "both game/round timer and broadcast.", "racetime."};
+static const char s_aaMsg[4][128] = {"游戏/回合计时器。", "广播。", "游戏/回合计时器和广播。", "计时器。"};
 
 void CGameContext::ConSetTimerType(IConsole::IResult *pResult, void *pUserData)
 {
@@ -1804,13 +1804,13 @@ void CGameContext::ConSetTimerType(IConsole::IResult *pResult, void *pUserData)
 			Result = pPlayer->SetTimerType(CPlayer::TIMERTYPE_NONE);
 		else
 		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Unknown parameter. Accepted values: default, gametimer, broadcast, both, none");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "未知参数。可用值：default、gametimer、broadcast、both、none");
 			return;
 		}
 
 		if(!Result)
 		{
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "Selected timertype is not supported by your client");
+			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", "你当前客户端不支持所选计时器类型");
 			return;
 		}
 
@@ -1819,9 +1819,9 @@ void CGameContext::ConSetTimerType(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	if(pPlayer->m_TimerType <= CPlayer::TIMERTYPE_SIXUP && pPlayer->m_TimerType >= CPlayer::TIMERTYPE_GAMETIMER)
-		str_format(aBuf, sizeof(aBuf), "Timer is displayed in %s", s_aaMsg[pPlayer->m_TimerType]);
+		str_format(aBuf, sizeof(aBuf), "计时器显示在 %s", s_aaMsg[pPlayer->m_TimerType]);
 	else if(pPlayer->m_TimerType == CPlayer::TIMERTYPE_NONE)
-		str_copy(aBuf, "Timer isn't displayed.");
+		str_copy(aBuf, "计时器不会显示。");
 
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp", aBuf);
 }
@@ -1842,7 +1842,7 @@ void CGameContext::ConRescue(IConsole::IResult *pResult, void *pUserData)
 	int Team = pSelf->GetDDRaceTeam(pResult->m_ClientId);
 	if(!g_Config.m_SvRescue && !Teams.IsPractice(Team))
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "Rescue is not enabled on this server and you're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "本服务器未开启救援功能，而你所在的队伍也没有开启 /practice。注意：练习模式下无法获得排名。");
 		return;
 	}
 
@@ -1874,7 +1874,7 @@ void CGameContext::ConRescueMode(IConsole::IResult *pResult, void *pUserData)
 	int Team = pSelf->GetDDRaceTeam(pResult->m_ClientId);
 	if(!g_Config.m_SvRescue && !Teams.IsPractice(Team))
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "Rescue is not enabled on this server and you're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "本服务器未开启救援功能，而你所在的队伍也没有开启 /practice。注意：练习模式下无法获得排名。");
 		return;
 	}
 
@@ -1884,7 +1884,7 @@ void CGameContext::ConRescueMode(IConsole::IResult *pResult, void *pUserData)
 		{
 			pPlayer->m_RescueMode = RESCUEMODE_AUTO;
 
-			pSelf->SendChatTarget(pPlayer->GetCid(), "Rescue mode changed to auto.");
+			pSelf->SendChatTarget(pPlayer->GetCid(), "救援模式已切换为 auto。");
 		}
 
 		return;
@@ -1896,7 +1896,7 @@ void CGameContext::ConRescueMode(IConsole::IResult *pResult, void *pUserData)
 		{
 			pPlayer->m_RescueMode = RESCUEMODE_MANUAL;
 
-			pSelf->SendChatTarget(pPlayer->GetCid(), "Rescue mode changed to manual.");
+			pSelf->SendChatTarget(pPlayer->GetCid(), "救援模式已切换为 manual。");
 		}
 
 		return;
@@ -1904,17 +1904,17 @@ void CGameContext::ConRescueMode(IConsole::IResult *pResult, void *pUserData)
 
 	if(str_comp_nocase(pResult->GetString(0), "list") == 0)
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "Available rescue modes: auto, manual");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "可用救援模式：auto、manual");
 	}
 	else if(str_comp_nocase(pResult->GetString(0), "") == 0)
 	{
 		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), "Current rescue mode: %s.", pPlayer->m_RescueMode == RESCUEMODE_MANUAL ? "manual" : "auto");
+		str_format(aBuf, sizeof(aBuf), "当前救援模式：%s。", pPlayer->m_RescueMode == RESCUEMODE_MANUAL ? "manual" : "auto");
 		pSelf->SendChatTarget(pPlayer->GetCid(), aBuf);
 	}
 	else
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "Unknown argument. Check '/rescuemode list'");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "未知救援模式参数");
 	}
 }
 
@@ -1926,7 +1926,7 @@ void CGameContext::ConBack(IConsole::IResult *pResult, void *pUserData)
 		auto *pPlayer = pChr->GetPlayer();
 		if(!pPlayer->m_LastDeath.has_value())
 		{
-			pSelf->SendChatTarget(pPlayer->GetCid(), "There is nowhere to go back to.");
+			pSelf->SendChatTarget(pPlayer->GetCid(), "没有可返回的位置。");
 			return;
 		}
 		pChr->GetLastRescueTeeRef(pPlayer->m_RescueMode) = pPlayer->m_LastDeath.value();
@@ -1951,7 +1951,7 @@ void CGameContext::ConTeleTo(IConsole::IResult *pResult, void *pUserData)
 	int Team = pSelf->GetDDRaceTeam(pResult->m_ClientId);
 	if(!Teams.IsPractice(Team))
 	{
-		pSelf->SendChatTarget(pCallingPlayer->GetCid(), "You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.");
+		pSelf->SendChatTarget(pCallingPlayer->GetCid(), "你不在开启了 /practice 的队伍里。注意：开启练习模式后无法获得排名。");
 		return;
 	}
 
@@ -1973,7 +1973,7 @@ void CGameContext::ConTeleTo(IConsole::IResult *pResult, void *pUserData)
 		}
 		if(ClientId == MAX_CLIENTS)
 		{
-			pSelf->SendChatTarget(pCallingPlayer->GetCid(), "No player with this name found.");
+			pSelf->SendChatTarget(pCallingPlayer->GetCid(), "未找到这个名字的玩家。");
 			return;
 		}
 
@@ -2012,7 +2012,7 @@ void CGameContext::ConTeleXY(IConsole::IResult *pResult, void *pUserData)
 	int Team = pSelf->GetDDRaceTeam(pResult->m_ClientId);
 	if(!Teams.IsPractice(Team))
 	{
-		pSelf->SendChatTarget(pCallingPlayer->GetCid(), "You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.");
+		pSelf->SendChatTarget(pCallingPlayer->GetCid(), "你不在开启了 /practice 的队伍里。注意：开启练习模式后无法获得排名。");
 		return;
 	}
 
@@ -2020,7 +2020,7 @@ void CGameContext::ConTeleXY(IConsole::IResult *pResult, void *pUserData)
 
 	if(pResult->NumArguments() != 2)
 	{
-		pSelf->SendChatTarget(pCallingPlayer->GetCid(), "Can't recognize specified arguments. Usage: /tpxy x y, e.g. /tpxy 9 3.");
+		pSelf->SendChatTarget(pCallingPlayer->GetCid(), "无法识别指定参数。用法：/tpxy x y，例如 /tpxy 9 3。");
 		return;
 	}
 	else
@@ -2054,12 +2054,12 @@ void CGameContext::ConTeleXY(IConsole::IResult *pResult, void *pUserData)
 
 		if(!DetermineCoordinateRelativity(pResult->GetString(0), pCallingPlayer->m_ViewPos.x, BaseX))
 		{
-			pSelf->SendChatTarget(pCallingPlayer->GetCid(), "Invalid X coordinate.");
+			pSelf->SendChatTarget(pCallingPlayer->GetCid(), "无效的 X 坐标。");
 			return;
 		}
 		if(!DetermineCoordinateRelativity(pResult->GetString(1), pCallingPlayer->m_ViewPos.y, BaseY))
 		{
-			pSelf->SendChatTarget(pCallingPlayer->GetCid(), "Invalid Y coordinate.");
+			pSelf->SendChatTarget(pCallingPlayer->GetCid(), "无效的 Y 坐标。");
 			return;
 		}
 
@@ -2090,7 +2090,7 @@ void CGameContext::ConTeleCursor(IConsole::IResult *pResult, void *pUserData)
 	int Team = pSelf->GetDDRaceTeam(pResult->m_ClientId);
 	if(!Teams.IsPractice(Team))
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "你不在开启了 /practice 的队伍里。注意：开启练习模式后无法获得排名。");
 		return;
 	}
 
@@ -2111,7 +2111,7 @@ void CGameContext::ConTeleCursor(IConsole::IResult *pResult, void *pUserData)
 		}
 		if(ClientId == MAX_CLIENTS)
 		{
-			pSelf->SendChatTarget(pPlayer->GetCid(), "No player with this name found.");
+			pSelf->SendChatTarget(pPlayer->GetCid(), "未找到这个名字的玩家。");
 			return;
 		}
 		CPlayer *pPlayerTo = pSelf->m_apPlayers[ClientId];
@@ -2145,12 +2145,12 @@ void CGameContext::ConLastTele(IConsole::IResult *pResult, void *pUserData)
 	int Team = pSelf->GetDDRaceTeam(pResult->m_ClientId);
 	if(!Teams.IsPractice(Team))
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "你不在开启了 /practice 的队伍里。注意：开启练习模式后无法获得排名。");
 		return;
 	}
 	if(!pPlayer->m_LastTeleTee.GetPos().x)
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "You haven't previously teleported. Use /tp before using this command.");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "你之前没有传送过。请先使用 /tp 再执行这个命令。");
 		return;
 	}
 	pPlayer->m_LastTeleTee.Load(pChr);
@@ -2172,7 +2172,7 @@ CCharacter *CGameContext::GetPracticeCharacter(IConsole::IResult *pResult)
 	int Team = GetDDRaceTeam(pResult->m_ClientId);
 	if(!Teams.IsPractice(Team))
 	{
-		SendChatTarget(pPlayer->GetCid(), "You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.");
+		SendChatTarget(pPlayer->GetCid(), "你不在开启了 /practice 的队伍里。注意：开启练习模式后无法获得排名。");
 		return nullptr;
 	}
 	return pChr;
@@ -2186,7 +2186,7 @@ void CGameContext::ConPracticeToTeleporter(IConsole::IResult *pResult, void *pUs
 	{
 		if(pSelf->Collision()->TeleOuts(pResult->GetInteger(0) - 1).empty())
 		{
-			pSelf->SendChatTarget(pChr->GetPlayer()->GetCid(), "There is no teleporter with that index on the map.");
+			pSelf->SendChatTarget(pChr->GetPlayer()->GetCid(), "地图上不存在这个编号的传送器。");
 			return;
 		}
 
@@ -2206,7 +2206,7 @@ void CGameContext::ConPracticeToCheckTeleporter(IConsole::IResult *pResult, void
 	{
 		if(pSelf->Collision()->TeleCheckOuts(pResult->GetInteger(0) - 1).empty())
 		{
-			pSelf->SendChatTarget(pChr->GetPlayer()->GetCid(), "There is no checkpoint teleporter with that index on the map.");
+			pSelf->SendChatTarget(pChr->GetPlayer()->GetCid(), "地图上不存在这个编号的检查点传送器。");
 			return;
 		}
 
@@ -2232,7 +2232,7 @@ void CGameContext::ConPracticeUnSolo(IConsole::IResult *pResult, void *pUserData
 
 	if(g_Config.m_SvTeam == SV_TEAM_FORBIDDEN || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "Command is not available on solo servers");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "该命令在 solo 服务器上不可用");
 		return;
 	}
 
@@ -2240,7 +2240,7 @@ void CGameContext::ConPracticeUnSolo(IConsole::IResult *pResult, void *pUserData
 	int Team = pSelf->GetDDRaceTeam(pResult->m_ClientId);
 	if(!Teams.IsPractice(Team))
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "你不在开启了 /practice 的队伍里。注意：开启练习模式后无法获得排名。");
 		return;
 	}
 	pChr->SetSolo(false);
@@ -2260,7 +2260,7 @@ void CGameContext::ConPracticeSolo(IConsole::IResult *pResult, void *pUserData)
 
 	if(g_Config.m_SvTeam == SV_TEAM_FORBIDDEN || g_Config.m_SvTeam == SV_TEAM_FORCED_SOLO)
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "Command is not available on solo servers");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "该命令在 solo 服务器上不可用");
 		return;
 	}
 
@@ -2268,7 +2268,7 @@ void CGameContext::ConPracticeSolo(IConsole::IResult *pResult, void *pUserData)
 	int Team = pSelf->GetDDRaceTeam(pResult->m_ClientId);
 	if(!Teams.IsPractice(Team))
 	{
-		pSelf->SendChatTarget(pPlayer->GetCid(), "You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.");
+		pSelf->SendChatTarget(pPlayer->GetCid(), "你不在开启了 /practice 的队伍里。注意：开启练习模式后无法获得排名。");
 		return;
 	}
 	pChr->SetSolo(true);
@@ -2544,7 +2544,7 @@ void CGameContext::ConPoints(IConsole::IResult *pResult, void *pUserData)
 			pSelf->Console()->Print(
 				IConsole::OUTPUT_LEVEL_STANDARD,
 				"chatresp",
-				"Showing the global points of other players is not allowed on this server.");
+				"本服务器不允许查看其他玩家的全局积分。");
 	}
 	else
 		pSelf->Score()->ShowPoints(pResult->m_ClientId,
@@ -2560,7 +2560,7 @@ void CGameContext::ConTopPoints(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvHideScore)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Showing the global top points is not allowed on this server.");
+			"本服务器不允许查看全局积分排行榜");
 		return;
 	}
 
@@ -2579,7 +2579,7 @@ void CGameContext::ConTimeCP(IConsole::IResult *pResult, void *pUserData)
 	if(g_Config.m_SvHideScore)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "chatresp",
-			"Showing the checkpoint times is not allowed on this server.");
+			"本服务器不允许查看 checkpoint 时间");
 		return;
 	}
 

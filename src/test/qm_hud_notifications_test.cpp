@@ -1,4 +1,5 @@
 #include <game/client/components/qmclient/hud_notifications.h>
+#include <game/client/components/hud_editor.h>
 #include <game/client/components/qmclient/hud_notification_catalog.h>
 #include <game/client/components/qmclient/hud_notification_rules.h>
 #include <game/client/components/qmclient/hud_notification_static_rules.h>
@@ -148,6 +149,7 @@ TEST(QmHudNotifications, KeepsShortSystemFeedbackOutOfBlacklist)
 TEST(QmHudNotifications, ExcludesHelpAndExampleMessagesFromNotifications)
 {
 	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("Available practice commands: /rescue /lasttp /telecursor"));
+	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("可用练习命令：/rescue /lasttp /telecursor"));
 	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("Available rescue modes: auto, manual"));
 	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("Example: /map adr3 to call vote for Adrenaline 3. This means that the map name must start with 'a' and contain the characters 'd', 'r' and '3' in that order"));
 	EXPECT_TRUE(QmHudNotifications::ShouldExcludeSystemNotification("See /practicecmdlist for a list of all available practice commands. Most commonly used ones are /telecursor, /lasttp and /rescue"));
@@ -204,6 +206,12 @@ TEST(QmHudNotifications, FormatsKnownSystemNotifications)
 
 	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("本服务器的成绩是私密的", aBuf, sizeof(aBuf)));
 	EXPECT_STREQ(aBuf, "本服务器的成绩是私密的");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("本服务器不允许查看全局积分排行榜", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "本服务器不允许查看全局积分排行榜");
+
+	EXPECT_TRUE(QmHudNotifications::TryFormatLocalizedNotificationMessage("本服务器不允许查看 checkpoint 时间", aBuf, sizeof(aBuf)));
+	EXPECT_STREQ(aBuf, "本服务器不允许查看 checkpoint 时间");
 
 	str_copy(aBuf, "sentinel", sizeof(aBuf));
 	EXPECT_FALSE(QmHudNotifications::TryFormatLocalizedNotificationMessage("regular server message", aBuf, sizeof(aBuf)));
@@ -603,6 +611,23 @@ TEST(QmHudNotificationRules, AnalyzesTimeoutCodeMessageInChinese)
 	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
 }
 
+TEST(QmHudNotificationRules, AnalyzesHideScoreMessagesInChinese)
+{
+	auto Analysis = QmHudNotifications::AnalyzeServerMessage("本服务器不允许查看全局积分排行榜", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "本服务器不允许查看全局积分排行榜");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+
+	Analysis = QmHudNotifications::AnalyzeServerMessage("本服务器不允许查看 checkpoint 时间", QmHudNotifications::ESoloPrompt::None);
+	EXPECT_EQ(Analysis.m_Route, QmHudNotifications::EServerMessageRoute::System);
+	EXPECT_EQ(Analysis.m_Class, QmHudNotifications::EServerMessageClass::Prompt);
+	EXPECT_EQ(Analysis.m_Domain, QmHudNotifications::EServerMessageDomain::Status);
+	EXPECT_STREQ(Analysis.m_aLocalizedText, "本服务器不允许查看 checkpoint 时间");
+	EXPECT_FALSE(Analysis.m_UseFallbackLocalization);
+}
+
 TEST(QmHudNotificationRules, AnalyzesTimerAndRaceTimeMessagesInChinese)
 {
 	auto Analysis = QmHudNotifications::AnalyzeServerMessage("计时器显示在 广播。", QmHudNotifications::ESoloPrompt::None);
@@ -795,11 +820,11 @@ TEST(QmHudNotifications, ClampsTextSize)
 TEST(QmHudNotifications, ScalesSmallTextChrome)
 {
 	EXPECT_FLOAT_EQ(QmHudNotifications::SmallTextScale(1.0f), 0.33f);
-	EXPECT_FLOAT_EQ(QmHudNotifications::PaddingX(1.0f), 1.98f);
-	EXPECT_FLOAT_EQ(QmHudNotifications::PaddingY(1.0f), 1.32f);
+	EXPECT_FLOAT_EQ(QmHudNotifications::PaddingX(1.0f), 1.32f);
+	EXPECT_FLOAT_EQ(QmHudNotifications::PaddingY(1.0f), 0.825f);
 	EXPECT_FLOAT_EQ(QmHudNotifications::MinBoxWidth(1.0f), 27.06f);
-	EXPECT_FLOAT_EQ(QmHudNotifications::PaddingX(8.0f), 6.0f);
-	EXPECT_FLOAT_EQ(QmHudNotifications::PaddingY(8.0f), 4.0f);
+	EXPECT_FLOAT_EQ(QmHudNotifications::PaddingX(8.0f), 4.0f);
+	EXPECT_FLOAT_EQ(QmHudNotifications::PaddingY(8.0f), 2.5f);
 	EXPECT_FLOAT_EQ(QmHudNotifications::MinBoxWidth(8.0f), 82.0f);
 }
 
@@ -868,4 +893,129 @@ TEST(QmHudNotificationsGeometry, ExpandsVisibleRectForSlideAnimation)
 	const CUIRect RightVisible = QmHudNotifications::NotificationVisibleRect(BaseRect, 96.0f, 34.0f, QmHudNotifications::EHorizontalFlow::RightToLeft, 32.0f);
 	EXPECT_FLOAT_EQ(RightVisible.x, 176.0f);
 	EXPECT_FLOAT_EQ(RightVisible.w, 128.0f);
+}
+
+TEST(QmHudNotificationsGeometry, EditorPreviewHeightUsesMaxVisibleStack)
+{
+	const CUIRect BaseRect = {100.0f, 40.0f, 172.0f, 68.0f};
+	const float BoxHeight = 20.0f;
+	const float Gap = 4.0f;
+
+	const CUIRect PreviewRect = QmHudNotifications::EditorPreviewVisibleRect(
+		BaseRect, 120.0f, BoxHeight, Gap, 4, QmHudNotifications::EHorizontalFlow::LeftToRight);
+
+	EXPECT_FLOAT_EQ(PreviewRect.x, 100.0f);
+	EXPECT_FLOAT_EQ(PreviewRect.w, 120.0f);
+	EXPECT_FLOAT_EQ(PreviewRect.h, 92.0f);
+}
+
+TEST(QmHudNotificationsGeometry, EditorPreviewWidthStaysStableAcrossHorizontalFlows)
+{
+	const CUIRect BaseRect = {100.0f, 40.0f, 172.0f, 68.0f};
+
+	const CUIRect LeftPreview = QmHudNotifications::EditorPreviewVisibleRect(
+		BaseRect, 128.0f, 20.0f, 4.0f, 3, QmHudNotifications::EHorizontalFlow::LeftToRight);
+	const CUIRect RightPreview = QmHudNotifications::EditorPreviewVisibleRect(
+		BaseRect, 128.0f, 20.0f, 4.0f, 3, QmHudNotifications::EHorizontalFlow::RightToLeft);
+
+	EXPECT_FLOAT_EQ(LeftPreview.w, RightPreview.w);
+	EXPECT_FLOAT_EQ(LeftPreview.h, RightPreview.h);
+	EXPECT_FLOAT_EQ(LeftPreview.x, 100.0f);
+	EXPECT_FLOAT_EQ(RightPreview.x, 144.0f);
+}
+
+TEST(QmHudNotificationsGeometry, EditorPreviewDragRectDoesNotShiftAcrossHorizontalFlows)
+{
+	const CUIRect BaseRect = {100.0f, 40.0f, 172.0f, 68.0f};
+
+	const CUIRect LeftPreview = QmHudNotifications::EditorPreviewDragRect(BaseRect, 128.0f, 20.0f, 4.0f, 3);
+	const CUIRect RightPreview = QmHudNotifications::EditorPreviewDragRect(BaseRect, 128.0f, 20.0f, 4.0f, 3);
+
+	EXPECT_FLOAT_EQ(LeftPreview.x, RightPreview.x);
+	EXPECT_FLOAT_EQ(LeftPreview.x + LeftPreview.w * 0.5f, RightPreview.x + RightPreview.w * 0.5f);
+}
+
+TEST(QmHudNotificationsGeometry, EditorPreviewRenderKeepsNaturalWidthAnchoredToStableRightEdge)
+{
+	const CUIRect EditorRect = {100.0f, 40.0f, 128.0f, 92.0f};
+	const CUIRect RenderBaseRect = QmHudNotifications::EditorPreviewRenderBaseRect(
+		EditorRect, 172.0f, QmHudNotifications::EHorizontalFlow::RightToLeft);
+
+	const float EditorBoxWidth = QmHudNotifications::NotificationBoxWidth(RenderBaseRect, 160.0f);
+	const float BoxX = QmHudNotifications::NotificationBoxX(RenderBaseRect, EditorBoxWidth, QmHudNotifications::EHorizontalFlow::RightToLeft, 0.0f);
+
+	EXPECT_FLOAT_EQ(EditorBoxWidth, 160.0f);
+	EXPECT_FLOAT_EQ(BoxX + EditorBoxWidth, EditorRect.x + EditorRect.w);
+}
+
+TEST(QmHudNotificationsGeometry, RuntimeVisibleRectMayExpandWithoutChangingStableAnchor)
+{
+	const CUIRect AnchorRect = {100.0f, 40.0f, 128.0f, 92.0f};
+	const CUIRect RenderBaseRect = QmHudNotifications::EditorPreviewRenderBaseRect(
+		AnchorRect, 172.0f, QmHudNotifications::EHorizontalFlow::RightToLeft);
+	const CUIRect RuntimeVisibleRect = QmHudNotifications::NotificationVisibleRect(
+		RenderBaseRect, 96.0f, 34.0f, QmHudNotifications::EHorizontalFlow::RightToLeft, 32.0f);
+
+	EXPECT_FLOAT_EQ(RuntimeVisibleRect.x, AnchorRect.x + AnchorRect.w - 96.0f);
+	EXPECT_FLOAT_EQ(RenderBaseRect.x + RenderBaseRect.w, AnchorRect.x + AnchorRect.w);
+	EXPECT_GT(RuntimeVisibleRect.w, 96.0f);
+}
+
+TEST(QmHudNotificationsGeometry, EdgeMarginInsetsOnlyAnchoredPreviewEdges)
+{
+	const CUIRect AnchorRect = {0.0f, 0.0f, 128.0f, 92.0f};
+	const CUIRect FreeRect = {100.0f, 40.0f, 128.0f, 92.0f};
+
+	const CUIRect LeftInset = QmHudNotifications::InsetAnchoredRect(AnchorRect, 8.0f, true, false, true, false);
+	const CUIRect RightInset = QmHudNotifications::InsetAnchoredRect(AnchorRect, 8.0f, false, true, false, true);
+	const CUIRect FreeInset = QmHudNotifications::InsetAnchoredRect(FreeRect, 8.0f, false, false, false, false);
+
+	EXPECT_FLOAT_EQ(LeftInset.x, 8.0f);
+	EXPECT_FLOAT_EQ(LeftInset.y, 8.0f);
+	EXPECT_FLOAT_EQ(LeftInset.w, 128.0f);
+	EXPECT_FLOAT_EQ(RightInset.x, -8.0f);
+	EXPECT_FLOAT_EQ(RightInset.y, -8.0f);
+	EXPECT_FLOAT_EQ(RightInset.w, 128.0f);
+	EXPECT_FLOAT_EQ(FreeInset.x, FreeRect.x);
+	EXPECT_FLOAT_EQ(FreeInset.y, FreeRect.y);
+}
+
+TEST(QmHudNotificationsGeometry, EditorPreviewRightFlowBoxMatchesStableRightEdge)
+{
+	const CUIRect EditorRect = {100.0f, 40.0f, 128.0f, 92.0f};
+	const float BoxWidth = QmHudNotifications::NotificationBoxWidth(EditorRect, 180.0f);
+	const float BoxX = QmHudNotifications::NotificationBoxX(EditorRect, BoxWidth, QmHudNotifications::EHorizontalFlow::RightToLeft, 0.0f);
+
+	EXPECT_FLOAT_EQ(BoxX, EditorRect.x);
+	EXPECT_FLOAT_EQ(BoxX + BoxWidth, EditorRect.x + EditorRect.w);
+}
+
+TEST(QmHudEditorGeometry, SnapsOnlyToScreenEdges)
+{
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToScreenEdges(101.0f, 40.0f, 0.0f, 300.0f), 101.0f);
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToScreenEdges(4.0f, 40.0f, 0.0f, 300.0f), 0.0f);
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToScreenEdges(257.0f, 40.0f, 0.0f, 300.0f), 260.0f);
+}
+
+TEST(QmHudEditorGeometry, HudNotificationsUsesStableLayoutToken)
+{
+	const char *pToken = QmHudEditor::ElementToken(EHudEditorElement::HudNotifications);
+
+	EXPECT_STREQ(pToken, "hud_notifications");
+	EXPECT_EQ(QmHudEditor::ElementFromToken(pToken), static_cast<int>(EHudEditorElement::HudNotifications));
+	EXPECT_EQ(QmHudEditor::ElementFromToken(""), -1);
+}
+
+TEST(QmHudNotificationsGeometry, EditorPreviewCanAnchorToScreenEdges)
+{
+	const CUIRect LeftBaseRect = {8.0f, 40.0f, 172.0f, 68.0f};
+	const CUIRect RightBaseRect = {120.0f, 40.0f, 172.0f, 68.0f};
+
+	const CUIRect LeftPreview = QmHudNotifications::EditorPreviewVisibleRect(
+		LeftBaseRect, 128.0f, 20.0f, 4.0f, 3, QmHudNotifications::EHorizontalFlow::LeftToRight);
+	const CUIRect RightPreview = QmHudNotifications::EditorPreviewVisibleRect(
+		RightBaseRect, 128.0f, 20.0f, 4.0f, 3, QmHudNotifications::EHorizontalFlow::RightToLeft);
+
+	EXPECT_FLOAT_EQ(LeftPreview.x, 8.0f);
+	EXPECT_FLOAT_EQ(RightPreview.x + RightPreview.w, 292.0f);
 }

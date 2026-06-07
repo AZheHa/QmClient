@@ -997,6 +997,7 @@ namespace QmHudNotifications
 			str_startswith(pMessage, "Bad:") ||
 			str_startswith(pMessage, "错误示例：") ||
 			str_startswith(pMessage, "Available practice commands:") ||
+			str_startswith(pMessage, "可用练习命令：") ||
 			str_startswith(pMessage, "Available rescue modes:") ||
 			str_startswith(pMessage, "可用救援模式：") ||
 			str_startswith(pMessage, "Emote commands are:") ||
