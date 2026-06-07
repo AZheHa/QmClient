@@ -34,11 +34,13 @@ def to_windows_path(path: str) -> str:
     # WSL /mnt/X/...
     m = re.match(r"^/mnt/([A-Za-z])/(.*)$", path)
     if m:
-        return f"{m.group(1).upper()}:\\\\{m.group(2).replace('/', '\\')}"
+        tail = m.group(2).replace("/", "\\")
+        return f"{m.group(1).upper()}:\\{tail}"
     # /X/...
     m = re.match(r"^/([A-Za-z])/(.*)$", path)
     if m:
-        return f"{m.group(1).upper()}:\\\\{m.group(2).replace('/', '\\')}"
+        tail = m.group(2).replace("/", "\\")
+        return f"{m.group(1).upper()}:\\{tail}"
     if shutil.which("wslpath"):
         try:
             return subprocess.check_output(["wslpath", "-w", path], text=True).strip()

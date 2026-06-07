@@ -251,6 +251,75 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuTools(void *pContext, CUIRect Vi
 	return CUi::POPUP_KEEP_OPEN;
 }
 
+CUi::EPopupMenuFunctionResult CEditor::PopupCollab(void *pContext, CUIRect View, bool Active)
+{
+	CEditor *pEditor = static_cast<CEditor *>(pContext);
+
+	CUIRect Slot;
+	View.Margin(8.0f, &View);
+
+	View.HSplitTop(16.0f, &Slot, &View);
+	pEditor->Ui()->DoLabel(&Slot, "协作制图", 14.0f, TEXTALIGN_ML);
+
+	View.HSplitTop(4.0f, nullptr, &View);
+	View.HSplitTop(28.0f, &Slot, &View);
+	SLabelProperties TextProps;
+	TextProps.m_MaxWidth = Slot.w;
+	pEditor->Ui()->DoLabel(&Slot, "通过房间码同步当前编辑器地图快照，最多 4 人同时协作。", 10.0f, TEXTALIGN_ML, TextProps);
+
+	View.HSplitTop(6.0f, nullptr, &View);
+	View.HSplitTop(18.0f, &Slot, &View);
+	char aRoomStatus[64];
+	if(pEditor->m_aCollabRoomCode[0] != '\0')
+		str_format(aRoomStatus, sizeof(aRoomStatus), "当前房间：%s（%d/%d 人）", pEditor->m_aCollabRoomCode, pEditor->m_CollabMemberCount, pEditor->m_CollabMaxMembers);
+	else
+		str_copy(aRoomStatus, "当前未加入协作房间");
+	pEditor->Ui()->DoLabel(&Slot, aRoomStatus, 10.0f, TEXTALIGN_ML, TextProps);
+
+	View.HSplitTop(4.0f, nullptr, &View);
+	View.HSplitTop(20.0f, &Slot, &View);
+	CUIRect Label, Input, Copy;
+	Slot.VSplitLeft(48.0f, &Label, &Slot);
+	Slot.VSplitRight(64.0f, &Input, &Copy);
+	Slot.VSplitRight(6.0f, &Input, nullptr);
+	pEditor->Ui()->DoLabel(&Label, "房间码", 10.0f, TEXTALIGN_ML);
+	pEditor->DoEditBox(&pEditor->m_CollabRoomInput, &Input, 10.0f, IGraphics::CORNER_ALL, "输入房间码以加入协作房间。");
+	static int s_CopyRoomCodeButton = 0;
+	if(pEditor->DoButton_Editor(&s_CopyRoomCodeButton, "复制", pEditor->m_aCollabRoomCode[0] == '\0' ? -1 : 0, &Copy, BUTTONFLAG_LEFT, "复制当前协作房间码。"))
+	{
+		pEditor->Input()->SetClipboardText(pEditor->m_aCollabRoomCode);
+		pEditor->SetCollabStatus("房间码已复制");
+	}
+
+	View.HSplitTop(8.0f, nullptr, &View);
+	View.HSplitTop(22.0f, &Slot, &View);
+	CUIRect Create, Join, Leave;
+	Slot.VSplitLeft(82.0f, &Create, &Slot);
+	Slot.VSplitLeft(6.0f, nullptr, &Slot);
+	Slot.VSplitLeft(82.0f, &Join, &Slot);
+	Slot.VSplitLeft(6.0f, nullptr, &Slot);
+	Slot.VSplitLeft(82.0f, &Leave, &Slot);
+
+	const bool Disconnected = pEditor->m_CollabState == ECollabState::DISCONNECTED;
+	static int s_CreateRoomButton = 0;
+	if(pEditor->DoButton_Editor(&s_CreateRoomButton, "创建房间", Disconnected ? 0 : -1, &Create, BUTTONFLAG_LEFT, "创建最多 4 人的协作制图房间。"))
+		pEditor->CreateCollabRoom();
+
+	static int s_JoinRoomButton = 0;
+	if(pEditor->DoButton_Editor(&s_JoinRoomButton, "加入房间", Disconnected ? 0 : -1, &Join, BUTTONFLAG_LEFT, "使用房间码加入协作制图房间。"))
+		pEditor->JoinCollabRoom();
+
+	static int s_LeaveRoomButton = 0;
+	if(pEditor->DoButton_Editor(&s_LeaveRoomButton, "离开房间", Disconnected ? -1 : 0, &Leave, BUTTONFLAG_LEFT, "离开当前协作制图房间。"))
+		pEditor->LeaveCollabRoom();
+
+	View.HSplitTop(8.0f, nullptr, &View);
+	View.HSplitTop(36.0f, &Slot, &View);
+	pEditor->Ui()->DoLabel(&Slot, pEditor->m_aCollabStatus, 10.0f, TEXTALIGN_ML, TextProps);
+
+	return CUi::POPUP_KEEP_OPEN;
+}
+
 static int EntitiesListdirCallback(const char *pName, int IsDir, int StorageType, void *pUser)
 {
 	CEditor *pEditor = (CEditor *)pUser;

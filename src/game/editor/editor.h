@@ -22,6 +22,7 @@
 #include <engine/engine.h>
 #include <engine/graphics.h>
 #include <engine/shared/datafile.h>
+#include <engine/shared/http.h>
 #include <engine/shared/jobs.h>
 
 #include <game/client/ui.h>
@@ -346,6 +347,51 @@ public:
 	bool PerformAutosave();
 	void HandleWriterFinishJobs();
 
+	enum class ECollabState
+	{
+		DISCONNECTED,
+		CREATING,
+		JOINING,
+		CONNECTED,
+		LEAVING,
+	};
+	ECollabState m_CollabState = ECollabState::DISCONNECTED;
+	CLineInputBuffered<16> m_CollabRoomInput;
+	std::shared_ptr<CHttpRequest> m_pCollabCreateTask;
+	std::shared_ptr<CHttpRequest> m_pCollabJoinTask;
+	std::shared_ptr<CHttpRequest> m_pCollabLeaveTask;
+	std::shared_ptr<CHttpRequest> m_pCollabPushTask;
+	std::shared_ptr<CHttpRequest> m_pCollabPullTask;
+	char m_aCollabClientId[64] = "";
+	char m_aCollabRoomCode[16] = "";
+	char m_aCollabStatus[160] = "未加入协作房间";
+	int m_CollabRevision = 0;
+	int m_CollabMemberCount = 0;
+	int m_CollabMaxMembers = 4;
+	int64_t m_CollabNextPullTime = 0;
+	int64_t m_CollabNextPushTime = 0;
+	float m_CollabLastUploadedModifiedTime = -1.0f;
+	float m_CollabPendingUploadedModifiedTime = -1.0f;
+	bool m_CollabSnapshotSavePending = false;
+	bool m_CollabApplyingRemoteSnapshot = false;
+	void EnsureCollabClientId();
+	[[gnu::format(printf, 2, 3)]] void SetCollabStatus(const char *pFormat, ...);
+	void UpdateCollab();
+	bool BuildCollabUrl(const char *pPath, char *pBuffer, int BufferSize, const char *pQuery = nullptr) const;
+	std::shared_ptr<CHttpRequest> MakeCollabJsonRequest(const char *pPath, const std::string &Body);
+	void CreateCollabRoom();
+	void JoinCollabRoom();
+	void LeaveCollabRoom();
+	void StartCollabPull();
+	void StartCollabSnapshotSave(bool Force = false);
+	void UploadCollabSnapshot();
+	void FinishCollabCreateJoin(std::shared_ptr<CHttpRequest> &pTask, bool Joining);
+	void FinishCollabLeave();
+	void FinishCollabPush();
+	void FinishCollabPull();
+	bool ApplyCollabSnapshotBase64(const char *pMapBase64, int Revision);
+	bool LoadCollabSnapshot(const char *pFilename, int StorageType);
+
 	// TODO: The name of the ShowFileDialogError function is not accurate anymore, this is used for generic error messages.
 	//       Popups in UI should be shared_ptrs to make this even more generic.
 	struct SStringKeyComparator
@@ -633,6 +679,7 @@ public:
 	static CUi::EPopupMenuFunctionResult PopupMenuFile(void *pContext, CUIRect View, bool Active);
 	static CUi::EPopupMenuFunctionResult PopupMenuTools(void *pContext, CUIRect View, bool Active);
 	static CUi::EPopupMenuFunctionResult PopupMenuSettings(void *pContext, CUIRect View, bool Active);
+	static CUi::EPopupMenuFunctionResult PopupCollab(void *pContext, CUIRect View, bool Active);
 	static CUi::EPopupMenuFunctionResult PopupGroup(void *pContext, CUIRect View, bool Active);
 	struct SLayerPopupContext : public SPopupMenuId
 	{
