@@ -44,6 +44,7 @@
 #include <numeric>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 using namespace FontIcons;
@@ -170,6 +171,62 @@ namespace
 			return &m_PreviousInfo;
 		}
 	};
+
+	struct SSettingsTeeListPreviewCacheEntry
+	{
+		std::shared_ptr<CManagedTeeRenderInfo> m_pManagedRenderInfo;
+		uint64_t m_LastUsedFrame = 0;
+	};
+
+	struct SSettingsTeeListPreviewCache
+	{
+		static constexpr size_t MAX_ENTRIES = 192;
+
+		std::unordered_map<std::string, SSettingsTeeListPreviewCacheEntry> m_Cache;
+		uint64_t m_Frame = 0;
+
+		static std::string Key(const char *pSkinName, int Dummy, bool UseCustomColor, int ColorBody, int ColorFeet, int Emote)
+		{
+			char aKey[MAX_SKIN_LENGTH + 96];
+			str_format(aKey, sizeof(aKey), "%s|%d|%d|%d|%d|%d",
+				pSkinName != nullptr ? pSkinName : "",
+				Dummy,
+				UseCustomColor ? 1 : 0,
+				ColorBody,
+				ColorFeet,
+				Emote);
+			return aKey;
+		}
+
+		CManagedTeeRenderInfo *Find(const std::string &Key)
+		{
+			auto It = m_Cache.find(Key);
+			if(It == m_Cache.end())
+				return nullptr;
+			It->second.m_LastUsedFrame = m_Frame;
+			return It->second.m_pManagedRenderInfo.get();
+		}
+
+		void Remember(std::string Key, const std::shared_ptr<CManagedTeeRenderInfo> &pManagedRenderInfo)
+		{
+			if(pManagedRenderInfo == nullptr)
+				return;
+
+			SSettingsTeeListPreviewCacheEntry &Entry = m_Cache[std::move(Key)];
+			Entry.m_pManagedRenderInfo = pManagedRenderInfo;
+			Entry.m_LastUsedFrame = m_Frame;
+			if(m_Cache.size() <= MAX_ENTRIES)
+				return;
+
+			const auto Oldest = std::min_element(m_Cache.begin(), m_Cache.end(), [](const auto &A, const auto &B) {
+				return A.second.m_LastUsedFrame < B.second.m_LastUsedFrame;
+			});
+			if(Oldest != m_Cache.end())
+				m_Cache.erase(Oldest);
+		}
+	};
+
+	SSettingsTeeListPreviewCache gs_TeeListPreviewCache;
 
 	struct STeeListDrainPerfSession
 	{
@@ -309,7 +366,7 @@ namespace
 
 	ColorRGBA SettingsUiColorSurface(float AlphaScale, float ColorScale)
 	{
-		const ColorRGBA UiColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_UiColor, true));
+		const ColorRGBA UiColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmUiColor));
 		return ui_token::color::UiColorSurface(UiColor, AlphaScale, ColorScale);
 	}
 
@@ -1375,8 +1432,8 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	}
 
 	// Skin loading status
-	const auto &&RenderSkinStatus = [&](CUIRect Parent, const CSkins::CSkinContainer *pSkinContainer, const void *pStatusTooltipId) {
-		if(pSkinContainer != nullptr && pSkinContainer->State() == CSkins::CSkinContainer::EState::LOADED)
+	const auto &&RenderSkinStatus = [&](CUIRect Parent, const CSkins::CSkinContainer *pSkinContainer, const void *pStatusTooltipId, bool PreviewCacheReady = false) {
+		if(pSkinContainer != nullptr && (pSkinContainer->State() == CSkins::CSkinContainer::EState::LOADED || PreviewCacheReady))
 		{
 			return;
 		}
@@ -1933,6 +1990,7 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	}
 	std::vector<CSkins::CSkinListEntry> &vSkinList = SkinList.Skins();
 	static std::vector<size_t> s_vVisibleSkinIndices;
+	++gs_TeeListPreviewCache.m_Frame;
 	s_vVisibleSkinIndices.clear();
 	if(s_vVisibleSkinIndices.capacity() < 32)
 		s_vVisibleSkinIndices.reserve(32);
@@ -1971,10 +2029,16 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 		CSkins::CSkinListEntry &SkinListEntry = vSkinList[i];
 		const CSkins::CSkinContainer *pSkinContainer = vSkinList[i].SkinContainer();
 		const auto State = pSkinContainer->State();
-		const bool EntryReady =
-			State == CSkins::CSkinContainer::EState::LOADED ||
-			State == CSkins::CSkinContainer::EState::ERROR ||
-			State == CSkins::CSkinContainer::EState::NOT_FOUND;
+		const auto &EntryColorKey = SkinListEntry.ColorKey();
+		const bool EntryUseCustomColor = EntryColorKey.has_value() ? EntryColorKey->m_UseCustomColor : *pUseCustomColor != 0;
+		const int EntryColorBody = EntryColorKey.has_value() ? EntryColorKey->m_ColorBody : (int)*pColorBody;
+		const int EntryColorFeet = EntryColorKey.has_value() ? EntryColorKey->m_ColorFeet : (int)*pColorFeet;
+		const std::string PreviewCacheKey = SSettingsTeeListPreviewCache::Key(pSkinContainer->Name(), m_Dummy, EntryUseCustomColor, EntryColorBody, EntryColorFeet, *pEmote);
+		CManagedTeeRenderInfo *pCachedPreview = gs_TeeListPreviewCache.Find(PreviewCacheKey);
+		const bool SourceReady = State == CSkins::CSkinContainer::EState::LOADED;
+		const bool TerminalFailure = State == CSkins::CSkinContainer::EState::ERROR || State == CSkins::CSkinContainer::EState::NOT_FOUND;
+		const bool PreviewCacheReady = pCachedPreview != nullptr;
+		const bool EntryReady = SettingsSkinListEntryReady(SourceReady, TerminalFailure, PreviewCacheReady);
 		if(EntryReady)
 			++TotalReadyCount;
 
@@ -2006,17 +2070,17 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 			++VisibleBackgroundRequestedCount;
 		if(EntryNonTerminalWaiting)
 			++VisibleNonTerminalWaitingCount;
-		const auto &EntryColorKey = SkinListEntry.ColorKey();
-		const bool EntryUseCustomColor = EntryColorKey.has_value() ? EntryColorKey->m_UseCustomColor : *pUseCustomColor != 0;
-		const int EntryColorBody = EntryColorKey.has_value() ? EntryColorKey->m_ColorBody : (int)*pColorBody;
-		const int EntryColorFeet = EntryColorKey.has_value() ? EntryColorKey->m_ColorFeet : (int)*pColorFeet;
 		const CSkin *pSkin = State == CSkins::CSkinContainer::EState::LOADED ? pSkinContainer->Skin().get() : pDefaultSkin;
 
 		Item.m_Rect.VSplitLeft(60.0f, &Button, &Label);
 
 		{
-			CTeeRenderInfo Info = OwnSkinInfo;
-			Info.Apply(pSkin);
+			CTeeRenderInfo Info = pCachedPreview != nullptr ? pCachedPreview->TeeRenderInfo() : OwnSkinInfo;
+			if(pCachedPreview == nullptr)
+			{
+				Info.Apply(pSkin);
+				Info.ApplyColors(EntryUseCustomColor, EntryColorBody, EntryColorFeet);
+			}
 			Info.m_Size = 50.0f;
 			float PreviewMinX, PreviewMinY, PreviewMaxX, PreviewMaxY;
 			GetSettingsTeePreviewBounds(CAnimState::GetIdle(), Info, PreviewMinX, PreviewMinY, PreviewMaxX, PreviewMaxY);
@@ -2031,6 +2095,15 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 			Ui()->ClipEnable(&TeeClip);
 			RenderTools()->RenderTee(CAnimState::GetIdle(), &Info, *pEmote, vec2(1.0f, 0.0f), TeeRenderPos);
 			Ui()->ClipDisable();
+			if(SourceReady && pCachedPreview == nullptr)
+			{
+				CSkinDescriptor SkinDescriptor;
+				SkinDescriptor.m_Flags = CSkinDescriptor::FLAG_SIX;
+				str_copy(SkinDescriptor.m_aSkinName, pSkinContainer->Name(), sizeof(SkinDescriptor.m_aSkinName));
+				std::shared_ptr<CManagedTeeRenderInfo> pManagedPreview = GameClient()->CreateManagedTeeRenderInfo(Info, SkinDescriptor);
+				pManagedPreview->TeeRenderInfo().ApplyColors(EntryUseCustomColor, EntryColorBody, EntryColorFeet);
+				gs_TeeListPreviewCache.Remember(PreviewCacheKey, pManagedPreview);
+			}
 		}
 		{
 			CUIRect LabelContent = Label;
@@ -2104,7 +2177,7 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 			}
 		}
 
-		RenderSkinStatus(Item.m_Rect, pSkinContainer, SkinListEntry.ErrorTooltipId());
+		RenderSkinStatus(Item.m_Rect, pSkinContainer, SkinListEntry.ErrorTooltipId(), PreviewCacheReady);
 	}
 	for(auto It = vVisibleSkinIndices.rbegin(); It != vVisibleSkinIndices.rend(); ++It)
 	{
@@ -2175,10 +2248,22 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	const char *pFirstVisibleSkin = !vVisibleSkinIndices.empty() ? vSkinList[vVisibleSkinIndices.front()].SkinContainer()->Name() : "";
 	const int FirstVisibleIndex = !vVisibleSkinIndices.empty() ? (int)vVisibleSkinIndices.front() : -1;
 	const int LastVisibleIndex = !vVisibleSkinIndices.empty() ? (int)vVisibleSkinIndices.back() : -1;
+	const auto SkinEntryHasPreviewCache = [&](const CSkins::CSkinListEntry &Entry) {
+		const auto &ColorKey = Entry.ColorKey();
+		return gs_TeeListPreviewCache.Find(SSettingsTeeListPreviewCache::Key(
+			       Entry.SkinContainer()->Name(),
+			       m_Dummy,
+			       ColorKey.has_value() ? ColorKey->m_UseCustomColor : *pUseCustomColor != 0,
+			       ColorKey.has_value() ? ColorKey->m_ColorBody : (int)*pColorBody,
+			       ColorKey.has_value() ? ColorKey->m_ColorFeet : (int)*pColorFeet,
+			       *pEmote)) != nullptr;
+	};
 	const bool FirstVisibleReady = !vVisibleSkinIndices.empty() &&
-				       (vSkinList[vVisibleSkinIndices.front()].SkinContainer()->State() == CSkins::CSkinContainer::EState::LOADED ||
+				       SettingsSkinListEntryReady(
+					       vSkinList[vVisibleSkinIndices.front()].SkinContainer()->State() == CSkins::CSkinContainer::EState::LOADED,
 					       vSkinList[vVisibleSkinIndices.front()].SkinContainer()->State() == CSkins::CSkinContainer::EState::ERROR ||
-					       vSkinList[vVisibleSkinIndices.front()].SkinContainer()->State() == CSkins::CSkinContainer::EState::NOT_FOUND);
+						       vSkinList[vVisibleSkinIndices.front()].SkinContainer()->State() == CSkins::CSkinContainer::EState::NOT_FOUND,
+					       SkinEntryHasPreviewCache(vSkinList[vVisibleSkinIndices.front()]));
 	const bool FullListReady = !vSkinList.empty() && TotalReadyCount == (int)vSkinList.size();
 	const int64_t NowNs = time_get_nanoseconds().count();
 	if(!gs_TeeSettingsPageState.m_TeePageActiveLastFrame)
@@ -2742,26 +2827,42 @@ void CMenus::RenderSettingsGraphics(CUIRect MainView)
 
 	MainView.HSplitTop(2.0f, nullptr, &MainView);
 	static CButtonContainer s_UiColorResetId;
-	DoLine_ColorPicker(&s_UiColorResetId, 25.0f, 13.0f, 2.0f, &MainView, Localize("界面颜色"), &g_Config.m_UiColor, color_cast<ColorRGBA>(ColorHSLA(0xE4A046AFU, true)), false, nullptr, true);
-	static CButtonContainer s_MenuPanelColorResetId;
-	const unsigned OldMenuPanelColor = g_Config.m_ClMenuPanelColor;
-	DoLine_ColorPicker(&s_MenuPanelColorResetId, 25.0f, 13.0f, 2.0f, &MainView, Localize("菜单面板颜色"), &g_Config.m_ClMenuPanelColor, color_cast<ColorRGBA>(ColorHSLA(CConfig::ms_ClMenuPanelColor)), false, nullptr, false);
-	if(OldMenuPanelColor != g_Config.m_ClMenuPanelColor)
+	const unsigned OldQmUiColor = g_Config.m_QmUiColor;
+	DoLine_ColorPicker(&s_UiColorResetId, 25.0f, 13.0f, 2.0f, &MainView, Localize("界面颜色"), &g_Config.m_QmUiColor, color_cast<ColorRGBA>(ColorHSLA(CConfig::ms_QmUiColor)), false, nullptr, false);
+	if(OldQmUiColor != g_Config.m_QmUiColor)
+		InvalidateSettingsRuntimeCaches(ESettingsInvalidationReason::CONFIG_HASH_CHANGED);
+
+	static CButtonContainer s_MapBrowserColorResetId;
+	const unsigned OldQmMapBrowserColor = g_Config.m_QmMapBrowserColor;
+	DoLine_ColorPicker(&s_MapBrowserColorResetId, 25.0f, 13.0f, 2.0f, &MainView, Localize("地图浏览器颜色"), &g_Config.m_QmMapBrowserColor, color_cast<ColorRGBA>(ColorHSLA(CConfig::ms_QmMapBrowserColor)), false, nullptr, false);
+	if(OldQmMapBrowserColor != g_Config.m_QmMapBrowserColor)
+		InvalidateSettingsRuntimeCaches(ESettingsInvalidationReason::CONFIG_HASH_CHANGED);
+
+	static CButtonContainer s_ScoreboardColorResetId;
+	const unsigned OldQmScoreboardColor = g_Config.m_QmScoreboardColor;
+	DoLine_ColorPicker(&s_ScoreboardColorResetId, 25.0f, 13.0f, 2.0f, &MainView, Localize("计分板颜色"), &g_Config.m_QmScoreboardColor, color_cast<ColorRGBA>(ColorHSLA(CConfig::ms_QmScoreboardColor)), false, nullptr, false);
+	if(OldQmScoreboardColor != g_Config.m_QmScoreboardColor)
 		InvalidateSettingsRuntimeCaches(ESettingsInvalidationReason::CONFIG_HASH_CHANGED);
 
 	MainView.HSplitTop(2.0f, nullptr, &MainView);
 	MainView.HSplitTop(20.0f, &Button, &MainView);
-	if(Ui()->DoScrollbarOption(&g_Config.m_ClMenuPanelOpacity, &g_Config.m_ClMenuPanelOpacity, &Button, Localize("菜单面板透明度"), 0, 100, &CUi::ms_LinearScrollbarScale, 0u, "%"))
+	const int OldQmUiOpacity = g_Config.m_QmUiOpacity;
+	DoSliderWithValueInput(&g_Config.m_QmUiOpacity, &g_Config.m_QmUiOpacity, Button, Localize("界面透明度"), 0, 100, &CUi::ms_LinearScrollbarScale, "%");
+	if(OldQmUiOpacity != g_Config.m_QmUiOpacity)
 		InvalidateSettingsRuntimeCaches(ESettingsInvalidationReason::CONFIG_HASH_CHANGED);
 
 	MainView.HSplitTop(2.0f, nullptr, &MainView);
 	MainView.HSplitTop(20.0f, &Button, &MainView);
-	if(Ui()->DoScrollbarOption(&g_Config.m_ClMenuPanelElevatedOpacity, &g_Config.m_ClMenuPanelElevatedOpacity, &Button, Localize("菜单强调面板透明度"), 0, 100, &CUi::ms_LinearScrollbarScale, 0u, "%"))
+	const int OldQmMapBrowserOpacity = g_Config.m_QmMapBrowserOpacity;
+	DoSliderWithValueInput(&g_Config.m_QmMapBrowserOpacity, &g_Config.m_QmMapBrowserOpacity, Button, Localize("地图浏览器透明度"), 0, 100, &CUi::ms_LinearScrollbarScale, "%");
+	if(OldQmMapBrowserOpacity != g_Config.m_QmMapBrowserOpacity)
 		InvalidateSettingsRuntimeCaches(ESettingsInvalidationReason::CONFIG_HASH_CHANGED);
 
 	MainView.HSplitTop(2.0f, nullptr, &MainView);
 	MainView.HSplitTop(20.0f, &Button, &MainView);
-	if(Ui()->DoScrollbarOption(&g_Config.m_ClSettingsTabbarOpacity, &g_Config.m_ClSettingsTabbarOpacity, &Button, Localize("设置栏透明度"), 0, 100, &CUi::ms_LinearScrollbarScale, 0u, "%"))
+	const int OldQmScoreboardOpacity = g_Config.m_QmScoreboardOpacity;
+	DoSliderWithValueInput(&g_Config.m_QmScoreboardOpacity, &g_Config.m_QmScoreboardOpacity, Button, Localize("计分板透明度"), 0, 100, &CUi::ms_LinearScrollbarScale, "%");
+	if(OldQmScoreboardOpacity != g_Config.m_QmScoreboardOpacity)
 		InvalidateSettingsRuntimeCaches(ESettingsInvalidationReason::CONFIG_HASH_CHANGED);
 
 	// Backend list

@@ -117,6 +117,9 @@ TEST(QmNewUiMenuBranches, MenubarUsesExplicitQmNewUiColorBranch)
 	EXPECT_NE(Source.find("const ColorRGBA DefaultColor = UseNewUi ? MenuTabDefaultColor() : ms_ColorTabbarInactive;"), std::string::npos);
 	EXPECT_NE(Source.find("const ColorRGBA ActiveColor = UseNewUi ? MenuTabActiveColor() : ms_ColorTabbarActive;"), std::string::npos);
 	EXPECT_NE(Source.find("const ColorRGBA HoverColor = UseNewUi ? MenuTabHoverColor() : ms_ColorTabbarHover;"), std::string::npos);
+	EXPECT_NE(DoMenuTabV2.find("pRect->Draw(Resolved, Corners, UseNewUi ? 7.0f : 10.0f);"), std::string::npos);
+	EXPECT_NE(DoMenuTabV2.find("const float LabelFontSize = UseNewUi ? minimum(Label.h * CUi::ms_FontmodHeight, 13.0f) : Label.h * CUi::ms_FontmodHeight;"), std::string::npos);
+	EXPECT_NE(DoMenuTabV2.find("Ui()->DoLabel(&Label, pText, LabelFontSize, TEXTALIGN_MC);"), std::string::npos);
 	EXPECT_NE(Source.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;"), std::string::npos);
 	EXPECT_NE(Source.find("ColorRGBA InactiveColor = MenuTabDefaultColor();"), std::string::npos);
 	EXPECT_NE(Source.find("ColorRGBA ActiveColor = MenuTabActiveColor();"), std::string::npos);
@@ -125,10 +128,15 @@ TEST(QmNewUiMenuBranches, MenubarUsesExplicitQmNewUiColorBranch)
 	EXPECT_NE(Source.find("ColorRGBA ActiveColor = ms_ColorTabbarActive;"), std::string::npos);
 	EXPECT_NE(Source.find("ColorRGBA HoverColor = ms_ColorTabbarHover;"), std::string::npos);
 	EXPECT_NE(Source.find("const ColorRGBA IndicatorColor = g_Config.m_QmNewUi != 0 ? MenuUiColorAccent(1.0f) : ui_token::color::ACCENT_PRIMARY;"), std::string::npos);
+	EXPECT_NE(RenderMenubar.find("if(!UseNewUi && MenubarHaveActive)"), std::string::npos);
 	EXPECT_NE(RenderMenubar.find("if(UseNewUi)"), std::string::npos);
 	EXPECT_NE(UseNewUiBlock.find("Box.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.12f)"), std::string::npos);
 	EXPECT_NE(UseNewUiBlock.find("Box.VMargin(MenubarOuterInsetX, &Box);"), std::string::npos);
 	EXPECT_NE(UseNewUiBlock.find("Box.HMargin(MenubarOuterInsetY, &Box);"), std::string::npos);
+	EXPECT_NE(UseNewUiBlock.find("const float BrowserButtonWidth = 58.0f;"), std::string::npos);
+	EXPECT_NE(UseNewUiBlock.find("const float GameButtonWidth = CompactOnlineMenuTabs ? 56.0f : 64.0f;"), std::string::npos);
+	EXPECT_NE(UseNewUiBlock.find("const float ServerInfoButtonWidth = CompactOnlineMenuTabs ? 94.0f : 104.0f;"), std::string::npos);
+	EXPECT_NE(UseNewUiBlock.find("const float OnlineTabGap = 4.0f;"), std::string::npos);
 	EXPECT_NE(UseNewUiBlock.find("if(DoMenuTabV2(&s_SettingsButton"), std::string::npos);
 	EXPECT_NE(UseNewUiBlock.find("if(DoMenuTabV2(&s_InternetButton"), std::string::npos);
 	EXPECT_EQ(UseNewUiBlock.find("DoButton_MenuTab(&s_SettingsButton"), std::string::npos);
@@ -172,7 +180,7 @@ TEST(QmNewUiMenuBranches, BrowserUsesExplicitQmNewUiShellBranch)
 
 	EXPECT_NE(Source.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;"), std::string::npos);
 	EXPECT_NE(Source.find("if(UseNewUi)"), std::string::npos);
-	EXPECT_NE(Source.find("ServerListBase.Draw(MenuPanelColor()"), std::string::npos);
+	EXPECT_NE(Source.find("ServerListBase.Draw(BrowserPanelColor()"), std::string::npos);
 	EXPECT_NE(Source.find("(void)DrawBackground;"), std::string::npos);
 	EXPECT_NE(Source.find("const float ToolBoxWidth = UseNewUi ? 205.0f : 188.0f;"), std::string::npos);
 	EXPECT_NE(Source.find("const float ColumnGap = UseNewUi ? 10.0f : 6.0f;"), std::string::npos);
@@ -186,6 +194,18 @@ TEST(QmNewUiMenuBranches, BrowserUsesExplicitQmNewUiShellBranch)
 	EXPECT_NE(TopOldUiBlock.find("View.Draw(ms_ColorTabbarActive, IGraphics::CORNER_B, 10.0f);"), std::string::npos);
 	EXPECT_NE(TopOldUiBlock.find("View.Margin(10.0f, &View);"), std::string::npos);
 	EXPECT_EQ(TopOldUiBlock.find("View.Margin(std::clamp(View.w * 0.008f, 4.0f, 8.0f), &View);"), std::string::npos);
+}
+
+TEST(QmNewUiMenuBranches, BrowserInteriorBackgroundsUseMapBrowserOpacity)
+{
+	const std::string Source = ReadTextFile("src/game/client/components/menus_browser.cpp");
+
+	EXPECT_NE(Source.find("g_Config.m_QmMapBrowserOpacity / 100.0f"), std::string::npos);
+	EXPECT_NE(Source.find("Headers.Draw(BrowserOpacityColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.25f))"), std::string::npos);
+	EXPECT_NE(Source.find("View.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.15f))"), std::string::npos);
+	EXPECT_NE(Source.find("Panel.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.22f))"), std::string::npos);
+	EXPECT_NE(Source.find("Tab.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.3f))"), std::string::npos);
+	EXPECT_EQ(Source.find("BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.3f))"), std::string::npos);
 }
 
 TEST(QmNewUiMenuBranches, DemoBrowserUsesExplicitLegacyShellBranches)
@@ -364,9 +384,9 @@ TEST(QmNewUiMenuBranches, SettingsShellKeepsExplicitQmNewUiContainerBranch)
 TEST(QmNewUiMenuBranches, LegacyMenusKeepTabAndPanelShellConnected)
 {
 	const std::string MenusSource = ReadTextFile("src/game/client/components/menus.cpp");
-	EXPECT_NE(MenusSource.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;\n\t\t\tconst float MenubarHeight = UseNewUi ? 30.0f : 34.0f;\n\t\t\tScreen.HSplitTop(MenubarHeight, &TabBar, &MainView);\n\t\t\tif(UseNewUi)\n\t\t\t\tMainView.HSplitTop(8.0f, nullptr, &MainView);"), std::string::npos);
+	EXPECT_NE(MenusSource.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;\n\t\t\tconst float MenubarHeight = UseNewUi ? 24.0f : 34.0f;\n\t\t\tScreen.HSplitTop(MenubarHeight, &TabBar, &MainView);\n\t\t\tif(UseNewUi)\n\t\t\t\tMainView.HSplitTop(6.0f, nullptr, &MainView);"), std::string::npos);
 	EXPECT_NE(MenusSource.find("case IClient::STATE_ONLINE:"), std::string::npos);
-	EXPECT_NE(MenusSource.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;\n\t\t\tconst float MenubarHeight = UseNewUi ? 30.0f : 34.0f;\n\t\t\tScreen.HSplitTop(MenubarHeight, &TabBar, &MainView);\n\t\t\tif(UseNewUi)\n\t\t\t\tMainView.HSplitTop(8.0f, nullptr, &MainView);"), std::string::npos);
+	EXPECT_NE(MenusSource.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;\n\t\t\tconst float MenubarHeight = UseNewUi ? 24.0f : 34.0f;\n\t\t\tScreen.HSplitTop(MenubarHeight, &TabBar, &MainView);\n\t\t\tif(UseNewUi)\n\t\t\t\tMainView.HSplitTop(6.0f, nullptr, &MainView);"), std::string::npos);
 
 	const std::string QmClientSource = ReadTextFile("src/game/client/components/qmclient/menus_qmclient.cpp");
 	EXPECT_NE(QmClientSource.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;"), std::string::npos);
@@ -397,22 +417,74 @@ TEST(QmNewUiMenuBranches, SettingsColorLabelsUseChineseText)
 	EXPECT_EQ(Source.find("Localize(\"Menu panel color\")"), std::string::npos);
 	EXPECT_EQ(Source.find("Localize(\"Menu panel opacity\")"), std::string::npos);
 	EXPECT_EQ(Source.find("Localize(\"Menu panel elevated opacity\")"), std::string::npos);
+	EXPECT_EQ(Source.find("Localize(\"菜单面板颜色\")"), std::string::npos);
+	EXPECT_EQ(Source.find("s_MenuPanelColorResetId"), std::string::npos);
+	EXPECT_EQ(Source.find("g_Config.m_ClMenuPanelColor"), std::string::npos);
+	EXPECT_EQ(Source.find("g_Config.m_UiColor"), std::string::npos);
 	EXPECT_NE(Source.find("DoLine_ColorPicker(&s_UiColorResetId"), std::string::npos);
-	EXPECT_NE(Source.find("DoLine_ColorPicker(&s_MenuPanelColorResetId"), std::string::npos);
-	EXPECT_NE(Source.find("g_Config.m_ClMenuPanelOpacity"), std::string::npos);
-	EXPECT_NE(Source.find("g_Config.m_ClSettingsTabbarOpacity"), std::string::npos);
-	EXPECT_NE(Source.find("g_Config.m_ClMenuPanelElevatedOpacity, &g_Config.m_ClMenuPanelElevatedOpacity"), std::string::npos);
-	EXPECT_NE(Source.find("Localize(\"菜单强调面板透明度\")"), std::string::npos);
-	EXPECT_NE(Source.find("Localize(\"设置栏透明度\")"), std::string::npos);
+	EXPECT_NE(Source.find("DoLine_ColorPicker(&s_MapBrowserColorResetId"), std::string::npos);
+	EXPECT_NE(Source.find("DoLine_ColorPicker(&s_ScoreboardColorResetId"), std::string::npos);
+	EXPECT_NE(Source.find("g_Config.m_QmUiColor"), std::string::npos);
+	EXPECT_NE(Source.find("g_Config.m_QmMapBrowserColor"), std::string::npos);
+	EXPECT_NE(Source.find("g_Config.m_QmScoreboardColor"), std::string::npos);
+	EXPECT_NE(Source.find("g_Config.m_QmUiOpacity"), std::string::npos);
+	EXPECT_NE(Source.find("g_Config.m_QmMapBrowserOpacity"), std::string::npos);
+	EXPECT_NE(Source.find("g_Config.m_QmScoreboardOpacity"), std::string::npos);
+	EXPECT_NE(Source.find("Localize(\"界面颜色\")"), std::string::npos);
+	EXPECT_NE(Source.find("Localize(\"地图浏览器颜色\")"), std::string::npos);
+	EXPECT_NE(Source.find("Localize(\"计分板颜色\")"), std::string::npos);
+	EXPECT_NE(Source.find("Localize(\"界面透明度\")"), std::string::npos);
+	EXPECT_NE(Source.find("Localize(\"地图浏览器透明度\")"), std::string::npos);
+	EXPECT_NE(Source.find("Localize(\"计分板透明度\")"), std::string::npos);
 }
 
-TEST(QmNewUiMenuBranches, SettingsGraphicsOpacitySlidersExposeElevatedAndTabbarControls)
+TEST(QmNewUiMenuBranches, SettingsGraphicsOpacitySlidersExposeIndependentUiDomains)
 {
 	const std::string Source = ReadTextFile("src/game/client/components/menus_settings.cpp");
 
-	EXPECT_NE(Source.find("DoScrollbarOption(&g_Config.m_ClMenuPanelOpacity, &g_Config.m_ClMenuPanelOpacity, &Button, Localize(\"菜单面板透明度\")"), std::string::npos);
-	EXPECT_NE(Source.find("DoScrollbarOption(&g_Config.m_ClMenuPanelElevatedOpacity, &g_Config.m_ClMenuPanelElevatedOpacity, &Button, Localize(\"菜单强调面板透明度\")"), std::string::npos);
-	EXPECT_NE(Source.find("DoScrollbarOption(&g_Config.m_ClSettingsTabbarOpacity, &g_Config.m_ClSettingsTabbarOpacity, &Button, Localize(\"设置栏透明度\")"), std::string::npos);
+	EXPECT_NE(Source.find("DoSliderWithValueInput(&g_Config.m_QmUiOpacity, &g_Config.m_QmUiOpacity, Button, Localize(\"界面透明度\")"), std::string::npos);
+	EXPECT_NE(Source.find("DoSliderWithValueInput(&g_Config.m_QmMapBrowserOpacity, &g_Config.m_QmMapBrowserOpacity, Button, Localize(\"地图浏览器透明度\")"), std::string::npos);
+	EXPECT_NE(Source.find("DoSliderWithValueInput(&g_Config.m_QmScoreboardOpacity, &g_Config.m_QmScoreboardOpacity, Button, Localize(\"计分板透明度\")"), std::string::npos);
+}
+
+TEST(QmNewUiMenuBranches, NewOpacityControlsDoNotChainLegacyPanelOpacity)
+{
+	const std::string MenusSource = ReadTextFile("src/game/client/components/menus.cpp");
+
+	EXPECT_EQ(MenusSource.find("m_ClMenuPanelOpacity / 100.0f) * (g_Config.m_QmUiOpacity"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("m_ClMenuPanelElevatedOpacity / 100.0f) * (g_Config.m_QmUiOpacity"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("m_ClSettingsTabbarOpacity / 100.0f) * (g_Config.m_QmUiOpacity"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("m_ClMenuPanelOpacity / 100.0f) * (g_Config.m_QmMapBrowserOpacity"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("m_ClMenuPanelElevatedOpacity / 100.0f) * (g_Config.m_QmMapBrowserOpacity"), std::string::npos);
+}
+
+TEST(QmNewUiMenuBranches, NewColorControlsUseIndependentUiDomains)
+{
+	const std::string ConfigSource = ReadTextFile("src/engine/shared/config_variables_qmclient.h");
+	const std::string MenusSource = ReadTextFile("src/game/client/components/menus.cpp");
+	const std::string BrowserSource = ReadTextFile("src/game/client/components/menus_browser.cpp");
+	const std::string ScoreboardSource = ReadTextFile("src/game/client/components/scoreboard.cpp");
+
+	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_COL(QmUiColor, qm_ui_color"), std::string::npos);
+	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_COL(QmMapBrowserColor, qm_map_browser_color"), std::string::npos);
+	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_COL(QmScoreboardColor, qm_scoreboard_color"), std::string::npos);
+	EXPECT_NE(MenusSource.find("ColorHSLA(g_Config.m_QmUiColor)"), std::string::npos);
+	EXPECT_NE(MenusSource.find("ColorHSLA(g_Config.m_QmMapBrowserColor)"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("ColorHSLA(g_Config.m_ClMenuPanelColor)"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("ColorHSLA(g_Config.m_UiColor"), std::string::npos);
+	EXPECT_NE(BrowserSource.find("ColorHSLA(g_Config.m_QmMapBrowserColor)"), std::string::npos);
+	EXPECT_NE(ScoreboardSource.find("ColorHSLA(g_Config.m_QmScoreboardColor)"), std::string::npos);
+}
+
+TEST(QmNewUiMenuBranches, ScoreboardBackgroundsUseScoreboardOpacity)
+{
+	const std::string Source = ReadTextFile("src/game/client/components/scoreboard.cpp");
+
+	EXPECT_NE(Source.find("Color.a = ScoreboardUiAlpha(AlphaScale);"), std::string::npos);
+	EXPECT_NE(Source.find("g_Config.m_QmScoreboardOpacity / 100.0f"), std::string::npos);
+	EXPECT_NE(Source.find("ScoreboardDecorationColor(GameClient()->GetDDTeamColor(DDTeam).WithAlpha(0.5f * ItemAlpha))"), std::string::npos);
+	EXPECT_NE(Source.find("Row.Draw(ScoreboardDecorationColor(ui_token::color::ACCENT_PRIMARY_DIM.WithMultipliedAlpha(ItemAlpha * 1.45f))"), std::string::npos);
+	EXPECT_NE(Source.find("Row.Draw(ScoreboardDecorationColor(ColorRGBA(0.7f, 0.7f, 0.7f, 0.7f * ItemAlpha))"), std::string::npos);
 }
 
 TEST(QmNewUiMenuBranches, IngameMenuPrimaryActionLabelsUseChineseText)

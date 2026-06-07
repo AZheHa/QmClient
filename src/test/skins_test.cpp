@@ -389,6 +389,19 @@ TEST(Skins, SettingsWarmupBypassesPeriodicSkinUpdateThrottle)
 	EXPECT_NE(WarmupBody.find("OnUpdate();"), std::string::npos);
 }
 
+TEST(Skins, ManagedTeeRenderInfoSkipsInvalidSixupSkinNames)
+{
+	std::ifstream File("src/game/client/gameclient.cpp");
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+
+	EXPECT_NE(Source.find("NormalizeSixupSkinName(SkinDescriptor.m_aSkinName"), std::string::npos);
+	EXPECT_NE(Source.find("CSkin::IsValidName(pManagedTeeRenderInfo->m_SkinDescriptor.m_aSkinName)"), std::string::npos);
+	EXPECT_NE(Source.find("m_Skins.Find(CSkin::IsValidName(SkinDescriptor.m_aSkinName) ? SkinDescriptor.m_aSkinName : \"default\")"), std::string::npos);
+}
+
 TEST(Skins, BackgroundRequestedStatusUsesLoadingIndicator)
 {
 	using EIndicator = CSkins::CSkinContainer::EStatusIndicator;

@@ -107,22 +107,30 @@ ColorRGBA ClientBrandScoreboardColor(EClientBrand Brand, float Alpha)
 
 ColorRGBA ScoreboardUiColor()
 {
-	return color_cast<ColorRGBA>(ColorHSLA(g_Config.m_UiColor, true));
+	return color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmScoreboardColor)).WithAlpha(1.0f);
 }
 
 float ScoreboardUiAlpha(float AlphaScale)
 {
-	return ui_token::color::UiColorAccent(ScoreboardUiColor(), AlphaScale).a;
+	return ui_token::color::UiColorAccent(ScoreboardUiColor(), AlphaScale * (g_Config.m_QmScoreboardOpacity / 100.0f)).a;
 }
 
 ColorRGBA ScoreboardUiColorSurface(float AlphaScale, float ColorScale = 0.16f)
 {
-	return ui_token::color::UiColorSurface(ScoreboardUiColor(), AlphaScale, ColorScale);
+	ColorRGBA Color = ui_token::color::UiColorSurface(ScoreboardUiColor(), 1.0f, ColorScale);
+	Color.a = ScoreboardUiAlpha(AlphaScale);
+	return Color;
 }
 
 ColorRGBA ScoreboardWithUiAlpha(ColorRGBA Color, float AlphaScale)
 {
 	Color.a = ScoreboardUiAlpha(AlphaScale);
+	return Color;
+}
+
+ColorRGBA ScoreboardDecorationColor(ColorRGBA Color, float AlphaScale = 1.0f)
+{
+	Color.a = std::clamp(Color.a * AlphaScale * (g_Config.m_QmScoreboardOpacity / 100.0f), 0.0f, 1.0f);
 	return Color;
 }
 
@@ -1048,7 +1056,7 @@ void CScoreboard::RenderScoreboard(CUIRect Scoreboard, int Team, int CountStart,
 			// team background
 			if(DDTeam != TEAM_FLOCK)
 			{
-				const ColorRGBA Color = GameClient()->GetDDTeamColor(DDTeam).WithAlpha(0.5f * ItemAlpha);
+				const ColorRGBA Color = ScoreboardDecorationColor(GameClient()->GetDDTeamColor(DDTeam).WithAlpha(0.5f * ItemAlpha));
 				int TeamRectCorners = 0;
 				if(PrevDDTeam != DDTeam)
 				{
@@ -1097,7 +1105,7 @@ void CScoreboard::RenderScoreboard(CUIRect Scoreboard, int Team, int CountStart,
 				(GameClient()->m_Snap.m_SpecInfo.m_SpectatorId == SPEC_FREEVIEW && pInfo->m_Local) ||
 				(GameClient()->m_Snap.m_SpecInfo.m_Active && pInfo->m_ClientId == GameClient()->m_Snap.m_SpecInfo.m_SpectatorId))
 			{
-				Row.Draw(ui_token::color::ACCENT_PRIMARY_DIM.WithMultipliedAlpha(ItemAlpha * 1.45f), IGraphics::CORNER_ALL, RoundRadius);
+				Row.Draw(ScoreboardDecorationColor(ui_token::color::ACCENT_PRIMARY_DIM.WithMultipliedAlpha(ItemAlpha * 1.45f)), IGraphics::CORNER_ALL, RoundRadius);
 			}
 
 			const int ClientId = pInfo->m_ClientId;
@@ -1119,7 +1127,7 @@ void CScoreboard::RenderScoreboard(CUIRect Scoreboard, int Team, int CountStart,
 
 				if(Ui()->HotItem() == &ClientData)
 				{
-					Row.Draw(ColorRGBA(0.7f, 0.7f, 0.7f, 0.7f * ItemAlpha), IGraphics::CORNER_ALL, RoundRadius);
+					Row.Draw(ScoreboardDecorationColor(ColorRGBA(0.7f, 0.7f, 0.7f, 0.7f * ItemAlpha)), IGraphics::CORNER_ALL, RoundRadius);
 				}
 			}
 
@@ -1397,7 +1405,7 @@ void CScoreboard::RenderRecordingNotification(float x)
 		TextRect = CUiV2LegacyAdapter::ToCUIRect(vChildren[1].m_Box);
 	}
 	Circle.HMargin((Circle.h - Circle.w) / 2.0f, &Circle);
-	Circle.Draw(ColorRGBA(1.0f, 0.0f, 0.0f, ContentAlpha), IGraphics::CORNER_ALL, Circle.h / 2.0f);
+	Circle.Draw(ScoreboardDecorationColor(ColorRGBA(1.0f, 0.0f, 0.0f, ContentAlpha)), IGraphics::CORNER_ALL, Circle.h / 2.0f);
 
 	Ui()->DoLabel(&TextRect, aBuf, FontSize, TEXTALIGN_ML);
 }
