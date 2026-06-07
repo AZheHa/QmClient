@@ -8,6 +8,7 @@
 
 #include <base/color.h>
 #include <base/log.h>
+#include <base/str.h>
 #include <base/system.h>
 
 #include <engine/client.h>
@@ -15,10 +16,14 @@
 #include <engine/gfx/image_loader.h>
 #include <engine/gfx/image_manipulation.h>
 #include <engine/graphics.h>
+#include <engine/http.h>
 #include <engine/input.h>
 #include <engine/keys.h>
 #include <engine/shared/config.h>
 #include <engine/shared/filecollection.h>
+#include <engine/shared/http.h>
+#include <engine/shared/json.h>
+#include <engine/shared/jsonwriter.h>
 #include <engine/storage.h>
 #include <engine/textrender.h>
 
@@ -38,11 +43,47 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <iterator>
 #include <limits>
 #include <type_traits>
+#include <vector>
 
 using namespace FontIcons;
+
+static constexpr const char *QM_EDITOR_COLLAB_BASE_URL = "http://42.194.185.210:8080/editor/collab";
+static constexpr const char *QM_EDITOR_COLLAB_SNAPSHOT_PATH = "qmclient/editor_collab_snapshot.map";
+static constexpr const char *QM_EDITOR_COLLAB_INCOMING_PATH = "qmclient/editor_collab_incoming.map";
+static constexpr int QM_EDITOR_COLLAB_MAX_MEMBERS = 4;
+static constexpr int QM_EDITOR_COLLAB_PULL_INTERVAL_MS = 1500;
+static constexpr int QM_EDITOR_COLLAB_PUSH_DELAY_MS = 1000;
+static constexpr int QM_EDITOR_COLLAB_MAX_MAP_BYTES = 18 * 1024 * 1024;
+static constexpr int QM_EDITOR_COLLAB_MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
+
+static const json_value *EditorCollabJsonField(const json_value *pObject, const char *pName)
+{
+	if(!pObject || pObject->type != json_object)
+		return &json_value_none;
+	return json_object_get(pObject, pName);
+}
+
+static const char *EditorCollabJsonString(const json_value *pObject, const char *pName)
+{
+	const json_value *pValue = EditorCollabJsonField(pObject, pName);
+	return pValue->type == json_string ? json_string_get(pValue) : "";
+}
+
+static int EditorCollabJsonInt(const json_value *pObject, const char *pName, int Default)
+{
+	const json_value *pValue = EditorCollabJsonField(pObject, pName);
+	return pValue->type == json_integer ? json_int_get(pValue) : Default;
+}
+
+static bool EditorCollabJsonOk(const json_value *pObject)
+{
+	const json_value *pValue = EditorCollabJsonField(pObject, "ok");
+	return pValue->type != json_boolean || json_boolean_get(pValue);
+}
 
 static const char *VANILLA_IMAGES[] = {
 	"bg_cloud1",
@@ -4630,6 +4671,536 @@ void CEditor::ShowFileDialogError(const char *pFormat, ...)
 	Ui()->ShowPopupMessage(Ui()->MouseX(), Ui()->MouseY(), pContext);
 }
 
+void CEditor::EnsureCollabClientId()
+{
+	if(m_aCollabClientId[0] != '\0')
+		return;
+	secure_random_password(m_aCollabClientId, sizeof(m_aCollabClientId), 32);
+}
+
+void CEditor::SetCollabStatus(const char *pFormat, ...)
+{
+	va_list VarArgs;
+	va_start(VarArgs, pFormat);
+	str_format_v(m_aCollabStatus, sizeof(m_aCollabStatus), pFormat, VarArgs);
+	va_end(VarArgs);
+}
+
+bool CEditor::BuildCollabUrl(const char *pPath, char *pBuffer, int BufferSize, const char *pQuery) const
+{
+	if(pQuery && pQuery[0] != '\0')
+		str_format(pBuffer, BufferSize, "%s%s?%s", QM_EDITOR_COLLAB_BASE_URL, pPath, pQuery);
+	else
+		str_format(pBuffer, BufferSize, "%s%s", QM_EDITOR_COLLAB_BASE_URL, pPath);
+	return str_length(pBuffer) + 1 < (size_t)BufferSize;
+}
+
+std::shared_ptr<CHttpRequest> CEditor::MakeCollabJsonRequest(const char *pPath, const std::string &Body)
+{
+	char aUrl[256];
+	if(!BuildCollabUrl(pPath, aUrl, sizeof(aUrl)))
+	{
+		SetCollabStatus("连接失败：协作服务地址过长");
+		return nullptr;
+	}
+
+	std::shared_ptr<CHttpRequest> pTask = HttpPostJson(aUrl, Body.c_str());
+	pTask->AllowInsecureProtocol();
+	pTask->Timeout(CTimeout{3000, 12000, 500, 5});
+	pTask->IpResolve(IPRESOLVE::V4);
+	pTask->LogProgress(HTTPLOG::FAILURE);
+	pTask->MaxResponseSize(QM_EDITOR_COLLAB_MAX_RESPONSE_BYTES);
+
+	CGameClient *pGameClient = static_cast<CGameClient *>(Kernel()->RequestInterface<IGameClient>());
+	if(!pGameClient || !pGameClient->Http())
+	{
+		SetCollabStatus("连接失败：HTTP 服务不可用");
+		return nullptr;
+	}
+	pGameClient->Http()->Run(pTask);
+	return pTask;
+}
+
+void CEditor::CreateCollabRoom()
+{
+	if(m_CollabState != ECollabState::DISCONNECTED)
+		return;
+
+	EnsureCollabClientId();
+	CJsonStringWriter JsonWriter;
+	JsonWriter.BeginObject();
+	JsonWriter.WriteAttribute("client_id");
+	JsonWriter.WriteStrValue(m_aCollabClientId);
+	JsonWriter.WriteAttribute("player_name");
+	JsonWriter.WriteStrValue(g_Config.m_PlayerName);
+	JsonWriter.EndObject();
+
+	m_pCollabCreateTask = MakeCollabJsonRequest("/create", JsonWriter.GetOutputString());
+	if(m_pCollabCreateTask)
+	{
+		m_CollabState = ECollabState::CREATING;
+		SetCollabStatus("正在创建协作房间...");
+	}
+}
+
+void CEditor::JoinCollabRoom()
+{
+	if(m_CollabState != ECollabState::DISCONNECTED)
+		return;
+
+	const char *pRoomCode = m_CollabRoomInput.GetString();
+	if(!pRoomCode || pRoomCode[0] == '\0')
+	{
+		SetCollabStatus("请输入房间码");
+		return;
+	}
+
+	EnsureCollabClientId();
+	CJsonStringWriter JsonWriter;
+	JsonWriter.BeginObject();
+	JsonWriter.WriteAttribute("room_code");
+	JsonWriter.WriteStrValue(pRoomCode);
+	JsonWriter.WriteAttribute("client_id");
+	JsonWriter.WriteStrValue(m_aCollabClientId);
+	JsonWriter.WriteAttribute("player_name");
+	JsonWriter.WriteStrValue(g_Config.m_PlayerName);
+	JsonWriter.EndObject();
+
+	m_pCollabJoinTask = MakeCollabJsonRequest("/join", JsonWriter.GetOutputString());
+	if(m_pCollabJoinTask)
+	{
+		m_CollabState = ECollabState::JOINING;
+		SetCollabStatus("正在加入协作房间...");
+	}
+}
+
+void CEditor::LeaveCollabRoom()
+{
+	if(m_CollabState == ECollabState::DISCONNECTED)
+		return;
+
+	if(m_CollabState == ECollabState::CREATING || m_CollabState == ECollabState::JOINING)
+	{
+		if(m_pCollabCreateTask)
+			m_pCollabCreateTask->Abort();
+		if(m_pCollabJoinTask)
+			m_pCollabJoinTask->Abort();
+		m_pCollabCreateTask = nullptr;
+		m_pCollabJoinTask = nullptr;
+		m_CollabState = ECollabState::DISCONNECTED;
+		SetCollabStatus("已取消协作连接");
+		return;
+	}
+
+	if(m_pCollabPullTask)
+		m_pCollabPullTask->Abort();
+	if(m_pCollabPushTask)
+		m_pCollabPushTask->Abort();
+	m_pCollabPullTask = nullptr;
+	m_pCollabPushTask = nullptr;
+	m_CollabSnapshotSavePending = false;
+
+	CJsonStringWriter JsonWriter;
+	JsonWriter.BeginObject();
+	JsonWriter.WriteAttribute("room_code");
+	JsonWriter.WriteStrValue(m_aCollabRoomCode);
+	JsonWriter.WriteAttribute("client_id");
+	JsonWriter.WriteStrValue(m_aCollabClientId);
+	JsonWriter.EndObject();
+
+	m_pCollabLeaveTask = MakeCollabJsonRequest("/leave", JsonWriter.GetOutputString());
+	if(!m_pCollabLeaveTask)
+	{
+		m_CollabState = ECollabState::DISCONNECTED;
+		m_aCollabRoomCode[0] = '\0';
+		m_CollabRevision = 0;
+		m_CollabMemberCount = 0;
+		SetCollabStatus("已离开协作房间，未能通知协作服务");
+		return;
+	}
+	m_CollabState = ECollabState::LEAVING;
+	SetCollabStatus("正在离开协作房间...");
+}
+
+void CEditor::StartCollabPull()
+{
+	if(m_CollabState != ECollabState::CONNECTED || m_pCollabPullTask)
+		return;
+
+	char aEscapedRoomCode[64];
+	char aEscapedClientId[128];
+	EscapeUrl(aEscapedRoomCode, sizeof(aEscapedRoomCode), m_aCollabRoomCode);
+	EscapeUrl(aEscapedClientId, sizeof(aEscapedClientId), m_aCollabClientId);
+
+	char aQuery[256];
+	str_format(aQuery, sizeof(aQuery), "room_code=%s&client_id=%s&since=%d", aEscapedRoomCode, aEscapedClientId, m_CollabRevision);
+
+	char aUrl[256];
+	if(!BuildCollabUrl("/pull", aUrl, sizeof(aUrl), aQuery))
+	{
+		SetCollabStatus("同步中断：协作服务地址过长");
+		return;
+	}
+
+	m_pCollabPullTask = HttpGet(aUrl);
+	m_pCollabPullTask->AllowInsecureProtocol();
+	m_pCollabPullTask->Timeout(CTimeout{3000, 0, 500, 5});
+	m_pCollabPullTask->IpResolve(IPRESOLVE::V4);
+	m_pCollabPullTask->LogProgress(HTTPLOG::FAILURE);
+	m_pCollabPullTask->MaxResponseSize(QM_EDITOR_COLLAB_MAX_RESPONSE_BYTES);
+
+	CGameClient *pGameClient = static_cast<CGameClient *>(Kernel()->RequestInterface<IGameClient>());
+	if(!pGameClient || !pGameClient->Http())
+	{
+		m_pCollabPullTask = nullptr;
+		SetCollabStatus("同步中断：HTTP 服务不可用");
+		return;
+	}
+	pGameClient->Http()->Run(m_pCollabPullTask);
+}
+
+void CEditor::StartCollabSnapshotSave(bool Force)
+{
+	if(m_CollabState != ECollabState::CONNECTED || m_pCollabPushTask || m_CollabSnapshotSavePending || m_CollabApplyingRemoteSnapshot)
+		return;
+	if(!Force && (m_Map.m_LastModifiedTime < 0.0f || m_Map.m_LastModifiedTime <= m_CollabLastUploadedModifiedTime))
+		return;
+
+	Storage()->CreateFolder("qmclient", IStorage::TYPE_SAVE);
+	m_CollabSnapshotSavePending = Save(QM_EDITOR_COLLAB_SNAPSHOT_PATH);
+	if(m_CollabSnapshotSavePending)
+	{
+		m_CollabPendingUploadedModifiedTime = m_Map.m_LastModifiedTime;
+		SetCollabStatus("正在同步地图快照...");
+	}
+	else
+	{
+		SetCollabStatus("同步失败：无法保存地图快照");
+	}
+}
+
+void CEditor::UploadCollabSnapshot()
+{
+	if(m_CollabState != ECollabState::CONNECTED || m_pCollabPushTask)
+		return;
+
+	void *pData = nullptr;
+	unsigned DataSize = 0;
+	if(!Storage()->ReadFile(QM_EDITOR_COLLAB_SNAPSHOT_PATH, IStorage::TYPE_SAVE, &pData, &DataSize))
+	{
+		SetCollabStatus("同步失败：无法读取地图快照");
+		return;
+	}
+
+	if(DataSize > QM_EDITOR_COLLAB_MAX_MAP_BYTES)
+	{
+		free(pData);
+		SetCollabStatus("同步失败：地图过大，无法实时同步");
+		return;
+	}
+
+	const int Base64Size = ((int)DataSize + 2) / 3 * 4 + 1;
+	std::string MapBase64(Base64Size, '\0');
+	str_base64(MapBase64.data(), Base64Size, pData, (int)DataSize);
+	free(pData);
+	MapBase64.resize(str_length(MapBase64.c_str()));
+
+	CJsonStringWriter JsonWriter;
+	JsonWriter.BeginObject();
+	JsonWriter.WriteAttribute("room_code");
+	JsonWriter.WriteStrValue(m_aCollabRoomCode);
+	JsonWriter.WriteAttribute("client_id");
+	JsonWriter.WriteStrValue(m_aCollabClientId);
+	JsonWriter.WriteAttribute("player_name");
+	JsonWriter.WriteStrValue(g_Config.m_PlayerName);
+	JsonWriter.WriteAttribute("revision");
+	JsonWriter.WriteIntValue(m_CollabRevision);
+	JsonWriter.WriteAttribute("map_base64");
+	JsonWriter.WriteStrValue(MapBase64.c_str());
+	JsonWriter.EndObject();
+
+	m_pCollabPushTask = MakeCollabJsonRequest("/push", JsonWriter.GetOutputString());
+	if(!m_pCollabPushTask)
+		SetCollabStatus("同步失败：无法连接协作服务");
+}
+
+void CEditor::FinishCollabCreateJoin(std::shared_ptr<CHttpRequest> &pTask, bool Joining)
+{
+	if(!pTask || !pTask->Done())
+		return;
+
+	const int StatusCode = pTask->StatusCode();
+	json_value *pRoot = pTask->ResultJson();
+	const char *pMessage = pRoot ? EditorCollabJsonString(pRoot, "message") : "";
+	if(pTask->State() != EHttpState::DONE)
+	{
+		SetCollabStatus(Joining ? "加入失败：连接失败" : "创建房间失败：连接失败");
+	}
+	else if(StatusCode == 409)
+	{
+		SetCollabStatus("%s", pMessage[0] ? pMessage : "房间已满，最多支持 4 人协作");
+	}
+	else if(StatusCode == 404)
+	{
+		SetCollabStatus("加入失败：房间码无效或房间已过期");
+	}
+	else if(StatusCode != 200 || !pRoot || !EditorCollabJsonOk(pRoot))
+	{
+		SetCollabStatus("%s", pMessage[0] ? pMessage : (Joining ? "加入失败：协作服务返回异常" : "创建房间失败：协作服务返回异常"));
+	}
+	else
+	{
+		const char *pRoomCode = EditorCollabJsonString(pRoot, "room_code");
+		if(pRoomCode[0] != '\0')
+		{
+			str_copy(m_aCollabRoomCode, pRoomCode);
+			m_CollabRoomInput.Set(pRoomCode);
+		}
+		m_CollabRevision = EditorCollabJsonInt(pRoot, "revision", 0);
+		m_CollabMemberCount = EditorCollabJsonInt(pRoot, "member_count", 1);
+		m_CollabMaxMembers = EditorCollabJsonInt(pRoot, "max_members", QM_EDITOR_COLLAB_MAX_MEMBERS);
+		m_CollabState = ECollabState::CONNECTED;
+		m_CollabNextPullTime = time_get() + time_freq() * QM_EDITOR_COLLAB_PULL_INTERVAL_MS / 1000;
+		m_CollabNextPushTime = 0;
+		m_CollabLastUploadedModifiedTime = -1.0f;
+
+		const char *pMapBase64 = EditorCollabJsonString(pRoot, "map_base64");
+		if(Joining && pMapBase64[0] != '\0')
+			ApplyCollabSnapshotBase64(pMapBase64, m_CollabRevision);
+		else if(!Joining)
+			StartCollabSnapshotSave(true);
+
+		SetCollabStatus("已加入房间 %s（%d/%d 人）", m_aCollabRoomCode, m_CollabMemberCount, m_CollabMaxMembers);
+	}
+
+	if(pRoot)
+		json_value_free(pRoot);
+	pTask = nullptr;
+	if(m_CollabState != ECollabState::CONNECTED)
+		m_CollabState = ECollabState::DISCONNECTED;
+}
+
+void CEditor::FinishCollabLeave()
+{
+	if(!m_pCollabLeaveTask || !m_pCollabLeaveTask->Done())
+		return;
+
+	m_pCollabLeaveTask = nullptr;
+	m_CollabState = ECollabState::DISCONNECTED;
+	m_aCollabRoomCode[0] = '\0';
+	m_CollabRevision = 0;
+	m_CollabMemberCount = 0;
+	m_CollabNextPullTime = 0;
+	m_CollabNextPushTime = 0;
+	m_CollabLastUploadedModifiedTime = -1.0f;
+	SetCollabStatus("已离开协作房间");
+}
+
+void CEditor::FinishCollabPush()
+{
+	if(!m_pCollabPushTask || !m_pCollabPushTask->Done())
+		return;
+
+	const int StatusCode = m_pCollabPushTask->StatusCode();
+	json_value *pRoot = m_pCollabPushTask->ResultJson();
+	const char *pMessage = pRoot ? EditorCollabJsonString(pRoot, "message") : "";
+	if(m_pCollabPushTask->State() != EHttpState::DONE)
+	{
+		SetCollabStatus("同步中断：连接失败");
+	}
+	else if(StatusCode == 404)
+	{
+		SetCollabStatus("同步中断：房间不存在或已过期");
+		m_CollabState = ECollabState::DISCONNECTED;
+		m_aCollabRoomCode[0] = '\0';
+		m_CollabRevision = 0;
+		m_CollabMemberCount = 0;
+	}
+	else if(StatusCode == 403)
+	{
+		SetCollabStatus("同步中断：你已不在该房间中");
+		m_CollabState = ECollabState::DISCONNECTED;
+		m_aCollabRoomCode[0] = '\0';
+		m_CollabRevision = 0;
+		m_CollabMemberCount = 0;
+	}
+	else if(StatusCode != 200 || !pRoot || !EditorCollabJsonOk(pRoot))
+	{
+		SetCollabStatus("%s", pMessage[0] ? pMessage : "同步失败：协作服务返回异常");
+	}
+	else
+	{
+		m_CollabRevision = EditorCollabJsonInt(pRoot, "revision", m_CollabRevision);
+		m_CollabMemberCount = EditorCollabJsonInt(pRoot, "member_count", m_CollabMemberCount);
+		m_CollabMaxMembers = EditorCollabJsonInt(pRoot, "max_members", m_CollabMaxMembers);
+		m_CollabLastUploadedModifiedTime = maximum(m_CollabLastUploadedModifiedTime, m_CollabPendingUploadedModifiedTime);
+		SetCollabStatus("已同步到房间 %s（%d/%d 人）", m_aCollabRoomCode, m_CollabMemberCount, m_CollabMaxMembers);
+	}
+
+	if(pRoot)
+		json_value_free(pRoot);
+	m_pCollabPushTask = nullptr;
+}
+
+void CEditor::FinishCollabPull()
+{
+	if(!m_pCollabPullTask || !m_pCollabPullTask->Done())
+		return;
+
+	const int StatusCode = m_pCollabPullTask->StatusCode();
+	json_value *pRoot = m_pCollabPullTask->ResultJson();
+	const char *pMessage = pRoot ? EditorCollabJsonString(pRoot, "message") : "";
+	if(m_pCollabPullTask->State() != EHttpState::DONE)
+	{
+		SetCollabStatus("同步中断：连接失败");
+	}
+	else if(StatusCode == 404)
+	{
+		SetCollabStatus("同步中断：房间不存在或已过期");
+		m_CollabState = ECollabState::DISCONNECTED;
+		m_aCollabRoomCode[0] = '\0';
+		m_CollabRevision = 0;
+		m_CollabMemberCount = 0;
+	}
+	else if(StatusCode == 403)
+	{
+		SetCollabStatus("同步中断：你已不在该房间中");
+		m_CollabState = ECollabState::DISCONNECTED;
+		m_aCollabRoomCode[0] = '\0';
+		m_CollabRevision = 0;
+		m_CollabMemberCount = 0;
+	}
+	else if(StatusCode != 200 || !pRoot || !EditorCollabJsonOk(pRoot))
+	{
+		SetCollabStatus("%s", pMessage[0] ? pMessage : "同步失败：协作服务返回异常");
+	}
+	else
+	{
+		const int Revision = EditorCollabJsonInt(pRoot, "revision", m_CollabRevision);
+		m_CollabMemberCount = EditorCollabJsonInt(pRoot, "member_count", m_CollabMemberCount);
+		m_CollabMaxMembers = EditorCollabJsonInt(pRoot, "max_members", m_CollabMaxMembers);
+
+		const char *pMapBase64 = EditorCollabJsonString(pRoot, "map_base64");
+		if(Revision > m_CollabRevision && pMapBase64[0] != '\0')
+		{
+			if(ApplyCollabSnapshotBase64(pMapBase64, Revision))
+				SetCollabStatus("已接收房间 %s 的同步更新（%d/%d 人）", m_aCollabRoomCode, m_CollabMemberCount, m_CollabMaxMembers);
+		}
+		else
+		{
+			m_CollabRevision = Revision;
+			SetCollabStatus("房间 %s 同步正常（%d/%d 人）", m_aCollabRoomCode, m_CollabMemberCount, m_CollabMaxMembers);
+		}
+	}
+
+	if(pRoot)
+		json_value_free(pRoot);
+	m_pCollabPullTask = nullptr;
+	if(m_CollabState == ECollabState::CONNECTED)
+		m_CollabNextPullTime = time_get() + time_freq() * QM_EDITOR_COLLAB_PULL_INTERVAL_MS / 1000;
+}
+
+bool CEditor::ApplyCollabSnapshotBase64(const char *pMapBase64, int Revision)
+{
+	const int Base64Length = str_length(pMapBase64);
+	const int MaxDecodedSize = Base64Length / 4 * 3 + 4;
+	if(MaxDecodedSize <= 0 || MaxDecodedSize > QM_EDITOR_COLLAB_MAX_MAP_BYTES)
+	{
+		SetCollabStatus("同步失败：收到的地图快照过大");
+		return false;
+	}
+
+	std::vector<unsigned char> vDecoded(MaxDecodedSize);
+	const int DecodedSize = str_base64_decode(vDecoded.data(), MaxDecodedSize, pMapBase64);
+	if(DecodedSize <= 0)
+	{
+		SetCollabStatus("同步失败：地图快照数据无效");
+		return false;
+	}
+	vDecoded.resize(DecodedSize);
+
+	Storage()->CreateFolder("qmclient", IStorage::TYPE_SAVE);
+	IOHANDLE File = Storage()->OpenFile(QM_EDITOR_COLLAB_INCOMING_PATH, IOFLAG_WRITE, IStorage::TYPE_SAVE);
+	if(!File)
+	{
+		SetCollabStatus("同步失败：无法写入远端地图快照");
+		return false;
+	}
+	if(io_write(File, vDecoded.data(), (unsigned)vDecoded.size()) != vDecoded.size())
+	{
+		io_close(File);
+		SetCollabStatus("同步失败：无法完整写入远端地图快照");
+		return false;
+	}
+	io_close(File);
+
+	m_CollabApplyingRemoteSnapshot = true;
+	const bool Loaded = LoadCollabSnapshot(QM_EDITOR_COLLAB_INCOMING_PATH, IStorage::TYPE_SAVE);
+	m_CollabApplyingRemoteSnapshot = false;
+	if(!Loaded)
+	{
+		SetCollabStatus("同步失败：无法加载远端地图快照");
+		return false;
+	}
+
+	m_CollabRevision = Revision;
+	m_CollabLastUploadedModifiedTime = m_Map.m_LastModifiedTime;
+	return true;
+}
+
+bool CEditor::LoadCollabSnapshot(const char *pFilename, int StorageType)
+{
+	char aPreviousFilename[IO_MAX_PATH_LENGTH];
+	str_copy(aPreviousFilename, m_aFilename);
+	const bool ValidSaveFilename = m_ValidSaveFilename;
+
+	const auto &&ErrorHandler = [this](const char *pErrorMessage) {
+		SetCollabStatus("%s", pErrorMessage);
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor/collab", pErrorMessage);
+	};
+
+	Reset();
+	const bool Result = m_Map.Load(pFilename, StorageType, std::move(ErrorHandler));
+	if(Result)
+	{
+		str_copy(m_aFilename, aPreviousFilename);
+		m_ValidSaveFilename = ValidSaveFilename;
+		m_Map.SortImages();
+		SelectGameLayer();
+
+		for(CEditorComponent &Component : m_vComponents)
+			Component.OnMapLoad();
+
+		log_info("editor/collab", "已加载协作房间的地图快照");
+	}
+	return Result;
+}
+
+void CEditor::UpdateCollab()
+{
+	FinishCollabCreateJoin(m_pCollabCreateTask, false);
+	FinishCollabCreateJoin(m_pCollabJoinTask, true);
+	FinishCollabLeave();
+	FinishCollabPush();
+	FinishCollabPull();
+
+	if(m_CollabState != ECollabState::CONNECTED)
+		return;
+
+	const int64_t Now = time_get();
+	if(!m_pCollabPullTask && Now >= m_CollabNextPullTime)
+		StartCollabPull();
+
+	if(m_Map.m_LastModifiedTime >= 0.0f && m_Map.m_LastModifiedTime > m_CollabLastUploadedModifiedTime && !m_CollabSnapshotSavePending && !m_pCollabPushTask && m_CollabNextPushTime == 0)
+		m_CollabNextPushTime = Now + time_freq() * QM_EDITOR_COLLAB_PUSH_DELAY_MS / 1000;
+
+	if(m_CollabNextPushTime != 0 && Now >= m_CollabNextPushTime)
+	{
+		m_CollabNextPushTime = 0;
+		StartCollabSnapshotSave();
+	}
+}
+
 void CEditor::RenderModebar(CUIRect View)
 {
 	CUIRect Mentions, IngameMoved, ModeButtons, ModeButton;
@@ -6716,6 +7287,17 @@ void CEditor::RenderMenubar(CUIRect MenuBar)
 		Ui()->DoPopupMenu(&s_PopupMenuSettingsId, SettingsButton.x, SettingsButton.y + SettingsButton.h - 1.0f, 280.0f, 148.0f, this, PopupMenuSettings, PopupProperties);
 	}
 
+	MenuBar.VSplitLeft(5.0f, nullptr, &MenuBar);
+
+	CUIRect CollabButton;
+	static int s_CollabButton = 0;
+	MenuBar.VSplitLeft(84.0f, &CollabButton, &MenuBar);
+	if(DoButton_Ex(&s_CollabButton, "协作制图", m_CollabState == ECollabState::CONNECTED, &CollabButton, BUTTONFLAG_LEFT, "创建或加入最多 4 人的编辑器协作房间。", IGraphics::CORNER_T, EditorFontSizes::MENU, TEXTALIGN_ML))
+	{
+		static SPopupMenuId s_PopupCollabId;
+		Ui()->DoPopupMenu(&s_PopupCollabId, CollabButton.x, CollabButton.y + CollabButton.h - 1.0f, 360.0f, 170.0f, this, PopupCollab, PopupProperties);
+	}
+
 	CUIRect ChangedIndicator, Info, Help, Close;
 	MenuBar.VSplitLeft(5.0f, nullptr, &MenuBar);
 	MenuBar.VSplitLeft(MenuBar.h, &ChangedIndicator, &MenuBar);
@@ -7845,10 +8427,16 @@ void CEditor::HandleWriterFinishJobs()
 	if(!pJob->Done())
 		return;
 	m_WriterFinishJobs.pop_front();
+	const bool CollabSnapshotJob = m_CollabSnapshotSavePending && str_comp(pJob->GetRealFilename(), QM_EDITOR_COLLAB_SNAPSHOT_PATH) == 0;
 
 	char aBuf[2 * IO_MAX_PATH_LENGTH + 128];
 	if(!Storage()->RemoveFile(pJob->GetRealFilename(), IStorage::TYPE_SAVE))
 	{
+		if(CollabSnapshotJob)
+		{
+			m_CollabSnapshotSavePending = false;
+			SetCollabStatus("同步失败：无法删除旧地图快照");
+		}
 		str_format(aBuf, sizeof(aBuf), "保存失败：无法删除旧地图文件“%s”。", pJob->GetRealFilename());
 		ShowFileDialogError("%s", aBuf);
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor/save", aBuf);
@@ -7857,6 +8445,11 @@ void CEditor::HandleWriterFinishJobs()
 
 	if(!Storage()->RenameFile(pJob->GetTempFilename(), pJob->GetRealFilename(), IStorage::TYPE_SAVE))
 	{
+		if(CollabSnapshotJob)
+		{
+			m_CollabSnapshotSavePending = false;
+			SetCollabStatus("同步失败：无法移动地图快照");
+		}
 		str_format(aBuf, sizeof(aBuf), "保存失败：无法将临时地图文件“%s”移动到“%s”。", pJob->GetTempFilename(), pJob->GetRealFilename());
 		ShowFileDialogError("%s", aBuf);
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "editor/save", aBuf);
@@ -7865,6 +8458,13 @@ void CEditor::HandleWriterFinishJobs()
 
 	str_format(aBuf, sizeof(aBuf), "保存“%s”完成", pJob->GetRealFilename());
 	Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "editor/save", aBuf);
+
+	if(CollabSnapshotJob)
+	{
+		m_CollabSnapshotSavePending = false;
+		UploadCollabSnapshot();
+		return;
+	}
 
 	// send rcon.. if we can
 	if(Client()->RconAuthed() && g_Config.m_EdAutoMapReload)
@@ -7919,6 +8519,7 @@ void CEditor::OnUpdate()
 	HandleCursorMovement();
 	HandleAutosave();
 	HandleWriterFinishJobs();
+	UpdateCollab();
 
 	for(CEditorComponent &Component : m_vComponents)
 		Component.OnUpdate();
