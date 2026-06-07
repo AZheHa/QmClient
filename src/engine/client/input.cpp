@@ -7,13 +7,13 @@
 #include <base/perf_timer.h>
 #include <base/system.h>
 
-#include <engine/console.h>
 #include <engine/client.h>
+#include <engine/console.h>
 #include <engine/graphics.h>
 #include <engine/input.h>
 #include <engine/keys.h>
-#include <engine/shared/qm_ime_policy.h>
 #include <engine/shared/config.h>
+#include <engine/shared/qm_ime_policy.h>
 
 #include <game/client/components/qmclient/perf_logging.h>
 
@@ -43,20 +43,10 @@
 
 namespace
 {
-bool PerfDebugEnabled()
-{
-	return QmPerfEnabled();
-}
-
-double PerfDebugThresholdMs()
-{
-	return QmPerfThresholdMs();
-}
-
-void LogPerfStage(IClient *pClient, const char *pStage, const double DurationMs, const bool Force = false, const char *pExtra = nullptr)
-{
-	QmPerfLogStage("perf/input", pStage, DurationMs, Force, pClient, nullptr, nullptr, pExtra);
-}
+	void LogPerfStage(IClient *pClient, const char *pStage, const double DurationMs, const bool Force = false, const char *pExtra = nullptr)
+	{
+		QmPerfLogStage("perf/input", pStage, DurationMs, Force, pClient, nullptr, nullptr, pExtra);
+	}
 }
 
 void CInput::AddKeyEvent(int Key, int Flags)

@@ -159,6 +159,8 @@ python qmclient_scripts/gate/tools/refresh_allowlist.py --report tmp/check-gate-
 - 运行/测试目录默认是 `cmake-build-release`
 - 严格调试检查目录默认是 `cmake-build-debug` / `cmake-build-analyze`
 - Windows 默认通过 `qmclient_scripts/cmake-windows.cmd` 进入 CMake
+- 在 Windows 宿主上验证 Linux 构建时，推荐通过 WSL Ubuntu + GCC/G++ + CMake + Ninja 走原生 Linux 口径，并使用独立目录（例如 `cmake-build-linux-release`），不要复用 Windows 的 `cmake-build-release`
+- 同一 build 目录里的 `game-client`、`testrunner`、`run_cxx_tests`、`run_rust_tests`、`package_default` 必须串行执行，不要并行调度；并行验证只能通过拆分到不同 build 目录实现
 
 ### 结果分类
 
