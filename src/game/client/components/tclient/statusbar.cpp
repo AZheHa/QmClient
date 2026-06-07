@@ -16,12 +16,12 @@ namespace
 	{
 		switch(Grade)
 		{
-		case EQmConnectionGrade::NORMAL: return "正常";
-		case EQmConnectionGrade::ELEVATED: return "偏高";
-		case EQmConnectionGrade::SEVERE: return "严重";
-		case EQmConnectionGrade::DISCONNECTED: return "断开";
+		case EQmConnectionGrade::NORMAL: return "Normal";
+		case EQmConnectionGrade::ELEVATED: return "Elevated";
+		case EQmConnectionGrade::SEVERE: return "Severe";
+		case EQmConnectionGrade::DISCONNECTED: return "Disconnected";
 		}
-		return "断开";
+		return "Disconnected";
 	}
 }
 
@@ -325,7 +325,7 @@ void CStatusBar::UpRateRender()
 
 float CStatusBar::ConnectionGradeWidth()
 {
-	return TextRender()->TextWidth(m_FontSize, "严重");
+	return TextRender()->TextWidth(m_FontSize, Localize("Severe"));
 }
 
 void CStatusBar::ConnectionGradeRender()

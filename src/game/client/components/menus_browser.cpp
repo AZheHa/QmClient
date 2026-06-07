@@ -442,6 +442,7 @@ void CMenus::RenderServerbrowserServerList(CUIRect View, bool &WasListboxItemAct
 
 	CUIRect Headers;
 	View.HSplitTop(ms_ListheaderHeight, &Headers, &View);
+	const CUIRect ListView = View;
 	Headers.Draw(BrowserOpacityColor(ColorRGBA(1.0f, 1.0f, 1.0f, 0.25f)), IGraphics::CORNER_T, 5.0f);
 	Headers.VSplitRight(s_ListBox.ScrollbarWidthMax(), &Headers, nullptr);
 	View.Draw(BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.15f)), IGraphics::CORNER_NONE, 0.0f);
@@ -1030,6 +1031,20 @@ void CMenus::RenderServerbrowserServerList(CUIRect View, bool &WasListboxItemAct
 	}
 
 	const int NewSelected = s_ListBox.DoEnd();
+	if(NumServers * ms_ListheaderHeight > ListView.h)
+	{
+		CUIRect Fade = ListView;
+		Fade.VSplitRight(s_ListBox.ScrollbarWidthMax(), &Fade, nullptr);
+		constexpr float FadeHeight = 44.0f;
+		Fade.y += maximum(Fade.h - FadeHeight, 0.0f);
+		Fade.h = minimum(Fade.h, FadeHeight);
+		Fade.Draw4(
+			BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.0f)),
+			BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.0f)),
+			BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.38f)),
+			BrowserOpacityColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.38f)),
+			IGraphics::CORNER_NONE, 0.0f);
+	}
 	if(NewSelected != m_SelectedIndex)
 	{
 		m_SelectedIndex = NewSelected;

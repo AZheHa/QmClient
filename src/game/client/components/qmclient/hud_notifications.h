@@ -222,9 +222,9 @@ private:
 	void QueueSolo(QmHudNotifications::ESoloPrompt Prompt)
 	{
 		if(Prompt == QmHudNotifications::ESoloPrompt::Enter)
-			Queue(EKind::SoloEnter, Localize("你现在处于单人区域"));
+			Queue(EKind::SoloEnter, Localize("You are now in a solo part"));
 		else if(Prompt == QmHudNotifications::ESoloPrompt::Leave)
-			Queue(EKind::SoloLeave, Localize("你现在已离开单人区域"));
+			Queue(EKind::SoloLeave, Localize("You are now out of the solo part"));
 	}
 	bool LocalSoloState(bool &Solo) const;
 	void RenderNotifications(const CUIRect &BaseRect, bool Preview);

@@ -170,7 +170,7 @@ void CQmHudNotifications::RenderNotifications(const CUIRect &BaseRect, bool Prev
 	if(Preview)
 	{
 		PreviewNotification.m_Kind = EKind::SoloEnter;
-		str_copy(PreviewNotification.m_aText, Localize("你现在处于单人区域"));
+		str_copy(PreviewNotification.m_aText, Localize("You are now in a solo part"));
 		PreviewNotification.m_StartTime = Now;
 		apVisible[NumVisible++] = &PreviewNotification;
 	}

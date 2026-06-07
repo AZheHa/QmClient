@@ -38,9 +38,9 @@ public:
 	CStatusItem m_Ping = CStatusItem([this] { PingRender(); }, [this] { return PingWidth(); },
 		"p", "Ping", "", "Displays your ping to the current server");
 	CStatusItem m_Prediction = CStatusItem([this] { PredictionRender(); }, [this] { return PredictionWidth(); },
-		"d", "Prediction", "预测值", "显示当前预测值");
+		"d", "Prediction", "Prediction", "Displays current prediction value");
 	CStatusItem m_Position = CStatusItem([this] { PositionRender(); }, [this] { return PositionWidth(); },
-		"c", "Position", "坐标", "显示当前位置");
+		"c", "Position", "Position", "Displays current position");
 	CStatusItem m_LocalTime = CStatusItem([this] { LocalTimeRender(); }, [this] { return LocalTimeWidth(); },
 		"l", "Local Time", "", "Displays your local time", false);
 	CStatusItem m_RaceTime = CStatusItem([this] { RaceTimeRender(); }, [this] { return RaceTimeWidth(); },
@@ -52,23 +52,23 @@ public:
 	CStatusItem m_Zoom = CStatusItem([this] { ZoomRender(); }, [this] { return ZoomWidth(); },
 		"z", "Zoom", "", "Displays current zoom value");
 	CStatusItem m_Downstream = CStatusItem([this] { DownstreamRender(); }, [this] { return DownstreamWidth(); },
-		"u", "Snapshot Latency", "延迟", "显示服务器快照延迟");
+		"u", "Snapshot Latency", "Latency", "Displays server snapshot latency");
 	CStatusItem m_Upstream = CStatusItem([this] { UpstreamRender(); }, [this] { return UpstreamWidth(); },
-		"n", "Prediction Latency", "预测延迟", "显示客户端预测延迟");
+		"n", "Prediction Latency", "Prediction latency", "Displays client prediction latency");
 	CStatusItem m_Jitter = CStatusItem([this] { JitterRender(); }, [this] { return JitterWidth(); },
-		"j", "Latency Jitter", "延迟抖动", "显示延迟波动");
+		"j", "Latency Jitter", "Latency jitter", "Displays latency jitter");
 	CStatusItem m_PacketLoss = CStatusItem([this] { PacketLossRender(); }, [this] { return PacketLossWidth(); },
-		"k", "Resend Loss", "重发丢包", "显示重发推算的丢包率");
+		"k", "Resend Loss", "Resend loss", "Displays resend-based packet loss estimate");
 	CStatusItem m_DownRate = CStatusItem([this] { DownRateRender(); }, [this] { return DownRateWidth(); },
-		"i", "Receive Rate", "接收速率", "显示客户端接收速率");
+		"i", "Receive Rate", "Receive rate", "Displays client receive rate");
 	CStatusItem m_UpRate = CStatusItem([this] { UpRateRender(); }, [this] { return UpRateWidth(); },
-		"o", "Send Rate", "发送速率", "显示客户端发送速率");
+		"o", "Send Rate", "Send rate", "Displays client send rate");
 	CStatusItem m_ConnectionGrade = CStatusItem([this] { ConnectionGradeRender(); }, [this] { return ConnectionGradeWidth(); },
-		"q", "Connection Quality", "连接质量", "显示连接质量等级");
+		"q", "Connection Quality", "Connection quality", "Displays connection quality grade");
 	CStatusItem m_Cpu = CStatusItem([this] { CpuRender(); }, [this] { return CpuWidth(); },
-		"x", "DDNet / Total CPU", "DDNet/总 CPU", "显示 DDNet 进程 CPU 占用率 / 系统总 CPU 占用率");
+		"x", "DDNet / Total CPU", "DDNet/total CPU", "Displays DDNet process CPU usage / total system CPU usage");
 	CStatusItem m_Memory = CStatusItem([this] { MemoryRender(); }, [this] { return MemoryWidth(); },
-		"y", "DDNet Memory", "DDNet 内存", "显示 DDNet 进程内存占用");
+		"y", "DDNet Memory", "DDNet memory", "Displays DDNet process memory usage");
 	CStatusItem m_Space = CStatusItem([this] { SpaceRender(); }, [this] { return SpaceWidth(); },
 		" _", "Space", " ", "Gap between statusbar items", false);
 

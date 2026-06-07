@@ -1219,7 +1219,7 @@ void CTClient::TrySendAxiomLogin()
 
 	if(!m_AxiomAutoLoginAnnounced)
 	{
-		GameClient()->Echo(Localize("正在尝试 Axiom 自动登录"));
+		GameClient()->Echo(Localize("Trying Axiom auto login"));
 		m_AxiomAutoLoginAnnounced = true;
 	}
 }
@@ -1244,7 +1244,7 @@ void CTClient::TrySendAxiomDummyLogin()
 	str_format(aLoginCommand, sizeof(aLoginCommand), "/login %s", g_Config.m_QmAxiomDummyLoginPassword);
 	GameClient()->m_Chat.SendChatOnConn(IClient::CONN_DUMMY, 0, aLoginCommand);
 	m_AxiomDummyAutoLoginSent = true;
-	GameClient()->Echo(Localize("正在尝试 Axiom 分身自动登录"));
+	GameClient()->Echo(Localize("Trying Axiom dummy auto login"));
 }
 
 void CTClient::HandleAxiomAutoLoginMessage(const char *pText)
@@ -1264,7 +1264,7 @@ void CTClient::HandleAxiomAutoLoginMessage(const char *pText)
 		m_AxiomAutoLoginSucceeded = true;
 		m_AxiomAutoLoginWaitingReply = false;
 		m_AxiomAutoLoginNextTryTick = 0;
-		GameClient()->Echo(Localize("Axiom 自动登录成功"));
+		GameClient()->Echo(Localize("Axiom auto login succeeded"));
 	}
 	else if(Failure)
 	{
@@ -1272,12 +1272,12 @@ void CTClient::HandleAxiomAutoLoginMessage(const char *pText)
 		if(m_AxiomAutoLoginAttempts < QMCLIENT_AXIOM_AUTO_LOGIN_MAX_ATTEMPTS)
 		{
 			m_AxiomAutoLoginNextTryTick = time_get() + (int64_t)QMCLIENT_AXIOM_AUTO_LOGIN_RETRY_DELAY_SECONDS * time_freq();
-			GameClient()->Echo(Localize("Axiom 自动登录失败，正在重试"));
+			GameClient()->Echo(Localize("Axiom auto login failed, retrying"));
 		}
 		else
 		{
 			m_AxiomAutoLoginNextTryTick = 0;
-			GameClient()->Echo(Localize("Axiom 自动登录失败"));
+			GameClient()->Echo(Localize("Axiom auto login failed"));
 		}
 	}
 }
@@ -1991,17 +1991,17 @@ void CTClient::OnUpdate()
 				}
 				else if(!NeedQmClientUpdate())
 				{
-					Client()->AddWarning(SWarning(Localize("更新提示"), Localize("你已经是最新版本")));
+					Client()->AddWarning(SWarning(Localize("Update notice"), Localize("You are already on the latest version")));
 				}
 				else
 				{
-					Client()->AddWarning(SWarning(Localize("更新提示"), Localize("当前版本不是最新版，请前往 QQ 群更新最新版")));
+					Client()->AddWarning(SWarning(Localize("Update notice"), Localize("Your current version is outdated. Please update from the QQ group.")));
 				}
 				m_QmClientAutoUpdateAfterCheck = false;
 			}
 			else if(g_Config.m_QmShowOutdatedVersionWarning && InfoOk && m_FetchedQmClientUpdateInfo && NeedQmClientUpdate())
 			{
-				Client()->AddWarning(SWarning(Localize("更新提示"), Localize("当前版本不是最新版，请前往 QQ 群更新最新版")));
+				Client()->AddWarning(SWarning(Localize("Update notice"), Localize("Your current version is outdated. Please update from the QQ group.")));
 			}
 		}
 	}
@@ -4031,8 +4031,8 @@ void CTClient::ApplyFocusModeEffects()
 		char aFocusMsg[128];
 		str_format(aFocusMsg, sizeof(aFocusMsg), "%s%s: %s",
 			FocusActive ? "[[$FF7F7F]]" : "[[$A5FFA5]]",
-			Localize("禅模式"),
-			Localize(FocusActive ? "开启" : "关闭"));
+			Localize("Zen Mode"),
+			Localize(FocusActive ? "On" : "Off"));
 		GameClient()->Echo(aFocusMsg, true);
 	}
 
@@ -4094,8 +4094,8 @@ void CTClient::ApplyGoresFastInputLink(bool AutoMapCheck)
 		char aGoresMsg[128];
 		str_format(aGoresMsg, sizeof(aGoresMsg), "%s%s: %s",
 			GoresActive ? "[[$FF7F7F]]" : "[[$A5FFA5]]",
-			Localize("Gores 模式"),
-			Localize(GoresActive ? "开" : "关"));
+			Localize("Gores Mode"),
+			Localize(GoresActive ? "On" : "Off"));
 		GameClient()->Echo(aGoresMsg, true);
 	}
 
@@ -4978,11 +4978,11 @@ void CTClient::MaybeShowLocalSaveJoinHint()
 	}
 
 	char aMessage[1024];
-	str_format(aMessage, sizeof(aMessage), "— 您在这张图有%d个存档！", (int)vMatchedEntries.size());
+	str_format(aMessage, sizeof(aMessage), Localize("- You have %d saves on this map!"), (int)vMatchedEntries.size());
 	GameClient()->Echo(aMessage, true);
 
-	std::string PlayersLine = "— 保存者按顺序是";
-	std::string CodesLine = "— 密码依次为";
+	std::string PlayersLine = Localize("- Save owners in order:");
+	std::string CodesLine = Localize("- Save codes in order:");
 	const int DisplayCount = minimum((int)vMatchedEntries.size(), LOCAL_SAVE_JOIN_HINT_MAX_ITEMS);
 	for(int EntryIndex = 0; EntryIndex < DisplayCount; ++EntryIndex)
 	{
@@ -5000,8 +5000,6 @@ void CTClient::MaybeShowLocalSaveJoinHint()
 		PlayersLine += ",...";
 		CodesLine += ",...";
 	}
-	PlayersLine += "！";
-	CodesLine += "！";
 	GameClient()->Echo(PlayersLine.c_str(), true);
 	GameClient()->Echo(CodesLine.c_str(), true);
 

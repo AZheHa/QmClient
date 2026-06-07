@@ -1284,7 +1284,7 @@ float CMenus::LayoutTClientHudCacheSection(CUIRect &CurrentColumn, bool Render)
 	}
 	CurrentColumn.HSplitTop(LineSize, &Button, &CurrentColumn);
 	if(Render && g_Config.m_TcRenderCursorSpec)
-		Ui()->DoScrollbarOption(&g_Config.m_TcRenderCursorSpecAlpha, &g_Config.m_TcRenderCursorSpecAlpha, &Button, Localize("自由旁观光标不透明度"), 0, 100);
+		Ui()->DoScrollbarOption(&g_Config.m_TcRenderCursorSpecAlpha, &g_Config.m_TcRenderCursorSpecAlpha, &Button, Localize("Freeview cursor opacity"), 0, 100);
 	if(Render)
 		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcNotifyWhenLast, Localize("Notify when only one tee is still alive:"), &g_Config.m_TcNotifyWhenLast, &CurrentColumn, LineSize);
 	else
@@ -1339,7 +1339,7 @@ float CMenus::RenderTClientHudInteractiveLayer(CUIRect &CurrentColumn)
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcRenderCursorSpec, Localize("Show the cursor while free spectating"), &g_Config.m_TcRenderCursorSpec, &CurrentColumn, LineSize);
 	CurrentColumn.HSplitTop(LineSize, &Button, &CurrentColumn);
 	if(g_Config.m_TcRenderCursorSpec)
-		Ui()->DoScrollbarOption(&g_Config.m_TcRenderCursorSpecAlpha, &g_Config.m_TcRenderCursorSpecAlpha, &Button, Localize("自由旁观光标不透明度"), 0, 100);
+		Ui()->DoScrollbarOption(&g_Config.m_TcRenderCursorSpecAlpha, &g_Config.m_TcRenderCursorSpecAlpha, &Button, Localize("Freeview cursor opacity"), 0, 100);
 	DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcNotifyWhenLast, Localize("Notify when only one tee is still alive:"), &g_Config.m_TcNotifyWhenLast, &CurrentColumn, LineSize);
 	CurrentColumn.HSplitTop(LineSize + MarginSmall, &NotificationConfig, &CurrentColumn);
 	if(g_Config.m_TcNotifyWhenLast)
@@ -1396,7 +1396,7 @@ SSettingsSection CMenus::BuildTClientThemeCacheSection()
 SSettingsSection CMenus::BuildTClientAutoReplyCacheSection()
 {
 	SSettingsSection S;
-	S.m_pName = "自动回复";
+	S.m_pName = "Auto reply";
 	S.m_MeasureFn = [this](CUIRect &Col) -> float { return LayoutTClientAutoReplyCacheSection(Col, false); };
 	S.m_RenderCompactFn = [this](CUIRect &Col) -> float {
 		return RenderTClientCacheSectionFallback(Col, MarginBetweenSections, &CMenus::LayoutTClientAutoReplyCacheSection);
@@ -1410,7 +1410,7 @@ SSettingsSection CMenus::BuildTClientAutoReplyCacheSection()
 SSettingsSection CMenus::BuildTClientPetCacheSection()
 {
 	SSettingsSection S;
-	S.m_pName = "宠物";
+	S.m_pName = "Pet";
 	S.m_MeasureFn = [this](CUIRect &Col) -> float { return LayoutTClientPetCacheSection(Col, false); };
 	S.m_RenderCompactFn = [this](CUIRect &Col) -> float {
 		return RenderTClientCacheSectionFallback(Col, MarginBetweenSections, &CMenus::LayoutTClientPetCacheSection);
@@ -1470,8 +1470,8 @@ bool CMenus::PrepareTClientSettingsRuntimeCacheSection(CUIRect SectionView, cons
 	{
 		pLoader = &s_VisualFontLoader;
 		pLoaderSectionName = str_comp(pSectionId, "theme") == 0      ? "Visual: Font & Cursor" :
-				     str_comp(pSectionId, "auto-reply") == 0 ? "自动回复" :
-									       "宠物";
+				     str_comp(pSectionId, "auto-reply") == 0 ? "Auto reply" :
+									       "Pet";
 		s_VisualFontLoader.Register(BuildTClientLeftCacheSections());
 		if(ConfigureRuntimeState)
 		{
@@ -2681,7 +2681,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 			CurrentColumn.HSplitTop(LineSize, Render ? &Button : &TmpRect, &CurrentColumn);
 			if(Render && g_Config.m_TcRenderCursorSpec)
 			{
-				Ui()->DoScrollbarOption(&g_Config.m_TcRenderCursorSpecAlpha, &g_Config.m_TcRenderCursorSpecAlpha, &Button, Localize("自由旁观光标不透明度"), 0, 100);
+				Ui()->DoScrollbarOption(&g_Config.m_TcRenderCursorSpecAlpha, &g_Config.m_TcRenderCursorSpecAlpha, &Button, Localize("Freeview cursor opacity"), 0, 100);
 			}
 
 			if(Render)
@@ -2769,7 +2769,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 			DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcRenderCursorSpec, Localize("Show the cursor while free spectating"), &g_Config.m_TcRenderCursorSpec, &CurrentColumn, LineSize);
 			CurrentColumn.HSplitTop(LineSize, &Button, &CurrentColumn);
 			if(g_Config.m_TcRenderCursorSpec)
-				Ui()->DoScrollbarOption(&g_Config.m_TcRenderCursorSpecAlpha, &g_Config.m_TcRenderCursorSpecAlpha, &Button, Localize("自由旁观光标不透明度"), 0, 100);
+				Ui()->DoScrollbarOption(&g_Config.m_TcRenderCursorSpecAlpha, &g_Config.m_TcRenderCursorSpecAlpha, &Button, Localize("Freeview cursor opacity"), 0, 100);
 
 			DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcNotifyWhenLast, Localize("Notify when only one tee is still alive:"), &g_Config.m_TcNotifyWhenLast, &CurrentColumn, LineSize);
 			CUIRect NotificationConfig;
@@ -4131,7 +4131,7 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcWarList, Localize("Enable warlist"), &g_Config.m_TcWarList, &Column2, LineSize);
 		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcWarListChat, Localize("Colors in chat"), &g_Config.m_TcWarListChat, &Column2, LineSize);
 		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcWarListScoreboard, Localize("Colors in scoreboard"), &g_Config.m_TcWarListScoreboard, &Column2, LineSize);
-		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcWarListSpectate, Localize("旁观选择中显示颜色"), &g_Config.m_TcWarListSpectate, &Column2, LineSize);
+		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcWarListSpectate, Localize("Show colors in spectator selection"), &g_Config.m_TcWarListSpectate, &Column2, LineSize);
 		DoButton_CheckBoxAutoVMarginAndSet(&g_Config.m_TcWarListShowClan, Localize("Show clan if war"), &g_Config.m_TcWarListShowClan, &Column2, LineSize);
 		LogTClientPerfStageEx("tclient_warlist", "filter", ETClientSettingsPerfStage::INTERACTIVE_LAYER, FilterTimer.ElapsedMs());
 	}
@@ -4381,25 +4381,25 @@ void CMenus::RenderSettingsTClientStatusBar(CUIRect MainView)
 	};
 	auto RenderStatusBarCodes = [&](CUIRect View, int Limit) {
 		const char *apCodes[] = {
-			Localize("a = 视角角度"),
-			Localize("p = Ping 延迟"),
-			Localize("d = 预测延迟"),
-			Localize("c = 玩家坐标"),
-			Localize("l = 本地时间"),
-			Localize("r = 比赛时间"),
-			Localize("f = 帧率"),
-			Localize("v = 速度"),
-			Localize("z = 缩放"),
-			Localize("u = 快照延迟"),
-			Localize("n = 预测延迟"),
-			Localize("j = 延迟抖动"),
-			Localize("k = 重发丢包率"),
-			Localize("i = 接收速率"),
-			Localize("o = 发送速率"),
-			Localize("q = 连接质量"),
-			Localize("x = DDNet CPU% / 总 CPU%"),
-			Localize("y = DDNet 内存占用"),
-			Localize("_ 或 ' ' = 空白间隔"),
+			Localize("a = View angle"),
+			Localize("p = Ping latency"),
+			Localize("d = Prediction latency"),
+			Localize("c = Player position"),
+			Localize("l = Local time"),
+			Localize("r = Race time"),
+			Localize("f = Frame rate"),
+			Localize("v = Velocity"),
+			Localize("z = Zoom"),
+			Localize("u = Snapshot latency"),
+			Localize("n = Prediction latency"),
+			Localize("j = Latency jitter"),
+			Localize("k = Resend loss"),
+			Localize("i = Receive rate"),
+			Localize("o = Send rate"),
+			Localize("q = Connection quality"),
+			Localize("x = DDNet CPU% / total CPU%"),
+			Localize("y = DDNet memory usage"),
+			Localize("_ or ' ' = blank spacer"),
 		};
 		View.HSplitTop(HeadlineHeight, &Label, &View);
 		Ui()->DoLabel(&Label, Localize("Status Bar Codes:"), HeadlineFontSize, TEXTALIGN_ML);
@@ -5104,7 +5104,7 @@ void CMenus::RenderSettingsTClientProfiles(CUIRect MainView)
 		MainView.HSplitTop(LineSize, &Options, &MainView);
 
 		Options.VSplitLeft(150.0f, &Button, &Options);
-		if(DoButton_CheckBox(&m_Dummy, Localize("分身"), m_Dummy, &Button))
+		if(DoButton_CheckBox(&m_Dummy, Localize("Dummy"), m_Dummy, &Button))
 			m_Dummy = 1 - m_Dummy;
 
 		Options.VSplitLeft(150.0f, &Button, &Options);
@@ -5349,7 +5349,7 @@ void CMenus::RenderSettingsTClientConfigs(CUIRect MainView)
 			g_Config.m_TcUiShowDDNet ^= 1;
 		if(DoButton_CheckBox(&g_Config.m_TcUiShowTClient, Localize("TClient"), g_Config.m_TcUiShowTClient, &DomainTClient))
 			g_Config.m_TcUiShowTClient ^= 1;
-		if(DoButton_CheckBox(&g_Config.m_TcUiShowQm, Localize("栖梦"), g_Config.m_TcUiShowQm, &DomainQm))
+		if(DoButton_CheckBox(&g_Config.m_TcUiShowQm, Localize("QmClient"), g_Config.m_TcUiShowQm, &DomainQm))
 			g_Config.m_TcUiShowQm ^= 1;
 
 		// 其他筛选 - 紧凑列表 / 仅显示已修改
@@ -5644,7 +5644,7 @@ void CMenus::RenderSettingsTClientConfigs(CUIRect MainView)
 		{
 		case EConfigSource::DDNET: return "DDNet";
 		case EConfigSource::TCLIENT: return "TClient";
-		case EConfigSource::QM: return "栖梦";
+		case EConfigSource::QM: return "QmClient";
 		default: return "Other";
 		}
 	};

@@ -68,13 +68,13 @@ namespace
 		if(SoloPrompt == QmHudNotifications::ESoloPrompt::Enter)
 		{
 			Domain = QmHudNotifications::EServerMessageDomain::Solo;
-			str_copy(pBuf, Localize("你现在处于单人区域"), BufSize);
+			str_copy(pBuf, Localize("You are now in a solo part"), BufSize);
 			return true;
 		}
 		if(SoloPrompt == QmHudNotifications::ESoloPrompt::Leave)
 		{
 			Domain = QmHudNotifications::EServerMessageDomain::Solo;
-			str_copy(pBuf, Localize("你现在已离开单人区域"), BufSize);
+			str_copy(pBuf, Localize("You are now out of the solo part"), BufSize);
 			return true;
 		}
 
@@ -114,25 +114,25 @@ namespace
 
 		if(ExtractWrappedValue(pMessage, "'", "' joined team 0", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 加入了 0 队"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' joined team 0"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "Team save in progress. You'll be able to load with '/load ", "'", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("队伍存档进行中，之后可以用 '/load %s' 载入"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Team save in progress. You'll be able to load with '/load %s'"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractTwoWrappedValues(pMessage, "Team save in progress. You'll be able to load with '/load ", "' if save is successful or with '/load ", "' if it fails", aValueA, sizeof(aValueA), aValueB, sizeof(aValueB)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("队伍存档进行中，成功后可用 '/load %s' 载入，失败时可用 '/load %s' 载入"), aValueA, aValueB);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Team save in progress. You'll be able to load with '/load %s' if save is successful or with '/load %s' if it fails"), aValueA, aValueB);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractTwoWrappedValues(pMessage, "Team successfully saved by ", ". The database connection failed, using generated save code instead to avoid collisions. Use '/load ", "' to continue", aValueA, sizeof(aValueA), aValueB, sizeof(aValueB)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("队伍已由 %s 成功存档。数据库连接失败，因此改用生成的存档码避免冲突。用 '/load %s' 继续"), aValueA, aValueB);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Team successfully saved by %s. The database connection failed, using generated save code instead to avoid collisions. Use '/load %s' to continue"), aValueA, aValueB);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -154,7 +154,7 @@ namespace
 					str_truncate(aValueB, sizeof(aValueB), pCodeStart, pMiddle2Pos - pCodeStart);
 					const char *pServerStart = pMiddle2Pos + str_length(pMiddle2);
 					str_truncate(aValueC, sizeof(aValueC), pServerStart, pMessage + str_length(pMessage) - str_length(pSuffix) - pServerStart);
-					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("队伍已由 %s 成功存档。数据库连接失败，因此改用生成的存档码避免冲突。请在 %s 上用 '/load %s' 继续"), aValueA, aValueC, aValueB);
+					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Team successfully saved by %s. The database connection failed, using generated save code instead to avoid collisions. Use '/load %s' on %s to continue"), aValueA, aValueB, aValueC);
 					SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 					return true;
 				}
@@ -162,49 +162,49 @@ namespace
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' disabled practice mode for your team", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 关闭了你们队伍的练习模式"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' disabled practice mode for your team"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' locked your team.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 锁定了你们的队伍"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' locked your team."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' locked your team. After the race starts, killing will kill everyone in your team.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 锁定了你们的队伍。比赛开始后，任何人 kill 都会导致整队死亡"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' locked your team. After the race starts, killing will kill everyone in your team."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' unlocked your team.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 解锁了你们的队伍"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' unlocked your team."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "This team already has the maximum allowed size of ", " players", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("这个队伍已经达到最大人数上限 %s"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("This team already has the maximum allowed size of %s players"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "Can't disable team 0 mode. This team exceeds the maximum allowed size of ", " players for regular team", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("无法关闭 team 0 模式。该队伍人数已超过普通队伍允许上限 %s"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Can't disable team 0 mode. This team exceeds the maximum allowed size of %s players for regular team"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' disabled team 0 mode.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 关闭了 team 0 模式"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' disabled team 0 mode."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' enabled team 0 mode. This will make your team behave like team 0.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 开启了 team 0 模式。你们的队伍现在会按 team 0 规则运作"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' enabled team 0 mode. This will make your team behave like team 0."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -217,7 +217,7 @@ namespace
 			{
 				str_truncate(aValueA, sizeof(aValueA), pTeamStart, pHaving - pTeamStart);
 				str_truncate(aValueB, sizeof(aValueB), pHaving + str_length(" having "), pPlayers - (pHaving + str_length(" having ")));
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你当前在 %s 队，队伍里有 %s 人"), aValueA, aValueB);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You are in team %s having %s players"), aValueA, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 				return true;
 			}
@@ -230,7 +230,7 @@ namespace
 				str_truncate(aValueA, sizeof(aValueA), pMessage + 1, pTeamPos - (pMessage + 1));
 				const char *pTeamStart = pTeamPos + str_length("' joined team ");
 				str_truncate(aValueB, sizeof(aValueB), pTeamStart, str_length(pTeamStart));
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 加入了 %s 队"), aValueA, aValueB);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' joined team %s"), aValueA, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 				return true;
 			}
@@ -243,7 +243,7 @@ namespace
 			{
 				str_truncate(aValueA, sizeof(aValueA), pMessage + 1, pTeamPos - (pMessage + 1));
 				str_truncate(aValueB, sizeof(aValueB), pTeamPos + str_length("' invited you to team "), pUsePos - (pTeamPos + str_length("' invited you to team ")));
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 邀请你加入 %s 队。输入 /team %s 即可加入"), aValueA, aValueB, aValueB);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' invited you to team %s. Use /team %s to join"), aValueA, aValueB, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 				return true;
 			}
@@ -257,14 +257,14 @@ namespace
 				str_truncate(aValueA, sizeof(aValueA), pMessage + 1, pMiddlePos - (pMessage + 1));
 				const char *pTargetStart = pMiddlePos + str_length(pMiddle);
 				str_truncate(aValueB, sizeof(aValueB), pTargetStart, pMessage + str_length(pMessage) - str_length("' to your team.") - pTargetStart);
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 邀请了 '%s' 加入你们的队伍"), aValueA, aValueB);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' invited '%s' to your team."), aValueA, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 				return true;
 			}
 		}
 		if(ExtractWrappedValue(pMessage, "This team cannot finish anymore because '", "' left the team before hitting the start", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("这个队伍已无法完赛，因为 '%s' 在碰到起点前离开了队伍"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("This team cannot finish anymore because '%s' left the team before hitting the start"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Team, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -279,13 +279,13 @@ namespace
 
 		if(ExtractWrappedValue(pMessage, "You have already requested to swap with ", ".", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你已经向 %s 发过交换请求了"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You have already requested to swap with %s."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "You have requested to swap with ", ". Use /cancelswap to cancel the request.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你已向 %s 发出交换请求。输入 /cancelswap 可取消"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You have requested to swap with %s. Use /cancelswap to cancel the request."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -302,69 +302,69 @@ namespace
 				str_truncate(aValueB, sizeof(aValueB), pSecondsStart, pMiddle2Pos - pSecondsStart);
 				const char *pNameStart = pMiddle2Pos + str_length(pMiddle2);
 				str_truncate(aValueC, sizeof(aValueC), pNameStart, pMessage + str_length(pMessage) - 1 - pNameStart);
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s 请求与你交换。请等待 %s 秒后输入 /swap %s 完成"), aValueA, aValueB, aValueC);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s has requested to swap with you. To complete the swap process please wait %s seconds and then type /swap %s."), aValueA, aValueB, aValueC);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 				return true;
 			}
 		}
 		if(ExtractTwoWrappedValues(pMessage, "", " has requested to swap with ", ".", aValueA, sizeof(aValueA), aValueB, sizeof(aValueB)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s 请求与 %s 交换位置"), aValueA, aValueB);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s has requested to swap with %s"), aValueA, aValueB);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "You have to wait ", " seconds until you can swap.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你还需要等待 %s 秒才能交换"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You have to wait %s seconds until you can swap"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "You can jump ", " time", aValueA, sizeof(aValueA)) ||
 			ExtractWrappedValue(pMessage, "You can jump ", " times", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你现在可以跳跃 %s 次"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You can now jump %s times"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "Rescue mode changed to ", ".", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("救援模式已切换为 %s"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Rescue mode switched to %s"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "Current rescue mode: ", ".", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("当前救援模式：%s"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Current rescue mode: %s"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "Your swap request timed out ", " seconds ago. Use /swap again to re-initiate it.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你的交换请求已在 %s 秒前超时，请重新输入 /swap 发起"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Your swap request timed out %s seconds ago, use /swap again to request"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractTwoWrappedValues(pMessage, "", " has swapped with ", ".", aValueA, sizeof(aValueA), aValueB, sizeof(aValueB)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s 与 %s 已完成交换"), aValueA, aValueB);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s and %s have swapped"), aValueA, aValueB);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "You have canceled swap with ", ".", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你已取消与 %s 的交换"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You canceled the swap with %s"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "", " has canceled swap with you.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s 已取消与你的交换"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s canceled the swap with you"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractTwoWrappedValues(pMessage, "", " has canceled swap with ", ".", aValueA, sizeof(aValueA), aValueB, sizeof(aValueB)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s 已取消与 %s 的交换"), aValueA, aValueB);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s canceled the swap with %s"), aValueA, aValueB);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -379,8 +379,8 @@ namespace
 				str_truncate(aValueA, sizeof(aValueA), pNameStart, pMiddlePos - pNameStart);
 				const char *pActionStart = pMiddlePos + str_length(pMiddle);
 				str_truncate(aValueB, sizeof(aValueB), pActionStart, pMessage + str_length(pMessage) - 1 - pActionStart);
-				const char *pAction = str_comp(aValueB, "killed") == 0 ? Localize("自杀") : Localize("死亡");
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你的锁队全员被处死，因为 '%s' %s 了"), aValueA, pAction);
+				const char *pAction = str_comp(aValueB, "killed") == 0 ? Localize("killed themselves") : Localize("died");
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Your locked team was killed because '%s' %s"), aValueA, pAction);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::SwapRescue, Analysis.m_aLocalizedText);
 				return true;
 			}
@@ -414,7 +414,7 @@ namespace
 					{
 						str_truncate(aValueC, sizeof(aValueC), pVoteStart, pSlashPos - pVoteStart);
 						str_truncate(aValueD, sizeof(aValueD), pSlashPos + 1, pSuffixPos - (pSlashPos + 1));
-						str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 发起了%s队伍练习模式投票。当前票数 %s/%s"), aValueA, str_comp(aValueB, "enable") == 0 ? Localize("开启") : Localize("关闭"), aValueC, aValueD);
+						str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' called vote to %s practice mode for your team. Current votes %s/%s"), aValueA, str_comp(aValueB, "enable") == 0 ? Localize("enable") : Localize("disable"), aValueC, aValueD);
 						SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 						return true;
 					}
@@ -423,7 +423,7 @@ namespace
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' isn't an option on this server", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 不是本服务器可用的投票选项"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' is not a valid option on this server"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -441,14 +441,14 @@ namespace
 					str_truncate(aValueB, sizeof(aValueB), pOptionStart, pOptionEnd - pOptionStart);
 					if(str_comp(pOptionEnd, "'") == 0)
 					{
-						str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 发起了服务器选项投票：%s"), aValueA, aValueB);
+						str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' called vote to change server option: %s"), aValueA, aValueB);
 						SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 						return true;
 					}
 					if(str_startswith(pOptionEnd, "' (") && str_endswith(pMessage, ")"))
 					{
 						str_truncate(aValueC, sizeof(aValueC), pOptionEnd + 3, pMessage + str_length(pMessage) - 1 - (pOptionEnd + 3));
-						str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 发起了服务器选项投票：%s（原因：%s）"), aValueA, aValueB, aValueC);
+						str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' called vote to change server option: %s (reason: %s)"), aValueA, aValueB, aValueC);
 						SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 						return true;
 					}
@@ -468,7 +468,7 @@ namespace
 				{
 					str_truncate(aValueB, sizeof(aValueB), pTargetStart, pTargetEnd - pTargetStart);
 					str_truncate(aValueC, sizeof(aValueC), pTargetEnd + 3, pMessage + str_length(pMessage) - 1 - (pTargetEnd + 3));
-					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 发起了踢出 '%s' 的投票（原因：%s）"), aValueA, aValueB, aValueC);
+					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' called for vote to kick '%s' (reason: %s)"), aValueA, aValueB, aValueC);
 					SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 					return true;
 				}
@@ -487,7 +487,7 @@ namespace
 				{
 					str_truncate(aValueB, sizeof(aValueB), pTargetStart, pTargetEnd - pTargetStart);
 					str_truncate(aValueC, sizeof(aValueC), pTargetEnd + 3, pMessage + str_length(pMessage) - 1 - (pTargetEnd + 3));
-					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 发起了禁言 '%s' 的投票（原因：%s）"), aValueA, aValueB, aValueC);
+					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' called for vote to mute '%s' (reason: %s)"), aValueA, aValueB, aValueC);
 					SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 					return true;
 				}
@@ -508,7 +508,7 @@ namespace
 					str_truncate(aValueB, sizeof(aValueB), pTargetStart, pForPos - pTargetStart);
 					str_truncate(aValueC, sizeof(aValueC), pForPos + str_length("' for "), pReasonPos - (pForPos + str_length("' for ")));
 					str_truncate(aValueD, sizeof(aValueD), pReasonPos + str_length(" seconds ("), pMessage + str_length(pMessage) - 1 - (pReasonPos + str_length(" seconds (")));
-					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 发起了暂停 '%s' %s 秒的投票（原因：%s）"), aValueA, aValueB, aValueC, aValueD);
+					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' called for vote to force-pause '%s' for %s seconds (reason: %s)"), aValueA, aValueB, aValueC, aValueD);
 					SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 					return true;
 				}
@@ -527,7 +527,7 @@ namespace
 				{
 					str_truncate(aValueB, sizeof(aValueB), pTargetStart, pTargetEnd - pTargetStart);
 					str_truncate(aValueC, sizeof(aValueC), pTargetEnd + str_length("' to spectators ("), pMessage + str_length(pMessage) - 1 - (pTargetEnd + str_length("' to spectators (")));
-					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 发起了将 '%s' 移到旁观的投票（原因：%s）"), aValueA, aValueB, aValueC);
+					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' called for vote to move '%s' to spectators (reason: %s)"), aValueA, aValueB, aValueC);
 					SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 					return true;
 				}
@@ -543,20 +543,20 @@ namespace
 			{
 				str_truncate(aValueA, sizeof(aValueA), pPrefixEnd, pMiddlePos - pPrefixEnd);
 				str_truncate(aValueB, sizeof(aValueB), pWaitStart + str_length("please wait "), pWaitPos - (pWaitStart + str_length("please wait ")));
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("每名玩家两次踢人投票之间需要间隔 %s 秒，请再等待 %s 秒"), aValueA, aValueB);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("There's a %s second wait time between kick votes for each player please wait %s second(s)"), aValueA, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 				return true;
 			}
 		}
 		if(ExtractWrappedValue(pMessage, "Kick voting requires ", " players", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("踢人投票至少需要 %s 名玩家"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Kick voting requires %s players"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "Authorized player forced vote '", "'", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("授权玩家强制将当前投票设为 '%s'"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Authorized player forced vote '%s'"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -570,38 +570,38 @@ namespace
 			{
 				str_truncate(aValueA, sizeof(aValueA), pPrefixEnd, pMiddlePos - pPrefixEnd);
 				str_truncate(aValueB, sizeof(aValueB), pWaitStart + str_length("please wait "), pWaitPos - (pWaitStart + str_length("please wait ")));
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("两次换图投票之间需要间隔 %s 秒，请再等待 %s 秒"), aValueA, aValueB);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("There's a %s second delay between map-votes, please wait %s seconds."), aValueA, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 				return true;
 			}
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' called for vote to kick you", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 发起了针对你的踢人投票"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' called for vote to kick you"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' called for vote to move you to spectators", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 发起了针对你的旁观投票"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' called for vote to move you to spectators"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "You must wait ", " seconds before making your first vote.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("首次发起投票前还需要等待 %s 秒"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You must wait %s seconds before making your first vote."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "You must wait ", " seconds before making another vote.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("再次发起投票前还需要等待 %s 秒"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You must wait %s seconds before making another vote."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "You are not permitted to vote for the next ", " seconds.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你接下来 %s 秒内不能发起投票"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You are not permitted to vote for the next %s seconds."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::VoteModeration, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -615,33 +615,33 @@ namespace
 
 		if(ExtractWrappedValue(pMessage, "This server has an initial chat delay, you will be able to talk in ", " seconds.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("本服务器启用了初始发言延迟，你还需要等待 %s 秒才能说话"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("This server has an initial chat delay, you will be able to talk in %s seconds."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "You are not permitted to talk for the next ", " seconds.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你接下来 %s 秒内不能发言"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You are not permitted to talk for the next %s seconds."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(str_startswith(pMessage, "Timer is displayed in "))
 		{
 			str_copy(aValueA, pMessage + str_length("Timer is displayed in "), sizeof(aValueA));
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("计时器当前显示在 %s"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Timer is displayed in %s"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(str_startswith(pMessage, "Time to wait before changing team: "))
 		{
 			str_copy(aValueA, pMessage + str_length("Time to wait before changing team: "), sizeof(aValueA));
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("距离下次切换队伍还需等待：%s"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Time to wait before changing team: %s"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 			return true;
 		}
 		if(ExtractWrappedValue(pMessage, "You are force-paused for ", " seconds.", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你正处于强制暂停状态，还需等待 %s 秒"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("You are force-paused for %s seconds."), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -653,9 +653,9 @@ namespace
 				str_truncate(aValueA, sizeof(aValueA), pMessage, pMiddle - pMessage);
 				str_copy(aValueB, pMiddle + str_length(" current race time is "), sizeof(aValueB));
 				if(str_comp(aValueA, "Your") == 0)
-					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("你当前的比赛用时是 %s"), aValueB);
+					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Your current race time is %s"), aValueB);
 				else
-					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s 当前的比赛用时是 %s"), aValueA, aValueB);
+					str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("%s current race time is %s"), aValueA, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 				return true;
 			}
@@ -668,14 +668,14 @@ namespace
 			{
 				str_truncate(aValueA, sizeof(aValueA), pNameStart, pTimePos - pNameStart);
 				str_truncate(aValueB, sizeof(aValueB), pTimePos + str_length("' with a race time of "), str_length(pTimePos + str_length("' with a race time of ")));
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("正在显示 '%s' 的 checkpoint 时间，当前成绩为 %s"), aValueA, aValueB);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("Showing the checkpoint times for '%s' with a race time of %s"), aValueA, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 				return true;
 			}
 		}
 		if(ExtractWrappedValue(pMessage, "'", "' would have timed out, but can use timeout protection now", aValueA, sizeof(aValueA)))
 		{
-			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 原本会超时掉线，但现在可以使用超时保护"), aValueA);
+			str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' would have timed out, but can use timeout protection now"), aValueA);
 			SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 			return true;
 		}
@@ -688,7 +688,7 @@ namespace
 				const char *pSecondsStart = pMiddlePos + str_length("' was force-paused for ");
 				const char *pSuffixPos = pMessage + str_length(pMessage) - 1;
 				str_truncate(aValueB, sizeof(aValueB), pSecondsStart, pSuffixPos - pSecondsStart);
-				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' 被强制暂停了 %s 秒"), aValueA, aValueB);
+				str_format(Analysis.m_aLocalizedText, sizeof(Analysis.m_aLocalizedText), Localize("'%s' was force-paused for %s seconds"), aValueA, aValueB);
 				SetLocalizedAnalysis(Analysis, QmHudNotifications::EServerMessageRoute::System, QmHudNotifications::EServerMessageClass::Prompt, QmHudNotifications::EServerMessageDomain::Status, Analysis.m_aLocalizedText);
 				return true;
 			}
@@ -762,7 +762,7 @@ namespace QmHudNotifications
 		if(ShouldSuppressSoloChatMessage(pMessage, PendingCompatPrompt))
 		{
 			const ESoloPrompt SoloPrompt = MatchKnownSoloPrompt(pMessage);
-			SetLocalizedAnalysis(Analysis, EServerMessageRoute::Solo, EServerMessageClass::Prompt, EServerMessageDomain::Solo, SoloPrompt == ESoloPrompt::Enter ? Localize("你现在处于单人区域") : Localize("你现在已离开单人区域"), SoloPrompt);
+			SetLocalizedAnalysis(Analysis, EServerMessageRoute::Solo, EServerMessageClass::Prompt, EServerMessageDomain::Solo, SoloPrompt == ESoloPrompt::Enter ? Localize("You are now in a solo part") : Localize("You are now out of the solo part"), SoloPrompt);
 			return Analysis;
 		}
 

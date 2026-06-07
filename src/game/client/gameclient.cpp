@@ -582,8 +582,6 @@ static void SyncQmHudLegacyAliasesFromQm()
 
 static void LoadQmClientLanguageOverlay(CLocalizationDatabase &Localization, const char *pLanguageFile, IStorage *pStorage, IConsole *pConsole)
 {
-	if(str_comp(pLanguageFile, "languages/simplified_chinese.txt") == 0)
-		return;
 	const char *pQmLanguageFile = pLanguageFile[0] != '\0' ? pLanguageFile : "languages/english.txt";
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "qmclient/%s", pQmLanguageFile);
@@ -1929,7 +1927,7 @@ void CGameClient::RenderLiveObserverOverlay()
 	const ColorRGBA FreeviewColor = m_LiveObserverHoldFreeview ? ColorRGBA(0.15f, 0.42f, 0.36f, 0.78f) : ColorRGBA(0.05f, 0.05f, 0.05f, 0.58f);
 	Freeview.Draw(FreeviewColor, IGraphics::CORNER_ALL, 8.0f);
 	TextRender()->TextColor(1.0f, 1.0f, 1.0f, m_LiveObserverFreeview ? 1.0f : 0.72f);
-	TextRender()->Text(Freeview.x + 14.0f, Freeview.y + 11.0f, 16.0f, m_LiveObserverHoldFreeview ? "临时自由镜头" : "按住左键自由镜头", -1.0f);
+	TextRender()->Text(Freeview.x + 14.0f, Freeview.y + 11.0f, 16.0f, m_LiveObserverHoldFreeview ? Localize("Temporary free camera") : Localize("Hold left click for free camera"), -1.0f);
 
 	const float PanelX = Width - LIVE_OBSERVER_PANEL_MARGIN - LIVE_OBSERVER_PANEL_WIDTH;
 	const float PanelY = LIVE_OBSERVER_PANEL_MARGIN;
@@ -1937,10 +1935,10 @@ void CGameClient::RenderLiveObserverOverlay()
 	Panel.Draw(ColorRGBA(0.02f, 0.02f, 0.025f, 0.62f), IGraphics::CORNER_ALL, 8.0f);
 
 	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.95f);
-	TextRender()->Text(PanelX + 14.0f, PanelY + 16.0f, 18.0f, "直播导播", -1.0f);
+	TextRender()->Text(PanelX + 14.0f, PanelY + 16.0f, 18.0f, Localize("Live director"), -1.0f);
 
 	char aBuf[64];
-	str_format(aBuf, sizeof(aBuf), m_LiveDirector.HasDDRaceTeams() ? "%d 个队伍" : "%d 个玩家", (int)m_LiveDirector.Entries().size());
+	str_format(aBuf, sizeof(aBuf), m_LiveDirector.HasDDRaceTeams() ? Localize("%d teams") : Localize("%d players"), (int)m_LiveDirector.Entries().size());
 	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.55f);
 	TextRender()->Text(PanelX + 14.0f, PanelY + 42.0f, 13.0f, aBuf, -1.0f);
 
@@ -1955,7 +1953,7 @@ void CGameClient::RenderLiveObserverOverlay()
 	if(m_LiveDirector.Entries().empty())
 	{
 		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.55f);
-		TextRender()->Text(PanelX + 14.0f, RowY, 14.0f, "暂无可导播玩家", -1.0f);
+		TextRender()->Text(PanelX + 14.0f, RowY, 14.0f, Localize("No director players available"), -1.0f);
 	}
 
 	for(const CLiveDirector::CEntry &Entry : m_LiveDirector.Entries())
@@ -1969,7 +1967,7 @@ void CGameClient::RenderLiveObserverOverlay()
 		Row.Draw(RowColor, IGraphics::CORNER_ALL, 6.0f);
 
 		if(Entry.m_Type == CLiveDirector::EEntryType::DDRACE_TEAM)
-			str_format(aBuf, sizeof(aBuf), "%c 队伍 %d", m_LiveObserverExpandedTeam == Entry.m_Team ? '-' : '+', Entry.m_Team);
+			str_format(aBuf, sizeof(aBuf), Localize("%c Team %d"), m_LiveObserverExpandedTeam == Entry.m_Team ? '-' : '+', Entry.m_Team);
 		else
 			str_format(aBuf, sizeof(aBuf), "%s", m_aClients[Entry.m_ClientId].m_aName);
 		TextRender()->TextColor(1.0f, 1.0f, 1.0f, Selected ? 1.0f : 0.82f);

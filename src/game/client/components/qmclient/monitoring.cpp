@@ -81,48 +81,48 @@ namespace
 	{
 		switch(Grade)
 		{
-		case EQmConnectionGrade::NORMAL: return "连接正常";
-		case EQmConnectionGrade::ELEVATED: return "连接偏高";
-		case EQmConnectionGrade::SEVERE: return "连接严重异常";
-		case EQmConnectionGrade::DISCONNECTED: return "连接断开";
+		case EQmConnectionGrade::NORMAL: return "Connection normal";
+		case EQmConnectionGrade::ELEVATED: return "Connection elevated";
+		case EQmConnectionGrade::SEVERE: return "Connection severely abnormal";
+		case EQmConnectionGrade::DISCONNECTED: return "Connection disconnected";
 		}
-		return "连接断开";
+		return "Connection disconnected";
 	}
 
 	static const char *LocalizeCauseDetail(EQmDiagnosticCause Cause, EQmConnectionGrade Grade, const SQmNetworkMetrics &Net, const SQmPerformanceMetrics &Perf)
 	{
 		if(Grade == EQmConnectionGrade::DISCONNECTED)
-			return "当前未连接到游戏服务器";
+			return "Not connected to a game server";
 
 		switch(Cause)
 		{
-		case EQmDiagnosticCause::DOWNSTREAM: return "服务器 RTT 抬升，回包链路波动较明显";
-		case EQmDiagnosticCause::UPSTREAM: return "预测值抬升，预测链路压力偏高";
-		case EQmDiagnosticCause::JITTER: return "预测波动明显，延迟变化较大";
-		case EQmDiagnosticCause::PACKET_LOSS: return "存在重发迹象，链路质量可疑";
+		case EQmDiagnosticCause::DOWNSTREAM: return "Server RTT is elevated, response path is unstable";
+		case EQmDiagnosticCause::UPSTREAM: return "Prediction latency is elevated, prediction path pressure is high";
+		case EQmDiagnosticCause::JITTER: return "Prediction jitter is obvious, latency changes are large";
+		case EQmDiagnosticCause::PACKET_LOSS: return "Resend signs detected, connection quality is suspicious";
 		case EQmDiagnosticCause::CLIENT_PERFORMANCE:
 			if(Perf.m_FrameTimeMs > 16.7f)
-				return "客户端帧时间异常";
+				return "Client frame time is abnormal";
 			if(Perf.m_CpuUsagePct >= 75.0f)
-				return "客户端 CPU 占用偏高";
+				return "Client CPU usage is high";
 			if(Perf.m_PredictionTimeMs >= Net.m_SnapshotLatencyMs + 12.0f || Perf.m_PredictionStress >= 12.0f)
-				return "客户端预测耗时偏高";
-			return "客户端性能压力偏高";
-		case EQmDiagnosticCause::NONE: return "暂无明显异常";
+				return "Client prediction time is high";
+			return "Client performance pressure is high";
+		case EQmDiagnosticCause::NONE: return "No obvious anomaly";
 		}
-		return "暂无明显异常";
+		return "No obvious anomaly";
 	}
 
 	static const char *GradeBadgeText(EQmConnectionGrade Grade)
 	{
 		switch(Grade)
 		{
-		case EQmConnectionGrade::NORMAL: return "正常";
-		case EQmConnectionGrade::ELEVATED: return "偏高";
-		case EQmConnectionGrade::SEVERE: return "严重";
-		case EQmConnectionGrade::DISCONNECTED: return "断开";
+		case EQmConnectionGrade::NORMAL: return "Normal";
+		case EQmConnectionGrade::ELEVATED: return "Elevated";
+		case EQmConnectionGrade::SEVERE: return "Severe";
+		case EQmConnectionGrade::DISCONNECTED: return "Disconnected";
 		}
-		return "断开";
+		return "Disconnected";
 	}
 
 	static ColorRGBA GradeBadgeColor(EQmConnectionGrade Grade)
@@ -210,9 +210,9 @@ namespace
 		}
 
 		if(Precision <= 0)
-			str_format(pBuf, BufSize, "均%.0f ↓%.0f ↑%.0f%s", Stats.m_Average, Stats.m_Min, Stats.m_Max, pUnit);
+			str_format(pBuf, BufSize, "avg %.0f ↓%.0f ↑%.0f%s", Stats.m_Average, Stats.m_Min, Stats.m_Max, pUnit);
 		else
-			str_format(pBuf, BufSize, "均%.*f ↓%.*f ↑%.*f%s", Precision, Stats.m_Average, Precision, Stats.m_Min, Precision, Stats.m_Max, pUnit);
+			str_format(pBuf, BufSize, "avg %.*f ↓%.*f ↑%.*f%s", Precision, Stats.m_Average, Precision, Stats.m_Min, Precision, Stats.m_Max, pUnit);
 	}
 
 	static void FormatPercentValue(char *pBuf, int BufSize, float Value)
@@ -240,7 +240,7 @@ namespace
 		str_format(
 			pBuf,
 			BufSize,
-			"%" PRIu64 "p %" PRIu64 "+%" PRIu64 "=%" PRIu64 " %.0fKib/s 均%" PRIu64 "B",
+			"%" PRIu64 "p %" PRIu64 "+%" PRIu64 "=%" PRIu64 " %.0fKib/s avg %" PRIu64 "B",
 			Stats.m_Packets,
 			Stats.m_PayloadBytes,
 			Stats.m_OverheadBytes,
@@ -843,10 +843,10 @@ void CQmMonitoring::RenderMainGraph(CUIRect Rect) const
 		ColorRGBA m_Color;
 		SQmHistoryStats m_Stats;
 	} aLegend[] = {
-		{"延迟", m_Snapshot.m_Network.m_SnapshotLatencyMs, PING_COLOR, QmComputeHistoryStats(m_aPingHistory, m_HistoryHead, m_HistoryCount)},
-		{"预测值", m_Snapshot.m_Network.m_PredictionLatencyMs, PRED_COLOR, QmComputeHistoryStats(m_aPredHistory, m_HistoryHead, m_HistoryCount)},
-		{"预测边距", m_Snapshot.m_Network.m_PredictionMarginMs, PRED_MARGIN_COLOR, QmComputeHistoryStats(m_aPredictionMarginHistory, m_HistoryHead, m_HistoryCount)},
-		{"抖动", m_Snapshot.m_Network.m_JitterMs, JITTER_COLOR, QmComputeHistoryStats(m_aJitterHistory, m_HistoryHead, m_HistoryCount)},
+		{"Latency", m_Snapshot.m_Network.m_SnapshotLatencyMs, PING_COLOR, QmComputeHistoryStats(m_aPingHistory, m_HistoryHead, m_HistoryCount)},
+		{"Prediction", m_Snapshot.m_Network.m_PredictionLatencyMs, PRED_COLOR, QmComputeHistoryStats(m_aPredHistory, m_HistoryHead, m_HistoryCount)},
+		{"Prediction margin", m_Snapshot.m_Network.m_PredictionMarginMs, PRED_MARGIN_COLOR, QmComputeHistoryStats(m_aPredictionMarginHistory, m_HistoryHead, m_HistoryCount)},
+		{"Jitter", m_Snapshot.m_Network.m_JitterMs, JITTER_COLOR, QmComputeHistoryStats(m_aJitterHistory, m_HistoryHead, m_HistoryCount)},
 	};
 
 	CUIRect TopRow, BottomRow;
@@ -972,7 +972,7 @@ void CQmMonitoring::RenderFpsGraph(CUIRect Rect) const
 
 	char aFpsValueBuf[32];
 	FormatMetricValue(aFpsValueBuf, sizeof(aFpsValueBuf), "", m_Snapshot.m_Performance.m_Fps, 0);
-	Ui()->DoLabel(&LeftHeader, Localize("帧率"), HeaderFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&LeftHeader, Localize("Frame rate"), HeaderFontSize, TEXTALIGN_ML);
 	Ui()->DoLabel(&LeftHeader, aFpsValueBuf, HeaderFontSize, TEXTALIGN_MR);
 	CUIRect LeftStatsRect = LeftHeader;
 	LeftStatsRect.y += 18.0f * UiScale;
@@ -982,7 +982,7 @@ void CQmMonitoring::RenderFpsGraph(CUIRect Rect) const
 
 	char aGameMarginValueBuf[32];
 	FormatMetricValue(aGameMarginValueBuf, sizeof(aGameMarginValueBuf), "ms", m_Snapshot.m_Network.m_GameTimeMarginMs, 0);
-	Ui()->DoLabel(&RightHeader, Localize("游戏时间边距"), HeaderFontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&RightHeader, Localize("Game time margin"), HeaderFontSize, TEXTALIGN_ML);
 	Ui()->DoLabel(&RightHeader, aGameMarginValueBuf, HeaderFontSize, TEXTALIGN_MR);
 	CUIRect RightStatsRect = RightHeader;
 	RightStatsRect.y += 18.0f * UiScale;
@@ -1008,14 +1008,14 @@ void CQmMonitoring::RenderPrimaryCards(CUIRect Rect) const
 		bool m_IsPercent = false;
 		bool m_IsCpu = false;
 	} aCards[] = {
-		{"帧率", m_Snapshot.m_Performance.m_Fps, "", 0, FPS_COLOR},
-		{"帧时间", m_Snapshot.m_Performance.m_FrameTimeUs, "us", 0, FPS_COLOR},
-		{"DDNet/总 CPU", m_Snapshot.m_Performance.m_CpuUsagePct, "", 0, GAME_MARGIN_COLOR, false, false, true},
-		{"内存", m_Snapshot.m_Performance.m_MemoryUsageMb, "MB", 0, GAME_MARGIN_COLOR},
-		{"连接下行", m_Snapshot.m_Network.m_DownBytesPerSec, "", 0, PING_COLOR, true},
-		{"连接上行", m_Snapshot.m_Network.m_UpBytesPerSec, "", 0, PRED_COLOR, true},
-		{"时间回拉", m_Snapshot.m_Network.m_ServerRollbackMs, "ms", 0, GAME_MARGIN_COLOR},
-		{"回拉率", m_Snapshot.m_Network.m_ServerRollbackRatePct, "", 0, JITTER_COLOR, false, true},
+		{"Frame rate", m_Snapshot.m_Performance.m_Fps, "", 0, FPS_COLOR},
+		{"Frame time", m_Snapshot.m_Performance.m_FrameTimeUs, "us", 0, FPS_COLOR},
+		{"DDNet/total CPU", m_Snapshot.m_Performance.m_CpuUsagePct, "", 0, GAME_MARGIN_COLOR, false, false, true},
+		{"Memory", m_Snapshot.m_Performance.m_MemoryUsageMb, "MB", 0, GAME_MARGIN_COLOR},
+		{"Connection downstream", m_Snapshot.m_Network.m_DownBytesPerSec, "", 0, PING_COLOR, true},
+		{"Connection upstream", m_Snapshot.m_Network.m_UpBytesPerSec, "", 0, PRED_COLOR, true},
+		{"Server rollback", m_Snapshot.m_Network.m_ServerRollbackMs, "ms", 0, GAME_MARGIN_COLOR},
+		{"Rollback rate", m_Snapshot.m_Network.m_ServerRollbackRatePct, "", 0, JITTER_COLOR, false, true},
 	};
 
 	const int CardCount = std::size(aCards);
@@ -1105,16 +1105,16 @@ void CQmMonitoring::RenderDebugDetails(CUIRect Rect) const
 	FormatMemoryKiBValue(aStagingBuf, sizeof(aStagingBuf), m_Snapshot.m_Performance.m_GraphicsMemory.m_StagingKiB);
 
 	const SDetailRow aLeftRows[] = {
-		{"游戏/预测 Tick", aTickBuf},
-		{"预测耗时", aPredictionBuf},
-		{"发送", aSendBuf},
-		{"接收", aRecvBuf},
+		{"Game/predicted tick", aTickBuf},
+		{"Prediction time", aPredictionBuf},
+		{"Send", aSendBuf},
+		{"Receive", aRecvBuf},
 	};
 	const SDetailRow aRightRows[] = {
-		{"纹理内存", aTextureBuf},
-		{"缓冲内存", aBufferBuf},
-		{"流式内存", aStreamedBuf},
-		{"暂存内存", aStagingBuf},
+		{"Texture memory", aTextureBuf},
+		{"Buffer memory", aBufferBuf},
+		{"Streamed memory", aStreamedBuf},
+		{"Staging memory", aStagingBuf},
 	};
 
 	const auto RenderColumn = [&](CUIRect ColumnRect, const SDetailRow *pRows, int RowCount) {

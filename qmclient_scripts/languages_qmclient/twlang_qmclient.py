@@ -53,6 +53,8 @@ def decode(fileobj, elements_per_key):
                 )
             data[(line, current_context)] = [index - 1 if current_context else index]
             current_key = (line, current_context)
+    if current_key is None:
+        return {}
     if len(data[current_key]) != 1 + elements_per_key:
         raise LanguageDecodeError(
             "Wrong number of elements per key", fileobj.name, index

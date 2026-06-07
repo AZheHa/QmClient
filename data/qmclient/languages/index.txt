@@ -158,6 +158,11 @@ serbian_cyrillic
 == 688
 == sr-Cyrl
 
+simplified_chinese
+== 简体中文
+== 156
+== zh-Hans;zh-CN
+
 slovak
 == Slovenčina
 == 703

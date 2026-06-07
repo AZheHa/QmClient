@@ -1,138 +1,451 @@
-%s could not be read
-%s to %s failed: %s
+%c Team %d
+%d players
+%d teams
+%s and %s have swapped
+%s canceled the swap with %s
+%s canceled the swap with you
+%s current race time is %s
+%s has requested to swap with %s
+%s has requested to swap with you. To complete the swap process please wait %s seconds and then type /swap %s.
 %s translating to %s
 %s translating to %s before send
-3D背景
-45°瞄准
-API Key
+%s translating to %s failed: %s
+'%s' called for vote to force-pause '%s' for %s seconds (reason: %s)
+'%s' called for vote to kick '%s' (reason: %s)
+'%s' called for vote to kick you
+'%s' called for vote to move '%s' to spectators (reason: %s)
+'%s' called for vote to move you to spectators
+'%s' called for vote to mute '%s' (reason: %s)
+'%s' called vote to %s practice mode for your team. Current votes %s/%s
+'%s' called vote to change server option: %s
+'%s' called vote to change server option: %s (reason: %s)
+'%s' disabled practice mode for your team
+'%s' disabled team 0 mode.
+'%s' enabled team 0 mode. This will make your team behave like team 0.
+'%s' invited '%s' to your team.
+'%s' invited you to team %s. Use /team %s to join
+'%s' is not a valid option on this server
+'%s' joined team %s
+'%s' joined team 0
+'%s' locked your team.
+'%s' locked your team. After the race starts, killing will kill everyone in your team.
+'%s' unlocked your team.
+'%s' was force-paused for %s seconds
+'%s' would have timed out, but can use timeout protection now
+- Save codes in order:
+- Save owners in order:
+- You have %d saves on this map!
+/map is disabled
+3D Background
+45° Aim
 API key
-Append language codes like [ru], [en], [ja] at the end when sending
+Active disconnect
+Active moderator mode disabled because you are afk.
+Active moderator mode disabled for you.
+Active moderator mode enabled for you.
+Adjust game camera and FOV settings
+Adjust opacity of entity layers
+Advanced options
+Afterimage pop
+All players
+Allow mic permission in system settings, then reopen voice
+Also route similar prompts from other servers to notifications (for example custom solo prompts; blacklist still applies)
+Always show
+Always translate
+Animation
+Animation duration
+Animation range
+Aspect ratio preset
+Audio
+Audio backend init failed
+Audio backend init failed, try switching devices and check details
+Audio init failed, check details below and logs
+Audio issue
+Authorized player forced vote '%s'
+Auto
+Auto chat in water
+Auto chat when dying in water
+Auto concurrency: %d (smart default)
 Auto disable when time expires
+Auto enable in Gores mode
+Auto gain control for mic (AGC, experimental)
+Auto greet friends entering map
 Auto hot-reload after external saves
+Auto login Axiom server
+Auto refresh server list
+Auto reply
 Auto reply cooldown
 Auto switch to the tee that got unfrozen
 Auto team lock
+Auto translate received messages
+Auto translate sent messages
+Auto unmute when speaking
 Auto unspec on unfreeze
 Auto-toggle fast input
 Auto-toggle fast input others
-Auto-translate will skip simplified Chinese, traditional Chinese, and server messages
 Automatically close the current chat after waking from freeze
-Axiom 主号密码
-Axiom 分身密码
-Background opacity
+Axiom auto login failed
+Axiom auto login failed, retrying
+Axiom auto login succeeded
+Axiom dummy password
+Axiom main account password
+Background color
+Based on a pile of Windows... stuff
+Both
+Both sides of keyword rules must be filled
+Bounce
+Brightness shift
 Brutal
 Bubble opacity
+Buffer memory
 Button - Disabled
 Button - Enabled
-CP点不透明度
+CP opacity
+Camera & FOV
+Can't /spec that quickly.
+Can't disable team 0 mode. This team exceeds the maximum allowed size of %s players for regular team
+Can't enable team 0 mode with practice mode on.
+Can't invite players to this team
+Can't invite this quickly
+Can't recognize specified arguments. Usage: /tpxy x y, e.g. /tpxy 9 3.
+Can't swap with yourself
+Chat
+Chat Bubble
+Chat Translate Button UI
+Chat box button appearance settings
+Chat message
+Chat translation settings
+Chat word filtering
+Check if voice server address is reachable
+Check if your dummy is being bullied while you control the main tee
+Check input device, system default mic, and mic permission first
+Check output device, confirm headphones/speakers are still online
 Classic
 Classic easy
 Classic next
 Classic nut
 Classic pro
-Click to copy the QQ group number
+Click to copy QQ group number
 Click to copy the map name
-Community links, updates, feedback, and supporter credits moved to Contributors
+Click to set color
+Client CPU usage is high
+Client frame time is abnormal
+Client performance pressure is high
+Client prediction time is high
+Combo
+Command is not available on solo servers
+Common key bindings
+Community links, updates, and sponsors moved to the Contributors tab
+Concurrency (0 = auto)
 Config
 Config file: data/input_overlay.json
-Configs reuses the existing client config browser inside QmClient
+Configure background 3D particle effects
+Configure hammer skin steal and skin transition animations
+Confirm both are on same server, same room, and support voice
+Connect to server first to establish voice network link
+Connected
+Connected, no one is speaking
+Connected, waiting for first ping
+Connection disconnected
+Connection downstream
+Connection elevated
+Connection normal
+Connection severely abnormal
+Connection upstream
+Console color
 Contributors
 Copied
 Copy skin
-Countdown timer for speedruns
+Could not find your Team
+Could not load sponsor QR code. Check the Base64 data
 Crescent
 Cube
+Current aspect ratio:
+Current aspect ratio: Show default
+Current rescue mode: %s
+Current status
 Custom
-Custom ratio
+Custom API key
+Custom aspect ratio
+Custom prompt template
+Customize translate button and menu colors
+DDNet/total CPU
 DF
+Damn grenadiers, all go to spa!
+Damn grenadiers, just die!
+Death opacity
+Debug graph
+Debug performance graph panel
+Deep freeze opacity
+Deep unfreeze opacity
 DeepSeek
-DeepSeek API Key
+DeepSeek API key
+Default
+Default input open failed
+Default output open failed
+Detailed reason
 Detection distance
-Developers and supporters
+Detection time
+Developers and sponsors
 Diamond
-Drag, collapse, search, and usage history are preserved inside each category
+Disable after picking up other weapons
+Disconnected
+Display mode
+Dissolve
+Do not translate server messages
+Dragging, collapsing, search, and usage history are preserved per category
+Drawing a big pie in the sky
+Dream Features
+Drift direction
 Drift intensity
 Drift smoothness
 Dummy
+Dummy Window
+Dummy window size
+Dummy window zoom
 Duration
 Dynamic FOV intensity
 Dynamic FOV smoothness
-Each tab now has a focused responsibility
+Dynamic Island
+Each tab has a clear purpose
+Echo follows the original chat color
+Echo text color when not inheriting chat color
+Elevated
+Emotes are disabled.
+Emoticon ID
+Enable 3D background particles
+Enable FTAPI auto-translate (may overload the service)
+Enable Gores mode
+Enable Zen mode
+Enable camera drift
+Enable dummy window
+Enable dynamic FOV
+Enable keyword reply
+Enable pie menu
+Enable repeat
 Enable speedrun timer
-Enable thinking mode requires using reasoning models
-Enhanced laser effects
-Ensure backend supports OpenAI-compatible thinking parameter
+Enable stereo positioning
+Enable system media control
+Enable thinking mode (slower)
+Enable voice
+Enable word filter list
+Endless hook has been activated
+Endless hook has been deactivated
+Endpoint
+Endpoint (optional)
+Enter /practice mode or restart to avoid the entire team being killed in 60 seconds
+Entity Layer Colors
 Event
+Example: name1|name2|name3
 Expand module
 FTAPI auto-translate is disabled to prevent overload. Enable in settings if needed.
+Fade and slide
 Fade in
+Fade only
 Fade out
-Failed to load the support QR code. Check the Base64 content
-Favorite map manager
+Fallback simple noise reduction strength
 Favorite maps
+Feature Search
 Font size
-Freeze 边界颜色
+Found %d modules
+Frame rate
+Frame time
+Freeze border color
+Freeze opacity
 Friend
+Friend Notifications
+Friend online and join notifications
+Full map listen in same room
 Fun
-Function contains tools, automation, and gameplay helpers
 Functions
+Game time margin
+Game/predicted tick
+Gap aim rescue
+Global toggle key
 Glow alpha
 Glow intensity
 Glow offset
-Gores 模式
-Gores 模式下自动启用
-Gores 模式按键
-Gores模式
-Gores演员专用
-Gores自动武器切换
+Gores Actor
+Gores Mode
+Gores auto weapon switch
+Gores mode key
+Greeting text
+Guide line color
 HDF
+HJ Assist
 HJ assist
-HJ辅助
 HUD
-HUD collects overlays, counters, voice display, and top-of-screen components
+Hammer skin steal
 Heart
-Hide support QR code
+Hide Echo messages
+Hide HUD
+Hide UI for focused gameplay
+Hide death/respawn effects
+Hide direction indicators
+Hide explosion effects
+Hide freeze effects
+Hide guide lines
+Hide hammer effects
+Hide input emoticon
+Hide join/version prompts
+Hide jump effects
+Hide kill/finish messages
+Hide map progress
+Hide nameplates
+Hide names
+Hide player messages
+Hide scoreboard
+Hide server prompt notifications
+Hide sponsor QR code
+Hide weapon muzzle flashes
+Hitbox mode
+Hold left click for free camera
 Horizontal position
 Hours
-ID not connected
-Info keeps a lightweight overview of the client and page structure
+I am a robot
+Idiot word filter
+Input device
+Input device not found
+Input device open failed
+Input device open failed, try reconnecting headset/mic or reselecting input device
 Input overlay
 Input overlay display
-Input overlay opacity
+Input switch
 Insane
-Invalid translate backend
-Invalid translate backend, sending original text
+Interface
+Invalid ID
+Invalid X coordinate.
+Invalid Y coordinate.
+Invalid client id to kick
+Invalid client id to move to spectators
+Invalid option
+Invalid spectator id used
+Invalid translation backend
+Invites are disabled
+Is your dummy being bullied while you control the main tee?
+Jitter
 Join QQ group
-King of Gores 自动切换枪
-LLM 提供商
+Join a team to enable practice mode, which means you can use /r, but can't earn a rank.
+Join a team to use swap feature, which means you can swap positions with each other.
+Key Bindings
+Keyword Reply
+Keyword rules
+Kick voting requires %s players
+Kill Protection enabled. If you really want to join the spectators, first type /kill
+King of Gores auto weapon switch
+LLM provider
+Large text announcement for friend joining
+Large text content
+Laser Enhancement
+Laser effect enhancement
 Laser preview
 Laser settings
 Laser size
 Laser style
+Latency
+Leave empty to disable
+Leave empty to join public room
+Leave empty to use default prompt
+Left jump
+Left/right channel width
+Line width
+Literal
+Live director
+Local
+Local + Dummy
+Local only
+Local particle effects
+Local test mode
+Local test mode, no server needed
 Lock delay
-Map progress bar (experimental)
+Make sure the backend supports OpenAI-compatible thinking parameters
+Manual concurrency: %d
+Map danger border
+Map progress bar
+Matched with callable peer
 Max size
+Max visible notifications
+Memory
 Mention
-Menu Background
-Menu Option - Normal
-Menu Option - Selected
+Menu background
+Menu option - normal
+Menu option - selected
+Messages that already look like the target language will skip auto-translate
+Microphone
+Microphone permission denied by system
+Microphone volume
 Milliseconds
 Min size
 Minimize module
+Minimum match chars
 Minutes
 Mixed
+Model
 Moderate
+Move Echo and important system prompts to right-side popups
+Mute death/respawn sounds
+Mute hammer sounds
+Mute jump sounds
+Mute microphone
+Muted
+Need to have started the map to swap with a player.
+New IME
+New UI
+Next
+No animation
+No audio issues detected
+No callable peer found
+No chat message to translate
+No director players available
+No empty team left.
 No favorite maps yet
-No message to translate
-Not a valid ID
+No input device available
+No matching features found. Try other keywords
+No more blocking entity layers in the world of TeeWorlds
+No noise reduction
+No obvious anomaly
+No output device available
+No peer
+No player with this name found.
+Noise reduction mode
+Normal
+Not connected to a game server
+Not connected to server
+Not enabled
+Not open, check input device or mic permission
+Not open, check output device
+Notification background
+Notification hold time
+Notification text size
+Notifications
+Notify when friends come online
 Novice
+Numeric-only messages will be skipped
+Off
 Official community links
+Ohhhhhhhhhhhhhhhh
 Oldschool
 Only Apple Can Do
+Only show when the other Tee is not on screen
+Only what you can't imagine, nothing Dream can't do
+Only what you can't imagine, nothing Dream can't do!
+Opacity
+Open color picker
 OpenAI
-OpenAI API Key
+OpenAI API key
+Opened
+Option color
+Output device
+Output device not found
+Output device open failed
+Output device open failed, try reconnecting speakers/headphones or reselecting output device
+Output switch
+Overview cards show a lightweight guide to the client and page structure
 Page guide
+Panel opacity
+Parsing voice server address
 Particle alpha
+Particle collision
 Particle color
 Particle count
 Particle depth
@@ -141,9 +454,36 @@ Particle pulse
 Particle speed
 Particle trail
 Particle twinkle
-Pie menu opacity
-Player stats
+Particle type
+Pet
+Pickup range
+Pie Menu
+Play a slide-in rotation animation when switching weapons
+Play/Pause
+Playback volume
+Player Stats
+Player already invited
+Player data
+Player is on a different team
+Player not found
+Player range
 Player stats and info display
+Players
+Players are not allowed to chat from VPNs at this time
+Please enable voice first
+Please use %s as friend name
+Popup animation
+Position jump hint
+Practice mode can't be enabled in team 0 mode.
+Practice mode can't be enabled while team save or load is in progress
+Practice mode enabled for your team, happy practicing!
+Practice mode is disabled
+Prediction
+Prediction jitter is obvious, latency changes are large
+Prediction latency is elevated, prediction path pressure is high
+Prediction margin
+Prediction time
+Previous
 Progress bar color
 Progress bar height
 Progress bar width
@@ -153,396 +493,386 @@ Pulse strength
 Push radius
 Push strength
 Pyramid
-QQ Group: 1076765929 (click to copy)
-QmClient community
+QQ group: 1076765929 (click to copy)
+QmClient
+QmClient Community
 QmClient overview
-QmClient team
-RNNoise 降噪
-RNNoise 降噪强度
-RNNoise 降噪（当前构建不可用）
+Quick action menu for players
+Quickly locate feature modules
+RNNoise noise reduction
+RNNoise noise reduction (unavailable in this build)
+RNNoise noise reduction strength
+RNNoise not integrated in current build, will fallback to simple noise reduction
 Race
+Rainbow name
 Random
+Random emoticon
+Receive
+Receiving
+Refresh
 Refresh interval
+Regex
 Region
+Regular expression
+Remote particle effects
 Remove from favorites
+Rename
+Rename queue
+Replace mode
+Replace non-friend names with ID
+Replace non-friend skins with default
+Replacement chars
+Reply with dummy
+Rescue is not enabled on this server and you're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.
+Rescue mode switched to %s
+Resend signs detected, connection quality is suspicious
+Reset
 Reset stats when joining a server
+Right jump
 Ring
+Rollback rate
+Room
+Room password
 Rounded caps
-Run a
+Route Echo messages to notifications
+Route server system prompts to notifications (except blacklist)
+Run chai script
 SMTC
+Save failed!
+Save-function is disabled on this server
+Scoreboard point check
 Seconds
 SecretId
 SecretKey
-Send feedback
-Server messages are not translated
+See how much you act
+Selected timertype is not supported by your client
+Self only
+Send
+Send & Receive
+Send emoticon in water
+Send probability
+Send source language
+Send target language
+Send translation method
+Sending and receiving
+Sending locally, suggest the other party unmute or confirm they can receive
+Sending, waiting for peer echo
+Separate with commas
+Server
+Server IP
+Server RTT is elevated, response path is unstable
+Server does not allow voting to kick players
+Server does not allow voting to move players to spectators
+Server kick/spec votes are no longer actively moderated.
+Server kick/spec votes will now be actively moderated.
+Server rollback
+Set color
+Severe
+Show Coordinates
+Show Qm badge
+Show Tee, map, and weapon interaction hitboxes
+Show X
+Show Y
+Show blocked words in console
+Show chat bubbles above Tees
+Show chat bubbles above players
+Show chat messages above players
+Show collision and weapon interaction
+Show coordinates above players
+Show coordinates of yourself and others
 Show dotted map route debug
+Show grenade and laser trajectory preview
+Show hitbox mode
 Show inputs
+Show on key
+Show other players' coordinates
+Show outdated version warning
+Show own coordinates
 Show player stats HUD
+Show song info in top-left corner
+Show sponsor QR code
+Show team
+Show voice connection status
 Show wake-up popup on the other tee
+Showing players from other teams is disabled
+Showing the checkpoint times for '%s' with a race time of %s
+Showing the checkpoint times is not allowed on this server.
+Showing the global points of other players is not allowed on this server.
+Showing the global top points is not allowed on this server.
+Showing the rank of other players is not allowed on this server.
+Showing the team rank of other players is not allowed on this server.
+Showing the team top 5 is not allowed on this server.
+Showing the times of others is not allowed on this server.
+Showing the top is not allowed on this server.
+Shrink
+Simple noise reduction
+Simple noise reduction strength
 Size
+Skin transition
+Skin transition duration
+Skin transition type
+Slide left
+Smooth fade
 Solo
+Speaker
 Spectate
-Speedrun timer
+Speech trigger threshold
+Speedrun Timer
+Speedrun countdown timer
 Sphere
+Spin pop
+Sponsor QR code Base64 data is not configured
+Sponsor support
+Sponsors:
+Staging memory
 Star
-Support
-Support QR code Base64 is not configured
-Supporters:
-Swap
-Tee 碰撞箱
-Tee 碰撞箱颜色
-TeeWorlds的世界不会再出现挡人的实体层了
+Start here to quickly diagnose if the issue is with device, server, or room
+Start holding the hook before loading the savegame to keep the hook
+Status normal, check details below if still experiencing issues
+Streamed memory
+Streamer Mode
+Strict mode
+Swap is disabled on this server.
+Swap is not available on forced solo servers.
+Switch
+Switch failed
+Switch opacity
+Switched to
+Switching
+Switching back to default input
+Switching back to default output
+System default
+System media control
+System prompt text
+Target language
+Target language ratio
+Team can't be loaded while in team 0 mode
+Team can't be loaded while practice is enabled
+Team can't be loaded while racing
+Team can't be saved while a dragger is active
+Team can't be saved while in team 0 mode
+Team is already in practice mode
+Team load already in progress
+Team mode can't be changed while racing
+Team mode change disabled
+Team mode change is disabled on this server.
+Team save already in progress
+Team save disabled for teams in practice mode
+Team save in progress. You'll be able to load with '/load %s'
+Team save in progress. You'll be able to load with '/load %s' if save is successful or with '/load %s' if it fails
+Team successfully saved by %s. The database connection failed, using generated save code instead to avoid collisions. Use '/load %s' on %s to continue
+Team successfully saved by %s. The database connection failed, using generated save code instead to avoid collisions. Use '/load %s' to continue
+Teams are disabled
+Tee hitbox
+Tee hitbox color
+Teleport grenade disabled
+Teleport grenade enabled
+Teleport gun disabled
+Teleport gun enabled
+Teleport laser disabled
+Teleport laser enabled
+Teleport opacity
+Temporary free camera
 Tencent Cloud
+Tencent Cloud SecretId
+Tencent Cloud SecretKey
+Text color
+Texture memory
+Thank you for your company and trust. This is what gives me the courage to keep going.
 Thanks for supporting QmClient
-Too many translation jobs
+The Config tab reuses QmClient's client config browser
+The Functions tab contains tools, automation, and gameplay helpers
+The HUD tab collects overlays, counters, voice display, and top components
+The Visuals tab contains appearance and rendering options
+The best voice chat, of course!
+The force pause timer is now over, you can exit with /spec
+There is no checkpoint teleporter with that index on the map.
+There is no teleporter with that index on the map.
+There is nowhere to go back to.
+There's a %s second delay between map-votes, please wait %s seconds.
+There's a %s second wait time between kick votes for each player please wait %s second(s)
+Thinking mode requires a reasoning model
+This ID is not connected
+This server has an initial chat delay, you will be able to talk in %s seconds.
+This team already has the maximum allowed size of %s players
+This team can't be locked
+This team can't have the mode changed
+This team cannot finish anymore because '%s' left the team before hitting the start
+This team is currently saving
+This team is locked using /lock. Only members of the team can invite you or unlock it using /lock.
+This team is locked using /lock. Only members of the team can unlock it using /lock.
+This team started already
+This team was disbanded because there are more players than allowed in the team.
+Time to wait before changing team: %s
+Timer is displayed in %s
+Timer isn't displayed.
+To save all players in your team have to be alive and not in '/spec'
+Too many translation tasks
 Trail alpha
 Trail length
+Translate
+Translate button
+Translate only when needed
 Translating to %s...
-Translation queue full, sending original text
-Transparency
+Translation backend invalid, sending original
+Translation queue full, sending original
+Translation service
+Troubleshooting suggestions
+Try reselecting input device, confirm default mic or headset mic is online
+Try reselecting output device, confirm headphones/speakers are online
+Try toggling voice or reconnecting to server
+Trying Axiom auto login
+Trying Axiom dummy auto login
+Tune layer opacity
 Twinkle strength
-UDP 套接字未打开
+UDP socket not open
 UI scale
+Unclassified audio issue
 Unfreeze automation helpers
+Unfreeze opacity
 Unknown
+Unknown argument. Check '/rescuemode list'
+Unknown emote... Say /emote
+Unknown parameter. Accepted values: default, gametimer, broadcast, both, none
+Unknown status
+Update notice
+Updating feature list...
+Use default flags on scoreboard
+Use default input
+Use default output
 Use embedded HUD progress bar
+Use multi-char replacement based on word length
+Use original style
 Use the top tabs to browse QmClient features by category
 Vertical position
+View latest updates
 View margin
-View recent updates
-View support QR code
-Visual contains appearance and rendering related options
 Visuals
+Voice
+Voice activation release delay
+Voice bitrate
+Voice distance radius (tiles)
+Wait for current vote to end before calling a new one.
+Waiting to open
+Waiting to open input device
+Waiting to open output device
+Weapon Trajectory
+Weapon animation
+Weapon interaction range
+Weapon range color
+Weapon switch animation
+What kind of Gores do you want to run?
+What kind of blockbuster do you want to shoot?
+What kind of laser do you want?
+What kind of life do you want to run?
+What's done is done, no use saying more
 Whisper
-X 对齐颜色
-⚠️ FTAPI 是一个免费服务。过度使用可能导致服务暂停。
-上一首
-下一首
-不降噪
-与我 X 对齐提示
-两者
-严格模式
-主播模式
-事已至此,多说无益
-仅在另一个Tee不在屏幕上时显示
-仅在需要时翻译
-仅本地
-他妈的炸弹人全给我去Spa!
-他妈的炸弹人都给我死啊!
-传送不透明度
-位置跳跃提示
-你想做出怎样的激光?
-你想拍出怎样的大片
-你想跑出怎样的Gores?
-你想跑出怎样的人生?
-你最爱的地图管家
-使用分身回复
-使用原始样式
-使用默认输入
-使用默认输出
-傻逼词过滤器
-先看这里，可以快速判断卡在设备、服务器还是房间
-关
-关键词回复
-关键词规则
-关键词规则的两侧都必须填写
-关闭
-冻结不透明度
-分身小窗
-分身小窗大小
-分身小窗缩放
-切换失败
-切换武器动画
-切换武器时播放滑入旋转动画
-判定时间
-刷新
-功能搜索
-动态FOV平滑度
-动态FOV强度
-动画
-匹配到 %d 个模块
-发送
-发送概率
-发送源语言
-发送目标语言
-发送翻译方式
-叠层不透明度
-只有你想不到,没有梦做不到
-只有你想不到，没有梦做不到！
-右跳
-同房间全图收听
-启用 3D 背景粒子
-启用 FTAPI 自动翻译（可能导致服务过载）
-启用 Gores 模式
-启用关键词回复
-启用分身小窗
-启用动态FOV
-启用复读
-启用屏蔽词列表
-启用思考模式（较慢）
-启用相机漂移
-启用禅模式
-启用立体声定位
-启用系统媒体控制
-启用语音
-启用饼菜单
-噢噢噢噢噢噢噢噢噢噢噢噢噢噢噢噢
-回退后的简单降噪强度
-在Tee上方显示对话气泡
-在你操控本体的时候分身有没有被欺负呢?
-在左上角显示歌曲信息
-在控制台中显示被屏蔽的词语
-在水中死亡时自动说话
-在玩家头顶显示坐标
-在玩家头顶显示聊天消息
-在记分板上使用默认旗
-地图危险边界
-基于Win的一坨所拉的一泡
-大字播报进服好友
-大字文案
-好友上线和加入提醒
-好友提醒
-始终显示
-始终翻译
-字面量
-实体层颜色
-宽高比预设
-对玩家快捷操作菜单
-屏蔽词
-左右声道宽度
-左跳
-已切换到
-已匹配到可通话对端
-已打开
-已断开
-已联通，暂时无人说话
-已连接
-已连接，等待首个 ping
-已静音
-帧率
-常用按键绑定
-常见的按键绑定
-并发数（0 = 自动）
-建议先检查输入设备、系统默认麦克风和麦克风权限
-建议先检查输出设备，确认耳机或扬声器仍在线
-建议排查
-建议检查语音服务器地址是否可用
-建议确认双方在同服、同房间，并且对方也支持语音
-建议重新切换语音开关或重试进入服务器
-建议重新选择输入设备，并确认默认麦克风或耳机麦克风仍在线
-建议重新选择输出设备，并确认耳机或扬声器仍在线
-开
-开关不透明度
-异常断开
-弹跳
-当前宽高比:
-当前宽高比: 显示默认
-当前未发现可通话对端
-当前构建未集成 RNNoise，将自动回退到简单降噪
-当前状态
-当前状态正常，如仍异常请查看下方详细原因
-当好友上线时提醒
-当然是最好的语音啦!
-彩虹名字
-快速定位功能模块
-感谢您的陪伴与信任.正是如此,才给了我继续前行的勇气
-我 是 机 器 人
-房间
-房间密码
-所有玩家
-手动并发数：%d
-打开颜色选择器
-扬声器
-招呼文案
-拾取其他武器后禁用
-拾取物范围
-按键显示
-按键绑定
-控制台颜色
-播放/暂停
-播放音量
-收发
-收缩
-收藏的地图
-改名
-改名队列
-文字颜色
-新版UI
-显示 Tee、地图和武器交互碰撞箱
-显示 X
-显示 Y
-显示其他玩家的坐标
-显示坐标
-显示枪榴弹和激光轨迹预览
-显示模式
-显示版本过旧提示
-显示玩家头顶的消息气泡
-显示碰撞和武器交互
-显示碰撞箱模式
-显示自己和他人的坐标
-显示自己的坐标
-显示语音连接状态
-显示队伍
-智谱 AI
-智谱 API Key
-暂无对端
-更新功能列表...
-替换字符
-替换模式
-最少匹配字符数
-服务器
-服务器IP
-未发现音频异常
-未启用
-未打开，请检查输入设备或麦克风权限
-未打开，请检查输出设备
-未找到匹配的功能模块。请尝试其他关键词
-未知状态
-未进入服务器
-本地 + 分身
-本地正在发送，建议让对方开麦或确认对方是否能接收
-本地测试模式
-本地测试模式，无需服务器
-本地粒子效果
-根据词语长度使用多字符替换
-梦的小功能
-模型
-正则
-正则表达式
-正在切回默认输入
-正在切回默认输出
-正在切换
-正在发送和接收
-正在发送，等待对端回声
-正在接收
-正在解析语音服务器地址
-武器交互范围
-武器范围颜色
-武器辅助线
-武器动画
-死亡不透明度
-水中发送表情
-水中自动发言
-消息气泡
-消散
-深度冻结不透明度
-深度解冻不透明度
-游戏时间边距
-漂移平滑度
-漂移强度
-漂移方向
-激光增强
-灵动岛
-点击以设置颜色
-玩家统计
-玩家范围
-用 ID 替换非好友名称
-用逗号分隔
-用默认皮肤替换非好友皮肤
-画一张大饼
-留空以禁用
-留空以进入公共房间
-留空使用默认提示词
-目标语言
-目标语言比例
-看看你操控本体的时候分身有没有被别人欺负
-看看你有多演
-瞄缝救人
-碰撞箱模式
-示例: 名字1|名字2|名字3
-禅模式
-禅模式按键
-端点
-端点 (可选)
-等待打开
-等待打开输入设备
-等待打开输出设备
-简单降噪
-简单降噪强度
-粒子碰撞
-粒子类型
-系统媒体控制
-系统没有可用输入设备
-系统没有可用输出设备
-系统默认
-线宽
-翻译
-翻译按钮
-翻译服务
-聊天屏蔽词过滤
-聊天框按钮外观设置
-聊天消息
-聊天翻译按钮UI
-聊天翻译设置
-背景颜色
-自动
-自动刷新服务器列表
-自动平衡麦克风音量（AGC，实验性）
-自动并发数：%d（智能默认）
-自动检测说话时开麦
-自动登录 Axiom 服务器
-自动翻译发送的消息
-自动翻译收到的消息
-自动问候进图的好友
-自定义
-自定义 API Key
-自定义宽高比
-自定义提示词模板
-自定义翻译按钮和菜单的颜色
-表情 ID
-解冻不透明度
-计分板Qm标识
-计分板查分
-设置颜色
-详细原因
-语音
-语音激活释放延迟
-语音码率
-语音距离半径（格）
-说话触发阈值
-请使用 %s 作为好友名称
-请先启用语音
-谁把OBS塞进来了
-调整各个实体层的透明度
-调整游戏镜头和视野设置
-辅助线颜色
-输入切换
-输入设备
-输入设备不存在
-输入设备打开失败
-输入设备打开失败，建议重插耳机/麦克风后刷新，或重新选择输入设备
-输出切换
-输出设备
-输出设备不存在
-输出设备打开失败
-输出设备打开失败，建议重插耳机/扬声器后刷新，或重新选择输出设备
-远程粒子效果
-连击
-选项颜色
-透明度
-速通计时器
-配置背景 3D 粒子效果
-重置
-锤中偷皮
-镜头与视野
-降噪模式
-随机表情
-隐去UI专注游戏
-隐藏辅助线
-隐藏输入表情
-需要先进入服务器，语音网络链路才会建立
-需要在系统设置里允许麦克风权限，然后重新打开语音
-静音麦克风
-音频初始化失败，建议查看下方详细原因并结合日志排查
-音频后端初始化失败
-音频后端初始化失败，建议切换设备后重试，并查看详细原因
-音频异常未分类
-音频问题
-饼菜单
-高级选项
-麦克风
-麦克风权限被系统拒绝
-麦克风音量
-默认
-默认输入打开失败
-默认输出打开失败
+Who stuffed OBS in here
+Word Filter
+X alignment color
+X alignment hint with me
+You and other player need to have started the map
+You and the other player must not be paused.
+You are already on the latest version
+You are force-paused for %s seconds.
+You are in team %s having %s players
+You are in this team already
+You are not allowed to vote because we're currently checking for VPNs. Try again in ~30 seconds.
+You are not allowed to vote because you appear to be using a VPN. Try connecting without a VPN or contacting an admin if you think this is a mistake.
+You are not permitted to talk for the next %s seconds.
+You are not permitted to vote for the next %s seconds.
+You are now in a solo part
+You are now out of the solo part
+You are running a vote, please try again after the vote is done!
+You can collide with others
+You can hammer hit others
+You can hit others
+You can hook others
+You can kick only your team member
+You can now jump %s times
+You can now use the preset eye emotes.
+You can only move your team member to spectators
+You can only vote after logging in.
+You can see other players. To disable this use DDNet client and type /showothers
+You can shoot others with grenade
+You can shoot others with laser
+You can shoot others with shotgun
+You can't change teams that fast!
+You can't change teams while you are dead/a spectator.
+You can't check your team while you are dead/a spectator.
+You can't collide with others
+You can't hammer hit others
+You can't hit others
+You can't hook others
+You can't join super team if you don't have super rights
+You can't kick authorized players
+You can't kick yourself
+You can't move authorized players to spectators
+You can't move yourself to spectators
+You can't shoot others with grenade
+You can't shoot others with laser
+You can't shoot others with shotgun
+You canceled the swap with %s
+You died, but will stay in practice until you use kill.
+You do not have a pending swap request.
+You don't have any eye emotes, remember to bind some.
+You don't have unlimited air jumps
+You have a jetpack gun
+You have already requested to swap with %s.
+You have requested to swap with %s. Use /cancelswap to cancel the request.
+You have started racing already
+You have to be in a team (from 1-63)
+You have to wait %s seconds until you can swap
+You have unlimited air jumps
+You have used practice mode already
+You haven't previously teleported. Use /tp before using this command.
+You lost your jetpack gun
+You must join a team and play with somebody or else you can't play
+You must wait %s seconds before making another vote.
+You must wait %s seconds before making your first vote.
+You will no longer see all tees on this server
+You will not receive any further global chat and server messages
+You will not receive any further whispers
+You will now see all tees on this server, no matter the distance
+You will receive global chat and server messages
+You will receive whispers
+You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.
+Your current race time is %s
+Your current version is outdated. Please update from the QQ group.
+Your favorite map manager
+Your locked team was killed because '%s' %s
+Your swap request timed out %s seconds ago, use /swap again to request
+Your team has been killed because it contains an invalid tee state
+Your team has not started yet
+Your team is currently saving
+Your team was killed because it couldn't finish anymore and hasn't entered /practice mode
+Your team was unlocked by an unlock team tile
+Your timeout code has been set. 0.7 clients can not reclaim their tees on timeout; however, a 0.6 client can claim your tee
+Zen Mode
+Zen mode key
+Zhipu AI
+Zhipu API key
+_ or ' ' = blank spacer
+a = View angle
+c = Player position
+d = Prediction latency
+died
+disable
+enable
+f = Frame rate
+i = Receive rate
+j = Latency jitter
+k = Resend loss
+killed themselves
+l = Local time
+n = Prediction latency
+o = Send rate
+p = Ping latency
+q = Connection quality
+r = Race time
+u = Snapshot latency
+v = Velocity
+x = DDNet CPU% / total CPU%
+y = DDNet memory usage
+z = Zoom
+⚠️ FTAPI is a free service. Excessive use may cause service suspension.
