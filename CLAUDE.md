@@ -24,6 +24,7 @@ QmClient（Q1menG Client）是基于 DDNet / TaterClient 的第三方定制客�
 | `docs/ai-workflow/verification.md` | 构建、测试、quick/default/full gate 命令、视觉检查和证据标准。 | 完成任务后 |
 | `docs/ai-workflow/review.md` | 代码审查立场、严重级别格式、DDNet 特有风险点和输出格式。 | 完成任务后 |
 | `docs/ai-workflow/git-workflow.md` | Git - commit、PR 标题/描述和最终汇报格式规范。 | 提交 git 和 PR 时 |
+| `docs/ai-workflow/advanced/README.md` | 性能、量化系统、重构、安全、内存、jobs、观测和回归防护等专项稳定规则的阅读路由。 | 任务涉及对应专项风险时 |
 | `qmclient_scripts/scripts_overview.md` | 脚本分层、推荐入口和 gate 工作流语义。 | 使用脚本时 |
 
 ## 极简工作流
@@ -44,7 +45,7 @@ QmClient（Q1menG Client）是基于 DDNet / TaterClient 的第三方定制客�
 
 - 先按 `docs/ai-workflow/verification.md` 跑对应验证，至少覆盖当前改动的 build/test/gate。
 - 除非用户明确把任务限制为纯调查、纯文档同步或只要求某个单项命令，否则不要只用 build/test 代替 gate；代码改动完成后，至少补一条与范围匹配的 `python qmclient_scripts/gate/check_gate.py --mode ...` 验证。
-- 默认口径：纯文档 / harness 改动至少跑 `python qmclient_scripts/gate/check_docs.py`；常规代码改动至少跑 `python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main`；提交前如环境允许优先补到 `--mode default`；集中收口或准发布改动再用 `--mode full`。
+- 默认口径：纯文档 / harness 改动至少跑 `python qmclient_scripts/gate/check_docs.py`；常规代码改动至少跑 `python qmclient_scripts/gate/check_gate.py --mode quick`；提交前如环境允许优先补到 `--mode default`；集中收口或准发布改动再用 `--mode full`。
 - 同一 build 目录中的 `game-client`、`testrunner`、`run_cxx_tests`、`run_rust_tests`、`package_default` 必须串行执行，不要并行；要并行只能拆到不同 build 目录。
 - 影响核心逻辑时，必须派发一个新的只读子代理，按 `docs/ai-workflow/review.md` 做代码审查；审查先列 findings，再给总体结论。
 - 子代理指出的问题修完后，再看这次改动能否最小化提交：只保留和当前任务直接相关的文件与说明。
