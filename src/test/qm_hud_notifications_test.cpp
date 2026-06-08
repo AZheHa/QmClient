@@ -1,8 +1,8 @@
-#include <game/client/components/qmclient/hud_notifications/hud_notifications.h>
 #include <game/client/components/hud_editor.h>
 #include <game/client/components/qmclient/hud_notifications/hud_notification_catalog.h>
 #include <game/client/components/qmclient/hud_notifications/hud_notification_rules.h>
 #include <game/client/components/qmclient/hud_notifications/hud_notification_static_rules.h>
+#include <game/client/components/qmclient/hud_notifications/hud_notifications.h>
 
 #ifdef QM_HUD_NOTIFICATION_STATIC_RULES
 #error Old mixed static rule table should not be exposed through hud_notification_rules.h
@@ -55,9 +55,9 @@ namespace
 		static const SLiteralPair s_aLegacyLiterals[] = {
 #define QM_LEGACY_LITERAL(pOriginal, pLocalized) {pOriginal, pLocalized},
 			QM_HUD_NOTIFICATION_STATIC_TEAM_RULES(QM_LEGACY_LITERAL)
-			QM_HUD_NOTIFICATION_STATIC_SWAP_RESCUE_RULES(QM_LEGACY_LITERAL)
-			QM_HUD_NOTIFICATION_STATIC_VOTE_MODERATION_RULES(QM_LEGACY_LITERAL)
-			QM_HUD_NOTIFICATION_STATIC_STATUS_RULES(QM_LEGACY_LITERAL)
+				QM_HUD_NOTIFICATION_STATIC_SWAP_RESCUE_RULES(QM_LEGACY_LITERAL)
+					QM_HUD_NOTIFICATION_STATIC_VOTE_MODERATION_RULES(QM_LEGACY_LITERAL)
+						QM_HUD_NOTIFICATION_STATIC_STATUS_RULES(QM_LEGACY_LITERAL)
 #undef QM_LEGACY_LITERAL
 		};
 		for(const SLiteralPair &Literal : s_aLegacyLiterals)
