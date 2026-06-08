@@ -151,7 +151,11 @@ _CHECK_MAP = {
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="QmClient 仓库级门禁总入口")
     parser.add_argument("--build-dir", default="cmake-build-release")
-    parser.add_argument("--base-ref", default="main")
+    parser.add_argument(
+        "--base-ref",
+        default=None,
+        help="差异基线；默认使用 origin/HEAD，缺失时依次回退 origin/master、origin/main、master、main",
+    )
     parser.add_argument(
         "--mode", choices=["quick", "default", "full", "build"], default="default"
     )
@@ -248,6 +252,8 @@ def _finalize_run(
 
 def main() -> int:
     args = _parse_args()
+    if args.base_ref is None:
+        args.base_ref = scope.default_base_ref()
 
     if args.mode not in _MODE_SPECS:
         print(f"未知 mode: {args.mode}", file=sys.stderr)

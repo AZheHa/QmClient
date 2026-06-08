@@ -74,8 +74,8 @@
 
 ```bash
 python qmclient_scripts/gate/check_gate.py --mode quick
-python qmclient_scripts/gate/check_gate.py --mode default --base-ref main
-python qmclient_scripts/gate/check_gate.py --mode full --base-ref main
+python qmclient_scripts/gate/check_gate.py --mode default
+python qmclient_scripts/gate/check_gate.py --mode full
 ```
 
 ### 文档入口一致性
@@ -101,7 +101,7 @@ python qmclient_scripts/bump_version.py --tag vX.Y.Z
 ### baseline allowlist
 
 ```bash
-python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main --report-json-path tmp/check-gate-report.json
+python qmclient_scripts/gate/check_gate.py --mode quick --report-json-path tmp/check-gate-report.json
 python qmclient_scripts/gate/tools/refresh_allowlist.py --report tmp/check-gate-report.json --output qmclient_scripts/gate/baseline_debt_allowlist.json
 ```
 
@@ -179,7 +179,7 @@ python qmclient_scripts/gate/tools/refresh_allowlist.py --report tmp/check-gate-
 ### 常用命令
 
 ```bash
-python qmclient_scripts/gate/check_gate.py --mode default --base-ref main --explain-scope --report-json-path tmp/check-gate-report.json
+python qmclient_scripts/gate/check_gate.py --mode default --explain-scope --report-json-path tmp/check-gate-report.json
 ```
 
 ## 不要这样用

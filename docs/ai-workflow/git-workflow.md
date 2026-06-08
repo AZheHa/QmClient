@@ -275,7 +275,7 @@ Release-EN: English release note
 
 ## Verification
 - [x] 文档检查：`python qmclient_scripts/gate/check_docs.py`
-- [x] gate 门禁：`python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main`
+- [x] gate 门禁：`python qmclient_scripts/gate/check_gate.py --mode quick`
 - [x] 客户端构建：`cmd /c qmclient_scripts/cmake-windows.cmd --build cmake-build-release --target game-client -j 14`
 
 ## Risks / Gaps

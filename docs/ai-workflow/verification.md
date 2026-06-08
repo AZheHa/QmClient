@@ -69,17 +69,17 @@ wsl env HOME=/home/<user> bash -lc 'set -e; . "$HOME/.cargo/env"; cd /mnt/<drive
 ## Gate 模式
 
 ```bash
-python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main
-python qmclient_scripts/gate/check_gate.py --mode default --base-ref main
-python qmclient_scripts/gate/check_gate.py --mode full --base-ref main
+python qmclient_scripts/gate/check_gate.py --mode quick
+python qmclient_scripts/gate/check_gate.py --mode default
+python qmclient_scripts/gate/check_gate.py --mode full
 ```
 
 说明：除非用户明确把任务限制为纯调查、纯文档同步或只要求某个单项命令，否则不要只用 build/test 代替 gate。至少选择一条与本轮范围匹配的 gate 作为验收证据：
 
 - 纯文档 / harness 变更：`python qmclient_scripts/gate/check_docs.py`
-- 常规代码改动：至少 `python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main`
-- 提交前日常严格门：优先 `python qmclient_scripts/gate/check_gate.py --mode default --base-ref main`
-- 集中收口 / 准发布：`python qmclient_scripts/gate/check_gate.py --mode full --base-ref main`
+- 常规代码改动：至少 `python qmclient_scripts/gate/check_gate.py --mode quick`
+- 提交前日常严格门：优先 `python qmclient_scripts/gate/check_gate.py --mode default`
+- 集中收口 / 准发布：`python qmclient_scripts/gate/check_gate.py --mode full`
 
 版本 / release 相关修改后，至少额外验证：
 

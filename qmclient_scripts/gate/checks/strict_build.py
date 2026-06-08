@@ -310,8 +310,11 @@ def run(
     results: ResultCollector,
     included: list[str],
     dry_run: bool = False,
-    base_ref: str = "main",
+    base_ref: str | None = None,
 ) -> None:
+    if base_ref is None:
+        base_ref = scope.default_base_ref()
+
     if dry_run:
         results.add("INFO", "严格构建与静态分析入口", "DryRun，仅展示命令")
         return
