@@ -26,26 +26,16 @@ QmClient（Q1menG Client）是基于 DDNet / TaterClient 的第三方定制客�
 | `docs/ai-workflow/git-workflow.md` | Git - commit、PR 标题/描述和最终汇报格式规范。 | 提交 git 和 PR 时 |
 | `qmclient_scripts/scripts_overview.md` | 脚本分层、推荐入口和 gate 工作流语义。 | 使用脚本时 |
 
-### 极简速查
-
-- 先定范围：一次只做一个功能或一个明确问题；超出当前需求的上游改动、协议/物理/预测/格式改动默认不做。
-- 启动顺序：先读匹配的 `docs/superpowers/plans/` 或 `docs/superpowers/specs/`；再读最小必要的 `docs/ai-workflow/` 规则；这轮涉及文档/入口/gate 时，先看 `check_docs.py` 是否也要同步修改。
-- 开工前先看真实代码：至少确认直接调用点、配置变量、翻译、测试和构建入口；不理解现状时不要直接写代码。
-- 实现时保持补丁聚焦：遵循 DDNet/QmClient 现有模式，不顺手重构无关代码，不把“现代化”当目标。
-- 验证时至少覆盖 build/test/gate，不能只跑 build/test 代替 gate。纯文档改动至少跑 `python qmclient_scripts/gate/check_docs.py`；常规代码改动至少跑 `python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main`。
-- 同一 build 目录里的 `game-client`、`testrunner`、`run_cxx_tests`、`run_rust_tests`、`package_default` 必须串行执行，不要并行；要并行只能拆到不同 build 目录。
-- 影响核心逻辑时，完成后必须派发一个新的只读子代理做代码审查；审查先列 findings，再给总体结论；审查问题修完后再准备提交。
-- 完成任务后：先按 `docs/ai-workflow/verification.md` 跑对应验证，至少覆盖当前改动的 build/test/gate；子代理指出的问题修完后，再考虑收口提交范围。
-- 改文档、入口、gate 或 governance 内容时，先同步对应规则/脚本，再跑 `python qmclient_scripts/gate/check_docs.py --sync-only --prefer agents` 和 `python qmclient_scripts/gate/check_docs.py`。
-- 提交 commit / PR 前，先确认 review findings 已收口、gate 证据已补齐；不要带着“只跑过 build/test、没跑 gate”的状态提交。
-- commit / PR 标题统一用 `<type>(<scope>): <中文简述>`；正文先写问题/背景，再按 `fix`、`test`、`docs` 等分组。
-- 最终汇报必须写清：改了什么、跑了哪些验证、结果如何、还有哪些 gaps；没跑的不要说通过。
-
 ## 极简工作流
+
+### 范围边界
+
+- 一次只做一个功能或一个明确问题；超出当前需求的上游改动、协议/物理/预测/格式改动默认不做。
+- 实现时保持补丁聚焦：遵循 DDNet/QmClient 现有模式，不顺手重构无关代码，不把“现代化”当目标。
 
 ### 启动顺序
 
-- 先读 `docs/superpowers/plans/` 和 `docs/superpowers/specs/` 里与当前任务匹配的计划或规格。
+- 先读匹配的 `docs/superpowers/plans/` 或 `docs/superpowers/specs/`。
 - 再读与当前任务匹配的最小 `docs/ai-workflow/` 规则。
 - 如果这轮涉及文档/入口/gate，先看 `check_docs.py` 是否也要同步修改。
 - 修改前检查附近源码、调用点、配置变量、翻译和测试；不理解现状时不要直接写代码。
@@ -54,15 +44,16 @@ QmClient（Q1menG Client）是基于 DDNet / TaterClient 的第三方定制客�
 
 - 先按 `docs/ai-workflow/verification.md` 跑对应验证，至少覆盖当前改动的 build/test/gate。
 - 除非用户明确把任务限制为纯调查、纯文档同步或只要求某个单项命令，否则不要只用 build/test 代替 gate；代码改动完成后，至少补一条与范围匹配的 `python qmclient_scripts/gate/check_gate.py --mode ...` 验证。
-- 默认口径：纯文档 / harness 改动至少跑 `python qmclient_scripts/gate/check_docs.py`；常规代码改动至少跑 `check_gate.py --mode quick`；提交前如环境允许优先补到 `--mode default`；集中收口或准发布改动再用 `--mode full`。
+- 默认口径：纯文档 / harness 改动至少跑 `python qmclient_scripts/gate/check_docs.py`；常规代码改动至少跑 `python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main`；提交前如环境允许优先补到 `--mode default`；集中收口或准发布改动再用 `--mode full`。
 - 同一 build 目录中的 `game-client`、`testrunner`、`run_cxx_tests`、`run_rust_tests`、`package_default` 必须串行执行，不要并行；要并行只能拆到不同 build 目录。
-- 影响核心逻辑时，必须派发一个新的只读子代理，按 `docs/ai-workflow/review.md` 做代码审查。
+- 影响核心逻辑时，必须派发一个新的只读子代理，按 `docs/ai-workflow/review.md` 做代码审查；审查先列 findings，再给总体结论。
 - 子代理指出的问题修完后，再看这次改动能否最小化提交：只保留和当前任务直接相关的文件与说明。
 
 ### 提交 commit / PR 前
 
 - 先跑 `python qmclient_scripts/gate/check_docs.py`。
-- 不要带着“只跑过 build/test、没跑 gate”的状态进入 commit / PR；至少记录一条与本轮范围匹配的 gate 证据。
+- 先确认 review findings 已收口、gate 证据已补齐；不要带着“只跑过 build/test、没跑 gate”的状态进入 commit / PR。
+- 如果仓库开启了受保护分支，而当前操作者不是仓库主或没有直推权限，默认走：本地提交 -> 推到新分支 -> 开 PR -> 合并 PR -> 删分支。只有仓库主或被明确授予直推权限的人，才可以不走这条默认路径。
 - commit 和 PR 文案按 `docs/ai-workflow/git-workflow.md` 编写：标题统一用 `<type>(<scope>): <中文简述>`，正文先写问题/背景，再按 `fix`、`test`、`docs` 等分组。
 - 如果准备提 PR，先确保这轮审查结论已经收口，不要带着已知 review finding 进入 PR。
 
