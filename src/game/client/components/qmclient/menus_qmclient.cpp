@@ -528,7 +528,7 @@ void CMenus::RenderSettingsQmClientOverview(CUIRect MainView)
 		if(pColor != nullptr)
 			TextRender()->TextColor(*pColor);
 		CUIElement &TextElement = SettingsTextElement(SETTINGS_QMCLIENT, QMCLIENT_SETTINGS_TAB_VISUAL, pText);
-		Ui()->DoLabelStreamed(*TextElement.Rect(0), &Row, pText, Size > 0.0f ? Size : BodySize, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(TextElement, &Row, pText, Size > 0.0f ? Size : BodySize, TEXTALIGN_ML);
 		if(pColor != nullptr)
 			TextRender()->TextColor(TextRender()->DefaultTextColor());
 		Content.HSplitTop(CardSpacing * 0.35f, nullptr, &Content);
@@ -538,7 +538,7 @@ void CMenus::RenderSettingsQmClientOverview(CUIRect MainView)
 		CUIRect Title;
 		Content.HSplitTop(HeadlineSize, &Title, &Content);
 		CUIElement &TitleElement = SettingsTextElement(SETTINGS_QMCLIENT, QMCLIENT_SETTINGS_TAB_VISUAL, pTitle);
-		Ui()->DoLabelStreamed(*TitleElement.Rect(0), &Title, pTitle, HeadlineSize, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(TitleElement, &Title, pTitle, HeadlineSize, TEXTALIGN_ML);
 		Content.HSplitTop(CardSpacing * 0.35f, nullptr, &Content);
 		if(pTip != nullptr && pTip[0] != '\0')
 			AddTextLine(Content, pTip, TipSize, &TipColor);

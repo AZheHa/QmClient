@@ -18,6 +18,7 @@
 #include <game/client/animstate.h>
 #include <game/client/components/chat.h>
 #include <game/client/components/countryflags.h>
+#include <game/client/components/qmclient/perf_logging.h>
 #include <game/client/gameclient.h>
 #include <game/client/ui.h>
 #include <game/client/ui_listbox.h>
@@ -25,6 +26,7 @@
 #include <game/voting.h>
 
 #include <algorithm>
+#include <chrono>
 #include <unordered_map>
 
 using namespace FontIcons;
@@ -819,6 +821,8 @@ void CMenus::RenderServerbrowserServerList(CUIRect View, bool &WasListboxItemAct
 	}
 
 	s_ListBox.SetActive(!Ui()->IsPopupOpen());
+	const bool PerfListFrameEnabled = QmPerfEnabled();
+	const auto ListFrameStartTime = PerfListFrameEnabled ? time_get_nanoseconds() : std::chrono::nanoseconds::zero();
 	s_ListBox.DoStart(ms_ListheaderHeight, NumServers, 1, 3, -1, &View, false);
 
 	if(m_ServerBrowserShouldRevealSelection)
@@ -845,9 +849,13 @@ void CMenus::RenderServerbrowserServerList(CUIRect View, bool &WasListboxItemAct
 	if(vpServerBrowserUiElements.size() < (size_t)NumServers)
 		vpServerBrowserUiElements.resize(NumServers, nullptr);
 
+	int RowsVisible = 0;
+	int RowsRendered = 0;
+	int RowsIterated = 0;
 	for(int i = 0; i < NumServers; i++)
 	{
 		const CServerInfo *pItem = ServerBrowser()->SortedGet(i);
+		RowsIterated += PerfListFrameEnabled ? 1 : 0;
 		const CCommunity *pCommunity = ServerBrowser()->Community(pItem->m_aCommunityId);
 
 		if(vpServerBrowserUiElements[i] == nullptr)
@@ -868,6 +876,11 @@ void CMenus::RenderServerbrowserServerList(CUIRect View, bool &WasListboxItemAct
 
 			// don't render invisible items
 			continue;
+		}
+		if(PerfListFrameEnabled)
+		{
+			RowsVisible++;
+			RowsRendered++;
 		}
 
 		const float FontSize = 12.0f;
@@ -1031,6 +1044,20 @@ void CMenus::RenderServerbrowserServerList(CUIRect View, bool &WasListboxItemAct
 	}
 
 	const int NewSelected = s_ListBox.DoEnd();
+	if(PerfListFrameEnabled)
+	{
+		const double ListFrameDurationMs = std::chrono::duration<double, std::milli>(time_get_nanoseconds() - ListFrameStartTime).count();
+		if(QmPerfShouldLogDuration(ListFrameDurationMs, false))
+		{
+			char aPayload[256];
+			const int ItemsTotal = ServerBrowser()->NumSortedServers();
+			const int RowsSkipped = maximum(0, ItemsTotal - RowsRendered);
+			str_format(aPayload, sizeof(aPayload),
+				"event=list_frame page=server_browser items_total=%d rows_visible=%d rows_rendered=%d rows_iterated=%d rows_skipped=%d dur_ms=%.3f source=server_browser",
+				ItemsTotal, RowsVisible, RowsRendered, RowsIterated, RowsSkipped, ListFrameDurationMs);
+			QmPerfLogPayload("perf/interaction", aPayload, Client(), "server_browser");
+		}
+	}
 	if(NumServers * ms_ListheaderHeight > ListView.h)
 	{
 		CUIRect Fade = ListView;

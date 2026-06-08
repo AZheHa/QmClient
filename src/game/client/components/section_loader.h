@@ -1,13 +1,14 @@
 #ifndef GAME_CLIENT_COMPONENTS_SECTION_LOADER_H
 #define GAME_CLIENT_COMPONENTS_SECTION_LOADER_H
 
+#include <engine/graphics.h>
+
+#include <game/client/components/settings_warmup.h>
+#include <game/client/ui_rect.h>
+
 #include <cstdint>
 #include <functional>
 #include <vector>
-
-#include <engine/graphics.h>
-#include <game/client/components/settings_warmup.h>
-#include <game/client/ui_rect.h>
 
 enum class ESettingsSectionState : uint8_t
 {
@@ -27,6 +28,7 @@ enum class ESettingsCacheDirtyReason : uint8_t
 	FONT,
 	ACTIVE_INTERACTION,
 	GRAPHICS_RESET,
+	UNKNOWN,
 };
 
 /**
@@ -176,7 +178,8 @@ public:
 	bool IsCacheValidForTests(const char *pName) const;
 	void InvalidateSectionByName(const char *pName, ESettingsCacheDirtyReason Reason = ESettingsCacheDirtyReason::CONFIG);
 	bool PrewarmSectionByName(const char *pName, CUIRect MainView, float ScrollY);
-	bool DrawCachedSectionByName(const char *pName, CUIRect MainView, float ScrollY);
+	bool DrawCachedSectionByName(const char *pName, CUIRect MainView, float ScrollY, ESettingsCacheDirtyReason *pDirtyReason = nullptr);
+	static const char *CacheDirtyReasonName(ESettingsCacheDirtyReason Reason);
 
 	// -- State exposed for the rendering loop (updated externally) --
 

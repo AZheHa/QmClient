@@ -3,11 +3,13 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["*.ts", "lib/**/*.ts"]
+  "include": ["*.ts", "lib/**/*.ts", "test.ts"]
 }

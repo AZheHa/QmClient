@@ -159,6 +159,23 @@ bool CSectionLoader::IsCacheValidForTests(const char *pName) const
 	return false;
 }
 
+const char *CSectionLoader::CacheDirtyReasonName(ESettingsCacheDirtyReason Reason)
+{
+	switch(Reason)
+	{
+	case ESettingsCacheDirtyReason::NONE: return "clean";
+	case ESettingsCacheDirtyReason::CONFIG: return "config";
+	case ESettingsCacheDirtyReason::LANGUAGE: return "language";
+	case ESettingsCacheDirtyReason::WINDOW_SIZE: return "window_size";
+	case ESettingsCacheDirtyReason::UI_SCALE: return "ui_scale";
+	case ESettingsCacheDirtyReason::FONT: return "font";
+	case ESettingsCacheDirtyReason::ACTIVE_INTERACTION: return "active_interaction";
+	case ESettingsCacheDirtyReason::GRAPHICS_RESET: return "graphics_reset";
+	case ESettingsCacheDirtyReason::UNKNOWN: return "unknown";
+	}
+	return "unknown";
+}
+
 void CSectionLoader::InvalidateSectionByName(const char *pName, ESettingsCacheDirtyReason Reason)
 {
 	for(auto &Section : m_vSections)
@@ -232,7 +249,7 @@ bool CSectionLoader::PrewarmSectionByName(const char *pName, CUIRect MainView, f
 	return false;
 }
 
-bool CSectionLoader::DrawCachedSectionByName(const char *pName, CUIRect MainView, float ScrollY)
+bool CSectionLoader::DrawCachedSectionByName(const char *pName, CUIRect MainView, float ScrollY, ESettingsCacheDirtyReason *pDirtyReason)
 {
 	m_MainView = MainView;
 	m_ScrollY = ScrollY;
@@ -256,6 +273,8 @@ bool CSectionLoader::DrawCachedSectionByName(const char *pName, CUIRect MainView
 		}
 
 		const bool Drawn = TryRenderCachedSection(Section);
+		if(pDirtyReason != nullptr)
+			*pDirtyReason = Section.m_DirtyReason;
 		ClearSectionCallbacks(m_vSections);
 		return Drawn;
 	}

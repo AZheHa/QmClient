@@ -3781,7 +3781,7 @@ void CMenus::RenderSettingsTClientChatBinds(CUIRect MainView)
 		CUIRect Input, Title;
 		Button.VSplitLeft(210.0f, &Title, &Input);
 		CUIElement &TitleElement = SettingsTextElement(SETTINGS_TCLIENT, TCLIENT_TAB_BINDCHAT, BindDefault.m_pTitle);
-		Ui()->DoLabelStreamed(*TitleElement.Rect(0), &Title, Localize(BindDefault.m_pTitle), FontSize, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(TitleElement, &Title, Localize(BindDefault.m_pTitle), FontSize, TEXTALIGN_ML);
 		BindDefault.m_LineInput.SetBuffer(pName, BINDCHAT_MAX_NAME);
 		BindDefault.m_LineInput.SetEmptyText(BindDefault.m_Bind.m_aName);
 		if(Ui()->DoEditBox(&BindDefault.m_LineInput, &Input, EditBoxFontSize) && BindDefault.m_LineInput.IsActive())
@@ -3821,7 +3821,7 @@ void CMenus::RenderSettingsTClientChatBinds(CUIRect MainView)
 
 		Column.HSplitTop(HeadlineHeight, &Label, &Column);
 		CUIElement &TitleElement = SettingsTextElement(SETTINGS_TCLIENT, TCLIENT_TAB_BINDCHAT, pTitleKey);
-		Ui()->DoLabelStreamed(*TitleElement.Rect(0), &Label, pTitle, HeadlineFontSize, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(TitleElement, &Label, pTitle, HeadlineFontSize, TEXTALIGN_ML);
 		Column.HSplitTop(MarginSmall, nullptr, &Column);
 		for(CBindChat::CBindDefault &BindchatDefault : vBindchatDefaults)
 			DoBindchatDefault(Column, BindchatDefault);

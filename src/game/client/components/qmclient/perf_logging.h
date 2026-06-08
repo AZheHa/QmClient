@@ -21,6 +21,11 @@ inline double QmPerfThresholdMs()
 	return g_Config.m_QmPerfDebugThresholdMs > 0 ? g_Config.m_QmPerfDebugThresholdMs : 1.0;
 }
 
+inline bool QmPerfShouldLogDuration(double DurationMs, bool Force = false)
+{
+	return Force || DurationMs >= QmPerfThresholdMs();
+}
+
 inline uint64_t QmPerfSessionId()
 {
 	static const uint64_t s_SessionId = (uint64_t)time_timestamp();
@@ -212,7 +217,7 @@ inline void QmPerfLogStage(const char *pSystem, const char *pStage, double Durat
 {
 	if(!QmPerfEnabled())
 		return;
-	if(!Force && DurationMs < QmPerfThresholdMs())
+	if(!QmPerfShouldLogDuration(DurationMs, Force))
 		return;
 
 	char aPayload[1024];

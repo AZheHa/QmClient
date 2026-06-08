@@ -1812,6 +1812,7 @@ public:
 	void LoadSettingsRuntimeCacheMetadata();
 	void SaveSettingsRuntimeCacheMetadata();
 	CUIElement &SettingsTextElement(int Page, int Tab, const char *pTextId);
+	void DoSettingsLabelStreamed(CUIElement &Element, const CUIRect *pRect, const char *pText, float Size, int Align, const SLabelProperties &LabelProps = {}, int StrLen = -1, const CTextCursor *pReadCursor = nullptr, bool Render = true);
 	void InvalidateSettingsTextPool();
 	void InvalidateSettingsRuntimeCaches(ESettingsInvalidationReason Reason);
 	void FinalizeTeeListDrainPerfSession();
@@ -1829,6 +1830,12 @@ private:
 	struct SSettingsTextPoolEntry
 	{
 		CUIElement m_Element;
+	};
+
+	struct SSettingsTextPerfStats
+	{
+		int m_New = 0;
+		int m_Reused = 0;
 	};
 
 	struct SSettingsGenericSectionCache
@@ -1864,6 +1871,7 @@ private:
 	std::unordered_map<std::string, std::unique_ptr<SSettingsGenericSectionCache>> m_SettingsGenericSectionCaches;
 	uint64_t m_SettingsTextPoolLanguageHash = 0;
 	uint64_t m_SettingsTextPoolFontHash = 0;
+	SSettingsTextPerfStats *m_pActiveSettingsTextPerfStats = nullptr;
 
 	CCommunityIcons m_CommunityIcons;
 	CMenusIngameTouchControls m_MenusIngameTouchControls;
@@ -1914,7 +1922,7 @@ private:
 	void InvalidateSettingsPageRuntimeCache(int Page, int Tab);
 	void InvalidateTClientSettingsRuntimeCacheSections(ESettingsCacheDirtyReason Reason = ESettingsCacheDirtyReason::CONFIG);
 	bool PrewarmSettingsSectionRuntimeCache(CUIRect SectionView, int Page, int Tab, const char *pSectionId);
-	bool DrawSettingsSectionRuntimeCache(CUIRect SectionView, int Page, int Tab, const char *pSectionId);
+	bool DrawSettingsSectionRuntimeCache(CUIRect SectionView, int Page, int Tab, const char *pSectionId, ESettingsCacheDirtyReason *pDirtyReason = nullptr);
 	void InvalidateSettingsSectionRuntimeCache(int Page, int Tab, const char *pSectionId);
 	void DestroySettingsPageRuntimeCaches();
 	bool PrewarmSettingsPageResources(int Page, int Tab, const CUIRect &ContentView);

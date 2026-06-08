@@ -1,12 +1,11 @@
 #include <base/system.h>
 
-#include <game/client/components/section_loader.h>
-
 #include <engine/storage.h>
 
-#include <test/test.h>
+#include <game/client/components/section_loader.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 // Helper: modify the CUIRect inline without calling HSplitTop (not linked in test runner)
 static float ConsumeHeight(CUIRect &Rect, float Height)
@@ -136,7 +135,9 @@ TEST(SectionLoader, FullSectionsIgnoreFrameBudget)
 		std::vector<SSettingsSection> vSections;
 		for(int SectionIndex = 0; SectionIndex < 3; ++SectionIndex)
 		{
-			SSettingsSection S = MakeTestSection(SectionIndex == 0 ? "Full A" : SectionIndex == 1 ? "Full B" : "Full C", 10.0f);
+			SSettingsSection S = MakeTestSection(SectionIndex == 0 ? "Full A" : SectionIndex == 1 ? "Full B" :
+														"Full C",
+				10.0f);
 			S.m_RenderFullFn = [&FullRenderCount](CUIRect &Rect) -> float {
 				++FullRenderCount;
 				return ConsumeHeight(Rect, 10.0f);
@@ -1176,6 +1177,25 @@ TEST(SectionLoader, DrawCachedSectionByNameKeepsInteractiveLayerVisible)
 	EXPECT_TRUE(Loader.DrawCachedSectionByName("TClient:Interactive", CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f));
 	EXPECT_EQ(InteractiveRenderCount, 1);
 	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 45.0f);
+}
+
+TEST(SectionLoader, DrawCachedSectionByNameReportsDirtyReasonAfterCacheAttempt)
+{
+	CSectionLoader Loader;
+
+	SSettingsSection Section = MakeTestSection("TClient:DirtyReason", 10.0f);
+	Section.m_bCanCacheStaticLayer = true;
+	Section.m_bKeepCachedHeightStable = true;
+	Section.m_RenderInteractiveLayerFn = [](CUIRect &Rect) -> float {
+		return ConsumeHeight(Rect, 24.0f);
+	};
+
+	Loader.Register({Section});
+	Loader.MarkCacheValidForTests("TClient:DirtyReason");
+
+	ESettingsCacheDirtyReason DirtyReason = ESettingsCacheDirtyReason::NONE;
+	EXPECT_FALSE(Loader.DrawCachedSectionByName("TClient:DirtyReason", CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f, &DirtyReason));
+	EXPECT_EQ(DirtyReason, ESettingsCacheDirtyReason::WINDOW_SIZE);
 }
 
 TEST(SectionLoader, InvalidateSectionByNameClearsOnlyTargetCache)

@@ -3880,6 +3880,19 @@ CUIElement &CMenus::SettingsTextElement(int Page, int Tab, const char *pTextId)
 	return It->second.m_Element;
 }
 
+void CMenus::DoSettingsLabelStreamed(CUIElement &Element, const CUIRect *pRect, const char *pText, float Size, int Align, const SLabelProperties &LabelProps, int StrLen, const CTextCursor *pReadCursor, bool Render)
+{
+	bool TextContainerRecreated = false;
+	Ui()->DoLabelStreamed(*Element.Rect(0), pRect, pText, Size, Align, LabelProps, StrLen, pReadCursor, Render, &TextContainerRecreated);
+	if(m_pActiveSettingsTextPerfStats != nullptr)
+	{
+		if(TextContainerRecreated)
+			++m_pActiveSettingsTextPerfStats->m_New;
+		else
+			++m_pActiveSettingsTextPerfStats->m_Reused;
+	}
+}
+
 void CMenus::InvalidateSettingsTextPool()
 {
 	for(auto &[Key, Entry] : m_SettingsTextPool)
@@ -4226,7 +4239,7 @@ bool CMenus::PrewarmSettingsSectionRuntimeCache(CUIRect SectionView, int Page, i
 	return Prewarmed;
 }
 
-bool CMenus::DrawSettingsSectionRuntimeCache(CUIRect SectionView, int Page, int Tab, const char *pSectionId)
+bool CMenus::DrawSettingsSectionRuntimeCache(CUIRect SectionView, int Page, int Tab, const char *pSectionId, ESettingsCacheDirtyReason *pDirtyReason)
 {
 	const int64_t PerfStartTime = PerfDebugStartTime();
 	if(!SettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi))
@@ -4251,7 +4264,7 @@ bool CMenus::DrawSettingsSectionRuntimeCache(CUIRect SectionView, int Page, int 
 		LogSettingsWarmupPerf(Page, Tab, "n/a", "miss", ESettingsWarmupMissReason::SECTION_FBO_NOT_READY, PerfDebugElapsedMs(PerfStartTime));
 		return false;
 	}
-	const bool Drawn = pLoader->DrawCachedSectionByName(pLoaderSectionName, SectionView, 0.0f);
+	const bool Drawn = pLoader->DrawCachedSectionByName(pLoaderSectionName, SectionView, 0.0f, pDirtyReason);
 	LogSettingsWarmupPerf(Page, Tab, "n/a", Drawn ? "hit" : "miss", Drawn ? ESettingsWarmupMissReason::NONE : ESettingsWarmupMissReason::SECTION_FBO_NOT_READY, PerfDebugElapsedMs(PerfStartTime));
 	return Drawn;
 }
@@ -4550,8 +4563,8 @@ void CMenus::SetMenuPage(int NewPage)
 	}
 	if(PerfDebugEnabled() && OldPage != NewPage)
 	{
-		char aPayload[128];
-		str_format(aPayload, sizeof(aPayload), "event=menu_page_switch from=%s to=%s", MenuPageName(OldPage), MenuPageName(NewPage));
+		char aPayload[160];
+		str_format(aPayload, sizeof(aPayload), "event=page_switch from=%s to=%s dur_ms=%.3f source=menu_page_switch", MenuPageName(OldPage), MenuPageName(NewPage), 0.0);
 		QmPerfLogPayload("perf/interaction", aPayload, Client());
 	}
 	m_MenuPage = NewPage;
@@ -4616,8 +4629,8 @@ void CMenus::SetGamePage(int NewPage)
 	const int OldPage = m_GamePage;
 	if(PerfDebugEnabled() && OldPage != NewPage)
 	{
-		char aPayload[128];
-		str_format(aPayload, sizeof(aPayload), "event=game_page_switch from=%s to=%s", GamePageName(OldPage), GamePageName(NewPage));
+		char aPayload[160];
+		str_format(aPayload, sizeof(aPayload), "event=page_switch from=%s to=%s dur_ms=%.3f source=game_page_switch", GamePageName(OldPage), GamePageName(NewPage), 0.0);
 		QmPerfLogPayload("perf/interaction", aPayload, Client());
 	}
 	m_GamePage = NewPage;

@@ -328,9 +328,12 @@ namespace
 		const double UploadsPerSec = DurationSec > 0.0 ? UploadsDoneTotal / DurationSec : 0.0;
 		const double LoadedPerSec = DurationSec > 0.0 ? LoadedTotal / DurationSec : 0.0;
 		const auto &Telemetry = Skins.SettingsSourceAdmissionTelemetry();
-		char aPayload[768];
-		str_format(aPayload, sizeof(aPayload), "event=list_drain_summary dur_ms=%.3f uploads_done_total=%llu loaded_total=%llu uploads_per_sec=%.3f loaded_per_sec=%.3f requested=%d pending=%d loading=%d loaded=%d max_requested=%d max_pending=%d max_loading=%d max_real_inflight=%d count_fuse_limit=%d total_requested=%llu total_admitted=%llu total_started=%llu num_loading_window_waits=%d num_gpu_budget_waits=%d num_queue_fuse_waits=%d full_list_ready=%d final_real_inflight=%d last_wait_reason=%s last_dynamic_decision=%s last_request_budget_block_reason=%s",
+		char aPayload[1024];
+		str_format(aPayload, sizeof(aPayload), "event=work_drain page=settings:tee kind=merge count=%llu bytes=%d dur_ms=%.3f stop=%s source=list_drain_summary uploads_done_total=%llu loaded_total=%llu uploads_per_sec=%.3f loaded_per_sec=%.3f requested=%d pending=%d loading=%d loaded=%d max_requested=%d max_pending=%d max_loading=%d max_real_inflight=%d count_fuse_limit=%d total_requested=%llu total_admitted=%llu total_started=%llu num_loading_window_waits=%d num_gpu_budget_waits=%d num_queue_fuse_waits=%d full_list_ready=%d final_real_inflight=%d last_wait_reason=%s last_dynamic_decision=%s last_request_budget_block_reason=%s",
+			(unsigned long long)LoadedTotal,
+			0,
 			DurationMs,
+			FullListReady ? "complete" : "pending",
 			(unsigned long long)UploadsDoneTotal,
 			(unsigned long long)LoadedTotal,
 			UploadsPerSec,
@@ -562,6 +565,22 @@ namespace
 		}
 	}
 
+	void LogSettingsSectionPerf(IClient *pClient, int Page, int Tab, const char *pSectionId, double DurationMs, const char *pDirtyReason, int TextNew, int TextReused)
+	{
+		char aPayload[256];
+		char aTab[16];
+		const char *pTab = nullptr;
+		if(Tab >= 0)
+		{
+			str_format(aTab, sizeof(aTab), "%d", Tab);
+			pTab = aTab;
+		}
+		const char *pPageName = SettingsPageName(Page);
+		str_format(aPayload, sizeof(aPayload), "event=section page=%s section=%s dur_ms=%.3f visible=%d dirty=%s text_new=%d text_reused=%d",
+			pPageName, pSectionId != nullptr ? pSectionId : "unknown", DurationMs, 1, pDirtyReason != nullptr ? pDirtyReason : "unknown", TextNew, TextReused);
+		QmPerfLogPayload("perf/section", aPayload, pClient, pPageName, pTab);
+	}
+
 	static bool ApplyBackgroundEntitiesInputValue(CLineInput &Input)
 	{
 		char aNormalized[IO_MAX_PATH_LENGTH];
@@ -622,9 +641,9 @@ void CMenus::RenderSettingsGeneral(CUIRect MainView)
 		CUIRect GameLabel, LanguageLabel;
 		Label.VSplitMid(&GameLabel, &LanguageLabel, 20.0f);
 		CUIElement &GameTitleElement = SettingsTextElement(SETTINGS_GENERAL, -1, "game-title");
-		Ui()->DoLabelStreamed(*GameTitleElement.Rect(0), &GameLabel, Localize("Game"), 20.0f, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(GameTitleElement, &GameLabel, Localize("Game"), 20.0f, TEXTALIGN_ML);
 		CUIElement &LanguageTitleElement = SettingsTextElement(SETTINGS_GENERAL, -1, "language-title");
-		Ui()->DoLabelStreamed(*LanguageTitleElement.Rect(0), &LanguageLabel, Localize("Language"), 20.0f, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(LanguageTitleElement, &LanguageLabel, Localize("Language"), 20.0f, TEXTALIGN_ML);
 		Game.HSplitTop(5.0f, nullptr, &Game);
 		Game.VSplitMid(&Left, &Right, 20.0f);
 
@@ -684,7 +703,7 @@ void CMenus::RenderSettingsGeneral(CUIRect MainView)
 		// headline
 		ClientSettings.HSplitTop(30.0f, &Label, &ClientSettings);
 		CUIElement &ClientTitleElement = SettingsTextElement(SETTINGS_GENERAL, -1, "client-title");
-		Ui()->DoLabelStreamed(*ClientTitleElement.Rect(0), &Label, Localize("Client"), 20.0f, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(ClientTitleElement, &Label, Localize("Client"), 20.0f, TEXTALIGN_ML);
 		ClientSettings.HSplitTop(5.0f, nullptr, &ClientSettings);
 		ClientSettings.VSplitMid(&Left, &Right, 20.0f);
 
@@ -4126,7 +4145,7 @@ void CMenus::PrepareLanguagePageCache(float MainViewWidth)
 		CUIRect FlagRect, Label;
 		ItemRect.VSplitLeft(ItemRect.h * 2.0f, &FlagRect, &Label);
 		CUIElement &LabelElement = SettingsTextElement(SETTINGS_LANGUAGE, -1, Language.m_Filename.c_str());
-		Ui()->DoLabelStreamed(*LabelElement.Rect(0), &Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML, {}, -1, nullptr, false);
+		DoSettingsLabelStreamed(LabelElement, &Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML, {}, -1, nullptr, false);
 	}
 
 	gs_LanguageLabelWidth = LabelWidth;
@@ -4229,7 +4248,7 @@ bool CMenus::RenderLanguageSelection(CUIRect MainView)
 		if(UseCache)
 		{
 			CUIElement &LabelElement = SettingsTextElement(SETTINGS_LANGUAGE, -1, Language.m_Filename.c_str());
-			Ui()->DoLabelStreamed(*LabelElement.Rect(0), &Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML);
+			DoSettingsLabelStreamed(LabelElement, &Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML);
 		}
 		else
 			Ui()->DoLabel(&Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML);
@@ -4386,9 +4405,9 @@ void CMenus::RenderSettings(CUIRect MainView)
 			FinalizeTeeListDrainPerfSession();
 		if(PerfDebugEnabled())
 		{
-			char aPayload[128];
-			str_format(aPayload, sizeof(aPayload), "event=settings_page_switch from=%s to=%s",
-				SettingsPageName(s_PrevSettingsPage), SettingsPageName(g_Config.m_UiSettingsPage));
+			char aPayload[160];
+			str_format(aPayload, sizeof(aPayload), "event=page_switch from=%s to=%s dur_ms=%.3f source=settings_page_switch",
+				SettingsPageName(s_PrevSettingsPage), SettingsPageName(g_Config.m_UiSettingsPage), 0.0);
 			QmPerfLogPayload("perf/interaction", aPayload, Client(), "settings");
 		}
 		s_SettingsTransitionDirection = UseNewSettingsUi ? (g_Config.m_UiSettingsPage > s_PrevSettingsPage ? 1.0f : -1.0f) : 0.0f;
@@ -4411,21 +4430,21 @@ void CMenus::RenderSettings(CUIRect MainView)
 
 	{
 		CPerfTimer StageTimer;
+		int NumSections = 0;
+		int NumSectionsVisible = 0;
 		auto DrawOrPrewarmSection = [&](int Page, int Tab, const char *pSectionId) {
 			CPerfTimer SectionTimer;
-			if(!DrawSettingsSectionRuntimeCache(ContentView, Page, Tab, pSectionId))
+			SSettingsTextPerfStats TextStats;
+			SSettingsTextPerfStats *pPreviousTextStats = m_pActiveSettingsTextPerfStats;
+			m_pActiveSettingsTextPerfStats = &TextStats;
+			ESettingsCacheDirtyReason DirtyReason = ESettingsCacheDirtyReason::UNKNOWN;
+			const bool SectionCacheHit = DrawSettingsSectionRuntimeCache(ContentView, Page, Tab, pSectionId, &DirtyReason);
+			if(!SectionCacheHit)
 				(void)PrewarmSettingsSectionRuntimeCache(ContentView, Page, Tab, pSectionId);
-			char aPayload[192];
-			char aTab[16];
-			const char *pTab = nullptr;
-			if(Tab >= 0)
-			{
-				str_format(aTab, sizeof(aTab), "%d", Tab);
-				pTab = aTab;
-			}
-			str_format(aPayload, sizeof(aPayload), "event=section_render section=%s dur_ms=%.3f",
-				pSectionId != nullptr ? pSectionId : "unknown", SectionTimer.ElapsedMs());
-			QmPerfLogPayload("perf/section", aPayload, Client(), SettingsPageName(Page), pTab);
+			m_pActiveSettingsTextPerfStats = pPreviousTextStats;
+			++NumSections;
+			++NumSectionsVisible;
+			LogSettingsSectionPerf(Client(), Page, Tab, pSectionId, SectionTimer.ElapsedMs(), SectionCacheHit ? "clean" : CSectionLoader::CacheDirtyReasonName(DirtyReason), TextStats.m_New, TextStats.m_Reused);
 		};
 		if(g_Config.m_UiSettingsPage == SETTINGS_GENERAL)
 		{
@@ -4523,8 +4542,20 @@ void CMenus::RenderSettings(CUIRect MainView)
 		{
 			dbg_assert_failed("ui_settings_page invalid");
 		}
-		char aContentExtra[128];
-		str_format(aContentExtra, sizeof(aContentExtra), "page=%s transition=%d", SettingsPageName(g_Config.m_UiSettingsPage), TransitionActive ? 1 : 0);
+		char aTab[16];
+		const char *pTab = "none";
+		if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+		{
+			str_format(aTab, sizeof(aTab), "%d", m_QmClientSettingsTab);
+			pTab = aTab;
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+		{
+			str_format(aTab, sizeof(aTab), "%d", m_TClientSettingsTab);
+			pTab = aTab;
+		}
+		char aContentExtra[192];
+		str_format(aContentExtra, sizeof(aContentExtra), "page=%s transition=%d sections=%d sections_visible=%d tab=%s", SettingsPageName(g_Config.m_UiSettingsPage), TransitionActive ? 1 : 0, NumSections, NumSectionsVisible, pTab);
 		LogPerfStage(Client(), "settings_page_content", StageTimer.ElapsedMs(), TransitionActive, aContentExtra);
 	}
 

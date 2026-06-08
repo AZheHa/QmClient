@@ -3,9 +3,11 @@
 
 #include "maplayers.h"
 #include "menus.h"
+#include "qmclient/perf_logging.h"
 
 #include <base/hash.h>
 #include <base/math.h>
+#include <base/perf_timer.h>
 #include <base/system.h>
 
 #include <engine/client.h>
@@ -19,9 +21,9 @@
 
 #include <generated/client_data.h>
 
+#include <game/client/QmUi/UiTokens.h>
 #include <game/client/components/console.h>
 #include <game/client/gameclient.h>
-#include <game/client/QmUi/UiTokens.h>
 #include <game/client/ui.h>
 #include <game/client/ui_listbox.h>
 #include <game/localization.h>
@@ -1992,6 +1994,8 @@ void CMenus::RenderDemoBrowserList(CUIRect ListView, bool &WasListboxItemActivat
 
 	char aBuf[64];
 	int ItemIndex = -1;
+	int VisibleRows = 0;
+	CPerfTimer ListFrameTimer;
 	for(auto &pItem : m_vpFilteredDemos)
 	{
 		ItemIndex++;
@@ -2002,6 +2006,7 @@ void CMenus::RenderDemoBrowserList(CUIRect ListView, bool &WasListboxItemActivat
 
 		if(ListItem.m_Visible)
 		{
+			VisibleRows++;
 			if(Selected && !Focused)
 				ListItem.m_Rect.Draw(ui_token::color::ACCENT_PRIMARY_DIM.WithMultipliedAlpha(1.35f), IGraphics::CORNER_ALL, ui_token::radius::BASE);
 
@@ -2117,6 +2122,14 @@ void CMenus::RenderDemoBrowserList(CUIRect ListView, bool &WasListboxItemActivat
 	}
 
 	WasListboxItemActivated = s_ListBox.WasItemActivated() && NumSelectedDemos() == 1;
+	const double ListFrameDurationMs = ListFrameTimer.ElapsedMs();
+	if(QmPerfEnabled() && ListFrameDurationMs >= QmPerfThresholdMs())
+	{
+		char aPayload[160];
+		str_format(aPayload, sizeof(aPayload), "event=list_frame page=demo_browser items_total=%d rows_visible=%d rows_processed=%d rows_skipped=%d dur_ms=%.3f",
+			(int)m_vpFilteredDemos.size(), VisibleRows, VisibleRows, (int)m_vpFilteredDemos.size() - VisibleRows, ListFrameDurationMs);
+		QmPerfLogPayload("perf/interaction", aPayload, Client(), "demo_browser");
+	}
 }
 
 void CMenus::RenderDemoBrowserDetails(CUIRect DetailsView)

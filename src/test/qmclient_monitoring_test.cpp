@@ -344,6 +344,18 @@ TEST(QmMonitoringHelpers, PerfConfigDefaultsUseLowThresholdWithoutJsonToggle)
 	EXPECT_EQ(Source.find("MACRO_CONFIG_INT(QmPerfJson, qm_perf_json, 0, 0, 1"), std::string::npos);
 }
 
+TEST(QmMonitoringHelpers, PerfDurationGateUsesConfiguredThreshold)
+{
+	const int OldThreshold = g_Config.m_QmPerfDebugThresholdMs;
+	g_Config.m_QmPerfDebugThresholdMs = 4;
+
+	EXPECT_FALSE(QmPerfShouldLogDuration(3.999));
+	EXPECT_TRUE(QmPerfShouldLogDuration(4.0));
+	EXPECT_TRUE(QmPerfShouldLogDuration(0.0, true));
+
+	g_Config.m_QmPerfDebugThresholdMs = OldThreshold;
+}
+
 TEST(QmMonitoringHelpers, ProcessHighPriorityConfigExistsAndDefaultsOff)
 {
 	std::ifstream File(TestSourcePath("src/engine/shared/config_variables_qmclient.h"));
@@ -381,6 +393,7 @@ TEST(QmMonitoringHelpers, PerfLoggingAlwaysEmitsJsonPayload)
 	EXPECT_EQ(Source.find("if(g_Config.m_QmPerfJson == 0)"), std::string::npos);
 	EXPECT_NE(Source.find("str_copy(aJson, \"{\", sizeof(aJson));"), std::string::npos);
 	EXPECT_NE(Source.find("dbg_msg(pSystem, \"%s\", aJson);"), std::string::npos);
+	EXPECT_NE(Source.find("if(!QmPerfShouldLogDuration(DurationMs, Force))"), std::string::npos);
 }
 
 TEST(QmMonitoringHelpers, PerfPayloadJsonFieldsPreserveSpaceContainingValues)
@@ -413,5 +426,89 @@ TEST(QmMonitoringHelpers, RuntimePerfCallsitesUseSharedLoggingHelpers)
 		Buffer << File.rdbuf();
 		const std::string Source = Buffer.str();
 		EXPECT_EQ(Source.find("dbg_msg(\"perf/"), std::string::npos) << pPath;
+	}
+}
+
+TEST(QmMonitoringHelpers, MenuPerfEventsExposePageAttributionFields)
+{
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=page_switch from=%s to=%s dur_ms=%.3f"), std::string::npos);
+		EXPECT_NE(Source.find("event=section page=%s section=%s dur_ms=%.3f visible=%d dirty=%s text_new=%d text_reused=%d"), std::string::npos);
+		EXPECT_NE(Source.find("CSectionLoader::CacheDirtyReasonName(DirtyReason)"), std::string::npos);
+		EXPECT_NE(Source.find("TextStats.m_New"), std::string::npos);
+		EXPECT_NE(Source.find("TextStats.m_Reused"), std::string::npos);
+		EXPECT_EQ(Source.find("SectionCacheHit ? \"clean\" : \"cache_miss\", 0, 0"), std::string::npos);
+		EXPECT_EQ(Source.find("\"cache_miss\""), std::string::npos);
+		EXPECT_NE(Source.find("page=%s transition=%d sections=%d sections_visible=%d tab=%s"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=page_switch from=%s to=%s dur_ms=%.3f source=menu_page_switch"), std::string::npos);
+		EXPECT_NE(Source.find("event=page_switch from=%s to=%s dur_ms=%.3f source=game_page_switch"), std::string::npos);
+		EXPECT_NE(Source.find("DoSettingsLabelStreamed"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/ui.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("pTextContainerRecreated"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/section_loader.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("CacheDirtyReasonName"), std::string::npos);
+		EXPECT_NE(Source.find("case ESettingsCacheDirtyReason::CONFIG: return \"config\""), std::string::npos);
+		EXPECT_NE(Source.find("*pDirtyReason = Section.m_DirtyReason"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_demo.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=list_frame page=demo_browser items_total=%d rows_visible=%d rows_processed=%d rows_skipped=%d dur_ms=%.3f"), std::string::npos);
+		EXPECT_NE(Source.find("const double ListFrameDurationMs = ListFrameTimer.ElapsedMs();"), std::string::npos);
+		EXPECT_NE(Source.find("ListFrameDurationMs >= QmPerfThresholdMs()"), std::string::npos);
+		EXPECT_NE(Source.find("ListFrameDurationMs);"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_browser.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=list_frame page=server_browser items_total=%d rows_visible=%d rows_rendered=%d rows_iterated=%d rows_skipped=%d dur_ms=%.3f source=server_browser"), std::string::npos);
+		EXPECT_NE(Source.find("QmPerfShouldLogDuration(ListFrameDurationMs, false)"), std::string::npos);
+		EXPECT_NE(Source.find("const bool PerfListFrameEnabled = QmPerfEnabled();"), std::string::npos);
+		EXPECT_NE(Source.find("RowsIterated += PerfListFrameEnabled ? 1 : 0;"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=work_drain page=settings:tee kind=merge count=%llu bytes=%d dur_ms=%.3f stop=%s"), std::string::npos);
 	}
 }
