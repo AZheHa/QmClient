@@ -103,10 +103,12 @@ def chunked_for_command(base_args, filenames, max_chars=28000):
 
 
 def find_clang_format(version):
+    versioned_binaries = [f"clang-format-{major}" for major in range(version, 31)]
     for binary in (
         "clang-format",
         f"clang-format-{version}",
         f"/opt/clang-format-static/clang-format-{version}",
+        *versioned_binaries,
     ):
         try:
             out = subprocess.check_output([binary, "--version"])
