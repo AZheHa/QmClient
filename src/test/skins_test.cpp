@@ -696,7 +696,7 @@ TEST(Skins, AsyncSkinListKeepsQueuedColorVariantsSelectable)
 	MenuBuffer << MenuFile.rdbuf();
 	const std::string MenuSource = MenuBuffer.str();
 
-	EXPECT_NE(Header.find("class SColorKey"), std::string::npos);
+	EXPECT_NE(Header.find("struct SColorKey"), std::string::npos);
 	EXPECT_NE(Header.find("const std::optional<SColorKey> &ColorKey() const"), std::string::npos);
 	EXPECT_NE(Header.find("CSkinList &SkinList(int Dummy);"), std::string::npos);
 

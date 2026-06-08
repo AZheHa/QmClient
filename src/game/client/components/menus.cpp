@@ -3835,7 +3835,7 @@ bool CMenus::PrepareGenericSettingsRuntimeCacheSection(CUIRect SectionView, int 
 	SSettingsSection Section;
 	Section.m_pName = pCache->m_SectionName.c_str();
 	Section.m_CachedHeight = maximum(1.0f, SectionView.h);
-	Section.m_bCanCacheStaticLayer = false;
+	Section.m_CanCacheStaticLayer = false;
 	Section.m_StaticCachePadding = 2.0f;
 	Section.m_MeasureFn = [Height = SectionView.h](CUIRect &) -> float {
 		return maximum(1.0f, Height);

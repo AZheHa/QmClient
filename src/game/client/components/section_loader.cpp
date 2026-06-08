@@ -75,8 +75,8 @@ void CSectionLoader::Register(std::vector<SSettingsSection> vSections)
 			NewSection.m_State = OldSection.m_State;
 			NewSection.m_CachedHeight = OldSection.m_CachedHeight;
 			NewSection.m_LastConfigHash = OldSection.m_LastConfigHash;
-			NewSection.m_bDirty = OldSection.m_bDirty;
-			NewSection.m_bCacheValid = OldSection.m_bCacheValid;
+			NewSection.m_Dirty = OldSection.m_Dirty;
+			NewSection.m_CacheValid = OldSection.m_CacheValid;
 			NewSection.m_DirtyReason = OldSection.m_DirtyReason;
 			NewSection.m_CacheRuntimeKey = OldSection.m_CacheRuntimeKey;
 			NewSection.m_RenderTarget = OldSection.m_RenderTarget;
@@ -85,14 +85,14 @@ void CSectionLoader::Register(std::vector<SSettingsSection> vSections)
 			vTransferred[OldIndex] = true;
 			if(ComputeConfigHash(NewSection) != NewSection.m_LastConfigHash)
 			{
-				NewSection.m_bDirty = true;
-				NewSection.m_bCacheValid = false;
+				NewSection.m_Dirty = true;
+				NewSection.m_CacheValid = false;
 				NewSection.m_DirtyReason = ESettingsCacheDirtyReason::CONFIG;
 			}
 			else if(!(NewSection.m_CacheRuntimeKey == m_RuntimeKey))
 			{
-				NewSection.m_bDirty = true;
-				NewSection.m_bCacheValid = false;
+				NewSection.m_Dirty = true;
+				NewSection.m_CacheValid = false;
 				NewSection.m_DirtyReason = ESettingsCacheDirtyReason::WINDOW_SIZE;
 			}
 			break;
@@ -121,17 +121,17 @@ void CSectionLoader::SetRuntimeKey(const SSettingsSectionCacheRuntimeKey &Runtim
 
 void CSectionLoader::SetProgressiveEnabled(bool Enabled)
 {
-	m_bProgressiveEnabled = Enabled;
+	m_ProgressiveEnabled = Enabled;
 }
 
 void CSectionLoader::SetLiveStaticCacheRecordingEnabled(bool Enabled)
 {
-	m_bLiveStaticCacheRecordingEnabled = Enabled;
+	m_LiveStaticCacheRecordingEnabled = Enabled;
 }
 
 void CSectionLoader::SetRenderTargetSupportedForTests(bool Supported)
 {
-	m_bRenderTargetSupportedForTests = Supported;
+	m_RenderTargetSupportedForTests = Supported;
 }
 
 void CSectionLoader::MarkCacheValidForTests(const char *pName)
@@ -140,8 +140,8 @@ void CSectionLoader::MarkCacheValidForTests(const char *pName)
 	{
 		if(str_comp(Section.m_pName, pName) == 0)
 		{
-			Section.m_bCacheValid = true;
-			Section.m_bDirty = false;
+			Section.m_CacheValid = true;
+			Section.m_Dirty = false;
 			Section.m_DirtyReason = ESettingsCacheDirtyReason::NONE;
 			Section.m_CacheRuntimeKey = m_RuntimeKey;
 			return;
@@ -154,7 +154,7 @@ bool CSectionLoader::IsCacheValidForTests(const char *pName) const
 	for(const auto &Section : m_vSections)
 	{
 		if(str_comp(Section.m_pName, pName) == 0)
-			return Section.m_bCacheValid;
+			return Section.m_CacheValid;
 	}
 	return false;
 }
@@ -182,8 +182,8 @@ void CSectionLoader::InvalidateSectionByName(const char *pName, ESettingsCacheDi
 	{
 		if(str_comp(Section.m_pName, pName) != 0)
 			continue;
-		Section.m_bDirty = true;
-		Section.m_bCacheValid = false;
+		Section.m_Dirty = true;
+		Section.m_CacheValid = false;
 		Section.m_DirtyReason = Reason;
 		return;
 	}
@@ -191,7 +191,7 @@ void CSectionLoader::InvalidateSectionByName(const char *pName, ESettingsCacheDi
 
 bool CSectionLoader::PrewarmSectionByName(const char *pName, CUIRect MainView, float ScrollY)
 {
-	if(!m_bRenderTargetSupportedForTests)
+	if(!m_RenderTargetSupportedForTests)
 	{
 		ClearSectionCallbacks(m_vSections);
 		return false;
@@ -216,7 +216,7 @@ bool CSectionLoader::PrewarmSectionByName(const char *pName, CUIRect MainView, f
 
 		if(str_comp(Section.m_pName, pName) != 0)
 			continue;
-		if(!Section.m_bCanCacheStaticLayer)
+		if(!Section.m_CanCacheStaticLayer)
 		{
 			ClearSectionCallbacks(m_vSections);
 			return false;
@@ -237,8 +237,8 @@ bool CSectionLoader::PrewarmSectionByName(const char *pName, CUIRect MainView, f
 		{
 			Section.m_LastConfigHash = ComputeConfigHash(Section);
 			Section.m_CacheRuntimeKey = m_RuntimeKey;
-			Section.m_bDirty = false;
-			Section.m_bCacheValid = true;
+			Section.m_Dirty = false;
+			Section.m_CacheValid = true;
 			Section.m_DirtyReason = ESettingsCacheDirtyReason::NONE;
 		}
 		ClearSectionCallbacks(m_vSections);
@@ -289,21 +289,21 @@ void CSectionLoader::Begin(CUIRect MainView, float TimeBudgetMs)
 	m_BudgetPerFrameMs = (double)TimeBudgetMs;
 	m_CurrentIndex = 0;
 
-	m_bComplete = false;
+	m_Complete = false;
 	m_TotalFrameTimeMs = 0.0;
 }
 
 bool CSectionLoader::Process()
 {
-	if(!m_bInitialized)
+	if(!m_Initialized)
 	{
 		for(auto &Section : m_vSections)
 		{
 			Section.m_State = ESettingsSectionState::UNINITIALIZED;
 			Section.m_CachedHeight = 0.0f;
-			Section.m_bDirty = !Section.m_bCacheValid;
+			Section.m_Dirty = !Section.m_CacheValid;
 		}
-		m_bInitialized = true;
+		m_Initialized = true;
 		m_CurrentIndex = 0;
 	}
 
@@ -316,7 +316,7 @@ bool CSectionLoader::Process()
 	while(m_CurrentIndex < (int)m_vSections.size())
 	{
 		SSettingsSection &Section = m_vSections[m_CurrentIndex];
-		if(!m_bProgressiveEnabled && Section.m_State != ESettingsSectionState::FULL)
+		if(!m_ProgressiveEnabled && Section.m_State != ESettingsSectionState::FULL)
 		{
 			CUIRect MeasureColumn = m_RunningColumn;
 			if(Section.m_MeasureFn)
@@ -325,7 +325,7 @@ bool CSectionLoader::Process()
 				Section.m_CachedHeight = 0.0f;
 			Section.m_State = ESettingsSectionState::FULL;
 			Section.m_LastConfigHash = ComputeConfigHash(Section);
-			Section.m_bDirty = false;
+			Section.m_Dirty = false;
 		}
 		const bool BudgetAvailable = FrameTimer.ElapsedMs() < m_BudgetPerFrameMs;
 
@@ -372,7 +372,7 @@ bool CSectionLoader::Process()
 				else
 					m_RunningColumn.y += Section.m_CachedHeight;
 				Section.m_LastConfigHash = ComputeConfigHash(Section);
-				Section.m_bDirty = false;
+				Section.m_Dirty = false;
 				++UnlockedThisFrame;
 				++m_CurrentIndex;
 				break;
@@ -386,7 +386,7 @@ bool CSectionLoader::Process()
 		}
 		case ESettingsSectionState::FULL:
 		{
-			if(Section.m_bDirty && Section.m_MeasureFn)
+			if(Section.m_Dirty && Section.m_MeasureFn)
 			{
 				CUIRect MeasureColumn = m_RunningColumn;
 				Section.m_CachedHeight = Section.m_MeasureFn(MeasureColumn);
@@ -396,15 +396,15 @@ bool CSectionLoader::Process()
 			if(ComputeViewportPriority(SectionRect) > 1)
 			{
 				m_RunningColumn.y += Section.m_CachedHeight;
-				Section.m_bDirty = false;
+				Section.m_Dirty = false;
 				++m_CurrentIndex;
 				break;
 			}
 			if(TryRenderCachedSection(Section))
 			{
-				if(Section.m_bDirty)
+				if(Section.m_Dirty)
 					Section.m_LastConfigHash = ComputeConfigHash(Section);
-				Section.m_bDirty = false;
+				Section.m_Dirty = false;
 				++m_CurrentIndex;
 				break;
 			}
@@ -412,9 +412,9 @@ bool CSectionLoader::Process()
 				Section.m_CachedHeight = Section.m_RenderFullFn(m_RunningColumn);
 			else
 				m_RunningColumn.y += Section.m_CachedHeight;
-			if(Section.m_bDirty)
+			if(Section.m_Dirty)
 				Section.m_LastConfigHash = ComputeConfigHash(Section);
-			Section.m_bDirty = false;
+			Section.m_Dirty = false;
 			++m_CurrentIndex;
 			break;
 		}
@@ -423,12 +423,12 @@ bool CSectionLoader::Process()
 
 	if(m_CurrentIndex >= (int)m_vSections.size())
 	{
-		m_bComplete = true;
+		m_Complete = true;
 		for(const auto &Sect : m_vSections)
 		{
 			if(Sect.m_State != ESettingsSectionState::FULL)
 			{
-				m_bComplete = false;
+				m_Complete = false;
 				m_CurrentIndex = 0;
 				break;
 			}
@@ -445,22 +445,22 @@ bool CSectionLoader::Process()
 		str_format(aPayload, sizeof(aPayload),
 			"stage=section_loader sections=%d budget_ms=%.1f actual_ms=%.1f complete=%d",
 			(int)m_vSections.size(), m_BudgetPerFrameMs, m_TotalFrameTimeMs,
-			m_bComplete ? 1 : 0);
+			m_Complete ? 1 : 0);
 		QmPerfLogPayload("perf/section_loader", aPayload);
 	}
 
-	return !m_bComplete;
+	return !m_Complete;
 }
 
 bool CSectionLoader::IsComplete() const
 {
-	return m_bComplete;
+	return m_Complete;
 }
 
 void CSectionLoader::Reset()
 {
-	m_bInitialized = false;
-	m_bComplete = false;
+	m_Initialized = false;
+	m_Complete = false;
 	m_CurrentIndex = 0;
 	m_TotalFrameTimeMs = 0.0;
 	InvalidateCache(ESettingsCacheDirtyReason::CONFIG);
@@ -470,16 +470,16 @@ void CSectionLoader::Reset()
 
 bool CSectionLoader::Warmup(const SSessionUiCache *pCache, float TimeBudgetMs)
 {
-	if(!pCache || !pCache->m_bValid)
+	if(!pCache || !pCache->m_Valid)
 	{
-		m_bWarmupActive = false;
+		m_WarmupActive = false;
 		ClearSectionCallbacks(m_vSections);
 		return true;
 	}
 
-	if(!m_bWarmupActive)
+	if(!m_WarmupActive)
 	{
-		m_bWarmupActive = true;
+		m_WarmupActive = true;
 		m_WarmupIndex = 0;
 		m_WarmupBudgetMs = TimeBudgetMs;
 		m_pWarmupCache = pCache;
@@ -532,7 +532,7 @@ bool CSectionLoader::Warmup(const SSessionUiCache *pCache, float TimeBudgetMs)
 
 	if(m_WarmupIndex >= (int)m_vSections.size())
 	{
-		m_bWarmupActive = false;
+		m_WarmupActive = false;
 		ClearSectionCallbacks(m_vSections);
 		return true;
 	}
@@ -542,12 +542,12 @@ bool CSectionLoader::Warmup(const SSessionUiCache *pCache, float TimeBudgetMs)
 
 bool CSectionLoader::IsWarmupComplete() const
 {
-	return !m_bWarmupActive;
+	return !m_WarmupActive;
 }
 
 bool CSectionLoader::PrewarmStaticRenderTargets(CUIRect MainView, float ScrollY, float TimeBudgetMs, bool IncludeFarSections)
 {
-	if(!m_bRenderTargetSupportedForTests)
+	if(!m_RenderTargetSupportedForTests)
 	{
 		ClearSectionCallbacks(m_vSections);
 		return true;
@@ -574,7 +574,7 @@ bool CSectionLoader::PrewarmStaticRenderTargets(CUIRect MainView, float ScrollY,
 		const CUIRect SectionRect{RunningColumn.x, RunningColumn.y, RunningColumn.w, Section.m_CachedHeight};
 		RunningColumn.y += Section.m_CachedHeight;
 		RunningColumn.h = maximum(0.0f, RunningColumn.h - Section.m_CachedHeight);
-		if(!Section.m_bCanCacheStaticLayer || Section.m_bCacheValid)
+		if(!Section.m_CanCacheStaticLayer || Section.m_CacheValid)
 			continue;
 		if(!IncludeFarSections && ComputeViewportPriority(SectionRect) > 1)
 			continue;
@@ -588,7 +588,7 @@ bool CSectionLoader::PrewarmStaticRenderTargets(CUIRect MainView, float ScrollY,
 		}
 		Section.m_LastConfigHash = ComputeConfigHash(Section);
 		Section.m_CacheRuntimeKey = m_RuntimeKey;
-		Section.m_bDirty = false;
+		Section.m_Dirty = false;
 		Section.m_DirtyReason = ESettingsCacheDirtyReason::NONE;
 	}
 	ClearSectionCallbacks(m_vSections);
@@ -601,8 +601,8 @@ void CSectionLoader::InvalidateCache(ESettingsCacheDirtyReason Reason)
 {
 	for(auto &Section : m_vSections)
 	{
-		Section.m_bDirty = true;
-		Section.m_bCacheValid = false;
+		Section.m_Dirty = true;
+		Section.m_CacheValid = false;
 		Section.m_DirtyReason = Reason;
 	}
 }
@@ -615,8 +615,8 @@ void CSectionLoader::SetDirtyByConfig(const void *pConfigVar)
 		{
 			if(static_cast<const void *>(pInt) == pConfigVar)
 			{
-				Section.m_bDirty = true;
-				Section.m_bCacheValid = false;
+				Section.m_Dirty = true;
+				Section.m_CacheValid = false;
 				Section.m_DirtyReason = ESettingsCacheDirtyReason::CONFIG;
 				return;
 			}
@@ -625,8 +625,8 @@ void CSectionLoader::SetDirtyByConfig(const void *pConfigVar)
 		{
 			if(static_cast<const void *>(pCol) == pConfigVar)
 			{
-				Section.m_bDirty = true;
-				Section.m_bCacheValid = false;
+				Section.m_Dirty = true;
+				Section.m_CacheValid = false;
 				Section.m_DirtyReason = ESettingsCacheDirtyReason::CONFIG;
 				return;
 			}
@@ -711,13 +711,13 @@ bool CSectionLoader::LoadSessionCache(SSessionUiCache &Cache, const char *pFilen
 			++p;
 	}
 
-	Cache.m_bValid = (Cache.m_LastSettingsPage >= 0 || Cache.m_LastTClientTab >= 0 || Cache.m_LastQmTab >= 0);
-	return Cache.m_bValid;
+	Cache.m_Valid = (Cache.m_LastSettingsPage >= 0 || Cache.m_LastTClientTab >= 0 || Cache.m_LastQmTab >= 0);
+	return Cache.m_Valid;
 }
 
 void CSectionLoader::SaveSessionCache(const SSessionUiCache &Cache, const char *pFilename, IStorage *pStorage)
 {
-	if(!Cache.m_bValid)
+	if(!Cache.m_Valid)
 		return;
 
 	pStorage->CreateFolder("qmclient", IStorage::TYPE_SAVE);
@@ -783,29 +783,29 @@ void CSectionLoader::DestroyRenderTarget(SSettingsSection &Section)
 	Section.m_RenderTarget.Invalidate();
 	Section.m_RenderTargetWidth = 0;
 	Section.m_RenderTargetHeight = 0;
-	Section.m_bCacheValid = false;
+	Section.m_CacheValid = false;
 }
 
 bool CSectionLoader::TryRenderCachedSection(SSettingsSection &Section)
 {
 	const CPerfTimer CacheTimer;
 	bool CacheHit = false;
-	if(!Section.m_bCanCacheStaticLayer || !m_bRenderTargetSupportedForTests)
+	if(!Section.m_CanCacheStaticLayer || !m_RenderTargetSupportedForTests)
 		return false;
-	if(Section.m_bCacheValid && !(Section.m_CacheRuntimeKey == m_RuntimeKey))
+	if(Section.m_CacheValid && !(Section.m_CacheRuntimeKey == m_RuntimeKey))
 	{
-		Section.m_bCacheValid = false;
-		Section.m_bDirty = true;
+		Section.m_CacheValid = false;
+		Section.m_Dirty = true;
 		Section.m_DirtyReason = ESettingsCacheDirtyReason::WINDOW_SIZE;
 		return false;
 	}
 	if(!m_pGraphics)
 	{
-		if(!Section.m_bCacheValid || Section.m_bDirty)
+		if(!Section.m_CacheValid || Section.m_Dirty)
 			return false;
 		if(Section.m_RenderInteractiveLayerFn)
 		{
-			if(Section.m_bKeepCachedHeightStable)
+			if(Section.m_KeepCachedHeightStable)
 			{
 				CUIRect InteractiveColumn = m_RunningColumn;
 				const float CachedHeight = Section.m_CachedHeight;
@@ -813,8 +813,8 @@ bool CSectionLoader::TryRenderCachedSection(SSettingsSection &Section)
 				if(InteractiveHeight > CachedHeight + 0.5f)
 				{
 					Section.m_CachedHeight = InteractiveHeight;
-					Section.m_bCacheValid = false;
-					Section.m_bDirty = true;
+					Section.m_CacheValid = false;
+					Section.m_Dirty = true;
 					Section.m_DirtyReason = ESettingsCacheDirtyReason::WINDOW_SIZE;
 					return false;
 				}
@@ -845,7 +845,7 @@ bool CSectionLoader::TryRenderCachedSection(SSettingsSection &Section)
 		{
 			Section.m_CachedHeight = MeasuredHeight;
 			DestroyRenderTarget(Section);
-			Section.m_bDirty = true;
+			Section.m_Dirty = true;
 			Section.m_DirtyReason = ESettingsCacheDirtyReason::WINDOW_SIZE;
 			return false;
 		}
@@ -853,7 +853,7 @@ bool CSectionLoader::TryRenderCachedSection(SSettingsSection &Section)
 	if(Section.m_RenderTarget.IsValid() && (Section.m_RenderTargetWidth != Width || Section.m_RenderTargetHeight != Height))
 	{
 		DestroyRenderTarget(Section);
-		Section.m_bDirty = true;
+		Section.m_Dirty = true;
 		Section.m_DirtyReason = ESettingsCacheDirtyReason::WINDOW_SIZE;
 	}
 	if(!Section.m_RenderTarget.IsValid())
@@ -865,9 +865,9 @@ bool CSectionLoader::TryRenderCachedSection(SSettingsSection &Section)
 	if(!Section.m_RenderTarget.IsValid())
 		return false;
 
-	if(!Section.m_bCacheValid || Section.m_bDirty)
+	if(!Section.m_CacheValid || Section.m_Dirty)
 	{
-		if(!m_bLiveStaticCacheRecordingEnabled)
+		if(!m_LiveStaticCacheRecordingEnabled)
 			return false;
 		if(!RecordStaticRenderTarget(Section, Width, Height))
 			return false;
@@ -881,7 +881,7 @@ bool CSectionLoader::TryRenderCachedSection(SSettingsSection &Section)
 	m_pGraphics->DrawRenderTarget(Section.m_RenderTarget, m_RunningColumn.x - Padding, m_RunningColumn.y - Padding, m_RunningColumn.w + Padding * 2, Section.m_CachedHeight + Padding * 2);
 	if(Section.m_RenderInteractiveLayerFn)
 	{
-		if(Section.m_bKeepCachedHeightStable)
+		if(Section.m_KeepCachedHeightStable)
 		{
 			CUIRect InteractiveColumn = m_RunningColumn;
 			const float CachedHeight = Section.m_CachedHeight;
@@ -889,8 +889,8 @@ bool CSectionLoader::TryRenderCachedSection(SSettingsSection &Section)
 			if(InteractiveHeight > CachedHeight + 0.5f)
 			{
 				Section.m_CachedHeight = InteractiveHeight;
-				Section.m_bCacheValid = false;
-				Section.m_bDirty = true;
+				Section.m_CacheValid = false;
+				Section.m_Dirty = true;
 				Section.m_DirtyReason = ESettingsCacheDirtyReason::WINDOW_SIZE;
 				DestroyRenderTarget(Section);
 				m_RunningColumn = CachedColumn;
@@ -903,7 +903,7 @@ bool CSectionLoader::TryRenderCachedSection(SSettingsSection &Section)
 		else
 		{
 			Section.m_CachedHeight = Section.m_RenderInteractiveLayerFn(m_RunningColumn);
-			Section.m_bCacheValid = Section.m_RenderTargetHeight == std::max(1, (int)Section.m_CachedHeight + Padding * 2);
+			Section.m_CacheValid = Section.m_RenderTargetHeight == std::max(1, (int)Section.m_CachedHeight + Padding * 2);
 		}
 	}
 	else
@@ -912,7 +912,7 @@ bool CSectionLoader::TryRenderCachedSection(SSettingsSection &Section)
 	{
 		// Profiling is opt-in to avoid polluting normal frame logs.
 		dbg_msg("settings/cache", "section=%s hit=%d dirty=%d reason=%d full_ms=%.2f",
-			Section.m_pName, CacheHit ? 1 : 0, Section.m_bDirty ? 1 : 0,
+			Section.m_pName, CacheHit ? 1 : 0, Section.m_Dirty ? 1 : 0,
 			(int)Section.m_DirtyReason, CacheTimer.ElapsedMs());
 	}
 	Section.m_DirtyReason = ESettingsCacheDirtyReason::NONE;
@@ -929,7 +929,7 @@ bool CSectionLoader::RecordStaticRenderTarget(SSettingsSection &Section, int Wid
 		Section.m_RenderStaticLayerFn(CacheRect);
 		Section.m_RenderTargetWidth = Width;
 		Section.m_RenderTargetHeight = Height;
-		Section.m_bCacheValid = true;
+		Section.m_CacheValid = true;
 		Section.m_CacheRuntimeKey = m_RuntimeKey;
 		return true;
 	}
@@ -960,7 +960,7 @@ bool CSectionLoader::RecordStaticRenderTarget(SSettingsSection &Section, int Wid
 	Section.m_RenderStaticLayerFn(CacheRect);
 	m_pGraphics->MapScreen(ScreenTLX, ScreenTLY, ScreenBRX, ScreenBRY);
 	m_pGraphics->EndRenderTarget();
-	Section.m_bCacheValid = true;
+	Section.m_CacheValid = true;
 	Section.m_CacheRuntimeKey = m_RuntimeKey;
 	return true;
 }

@@ -148,7 +148,7 @@ struct SSettingsWarmupSection
 	const char *m_pName = nullptr;
 	int m_Priority = 0;
 	std::function<double()> m_WarmupFn;
-	bool m_bWarmed = false;
+	bool m_Warmed = false;
 	ESettingsWarmupKind m_Kind = ESettingsWarmupKind::TEXT;
 };
 
@@ -164,8 +164,8 @@ public:
 private:
 	std::vector<SSettingsWarmupSection> m_vSections;
 	EClassicSettingsPage m_LastSessionPage = EClassicSettingsPage::GENERAL;
-	bool m_bEnabled = true;
-	bool m_bSorted = false;
+	bool m_Enabled = true;
+	bool m_Sorted = false;
 };
 
 #endif // GAME_CLIENT_COMPONENTS_SETTINGS_WARMUP_H

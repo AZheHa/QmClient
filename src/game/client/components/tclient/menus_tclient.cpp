@@ -947,8 +947,8 @@ float CMenus::RenderTClientCacheSectionFallback(CUIRect &CurrentColumn, float To
 
 void CMenus::ConfigureSplitCachedStaticLayer(SSettingsSection &Section, const char *pTitle, std::function<float(CUIRect &)> MeasureSection, std::function<float(CUIRect &)> RenderInteractiveSection, float TopMargin)
 {
-	Section.m_bCanCacheStaticLayer = true;
-	Section.m_bKeepCachedHeightStable = true;
+	Section.m_CanCacheStaticLayer = true;
+	Section.m_KeepCachedHeightStable = true;
 	Section.m_StaticCachePadding = MarginBetweenViews * 0.6666f;
 	Section.m_RenderStaticLayerFn = [this, pTitle, MeasureSection = std::move(MeasureSection), TopMargin](CUIRect &Col) -> float {
 		CUIRect Label;
@@ -1584,8 +1584,8 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 		return Col.y - SavedY;
 	};
 	auto FillSplitCachedStaticLayer = [&](SSettingsSection &Section, const char *pTitle, auto &&MeasureSection, auto &&RenderInteractiveSection, float TopMargin) {
-		Section.m_bCanCacheStaticLayer = true;
-		Section.m_bKeepCachedHeightStable = true;
+		Section.m_CanCacheStaticLayer = true;
+		Section.m_KeepCachedHeightStable = true;
 		Section.m_StaticCachePadding = MarginBetweenViews * 0.6666f;
 		Section.m_RenderStaticLayerFn = [&, pTitle, TopMargin](CUIRect &Col) -> float {
 			const float SavedY = Col.y;
@@ -1610,7 +1610,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 		};
 	};
 	auto FillCachedStaticLayer = [&](SSettingsSection &Section, auto &LayoutSection) {
-		Section.m_bCanCacheStaticLayer = true;
+		Section.m_CanCacheStaticLayer = true;
 		Section.m_StaticCachePadding = MarginBetweenViews * 0.6666f;
 		CUi *pUi = Ui();
 		Section.m_RenderStaticLayerFn = [&LayoutSection, &DrawSectionBox, pUi](CUIRect &Col) -> float {
@@ -3528,10 +3528,10 @@ void CMenus::LoadSettingsRuntimeCacheMetadata()
 	m_SettingsRuntimeMetadata.m_LastPage = SessionCache.m_LastSettingsPage;
 	m_SettingsRuntimeMetadata.m_LastTClientTab = CanonicalizePersistedTClientTab(SessionCache.m_LastTClientTab >= 0 ? SessionCache.m_LastTClientTab : 0);
 	m_SettingsRuntimeMetadata.m_LastQmTab = CanonicalizePersistedQmClientTab(SessionCache.m_LastQmTab >= 0 ? SessionCache.m_LastQmTab : 0);
-	m_SettingsRuntimeMetadata.m_LastScrollPage = SessionCache.m_bValid && RuntimeKeyMatches ? SETTINGS_TCLIENT : -1;
+	m_SettingsRuntimeMetadata.m_LastScrollPage = SessionCache.m_Valid && RuntimeKeyMatches ? SETTINGS_TCLIENT : -1;
 	m_SettingsRuntimeMetadata.m_LastScrollY = RuntimeKeyMatches ? SessionCache.m_LastScrollY : 0.0f;
 	m_SettingsRuntimeMetadata.m_RuntimeKey = CurrentRuntimeKey;
-	m_SettingsRuntimeMetadata.m_Valid = SessionCache.m_bValid && RuntimeKeyMatches;
+	m_SettingsRuntimeMetadata.m_Valid = SessionCache.m_Valid && RuntimeKeyMatches;
 	if(m_SettingsRuntimeMetadata.m_LastPage == SETTINGS_CONFIGS)
 	{
 		m_SettingsRuntimeMetadata.m_LastPage = SETTINGS_QMCLIENT;
@@ -3545,7 +3545,7 @@ void CMenus::LoadSettingsRuntimeCacheMetadata()
 	if(SessionCache.m_LastTClientTab >= 0)
 		m_TClientSettingsTab = CanonicalizePersistedTClientTab(SessionCache.m_LastTClientTab);
 	m_SettingsTClientCurrentScrollY = RuntimeKeyMatches ? SessionCache.m_LastScrollY : 0.0f;
-	m_SettingsTClientScrollRestorePending = SessionCache.m_bValid && RuntimeKeyMatches;
+	m_SettingsTClientScrollRestorePending = SessionCache.m_Valid && RuntimeKeyMatches;
 	if(SessionCache.m_LastQmTab >= 0)
 		m_QmClientSettingsTab = CanonicalizePersistedQmClientTab(SessionCache.m_LastQmTab);
 	PrepareSettingsRuntimeWarmupPlan();
@@ -3567,7 +3567,7 @@ void CMenus::SaveSettingsRuntimeCacheMetadata()
 	SessionCache.m_LastTClientTab = m_SettingsRuntimeMetadata.m_LastTClientTab;
 	SessionCache.m_LastQmTab = m_SettingsRuntimeMetadata.m_LastQmTab;
 	SessionCache.m_LastScrollY = m_SettingsRuntimeMetadata.m_LastScrollPage == SETTINGS_TCLIENT ? m_SettingsRuntimeMetadata.m_LastScrollY : 0.0f;
-	SessionCache.m_bValid = m_SettingsRuntimeMetadata.m_Valid;
+	SessionCache.m_Valid = m_SettingsRuntimeMetadata.m_Valid;
 	CSectionLoader::SaveSessionCache(SessionCache, SETTINGS_RUNTIME_CACHE_METADATA_FILE, Storage());
 }
 

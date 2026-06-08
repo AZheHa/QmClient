@@ -62,10 +62,10 @@ struct SSettingsSection
 	std::vector<const int *> m_DependencyConfigInts;
 	std::vector<const unsigned *> m_DependencyConfigCols;
 	uint64_t m_LastConfigHash = 0;
-	bool m_bDirty = true; // force render on first frame
-	bool m_bCanCacheStaticLayer = false;
-	bool m_bKeepCachedHeightStable = false;
-	bool m_bCacheValid = false;
+	bool m_Dirty = true; // force render on first frame
+	bool m_CanCacheStaticLayer = false;
+	bool m_KeepCachedHeightStable = false;
+	bool m_CacheValid = false;
 	ESettingsCacheDirtyReason m_DirtyReason = ESettingsCacheDirtyReason::CONFIG;
 	SSettingsSectionCacheRuntimeKey m_CacheRuntimeKey;
 	IGraphics::CRenderTargetHandle m_RenderTarget;
@@ -87,7 +87,7 @@ struct SSessionUiCache
 	int m_LastQmTab = -1;
 	float m_LastScrollY = 0.0f;
 	SSettingsSectionCacheRuntimeKey m_RuntimeKey;
-	bool m_bValid = false;
+	bool m_Valid = false;
 };
 
 /**
@@ -198,16 +198,16 @@ private:
 	double m_BudgetPerFrameMs = 5.0;
 
 	int m_CurrentIndex = 0;
-	bool m_bInitialized = false;
-	bool m_bComplete = false;
-	bool m_bProgressiveEnabled = false;
-	bool m_bLiveStaticCacheRecordingEnabled = true;
-	bool m_bRenderTargetSupportedForTests = true;
+	bool m_Initialized = false;
+	bool m_Complete = false;
+	bool m_ProgressiveEnabled = false;
+	bool m_LiveStaticCacheRecordingEnabled = true;
+	bool m_RenderTargetSupportedForTests = true;
 	IGraphics *m_pGraphics = nullptr;
 	SSettingsSectionCacheRuntimeKey m_RuntimeKey;
 
 	// Warmup state
-	bool m_bWarmupActive = false;
+	bool m_WarmupActive = false;
 	int m_WarmupIndex = 0;
 	float m_WarmupBudgetMs = 0.0f;
 	const SSessionUiCache *m_pWarmupCache = nullptr;

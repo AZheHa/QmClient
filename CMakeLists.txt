@@ -2928,6 +2928,7 @@ if(CLIENT)
     qm_ime_manager.h
     race.cpp
     race.h
+    race_parse.cpp
     render.cpp
     render.h
     sixup_translate_connless.cpp
@@ -3762,7 +3763,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
   )
   set(TESTS_EXTRA
     src/game/client/animstate.cpp
-    src/game/client/race.cpp
+    src/game/client/race_parse.cpp
     src/game/client/skin.cpp
     src/game/client/components/tclient/swap_countdown_message.cpp
     src/test/render_tee_offset_helpers.cpp

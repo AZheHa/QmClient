@@ -275,9 +275,8 @@ public:
 	class CSkinListEntry
 	{
 	public:
-		class SColorKey
+		struct SColorKey
 		{
-		public:
 			bool m_UseCustomColor = false;
 			int m_ColorBody = 0;
 			int m_ColorFeet = 0;
