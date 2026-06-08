@@ -1499,12 +1499,21 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		return -1;
 	};
 
-	auto GetQmModuleIndexById = [](EQmModuleId Id) -> int {
+	auto GetQmModuleStateIndexById = [](EQmModuleId Id) -> int {
 		return std::clamp(static_cast<int>(Id), 0, static_cast<int>(QmModuleCount) - 1);
 	};
 
+	auto FindQmModuleLayoutIndexById = [&](EQmModuleId Id) -> int {
+		for(size_t i = 0; i < s_aQmModuleLayout.size(); ++i)
+		{
+			if(s_aQmModuleLayout[i].m_Id == Id)
+				return static_cast<int>(i);
+		}
+		return -1;
+	};
+
 	auto GetQmModuleDefaultEstimatedHeight = [&](const SQmModuleEntry &Entry) -> float {
-		const int Index = GetQmModuleIndexById(Entry.m_Id);
+		const int Index = GetQmModuleStateIndexById(Entry.m_Id);
 		if(s_aQmModuleLastHeights[Index] > 0.0f)
 			return s_aQmModuleLastHeights[Index] + LgCardSpacing;
 		return LgCardPadding * 2.0f + LgHeadlineSize + LgTipHeight + LgLineHeight * 6.0f + LgCardSpacing;
@@ -1546,7 +1555,9 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			float RightHeight = 0.0f;
 			for(EQmModuleId Id : vGroup)
 			{
-				const int Index = GetQmModuleIndexById(Id);
+				const int Index = FindQmModuleLayoutIndexById(Id);
+				if(Index < 0)
+					continue;
 				if(aAssigned[Index] || s_aQmModuleLayout[Index].m_Column == EQmModuleColumn::Full)
 					continue;
 
@@ -1609,7 +1620,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			if(Index < 0)
 				continue;
 
-			s_aQmModuleCollapsed[Index] = true;
+			s_aQmModuleCollapsed[GetQmModuleStateIndexById(s_aQmModuleDefaults[Index].m_Id)] = true;
 			AnyParsed = true;
 		}
 
@@ -1621,7 +1632,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		bool First = true;
 		for(const auto &Entry : s_aQmModuleDefaults)
 		{
-			const int Index = GetQmModuleIndexById(Entry.m_Id);
+			const int Index = GetQmModuleStateIndexById(Entry.m_Id);
 			if(!s_aQmModuleCollapsed[Index])
 				continue;
 
@@ -1686,7 +1697,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			if(!str_toint(aCount, &ParsedCount) || ParsedCount < 0)
 				continue;
 
-			s_aQmModuleUsage[Index] = ParsedCount;
+			s_aQmModuleUsage[GetQmModuleStateIndexById(s_aQmModuleDefaults[Index].m_Id)] = ParsedCount;
 			AnyParsed = true;
 		}
 
@@ -1698,7 +1709,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		bool First = true;
 		for(const auto &Entry : s_aQmModuleDefaults)
 		{
-			const int Index = GetQmModuleIndexById(Entry.m_Id);
+			const int Index = GetQmModuleStateIndexById(Entry.m_Id);
 			if(s_aQmModuleUsage[Index] <= 0)
 				continue;
 
@@ -1736,21 +1747,21 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 	};
 
 	auto IsQmModuleCollapsed = [&](EQmModuleId Id) -> bool {
-		return s_aQmModuleCollapsed[GetQmModuleIndexById(Id)];
+		return s_aQmModuleCollapsed[GetQmModuleStateIndexById(Id)];
 	};
 
 	auto ToggleQmModuleCollapsed = [&](EQmModuleId Id) {
-		const int Index = GetQmModuleIndexById(Id);
+		const int Index = GetQmModuleStateIndexById(Id);
 		s_aQmModuleCollapsed[Index] = !s_aQmModuleCollapsed[Index];
 		PersistQmModuleCollapsed();
 	};
 
 	auto GetQmModuleUsage = [&](EQmModuleId Id) -> int {
-		return s_aQmModuleUsage[GetQmModuleIndexById(Id)];
+		return s_aQmModuleUsage[GetQmModuleStateIndexById(Id)];
 	};
 
 	auto RecordQmModuleUsage = [&](EQmModuleId Id) {
-		const int Index = GetQmModuleIndexById(Id);
+		const int Index = GetQmModuleStateIndexById(Id);
 		if(s_aQmModuleUsage[Index] < std::numeric_limits<int>::max())
 			++s_aQmModuleUsage[Index];
 		PersistQmModuleUsage();
@@ -2073,7 +2084,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 
 	auto RegisterModuleCard = [&](const SQmModuleEntry *pModule, EQmModuleColumn Column, const CUIRect &Rect) {
 		ModuleCards.push_back({pModule, Column, Rect});
-		s_aQmModuleLastHeights[GetQmModuleIndexById(pModule->m_Id)] = Rect.h;
+		s_aQmModuleLastHeights[GetQmModuleStateIndexById(pModule->m_Id)] = Rect.h;
 		const SQmModuleCardInfo *pInfo = &ModuleCards.back();
 		if(Column == EQmModuleColumn::Left)
 			LeftCards.push_back(pInfo);
@@ -2085,7 +2096,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		if(!GetModuleCollapseButtonRect(pModule, CardRect, &ButtonRect))
 			return;
 
-		const int ModuleIndex = GetQmModuleIndexById(pModule->m_Id);
+		const int ModuleIndex = GetQmModuleStateIndexById(pModule->m_Id);
 		const bool Collapsed = IsQmModuleCollapsed(pModule->m_Id);
 		const char *pIcon = Collapsed ? "▸" : "▾";
 		if(DoButton_Menu(&s_aModuleCollapseButtons[ModuleIndex], pIcon, 0, &ButtonRect, BUTTONFLAG_LEFT, nullptr, IGraphics::CORNER_ALL, 5.0f))
@@ -2164,7 +2175,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			s_apCachedModuleById.fill(nullptr);
 			for(const auto &Entry : s_aQmModuleLayout)
 			{
-				const int Index = std::clamp(static_cast<int>(Entry.m_Id), 0, static_cast<int>(QmModuleCount) - 1);
+				const int Index = GetQmModuleStateIndexById(Entry.m_Id);
 				s_apCachedModuleById[Index] = &Entry;
 			}
 			s_QmModuleColumnCacheDirty = false;
@@ -2577,6 +2588,8 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			return {11, Localize("Debug graph"), Localize("Debug performance graph panel")};
 		case EQmModuleId::InputOverlay:
 			return {11, Localize("Show on key"), Localize("Who stuffed OBS in here")};
+		case EQmModuleId::HudNotifications:
+			return {11, Localize("Notifications"), Localize("Move Echo and important system prompts to right-side popups")};
 		case EQmModuleId::Voice:
 			return {12, Localize("Voice"), Localize("The best voice chat, of course!")};
 		case EQmModuleId::DynamicIsland:
@@ -2596,7 +2609,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 	};
 
 	auto GetQmModuleEstimatedHeight = [&](const SQmModuleEntry *pModule) -> float {
-		const int Index = GetQmModuleIndexById(pModule->m_Id);
+		const int Index = GetQmModuleStateIndexById(pModule->m_Id);
 		if(IsQmModuleCollapsed(pModule->m_Id))
 			return LgCardPadding * 2.0f + LgHeadlineSize + LgTipHeight + LgCardSpacing;
 		if(s_aQmModuleLastHeights[Index] > 0.0f)
@@ -2946,10 +2959,8 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		VisibleLeftModules.reserve(LeftModules.size());
 		VisibleRightModules.reserve(RightModules.size());
 		VisibleFullModules.reserve(FullModules.size());
-		auto AppendModuleIfVisible = [&](EQmModuleId Id) {
-			const int Index = std::clamp(static_cast<int>(Id), 0, static_cast<int>(QmModuleCount) - 1);
-			const SQmModuleEntry *pModule = s_apCachedModuleById[Index];
-			if(pModule == nullptr || !ModuleMatchesSearch(pModule))
+		auto AppendModuleIfVisible = [&](const SQmModuleEntry *pModule) {
+			if(pModule == nullptr || !ModuleMatchesSelectedTab(pModule->m_Id) || !ModuleMatchesSearch(pModule))
 				return;
 			if(pModule->m_Column == EQmModuleColumn::Left)
 				VisibleLeftModules.push_back(pModule);
@@ -2958,22 +2969,20 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			else if(pModule->m_Column == EQmModuleColumn::Full)
 				VisibleFullModules.push_back(pModule);
 		};
-		if(m_QmClientSettingsTab == QMCLIENT_SETTINGS_TAB_VISUAL)
-			for(EQmModuleId Id : s_aQmVisualModules)
-				AppendModuleIfVisible(Id);
-		else if(m_QmClientSettingsTab == QMCLIENT_SETTINGS_TAB_FUNCTION)
-			for(EQmModuleId Id : s_aQmFunctionModules)
-				AppendModuleIfVisible(Id);
-		else if(m_QmClientSettingsTab == QMCLIENT_SETTINGS_TAB_HUD)
-			for(EQmModuleId Id : s_aQmHudModules)
-				AppendModuleIfVisible(Id);
-		else
+		if(m_QmClientSettingsTab == QMCLIENT_SETTINGS_TAB_CONTRIBUTORS)
 		{
 			for(const SQmModuleEntry *pModule : FullModules)
 			{
 				if(pModule->m_Id == EQmModuleId::Info)
 					VisibleFullModules.push_back(pModule);
 			}
+		}
+		else
+		{
+			for(const SQmModuleEntry *pModule : LeftModules)
+				AppendModuleIfVisible(pModule);
+			for(const SQmModuleEntry *pModule : RightModules)
+				AppendModuleIfVisible(pModule);
 		}
 		SearchVisibleModules.reserve(VisibleLeftModules.size() + VisibleRightModules.size());
 		if(HasModuleSearch)
@@ -6936,21 +6945,53 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 
 		const float MouseX = Ui()->MouseX();
 		const float MouseY = Ui()->MouseY();
-		const float ColumnSplitX = (LeftColumnFrame.x + LeftColumnFrame.w + RightColumnFrame.x) * 0.5f;
-		EQmModuleColumn TargetColumn = MouseX <= ColumnSplitX ? EQmModuleColumn::Left : EQmModuleColumn::Right;
-		if(MouseX < LeftColumnFrame.x)
-			TargetColumn = EQmModuleColumn::Left;
-		else if(MouseX > RightColumnFrame.x + RightColumnFrame.w)
-			TargetColumn = EQmModuleColumn::Right;
+		float ClipTop = minimum(LeftColumnFrame.y, RightColumnFrame.y);
+		float ClipBottom = maximum(LeftColumnFrame.y + LeftColumnFrame.h, RightColumnFrame.y + RightColumnFrame.h);
+		if(Ui()->IsClipped())
+		{
+			const CUIRect *pClip = Ui()->ClipArea();
+			ClipTop = pClip->y;
+			ClipBottom = pClip->y + pClip->h;
+		}
+		const float DropAreaLeft = minimum(LeftColumnFrame.x, RightColumnFrame.x);
+		const float DropAreaRight = maximum(LeftColumnFrame.x + LeftColumnFrame.w, RightColumnFrame.x + RightColumnFrame.w);
+		if(MouseX < DropAreaLeft || MouseX > DropAreaRight || MouseY < ClipTop || MouseY > ClipBottom)
+			return;
 
-		const auto &Cards = (TargetColumn == EQmModuleColumn::Left) ? LeftCards : RightCards;
+		std::vector<const SQmModuleCardInfo *> vMergedCards;
+		const std::vector<const SQmModuleCardInfo *> *pCards = nullptr;
+		EQmModuleColumn TargetColumn = s_DragState.m_pDragging->m_Column;
+		CUIRect ColumnFrame = LeftColumnFrame;
+		float ColumnTop = LeftColumnTop;
+		const bool MergedDropList = CompactLayout || SearchSingleColumnMode;
+		if(MergedDropList)
+		{
+			vMergedCards.reserve(LeftCards.size() + RightCards.size());
+			vMergedCards.insert(vMergedCards.end(), LeftCards.begin(), LeftCards.end());
+			vMergedCards.insert(vMergedCards.end(), RightCards.begin(), RightCards.end());
+			std::stable_sort(vMergedCards.begin(), vMergedCards.end(), [](const SQmModuleCardInfo *pA, const SQmModuleCardInfo *pB) {
+				if(pA->m_Rect.y != pB->m_Rect.y)
+					return pA->m_Rect.y < pB->m_Rect.y;
+				return pA->m_Rect.x < pB->m_Rect.x;
+			});
+			pCards = &vMergedCards;
+		}
+		else
+		{
+			const float ColumnSplitX = (LeftColumnFrame.x + LeftColumnFrame.w + RightColumnFrame.x) * 0.5f;
+			TargetColumn = MouseX <= ColumnSplitX ? EQmModuleColumn::Left : EQmModuleColumn::Right;
+			pCards = (TargetColumn == EQmModuleColumn::Left) ? &LeftCards : &RightCards;
+			ColumnTop = (TargetColumn == EQmModuleColumn::Left) ? LeftColumnTop : RightColumnTop;
+			ColumnFrame = (TargetColumn == EQmModuleColumn::Left) ? LeftColumnFrame : RightColumnFrame;
+		}
+
 		int InsertIndex = 0;
 		int FilteredCardsSize = 0;
 		const SQmModuleCardInfo *pFirstFilteredCard = nullptr;
 		const SQmModuleCardInfo *pLastFilteredCard = nullptr;
 		const SQmModuleCardInfo *pPrevInsertCard = nullptr;
 		const SQmModuleCardInfo *pNextInsertCard = nullptr;
-		for(const auto *pCard : Cards)
+		for(const auto *pCard : *pCards)
 		{
 			if(pCard->m_pModule == s_DragState.m_pDragging)
 				continue;
@@ -6970,15 +7011,12 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			++FilteredCardsSize;
 		}
 
-		const float ColumnTop = (TargetColumn == EQmModuleColumn::Left) ? LeftColumnTop : RightColumnTop;
-		const CUIRect ColumnFrame = (TargetColumn == EQmModuleColumn::Left) ? LeftColumnFrame : RightColumnFrame;
-		float ClipTop = ColumnFrame.y;
-		float ClipBottom = ColumnFrame.y + ColumnFrame.h;
-		if(Ui()->IsClipped())
+		if(MergedDropList)
 		{
-			const CUIRect *pClip = Ui()->ClipArea();
-			ClipTop = pClip->y;
-			ClipBottom = pClip->y + pClip->h;
+			if(pNextInsertCard != nullptr)
+				TargetColumn = pNextInsertCard->m_Column;
+			else if(pPrevInsertCard != nullptr)
+				TargetColumn = pPrevInsertCard->m_Column;
 		}
 		const float EffectiveMouseY = std::clamp(MouseY, ClipTop, ClipBottom);
 		float LineY = ColumnTop;
@@ -7023,8 +7061,8 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		LineRect.h = DropPreviewThickness;
 
 		s_DropPreview.m_pDragged = s_DragState.m_pDragging;
-		s_DropPreview.m_pPrevVisible = InsertIndex > 0 ? pPrevInsertCard->m_pModule : nullptr;
-		s_DropPreview.m_pNextVisible = InsertIndex < FilteredCardsSize ? pNextInsertCard->m_pModule : nullptr;
+		s_DropPreview.m_pPrevVisible = InsertIndex > 0 && pPrevInsertCard != nullptr ? pPrevInsertCard->m_pModule : nullptr;
+		s_DropPreview.m_pNextVisible = InsertIndex < FilteredCardsSize && pNextInsertCard != nullptr ? pNextInsertCard->m_pModule : nullptr;
 		s_DropPreview.m_TargetColumn = TargetColumn;
 		s_DropPreview.m_InsertIndex = InsertIndex;
 		s_DropPreview.m_Active = true;
@@ -7059,16 +7097,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		if(s_DropPreview.m_pDragged->m_Column == EQmModuleColumn::Full)
 			return false;
 
-		auto FindModuleIndexById = [&](EQmModuleId Id) -> int {
-			for(size_t i = 0; i < s_aQmModuleLayout.size(); ++i)
-			{
-				if(s_aQmModuleLayout[i].m_Id == Id)
-					return static_cast<int>(i);
-			}
-			return -1;
-		};
-
-		const int DraggedIndex = FindModuleIndexById(s_DropPreview.m_pDragged->m_Id);
+		const int DraggedIndex = FindQmModuleLayoutIndexById(s_DropPreview.m_pDragged->m_Id);
 		if(DraggedIndex < 0)
 			return false;
 
@@ -7105,14 +7134,14 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		int InsertIndex = -1;
 		if(s_DropPreview.m_pNextVisible != nullptr)
 		{
-			const int NextIndex = FindModuleIndexById(s_DropPreview.m_pNextVisible->m_Id);
+			const int NextIndex = FindQmModuleLayoutIndexById(s_DropPreview.m_pNextVisible->m_Id);
 			auto NextIt = std::find(pTargetList->begin(), pTargetList->end(), NextIndex);
 			if(NextIt != pTargetList->end())
 				InsertIndex = static_cast<int>(std::distance(pTargetList->begin(), NextIt));
 		}
 		if(InsertIndex < 0 && s_DropPreview.m_pPrevVisible != nullptr)
 		{
-			const int PrevIndex = FindModuleIndexById(s_DropPreview.m_pPrevVisible->m_Id);
+			const int PrevIndex = FindQmModuleLayoutIndexById(s_DropPreview.m_pPrevVisible->m_Id);
 			auto PrevIt = std::find(pTargetList->begin(), pTargetList->end(), PrevIndex);
 			if(PrevIt != pTargetList->end())
 				InsertIndex = static_cast<int>(std::distance(pTargetList->begin(), PrevIt)) + 1;
