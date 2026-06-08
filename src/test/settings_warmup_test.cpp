@@ -4,6 +4,7 @@
 #include <game/client/components/settings_warmup.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <fstream>
 #include <limits>
@@ -242,7 +243,7 @@ TEST(SettingsRuntimeCache, RegistersAllSettingsPages)
 
 TEST(SettingsWarmup, TeePageWarmupStartsSkinSourcePrewarm)
 {
-	std::ifstream File("src/game/client/components/menus.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -267,7 +268,7 @@ TEST(SettingsWarmup, TeePageWarmupStartsSkinSourcePrewarm)
 
 TEST(SettingsWarmup, SettingsFrameBudgetResetsBeforeUpdatePhaseConsumers)
 {
-	std::ifstream GameClientFile("src/game/client/gameclient.cpp");
+	std::ifstream GameClientFile(TestSourcePath("src/game/client/gameclient.cpp"));
 	ASSERT_TRUE(GameClientFile.good());
 	std::stringstream GameClientBuffer;
 	GameClientBuffer << GameClientFile.rdbuf();
@@ -282,7 +283,7 @@ TEST(SettingsWarmup, SettingsFrameBudgetResetsBeforeUpdatePhaseConsumers)
 	EXPECT_NE(OnUpdateBody.find("m_Skins.PrepareSettingsThroughputForFrame();"), std::string::npos);
 	EXPECT_NE(OnUpdateBody.find("m_Menus.ResetSettingsFrameBudgetForFrame(TeeSettingsActive, FrameSkinUploadBudget);"), std::string::npos);
 
-	std::ifstream MenusFile("src/game/client/components/menus.cpp");
+	std::ifstream MenusFile(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(MenusFile.good());
 	std::stringstream MenusBuffer;
 	MenusBuffer << MenusFile.rdbuf();
@@ -294,7 +295,7 @@ TEST(SettingsWarmup, SettingsFrameBudgetResetsBeforeUpdatePhaseConsumers)
 	const std::string MenusOnRenderPreamble = MenusSource.substr(MenusOnRenderPos, MenusOnRenderEnd - MenusOnRenderPos);
 	EXPECT_EQ(MenusOnRenderPreamble.find("m_SettingsFrameBudget = {};"), std::string::npos);
 
-	std::ifstream MenusHeaderFile("src/game/client/components/menus.h");
+	std::ifstream MenusHeaderFile(TestSourcePath("src/game/client/components/menus.h"));
 	ASSERT_TRUE(MenusHeaderFile.good());
 	std::stringstream MenusHeaderBuffer;
 	MenusHeaderBuffer << MenusHeaderFile.rdbuf();
@@ -305,7 +306,7 @@ TEST(SettingsWarmup, SettingsFrameBudgetResetsBeforeUpdatePhaseConsumers)
 
 TEST(SettingsWarmup, LoadingPrewarmDoesNotPumpResourceWork)
 {
-	std::ifstream GameClientFile("src/game/client/gameclient.cpp");
+	std::ifstream GameClientFile(TestSourcePath("src/game/client/gameclient.cpp"));
 	ASSERT_TRUE(GameClientFile.good());
 	std::stringstream GameClientBuffer;
 	GameClientBuffer << GameClientFile.rdbuf();
@@ -330,7 +331,7 @@ TEST(SettingsWarmup, LoadingPrewarmDoesNotPumpResourceWork)
 
 TEST(SettingsWarmup, RuntimePrewarmCallsitesRequireVisibleIdleSettingsPage)
 {
-	std::ifstream MenusFile("src/game/client/components/menus.cpp");
+	std::ifstream MenusFile(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(MenusFile.good());
 	std::stringstream MenusBuffer;
 	MenusBuffer << MenusFile.rdbuf();
@@ -344,13 +345,13 @@ TEST(SettingsWarmup, RuntimePrewarmCallsitesRequireVisibleIdleSettingsPage)
 
 TEST(SettingsWarmup, QmClientRuntimePrewarmDoesNotTriggerTabSwitchAnimation)
 {
-	std::ifstream MenusFile("src/game/client/components/menus.cpp");
+	std::ifstream MenusFile(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(MenusFile.good());
 	std::stringstream MenusBuffer;
 	MenusBuffer << MenusFile.rdbuf();
 	const std::string MenusSource = MenusBuffer.str();
 
-	std::ifstream QmMenusFile("src/game/client/components/qmclient/menus_qmclient.cpp");
+	std::ifstream QmMenusFile(TestSourcePath("src/game/client/components/qmclient/menus_qmclient.cpp"));
 	ASSERT_TRUE(QmMenusFile.good());
 	std::stringstream QmMenusBuffer;
 	QmMenusBuffer << QmMenusFile.rdbuf();
@@ -999,7 +1000,7 @@ TEST(SettingsResourceJobs, PostListRecoveryStateClampsStaleIdleHeavyBudgetForWor
 
 TEST(SettingsResourceJobs, AssetsLocalListFinalizesHeavyPreviewWorkOnlyAfterListEnd)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1034,7 +1035,7 @@ TEST(SettingsResourceJobs, AssetsLocalListFinalizesHeavyPreviewWorkOnlyAfterList
 
 TEST(SettingsResourceJobs, AssetsWorkshopListFinalizesPreviewAndThumbWorkOnlyAfterListEnd)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1075,7 +1076,7 @@ TEST(SettingsResourceJobs, AssetsWorkshopListFinalizesPreviewAndThumbWorkOnlyAft
 
 TEST(SettingsResourceJobs, AssetsListsBuildFrameContextFromJumpScrollStateBeforeHeavyStages)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1099,7 +1100,7 @@ TEST(SettingsResourceJobs, VisibleReadyPreviewKeepsUploadPriority)
 
 TEST(SettingsResourceJobs, AssetsFocusHandlingDoesNotUseWindowRecoveryFrames)
 {
-	std::ifstream MenusHeaderFile("src/game/client/components/menus.h");
+	std::ifstream MenusHeaderFile(TestSourcePath("src/game/client/components/menus.h"));
 	ASSERT_TRUE(MenusHeaderFile.good());
 	std::stringstream MenusHeaderBuffer;
 	MenusHeaderBuffer << MenusHeaderFile.rdbuf();
@@ -1108,7 +1109,7 @@ TEST(SettingsResourceJobs, AssetsFocusHandlingDoesNotUseWindowRecoveryFrames)
 	EXPECT_EQ(MenusHeaderSource.find("m_LastWindowActive"), std::string::npos);
 	EXPECT_EQ(MenusHeaderSource.find("m_WindowRecoveryFrames"), std::string::npos);
 
-	std::ifstream MenusSourceFile("src/game/client/components/menus.cpp");
+	std::ifstream MenusSourceFile(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(MenusSourceFile.good());
 	std::stringstream MenusBuffer;
 	MenusBuffer << MenusSourceFile.rdbuf();
@@ -1120,7 +1121,7 @@ TEST(SettingsResourceJobs, AssetsFocusHandlingDoesNotUseWindowRecoveryFrames)
 
 TEST(SettingsResourceJobs, AssetsInactiveWindowBehaviorSkipsRecoveryPurgeAndUsesDirectWindowGate)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1146,7 +1147,7 @@ TEST(SettingsResourceJobs, InactiveWindowBlocksAllNewAssetWorkStarts)
 
 TEST(SettingsResourceJobs, AssetsFocusLogsIncludeTextureMemoryAndResidentPreviewBytes)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1159,7 +1160,7 @@ TEST(SettingsResourceJobs, AssetsFocusLogsIncludeTextureMemoryAndResidentPreview
 
 TEST(SettingsResourceJobs, EntityBgCorruptInstallProbeReadsOnlyFileHeader)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1173,7 +1174,7 @@ TEST(SettingsResourceJobs, EntityBgCorruptInstallProbeReadsOnlyFileHeader)
 
 TEST(SettingsResourceJobs, AssetsFocusObservationUsesResumeFrameContextAndSwapTelemetry)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1186,7 +1187,7 @@ TEST(SettingsResourceJobs, AssetsFocusObservationUsesResumeFrameContextAndSwapTe
 
 TEST(SettingsResourceJobs, WorkshopThumbStartAvoidsDuplicateQueuePushForMatchingState)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1199,7 +1200,7 @@ TEST(SettingsResourceJobs, WorkshopThumbStartAvoidsDuplicateQueuePushForMatching
 
 TEST(SettingsResourceJobs, PreviewTierUpgradeReplacesExistingTexturesInsteadOfLeakingOrDropping)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1215,7 +1216,7 @@ TEST(SettingsResourceJobs, PreviewTierUpgradeReplacesExistingTexturesInsteadOfLe
 
 TEST(SettingsResourceJobs, WorkshopRefreshPreservesPreviewRuntimeMetadata)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1254,7 +1255,7 @@ TEST(SettingsResourceJobs, PageCacheRejectsRecordedFrameWithoutReadyDependentSub
 
 TEST(SettingsResourceJobs, TClientSectionInvalidationAlsoInvalidatesPageCache)
 {
-	std::ifstream File("src/game/client/components/tclient/menus_tclient.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/tclient/menus_tclient.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1264,7 +1265,7 @@ TEST(SettingsResourceJobs, TClientSectionInvalidationAlsoInvalidatesPageCache)
 
 TEST(SettingsResourceJobs, DrawSettingsPageRuntimeCacheUsesRecordedDependencyFlag)
 {
-	std::ifstream File("src/game/client/components/menus.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1275,7 +1276,7 @@ TEST(SettingsResourceJobs, DrawSettingsPageRuntimeCacheUsesRecordedDependencyFla
 
 TEST(SettingsResourceJobs, PrewarmSettingsPageRuntimeCacheLogsSuccessfulRecord)
 {
-	std::ifstream File("src/game/client/components/menus.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1300,7 +1301,7 @@ TEST(SettingsResourceJobs, AssetsPageRejectsWholePageFbo)
 
 TEST(SettingsWarmup, GraphicsPageRuntimeWarmupDoesNotRenderSystemControls)
 {
-	std::ifstream MenusSourceFile("src/game/client/components/menus.cpp");
+	std::ifstream MenusSourceFile(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(MenusSourceFile.good());
 	std::stringstream MenusBuffer;
 	MenusBuffer << MenusSourceFile.rdbuf();

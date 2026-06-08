@@ -7,6 +7,7 @@
 #include <game/client/render.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <cstdlib>
 #include <fstream>
@@ -202,7 +203,7 @@ TEST(Skins, HighPriorityBackgroundRequestedTouchesUsageTrackingData)
 
 TEST(Skins, TeeBackgroundDrainSeparatesRequestedBacklogFromAdmittedQueue)
 {
-	std::ifstream File("src/game/client/components/skins.h");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.h"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -227,7 +228,7 @@ TEST(Skins, LoadingStatsRealInflightExcludesBackgroundRequested)
 
 TEST(Skins, TeeBackgroundRequestsWaitForAdmissionBeforePending)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -250,7 +251,7 @@ TEST(Skins, TeeBackgroundRequestsWaitForAdmissionBeforePending)
 
 TEST(Skins, TeePriorityRequestsReclaimBackgroundRequestedBeforeAdmittedBackgroundWork)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -282,7 +283,7 @@ TEST(Skins, SettingsResourcePriorityOnlyUpgradesTowardVisible)
 
 TEST(Skins, PriorityRequestsCanReclaimBackgroundLoadingSlots)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -308,7 +309,7 @@ TEST(Skins, PriorityRequestsCanReclaimBackgroundLoadingSlots)
 
 TEST(Skins, PrioritizedLoadQueueKeepsOriginalRequestPriority)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -328,7 +329,7 @@ TEST(Skins, PrioritizedLoadQueueKeepsOriginalRequestPriority)
 
 TEST(Skins, TeeSettingsScrollBudgetFeedsFinalizeAndUploadLimits)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -349,7 +350,7 @@ TEST(Skins, TeeSettingsScrollBudgetFeedsFinalizeAndUploadLimits)
 
 TEST(Skins, GpuUploadLimiterResetsBeforeSkinUpdateConsumesBudget)
 {
-	std::ifstream File("src/game/client/gameclient.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/gameclient.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -373,7 +374,7 @@ TEST(Skins, GpuUploadLimiterResetsBeforeSkinUpdateConsumesBudget)
 
 TEST(Skins, SettingsWarmupBypassesPeriodicSkinUpdateThrottle)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -391,7 +392,7 @@ TEST(Skins, SettingsWarmupBypassesPeriodicSkinUpdateThrottle)
 
 TEST(Skins, ManagedTeeRenderInfoSkipsInvalidSixupSkinNames)
 {
-	std::ifstream File("src/game/client/gameclient.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/gameclient.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -418,7 +419,7 @@ TEST(Skins, BackgroundRequestedStatusUsesLoadingIndicator)
 
 TEST(Skins, TeeSkinUploadRequiresWholeSourceTextureBudgetBeforeUpload)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -442,7 +443,7 @@ TEST(Skins, TeeSkinUploadRequiresWholeSourceTextureBudgetBeforeUpload)
 
 TEST(Skins, TeeSettingsListUsesIdleBackgroundRequestsAfterVisibleSettle)
 {
-	std::ifstream File("src/game/client/components/menus_settings.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -474,7 +475,7 @@ TEST(Skins, TeeSettingsListUsesIdleBackgroundRequestsAfterVisibleSettle)
 
 TEST(Skins, TeeSourcePathEmitsRequestAndFrameCapPerfLogs)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -489,7 +490,7 @@ TEST(Skins, TeeSourcePathEmitsRequestAndFrameCapPerfLogs)
 
 TEST(Skins, TeeSourcePathCapsActiveLoadingBeforeQueueFuse)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -515,7 +516,7 @@ TEST(Skins, TeeSourcePathCapsActiveLoadingBeforeQueueFuse)
 
 TEST(Skins, TeeBackgroundWindowUsesRealDecodeJobSaturationSignal)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -537,7 +538,7 @@ TEST(Skins, TeeBackgroundWindowUsesRealDecodeJobSaturationSignal)
 
 TEST(Skins, TeeSettingsListEmitsRequestWindowPerfLogs)
 {
-	std::ifstream File("src/game/client/components/menus_settings.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -558,7 +559,7 @@ TEST(Skins, TeeSettingsListEmitsRequestWindowPerfLogs)
 
 TEST(Skins, PrewarmPlayerPreviewReadyRequiresSelectedAndVisibleSourcesLoaded)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -581,7 +582,7 @@ TEST(Skins, PrewarmPlayerPreviewReadyRequiresSelectedAndVisibleSourcesLoaded)
 
 TEST(Skins, PrewarmPlayerPreviewReadyNoLongerBuildsPreviewCacheKeys)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -600,7 +601,7 @@ TEST(Skins, PrewarmPlayerPreviewReadyNoLongerBuildsPreviewCacheKeys)
 
 TEST(Skins, TeeSettingsRequestsNoLongerPromoteToPendingAtRequestSite)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -619,7 +620,7 @@ TEST(Skins, TeeSettingsRequestsNoLongerPromoteToPendingAtRequestSite)
 
 TEST(Skins, TeePrewarmNoLongerUsesImmediateBoolPath)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -644,7 +645,7 @@ TEST(Skins, TeePrewarmNoLongerUsesImmediateBoolPath)
 
 TEST(Skins, SourceResidencyNoLongerDependsOnPreviewCachePins)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -664,7 +665,7 @@ TEST(Skins, SourceResidencyNoLongerDependsOnPreviewCachePins)
 
 TEST(Skins, SkinListWaitsForCompletePlanInsteadOfSeedingPlaceholderEntry)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -676,19 +677,19 @@ TEST(Skins, SkinListWaitsForCompletePlanInsteadOfSeedingPlaceholderEntry)
 
 TEST(Skins, AsyncSkinListKeepsQueuedColorVariantsSelectable)
 {
-	std::ifstream HeaderFile("src/game/client/components/skins.h");
+	std::ifstream HeaderFile(TestSourcePath("src/game/client/components/skins.h"));
 	ASSERT_TRUE(HeaderFile.good());
 	std::stringstream HeaderBuffer;
 	HeaderBuffer << HeaderFile.rdbuf();
 	const std::string Header = HeaderBuffer.str();
 
-	std::ifstream SourceFile("src/game/client/components/skins.cpp");
+	std::ifstream SourceFile(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(SourceFile.good());
 	std::stringstream SourceBuffer;
 	SourceBuffer << SourceFile.rdbuf();
 	const std::string Source = SourceBuffer.str();
 
-	std::ifstream MenuFile("src/game/client/components/menus_settings.cpp");
+	std::ifstream MenuFile(TestSourcePath("src/game/client/components/menus_settings.cpp"));
 	ASSERT_TRUE(MenuFile.good());
 	std::stringstream MenuBuffer;
 	MenuBuffer << MenuFile.rdbuf();
@@ -711,7 +712,7 @@ TEST(Skins, AsyncSkinListKeepsQueuedColorVariantsSelectable)
 
 TEST(Skins, DirectoryScanPromotesDownloadContainersToLocal)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();

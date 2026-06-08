@@ -9,6 +9,13 @@ from lib import runner
 from lib.report import ResultCollector
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+CMAKE_TEST_JOBS = "14"
+CXX_TEST_SKIPPED_MARKER = "[  SKIPPED ]"
+
+
+def _add_cxx_skip_warning(results: ResultCollector, out: str) -> None:
+    if CXX_TEST_SKIPPED_MARKER in out:
+        results.add("WARN", "C++ tests skipped", out)
 
 
 def _run_cmake_target(
@@ -27,7 +34,7 @@ def _run_cmake_target(
             "--target",
             target,
             "-j",
-            "10",
+            CMAKE_TEST_JOBS,
         ]
     else:
         cmd = [
@@ -37,21 +44,9 @@ def _run_cmake_target(
             "--target",
             target,
             "-j",
-            "10",
+            CMAKE_TEST_JOBS,
         ]
     return runner.run(cmd, title=title, check=False)
-
-
-def _run_testrunner_binary(
-    build_dir: str,
-    title: str,
-) -> tuple[int, str]:
-    testrunner = REPO_ROOT / build_dir / "testrunner.exe"
-    if not testrunner.exists():
-        testrunner = REPO_ROOT / build_dir / "testrunner"
-    if not testrunner.exists():
-        return (1, f"未找到测试二进制: {REPO_ROOT / build_dir / 'testrunner(.exe)'}")
-    return runner.run([str(testrunner)], title=title, check=False)
 
 
 def run(
@@ -72,15 +67,15 @@ def run(
             results.add("FAIL", "CMake run_tests", out)
         else:
             results.add("PASS", "CMake run_tests", "通过")
+            _add_cxx_skip_warning(results, out)
         return
     if run_cxx:
-        code, out = _run_cmake_target("testrunner", build_dir, "CMake testrunner build")
-        if code == 0:
-            code, out = _run_testrunner_binary(build_dir, "C++ tests")
+        code, out = _run_cmake_target("run_cxx_tests", build_dir, "CMake run_cxx_tests")
         if code != 0:
-            results.add("FAIL", "C++ tests", out)
+            results.add("FAIL", "CMake run_cxx_tests", out)
         else:
-            results.add("PASS", "C++ tests", "通过")
+            results.add("PASS", "CMake run_cxx_tests", "通过")
+            _add_cxx_skip_warning(results, out)
     if run_rust:
         code, out = _run_cmake_target(
             "run_rust_tests", build_dir, "CMake run_rust_tests"

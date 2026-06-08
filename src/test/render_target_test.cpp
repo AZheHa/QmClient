@@ -2,54 +2,49 @@
 #include <engine/client/graphics_threaded.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <type_traits>
-#include <fstream>
-#include <sstream>
 
 namespace
 {
-using TBeginRenderTargetReadback = IGraphics::CRenderTargetReadbackHandle (IGraphics::*)(IGraphics::CRenderTargetHandle);
-using TPollRenderTargetReadback = IGraphics::ERenderTargetReadbackState (IGraphics::*)(IGraphics::CRenderTargetReadbackHandle);
-using TResolveRenderTargetReadback = bool (IGraphics::*)(IGraphics::CRenderTargetReadbackHandle *, CImageInfo &);
-using TCancelRenderTargetReadback = void (IGraphics::*)(IGraphics::CRenderTargetReadbackHandle *);
+	using TBeginRenderTargetReadback = IGraphics::CRenderTargetReadbackHandle (IGraphics::*)(IGraphics::CRenderTargetHandle);
+	using TPollRenderTargetReadback = IGraphics::ERenderTargetReadbackState (IGraphics::*)(IGraphics::CRenderTargetReadbackHandle);
+	using TResolveRenderTargetReadback = bool (IGraphics::*)(IGraphics::CRenderTargetReadbackHandle *, CImageInfo &);
+	using TCancelRenderTargetReadback = void (IGraphics::*)(IGraphics::CRenderTargetReadbackHandle *);
 
-std::string ReadFile(const char *pPath)
-{
-	std::ifstream File(pPath);
-	EXPECT_TRUE(File.good()) << pPath;
-	std::stringstream Buffer;
-	Buffer << File.rdbuf();
-	return Buffer.str();
-}
-
-std::string ExtractFunctionBody(const std::string &Source, const char *pSignature)
-{
-	const size_t SignaturePos = Source.find(pSignature);
-	EXPECT_NE(SignaturePos, std::string::npos) << pSignature;
-	if(SignaturePos == std::string::npos)
-		return {};
-
-	const size_t BodyStart = Source.find('{', SignaturePos);
-	EXPECT_NE(BodyStart, std::string::npos) << pSignature;
-	if(BodyStart == std::string::npos)
-		return {};
-
-	int Depth = 1;
-	size_t Pos = BodyStart + 1;
-	for(; Pos < Source.size() && Depth > 0; ++Pos)
+	std::string ReadFile(const char *pPath)
 	{
-		if(Source[Pos] == '{')
-			++Depth;
-		else if(Source[Pos] == '}')
-			--Depth;
+		return ReadTestSourceFile(pPath);
 	}
 
-	EXPECT_EQ(Depth, 0) << pSignature;
-	if(Depth != 0 || Pos <= BodyStart + 1)
-		return {};
-	return Source.substr(BodyStart + 1, Pos - BodyStart - 2);
-}
+	std::string ExtractFunctionBody(const std::string &Source, const char *pSignature)
+	{
+		const size_t SignaturePos = Source.find(pSignature);
+		EXPECT_NE(SignaturePos, std::string::npos) << pSignature;
+		if(SignaturePos == std::string::npos)
+			return {};
+
+		const size_t BodyStart = Source.find('{', SignaturePos);
+		EXPECT_NE(BodyStart, std::string::npos) << pSignature;
+		if(BodyStart == std::string::npos)
+			return {};
+
+		int Depth = 1;
+		size_t Pos = BodyStart + 1;
+		for(; Pos < Source.size() && Depth > 0; ++Pos)
+		{
+			if(Source[Pos] == '{')
+				++Depth;
+			else if(Source[Pos] == '}')
+				--Depth;
+		}
+
+		EXPECT_EQ(Depth, 0) << pSignature;
+		if(Depth != 0 || Pos <= BodyStart + 1)
+			return {};
+		return Source.substr(BodyStart + 1, Pos - BodyStart - 2);
+	}
 } // namespace
 
 static_assert(std::is_same_v<decltype(&IGraphics::BeginRenderTargetReadback), TBeginRenderTargetReadback>);
@@ -160,11 +155,7 @@ TEST(GraphicsRenderTarget, BackendCapabilitiesDefaultToNoRenderTarget)
 
 TEST(GraphicsRenderTarget, VulkanBackendDeclaresRenderTargetSupport)
 {
-	std::ifstream File("src/engine/client/backend/vulkan/backend_vulkan.cpp");
-	ASSERT_TRUE(File.good());
-	std::stringstream Buffer;
-	Buffer << File.rdbuf();
-	const std::string Source = Buffer.str();
+	const std::string Source = ReadFile("src/engine/client/backend/vulkan/backend_vulkan.cpp");
 	const size_t MultiSamplingInit = Source.find("m_MultiSamplingCount = (g_Config.m_GfxFsaaSamples & 0xFFFFFFFE)");
 	const size_t InitVulkan = Source.find("InitVulkan<true>()");
 	const size_t RenderTargetsCapability = Source.find("m_RenderTargets = SupportsRenderTargetReadback()");

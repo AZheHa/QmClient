@@ -6,35 +6,30 @@
 
 #include <gtest/gtest.h>
 
-#include <fstream>
-#include <sstream>
 #include <string>
 
 namespace
 {
-std::string ReadTextFile(const char *pPath)
-{
-	std::ifstream File(pPath, std::ios::binary);
-	std::ostringstream Buffer;
-	Buffer << File.rdbuf();
-	return Buffer.str();
-}
+	std::string ReadTextFile(const char *pPath)
+	{
+		return ReadTestSourceFile(pPath);
+	}
 
-int JsonInt(const json_value *pObject, const char *pName)
-{
-	const json_value *pValue = json_object_get(pObject, pName);
-	EXPECT_NE(pValue, &json_value_none);
-	EXPECT_EQ(pValue->type, json_integer);
-	return pValue->type == json_integer ? static_cast<int>(pValue->u.integer) : 0;
-}
+	int JsonInt(const json_value *pObject, const char *pName)
+	{
+		const json_value *pValue = json_object_get(pObject, pName);
+		EXPECT_NE(pValue, &json_value_none);
+		EXPECT_EQ(pValue->type, json_integer);
+		return pValue->type == json_integer ? static_cast<int>(pValue->u.integer) : 0;
+	}
 
-const json_value *JsonObject(const json_value *pObject, const char *pName)
-{
-	const json_value *pValue = json_object_get(pObject, pName);
-	EXPECT_NE(pValue, &json_value_none);
-	EXPECT_EQ(pValue->type, json_object);
-	return pValue;
-}
+	const json_value *JsonObject(const json_value *pObject, const char *pName)
+	{
+		const json_value *pValue = json_object_get(pObject, pName);
+		EXPECT_NE(pValue, &json_value_none);
+		EXPECT_EQ(pValue->type, json_object);
+		return pValue;
+	}
 }
 
 TEST(QmIconAtlas, RuntimeIconNamesAreStable)

@@ -141,7 +141,7 @@ python qmclient_scripts/gate/tools/refresh_allowlist.py --report tmp/check-gate-
 
 - `quick` 全部
 - `checks/strict_build`
-- 先构建 `testrunner`，再直接执行测试二进制
+- `run_cxx_tests`（会构建 `testrunner`，并在 build 目录下执行测试二进制；源码结构测试通过测试源码根读取 `src/...` / `data/...`）
 
 #### `full`
 

@@ -3,6 +3,7 @@
 #include <game/client/components/qmclient/perf_logging.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <atomic>
 #include <chrono>
@@ -205,18 +206,18 @@ TEST(QmMonitoringHelpers, DeviceMetricsDefaultToUnavailable)
 namespace
 {
 
-template<typename TPredicate>
-bool WaitUntil(TPredicate Predicate, std::chrono::milliseconds Timeout = std::chrono::milliseconds(200))
-{
-	const auto Deadline = std::chrono::steady_clock::now() + Timeout;
-	while(std::chrono::steady_clock::now() < Deadline)
+	template<typename TPredicate>
+	bool WaitUntil(TPredicate Predicate, std::chrono::milliseconds Timeout = std::chrono::milliseconds(200))
 	{
-		if(Predicate())
-			return true;
-		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		const auto Deadline = std::chrono::steady_clock::now() + Timeout;
+		while(std::chrono::steady_clock::now() < Deadline)
+		{
+			if(Predicate())
+				return true;
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		}
+		return Predicate();
 	}
-	return Predicate();
-}
 
 } // namespace
 
@@ -333,7 +334,7 @@ TEST(QmMonitoringHelpers, DiskReadRateUsesMegabytesPerSecond)
 
 TEST(QmMonitoringHelpers, PerfConfigDefaultsUseLowThresholdWithoutJsonToggle)
 {
-	std::ifstream File("src/engine/shared/config_variables_qmclient.h");
+	std::ifstream File(TestSourcePath("src/engine/shared/config_variables_qmclient.h"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -345,7 +346,7 @@ TEST(QmMonitoringHelpers, PerfConfigDefaultsUseLowThresholdWithoutJsonToggle)
 
 TEST(QmMonitoringHelpers, ProcessHighPriorityConfigExistsAndDefaultsOff)
 {
-	std::ifstream File("src/engine/shared/config_variables_qmclient.h");
+	std::ifstream File(TestSourcePath("src/engine/shared/config_variables_qmclient.h"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -358,7 +359,7 @@ TEST(QmMonitoringHelpers, ProcessHighPriorityConfigExistsAndDefaultsOff)
 
 TEST(QmMonitoringHelpers, WindowsStartupPriorityHookIsOptionalAndGuarded)
 {
-	std::ifstream File("src/engine/client/client.cpp");
+	std::ifstream File(TestSourcePath("src/engine/client/client.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -371,7 +372,7 @@ TEST(QmMonitoringHelpers, WindowsStartupPriorityHookIsOptionalAndGuarded)
 
 TEST(QmMonitoringHelpers, PerfLoggingAlwaysEmitsJsonPayload)
 {
-	std::ifstream File("src/game/client/components/qmclient/perf_logging.h");
+	std::ifstream File(TestSourcePath("src/game/client/components/qmclient/perf_logging.h"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -406,7 +407,7 @@ TEST(QmMonitoringHelpers, RuntimePerfCallsitesUseSharedLoggingHelpers)
 		    "src/game/client/components/tclient/menus_tclient.cpp",
 	    })
 	{
-		std::ifstream File(pPath);
+		std::ifstream File(TestSourcePath(pPath));
 		ASSERT_TRUE(File.good()) << pPath;
 		std::stringstream Buffer;
 		Buffer << File.rdbuf();

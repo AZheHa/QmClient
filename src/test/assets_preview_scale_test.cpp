@@ -1,8 +1,9 @@
-#include <game/client/components/assets_preview_scale.h>
 #include <game/client/components/assets_author_persistence.h>
+#include <game/client/components/assets_preview_scale.h>
 #include <game/client/components/assets_resource_registry.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <fstream>
 #include <sstream>
@@ -212,7 +213,7 @@ TEST(AssetsPreviewScale, LocalAuthorPersistenceResolvesPrimarySourcePathUsingRun
 
 TEST(AssetsPreviewScale, WorkshopThumbDecodeResizesOffMainThread)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -228,7 +229,7 @@ TEST(AssetsPreviewScale, WorkshopThumbDecodeResizesOffMainThread)
 
 TEST(AssetsPreviewScale, EntitiesPreviewTileSizeIsClampedByBothAxes)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -240,7 +241,7 @@ TEST(AssetsPreviewScale, EntitiesPreviewTileSizeIsClampedByBothAxes)
 
 TEST(AssetsPreviewScale, CursorAndArrowPreviewCardsUseSmallerContentBounds)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -252,7 +253,7 @@ TEST(AssetsPreviewScale, CursorAndArrowPreviewCardsUseSmallerContentBounds)
 
 TEST(AssetsPreviewScale, WorkshopAndLocalCardsUseSharedPreviewContentSizing)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -271,7 +272,7 @@ TEST(AssetsPreviewScale, WorkshopAndLocalCardsUseSharedPreviewContentSizing)
 
 TEST(AssetsPreviewScale, PreviewFrameAppliesInnerContentInset)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -283,7 +284,7 @@ TEST(AssetsPreviewScale, PreviewFrameAppliesInnerContentInset)
 
 TEST(AssetsPreviewScale, WorkshopRootFolderUsesPinkAccent)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -296,7 +297,7 @@ TEST(AssetsPreviewScale, WorkshopRootFolderUsesPinkAccent)
 
 TEST(AssetsPreviewScale, StatusTagTextUsesSingleLineShrinkBeforeWrapping)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -308,8 +309,8 @@ TEST(AssetsPreviewScale, StatusTagTextUsesSingleLineShrinkBeforeWrapping)
 
 TEST(AssetsPreviewScale, LocalAssetCardsUsePersistedAuthorMetadata)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
-	std::ifstream HelperFile("src/game/client/components/assets_author_persistence.h");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
+	std::ifstream HelperFile(TestSourcePath("src/game/client/components/assets_author_persistence.h"));
 	ASSERT_TRUE(File.good());
 	ASSERT_TRUE(HelperFile.good());
 	std::stringstream Buffer;
@@ -339,7 +340,7 @@ TEST(AssetsPreviewScale, LocalAssetCardsUsePersistedAuthorMetadata)
 
 TEST(AssetsPreviewScale, WorkshopMergeDoesNotReappendExistingUninstalledAssets)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -352,7 +353,7 @@ TEST(AssetsPreviewScale, WorkshopMergeDoesNotReappendExistingUninstalledAssets)
 
 TEST(AssetsPreviewScale, InstalledWorkshopEntityBgThumbTakeoverSkipsLocalDecodeFallback)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -366,7 +367,7 @@ TEST(AssetsPreviewScale, InstalledWorkshopEntityBgThumbTakeoverSkipsLocalDecodeF
 
 TEST(AssetsPreviewScale, InstalledWorkshopEntityBgWithoutThumbCacheFallsBackToRemotePreview)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
