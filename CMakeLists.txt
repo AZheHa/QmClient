@@ -2185,7 +2185,7 @@ file(GLOB QM_ICON_ATLAS_SVG_SOURCES
 )
 add_custom_target(qm-icon-atlas
   COMMAND ${Python3_EXECUTABLE}
-    scripts/qm_build_icon_atlas.py
+    qmclient_scripts/qm_build_icon_atlas.py
     --source datasrc/qm_icons/tabler
     --output data/qmclient/icons
     --sizes 1 2 4
@@ -2193,7 +2193,7 @@ add_custom_target(qm-icon-atlas
     --padding 4
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   DEPENDS
-    scripts/qm_build_icon_atlas.py
+    qmclient_scripts/qm_build_icon_atlas.py
     ${QM_ICON_ATLAS_SVG_SOURCES}
   COMMENT "Building QmClient Tabler icon PNG atlases"
 )
@@ -2762,6 +2762,8 @@ if(CLIENT)
     components/player_points.h
     components/players.cpp
     components/players.h
+    components/qmclient/axiom_auto_login.cpp
+    components/qmclient/axiom_auto_login.h
     components/qmclient/collision_hitbox.cpp
     components/qmclient/collision_hitbox.h
     components/qmclient/colored_parts.h

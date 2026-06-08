@@ -516,19 +516,42 @@ TEST(QmNewUiMenuBranches, IngameMenuPrimaryActionLabelsUseChineseText)
 	EXPECT_NE(Source.find("Localize(\"请稍候…\")"), std::string::npos);
 }
 
-TEST(QmNewUiMenuBranches, TClientAxiomStatusPromptsUseChineseText)
+TEST(QmNewUiMenuBranches, QmClientAxiomAutoLoginLivesInQmClientComponent)
 {
-	const std::string Source = ReadTextFile("src/game/client/components/tclient/tclient.cpp");
+	const std::string Source = ReadTextFile("src/game/client/components/qmclient/axiom_auto_login.cpp");
+	const std::string Header = ReadTextFile("src/game/client/components/qmclient/axiom_auto_login.h");
+	const std::string TClientHeader = ReadTextFile("src/game/client/components/tclient/tclient.h");
+	const std::string TClientSource = ReadTextFile("src/game/client/components/tclient/tclient.cpp");
+	const std::string GameClientHeader = ReadTextFile("src/game/client/gameclient.h");
 
-	EXPECT_EQ(Source.find("Localize(\"Attempting Axiom auto login\")"), std::string::npos);
-	EXPECT_EQ(Source.find("Localize(\"Axiom auto login succeeded\")"), std::string::npos);
-	EXPECT_EQ(Source.find("Localize(\"Axiom auto login failed, retrying\")"), std::string::npos);
-	EXPECT_EQ(Source.find("Localize(\"Axiom auto login failed\")"), std::string::npos);
+	EXPECT_NE(Header.find("class CQmAxiomAutoLogin : public CComponent"), std::string::npos);
+	EXPECT_NE(GameClientHeader.find("CQmAxiomAutoLogin m_QmAxiomAutoLogin;"), std::string::npos);
+	EXPECT_NE(Source.find("void CQmAxiomAutoLogin::TrySendLogin()"), std::string::npos);
+	EXPECT_NE(Source.find("void CQmAxiomAutoLogin::TrySendDummyLogin()"), std::string::npos);
+	EXPECT_NE(Source.find("bool CQmAxiomAutoLogin::IsAxiomCommunity() const"), std::string::npos);
+	EXPECT_NE(Source.find("QMCLIENT_AXIOM_AUTO_LOGIN_SLOW_RETRY_SECONDS"), std::string::npos);
+	EXPECT_NE(Source.find("m_AutoLoginSlowRetryMode"), std::string::npos);
+	EXPECT_NE(Source.find("m_AutoLoginHardFailed"), std::string::npos);
+	EXPECT_NE(Source.find("ScheduleSlowRetry"), std::string::npos);
+	EXPECT_NE(Source.find("IsHardLoginFailure"), std::string::npos);
+	EXPECT_NE(Source.find("IsLoginContextMessage"), std::string::npos);
+	EXPECT_NE(Source.find("return IsLoginContextMessage(pText) &&"), std::string::npos);
+	const size_t HardFailureCheck = Source.find("IsHardLoginFailure(pText)");
+	const size_t LoginMessageFilter = Source.find("const bool IsLoginMessage");
+	EXPECT_NE(HardFailureCheck, std::string::npos);
+	EXPECT_NE(LoginMessageFilter, std::string::npos);
+	EXPECT_LT(HardFailureCheck, LoginMessageFilter);
+	EXPECT_NE(Source.find("Localize(\"Trying Axiom auto login\")"), std::string::npos);
+	EXPECT_NE(Source.find("Localize(\"Axiom auto login succeeded\")"), std::string::npos);
+	EXPECT_NE(Source.find("Localize(\"Axiom auto login failed, retrying\")"), std::string::npos);
+	EXPECT_NE(Source.find("Localize(\"Axiom auto login failed\")"), std::string::npos);
 
-	EXPECT_NE(Source.find("Localize(\"正在尝试 Axiom 自动登录\")"), std::string::npos);
-	EXPECT_NE(Source.find("Localize(\"Axiom 自动登录成功\")"), std::string::npos);
-	EXPECT_NE(Source.find("Localize(\"Axiom 自动登录失败，正在重试\")"), std::string::npos);
-	EXPECT_NE(Source.find("Localize(\"Axiom 自动登录失败\")"), std::string::npos);
+	EXPECT_EQ(TClientHeader.find("IsAxiomCommunity() const"), std::string::npos);
+	EXPECT_EQ(TClientHeader.find("ResetAxiomAutoLoginState"), std::string::npos);
+	EXPECT_EQ(TClientHeader.find("UpdateAxiomAutoLogin"), std::string::npos);
+	EXPECT_EQ(TClientHeader.find("HandleAxiomAutoLoginMessage"), std::string::npos);
+	EXPECT_EQ(TClientSource.find("TrySendAxiomLogin"), std::string::npos);
+	EXPECT_EQ(TClientSource.find("HandleAxiomAutoLoginMessage"), std::string::npos);
 	EXPECT_EQ(Source.find("Localize(\"Axiom 分身自动登录成功\")"), std::string::npos);
 }
 

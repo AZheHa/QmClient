@@ -30,6 +30,7 @@
 #include <engine/notifications.h>
 #include <engine/serverbrowser.h>
 #include <engine/shared/assertion_logger.h>
+#include <engine/shared/client_brand.h>
 #include <engine/shared/compression.h>
 #include <engine/shared/config.h>
 #include <engine/shared/demo.h>
@@ -42,7 +43,6 @@
 #include <engine/shared/protocol.h>
 #include <engine/shared/protocol7.h>
 #include <engine/shared/protocol_ex.h>
-#include <engine/shared/client_brand.h>
 #include <engine/shared/protocolglue.h>
 #include <engine/shared/rust_version.h>
 #include <engine/shared/snapshot.h>
@@ -56,9 +56,9 @@
 #include <generated/protocol7.h>
 #include <generated/protocolglue.h>
 
+#include <game/client/components/qmclient/perf_logging.h>
 #include <game/localization.h>
 #include <game/version.h>
-#include <game/client/components/qmclient/perf_logging.h>
 
 #if defined(CONF_VIDEORECORDER)
 #include "video.h"
@@ -5402,13 +5402,23 @@ void CClient::HandleConnectLink(const char *pLink)
 {
 	// Chrome works fine with ddnet:// but not with ddnet:
 	// Check ddnet:// before ddnet: because we don't want the // as part of connect command
-	const char *pConnectLink = nullptr;
-	if((pConnectLink = str_startswith(pLink, CONNECTLINK_DOUBLE_SLASH)))
+	const char *pConnectLink = str_startswith(pLink, CONNECTLINK_DOUBLE_SLASH);
+	if(pConnectLink)
+	{
 		str_copy(m_aCmdConnect, pConnectLink);
-	else if((pConnectLink = str_startswith(pLink, CONNECTLINK_NO_SLASH)))
-		str_copy(m_aCmdConnect, pConnectLink);
+	}
 	else
-		str_copy(m_aCmdConnect, pLink);
+	{
+		pConnectLink = str_startswith(pLink, CONNECTLINK_NO_SLASH);
+		if(pConnectLink)
+		{
+			str_copy(m_aCmdConnect, pConnectLink);
+		}
+		else
+		{
+			str_copy(m_aCmdConnect, pLink);
+		}
+	}
 	// Edge appends / to the URL
 	const int Length = str_length(m_aCmdConnect);
 	if(m_aCmdConnect[Length - 1] == '/')

@@ -26,7 +26,7 @@ def run(results: ResultCollector, included: list[str], dry_run: bool = False) ->
     results.add(
         "INFO", "代码格式检查范围", f"按收敛后的首方源码范围传入 {len(included)} 个文件"
     )
-    fix_style = REPO_ROOT / "scripts" / "fix_style.py"
+    fix_style = REPO_ROOT / "qmclient_scripts" / "fix_style.py"
     py = runner.resolve_python_cmd()
     if not py:
         results.add("FAIL", "代码格式检查", "未找到可用的 Python")

@@ -597,65 +597,6 @@ static char *ParseAutoReplyRulePrefixes(char *pLine, bool &OutAutoRename, bool &
 	}
 }
 
-[[maybe_unused]] static bool MigrateKeywordReplyRulesAutoRenamePreservingLines(const char *pRules, char *pOutRules, size_t OutRulesSize)
-{
-	if(!pOutRules || OutRulesSize == 0)
-		return false;
-
-	pOutRules[0] = '\0';
-	if(!pRules || pRules[0] == '\0')
-		return true;
-
-	bool FirstLine = true;
-	const char *pCursor = pRules;
-	while(*pCursor)
-	{
-		char aLine[sizeof(g_Config.m_QmKeywordReplyRules)];
-		int LineLen = 0;
-		while(*pCursor && *pCursor != '\n' && *pCursor != '\r')
-		{
-			if(LineLen < (int)sizeof(aLine) - 1)
-				aLine[LineLen++] = *pCursor;
-			++pCursor;
-		}
-		aLine[LineLen] = '\0';
-
-		while(*pCursor == '\n' || *pCursor == '\r')
-			++pCursor;
-
-		char aMigratedLine[sizeof(aLine)];
-		str_copy(aMigratedLine, aLine, sizeof(aMigratedLine));
-
-		char aRuleLine[sizeof(aLine)];
-		str_copy(aRuleLine, aLine, sizeof(aRuleLine));
-		char *pTrimmedLine = (char *)str_utf8_skip_whitespaces(aRuleLine);
-		str_utf8_trim_right(pTrimmedLine);
-		if(pTrimmedLine[0] != '\0' && pTrimmedLine[0] != '#')
-		{
-			bool AutoRename = false;
-			bool RegexRule = false;
-			bool HasExplicitRenameFlag = false;
-			bool HasExplicitRegexFlag = false;
-			char *pRuleText = ParseAutoReplyRulePrefixes(pTrimmedLine, AutoRename, RegexRule, HasExplicitRenameFlag, HasExplicitRegexFlag);
-			if(!HasExplicitRenameFlag && str_find(pRuleText, "=>") != nullptr)
-				str_format(aMigratedLine, sizeof(aMigratedLine), "[rename] %s", pTrimmedLine);
-		}
-
-		const size_t CurrentLen = str_length(pOutRules);
-		const size_t LineLenOut = str_length(aMigratedLine);
-		const size_t SeparatorLen = FirstLine ? 0 : 1;
-		if(CurrentLen + SeparatorLen + LineLenOut >= OutRulesSize)
-			return false;
-
-		if(!FirstLine)
-			str_append(pOutRules, "\n", OutRulesSize);
-		str_append(pOutRules, aMigratedLine, OutRulesSize);
-		FirstLine = false;
-	}
-
-	return true;
-}
-
 [[maybe_unused]] static bool ReadQmClientAbsoluteTextFile(const char *pFilename, char *pBuf, size_t BufSize)
 {
 	if(!pFilename || !pBuf || BufSize == 0)

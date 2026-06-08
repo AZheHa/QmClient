@@ -142,34 +142,6 @@ namespace
 		QmPerfLogStage("perf/gameclient", pStage, DurationMs, Force, pGameClient != nullptr ? pGameClient->Client() : nullptr, nullptr, nullptr, pExtra);
 	}
 
-	struct SConfigIntAliasSync
-	{
-		int *m_pSource;
-		int *m_pTarget;
-	};
-
-	struct SConfigIntFanoutSync
-	{
-		int *m_pSource;
-		int *m_apTargets[8];
-		int m_NumTargets;
-	};
-
-	void ConchainConfigIntAlias(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
-	{
-		pfnCallback(pResult, pCallbackUserData);
-		const SConfigIntAliasSync *pSync = static_cast<const SConfigIntAliasSync *>(pUserData);
-		*pSync->m_pTarget = *pSync->m_pSource;
-	}
-
-	void ConchainConfigIntFanout(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
-	{
-		pfnCallback(pResult, pCallbackUserData);
-		const SConfigIntFanoutSync *pSync = static_cast<const SConfigIntFanoutSync *>(pUserData);
-		for(int i = 0; i < pSync->m_NumTargets; ++i)
-			*pSync->m_apTargets[i] = *pSync->m_pSource;
-	}
-
 	void SetDemoInputKeyState(unsigned char *pKeyStates, int Key, bool Pressed)
 	{
 		dbg_assert(Key >= KEY_FIRST && Key < KEY_LAST, "invalid demo input key");
@@ -300,6 +272,7 @@ void CGameClient::OnConsoleInit()
 					      &m_Translate,
 					      &m_Ghost,
 					      &m_QmClient,
+					      &m_QmAxiomAutoLogin,
 					      &m_QmMonitoring,
 					      &m_QmWeaponTrajectory,
 					      &m_TClient, // Must be before chat and players
@@ -399,54 +372,7 @@ void CGameClient::OnConsoleInit()
 		pComponent->OnConsoleInit();
 	m_QmCommandRouter.OnConsoleInit();
 
-	static SConfigIntAliasSync s_aLegacyToQmHudAliases[] = {
-		{&g_Config.m_ClScoreboardOnDeathLegacy, &g_Config.m_QmScoreboardOnDeath},
-		{&g_Config.m_ClDummyMiniViewLegacy, &g_Config.m_QmDummyMiniView},
-		{&g_Config.m_ClDummyMiniViewAutoLegacy, &g_Config.m_QmDummyMiniViewAuto},
-		{&g_Config.m_ClDummyMiniViewSizeLegacy, &g_Config.m_QmDummyMiniViewSize},
-		{&g_Config.m_ClDummyMiniViewZoomLegacy, &g_Config.m_QmDummyMiniViewZoom},
-		{&g_Config.m_ClSmtcEnableLegacy, &g_Config.m_QmSmtcEnable},
-		{&g_Config.m_ClSmtcShowHudLegacy, &g_Config.m_QmSmtcShowHud},
-	};
-	static SConfigIntAliasSync s_aQmToLegacyHudAliases[] = {
-		{&g_Config.m_QmScoreboardOnDeath, &g_Config.m_ClScoreboardOnDeathLegacy},
-		{&g_Config.m_QmDummyMiniView, &g_Config.m_ClDummyMiniViewLegacy},
-		{&g_Config.m_QmDummyMiniViewAuto, &g_Config.m_ClDummyMiniViewAutoLegacy},
-		{&g_Config.m_QmDummyMiniViewSize, &g_Config.m_ClDummyMiniViewSizeLegacy},
-		{&g_Config.m_QmDummyMiniViewZoom, &g_Config.m_ClDummyMiniViewZoomLegacy},
-		{&g_Config.m_QmSmtcEnable, &g_Config.m_ClSmtcEnableLegacy},
-		{&g_Config.m_QmSmtcShowHud, &g_Config.m_ClSmtcShowHudLegacy},
-	};
-	static SConfigIntFanoutSync s_aLegacyFocusAliases[] = {
-		{&g_Config.m_QmFocusModeHideEffectsLegacy,
-			{&g_Config.m_QmFocusModeHideJumpEffects, &g_Config.m_QmFocusModeHideKillEffects, &g_Config.m_QmFocusModeHideExplosionEffects, &g_Config.m_QmFocusModeHideFreezeEffects, &g_Config.m_QmFocusModeHideHammerEffects, &g_Config.m_QmFocusModeHideMuzzleEffects},
-			6},
-		{&g_Config.m_QmFocusModeHideUILegacy,
-			{&g_Config.m_QmFocusModeHideHud},
-			1},
-		{&g_Config.m_QmFocusModeHideOverheadIndicatorsLegacy,
-			{&g_Config.m_QmFocusModeHideDirectionIndicators, &g_Config.m_QmFocusModeHideGuideLines},
-			2},
-	};
-
 	Console()->Chain("cl_languagefile", ConchainLanguageUpdate, this);
-	Console()->Chain("cl_scoreboard_on_death", ConchainConfigIntAlias, &s_aLegacyToQmHudAliases[0]);
-	Console()->Chain("cl_dummy_miniview", ConchainConfigIntAlias, &s_aLegacyToQmHudAliases[1]);
-	Console()->Chain("cl_dummy_miniview_auto", ConchainConfigIntAlias, &s_aLegacyToQmHudAliases[2]);
-	Console()->Chain("cl_dummy_miniview_size", ConchainConfigIntAlias, &s_aLegacyToQmHudAliases[3]);
-	Console()->Chain("cl_dummy_miniview_zoom", ConchainConfigIntAlias, &s_aLegacyToQmHudAliases[4]);
-	Console()->Chain("cl_smtc_enable", ConchainConfigIntAlias, &s_aLegacyToQmHudAliases[5]);
-	Console()->Chain("cl_smtc_show_hud", ConchainConfigIntAlias, &s_aLegacyToQmHudAliases[6]);
-	Console()->Chain("qm_scoreboard_on_death", ConchainConfigIntAlias, &s_aQmToLegacyHudAliases[0]);
-	Console()->Chain("qm_dummy_miniview", ConchainConfigIntAlias, &s_aQmToLegacyHudAliases[1]);
-	Console()->Chain("qm_dummy_miniview_auto", ConchainConfigIntAlias, &s_aQmToLegacyHudAliases[2]);
-	Console()->Chain("qm_dummy_miniview_size", ConchainConfigIntAlias, &s_aQmToLegacyHudAliases[3]);
-	Console()->Chain("qm_dummy_miniview_zoom", ConchainConfigIntAlias, &s_aQmToLegacyHudAliases[4]);
-	Console()->Chain("qm_smtc_enable", ConchainConfigIntAlias, &s_aQmToLegacyHudAliases[5]);
-	Console()->Chain("qm_smtc_show_hud", ConchainConfigIntAlias, &s_aQmToLegacyHudAliases[6]);
-	Console()->Chain("qm_focus_mode_hide_effects", ConchainConfigIntFanout, &s_aLegacyFocusAliases[0]);
-	Console()->Chain("qm_focus_mode_hide_ui", ConchainConfigIntFanout, &s_aLegacyFocusAliases[1]);
-	Console()->Chain("qm_focus_mode_hide_overhead_indicators", ConchainConfigIntFanout, &s_aLegacyFocusAliases[2]);
 
 	Console()->Chain("player_name", ConchainSpecialInfoupdate, this);
 	Console()->Chain("player_clan", ConchainSpecialInfoupdate, this);
@@ -531,33 +457,6 @@ static void GenerateTimeoutCode(char *pTimeoutCode)
 	}
 }
 
-static void MigrateQmHudConfig()
-{
-	auto MigrateInt = [](int &NewValue, int LegacyValue, int NewDefault, int LegacyDefault) {
-		if(NewValue == NewDefault && LegacyValue != LegacyDefault)
-			NewValue = LegacyValue;
-	};
-
-	MigrateInt(g_Config.m_QmScoreboardOnDeath, g_Config.m_ClScoreboardOnDeathLegacy, CConfig::ms_QmScoreboardOnDeath, CConfig::ms_ClScoreboardOnDeathLegacy);
-	MigrateInt(g_Config.m_QmDummyMiniView, g_Config.m_ClDummyMiniViewLegacy, CConfig::ms_QmDummyMiniView, CConfig::ms_ClDummyMiniViewLegacy);
-	MigrateInt(g_Config.m_QmDummyMiniViewAuto, g_Config.m_ClDummyMiniViewAutoLegacy, CConfig::ms_QmDummyMiniViewAuto, CConfig::ms_ClDummyMiniViewAutoLegacy);
-	MigrateInt(g_Config.m_QmDummyMiniViewSize, g_Config.m_ClDummyMiniViewSizeLegacy, CConfig::ms_QmDummyMiniViewSize, CConfig::ms_ClDummyMiniViewSizeLegacy);
-	MigrateInt(g_Config.m_QmDummyMiniViewZoom, g_Config.m_ClDummyMiniViewZoomLegacy, CConfig::ms_QmDummyMiniViewZoom, CConfig::ms_ClDummyMiniViewZoomLegacy);
-	MigrateInt(g_Config.m_QmSmtcEnable, g_Config.m_ClSmtcEnableLegacy, CConfig::ms_QmSmtcEnable, CConfig::ms_ClSmtcEnableLegacy);
-	MigrateInt(g_Config.m_QmSmtcShowHud, g_Config.m_ClSmtcShowHudLegacy, CConfig::ms_QmSmtcShowHud, CConfig::ms_ClSmtcShowHudLegacy);
-}
-
-static void SyncQmHudLegacyAliasesFromQm()
-{
-	g_Config.m_ClScoreboardOnDeathLegacy = g_Config.m_QmScoreboardOnDeath;
-	g_Config.m_ClDummyMiniViewLegacy = g_Config.m_QmDummyMiniView;
-	g_Config.m_ClDummyMiniViewAutoLegacy = g_Config.m_QmDummyMiniViewAuto;
-	g_Config.m_ClDummyMiniViewSizeLegacy = g_Config.m_QmDummyMiniViewSize;
-	g_Config.m_ClDummyMiniViewZoomLegacy = g_Config.m_QmDummyMiniViewZoom;
-	g_Config.m_ClSmtcEnableLegacy = g_Config.m_QmSmtcEnable;
-	g_Config.m_ClSmtcShowHudLegacy = g_Config.m_QmSmtcShowHud;
-}
-
 static void LoadQmClientLanguageOverlay(CLocalizationDatabase &Localization, const char *pLanguageFile, IStorage *pStorage, IConsole *pConsole)
 {
 	const char *pQmLanguageFile = pLanguageFile[0] != '\0' ? pLanguageFile : "languages/english.txt";
@@ -584,8 +483,6 @@ void CGameClient::ForceUpdateConsoleRemoteCompletionSuggestions()
 void CGameClient::OnInit()
 {
 	const int64_t OnInitStart = time_get();
-	MigrateQmHudConfig();
-	SyncQmHudLegacyAliasesFromQm();
 
 	// Initialize config tags system
 	InitConfigTags();

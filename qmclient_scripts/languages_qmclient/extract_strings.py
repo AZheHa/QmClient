@@ -122,7 +122,7 @@ def extract_localize_strings(root_dir):
 
 
 def extract_function_body(content, function_name):
-    match = re.search(rf'\b{re.escape(function_name)}\s*\([^)]*\)\s*\{{', content)
+    match = re.search(rf"\b{re.escape(function_name)}\s*\([^)]*\)\s*\{{", content)
     if not match:
         return ""
     start = match.end()
@@ -145,43 +145,57 @@ def extract_known_indirect_strings(path, content):
 
     if normalized.endswith("src/game/client/components/qmclient/menus_qmclient.cpp"):
         helper_pattern = re.compile(
-            rf'DoFocus(?:SectionLabel|Checkbox)\([^;\n]*,\s*{string_literal}\s*\)'
+            rf"DoFocus(?:SectionLabel|Checkbox)\([^;\n]*,\s*{string_literal}\s*\)"
         )
         strings.update(m.group(1) for m in helper_pattern.finditer(content))
 
     if normalized.endswith("src/game/client/components/qmclient/monitoring.cpp"):
-        for function_name in ("LocalizeGradeSummary", "LocalizeCauseDetail", "GradeBadgeText"):
+        for function_name in (
+            "LocalizeGradeSummary",
+            "LocalizeCauseDetail",
+            "GradeBadgeText",
+        ):
             body = extract_function_body(content, function_name)
-            strings.update(re.findall(rf'return\s+{string_literal}\s*;', body))
+            strings.update(re.findall(rf"return\s+{string_literal}\s*;", body))
         strings.update(
-            re.findall(rf'\{{\s*{string_literal}\s*,\s*m_Snapshot\.', content)
+            re.findall(rf"\{{\s*{string_literal}\s*,\s*m_Snapshot\.", content)
         )
         strings.update(
-            re.findall(rf'\{{\s*{string_literal}\s*,\s*a[A-Za-z]+Buf\s*\}}', content)
+            re.findall(rf"\{{\s*{string_literal}\s*,\s*a[A-Za-z]+Buf\s*\}}", content)
         )
 
-    if normalized.endswith("src/game/client/components/qmclient/hud_notification_static_rules.h"):
+    if normalized.endswith(
+        "src/game/client/components/qmclient/hud_notification_static_rules.h"
+    ):
         static_rule_pattern = re.compile(
-            rf'\bX\(\s*{string_literal}\s*,\s*{string_literal}\s*\)'
+            rf"\bX\(\s*{string_literal}\s*,\s*{string_literal}\s*\)"
         )
-        strings.update(match.group(2) for match in static_rule_pattern.finditer(content))
+        strings.update(
+            match.group(2) for match in static_rule_pattern.finditer(content)
+        )
 
-    if normalized.endswith("src/game/client/components/qmclient/hud_notification_catalog.cpp"):
+    if normalized.endswith(
+        "src/game/client/components/qmclient/hud_notification_catalog.cpp"
+    ):
         catalog_pattern = re.compile(
-            rf'\{{\s*EServerMessageRoute::[A-Za-z]+,\s*'
-            rf'EServerMessageClass::[A-Za-z]+,\s*'
-            rf'EServerMessageDomain::[A-Za-z]+,\s*'
-            rf'(?:true|false),\s*{string_literal}\s*\}}'
+            rf"\{{\s*EServerMessageRoute::[A-Za-z]+,\s*"
+            rf"EServerMessageClass::[A-Za-z]+,\s*"
+            rf"EServerMessageDomain::[A-Za-z]+,\s*"
+            rf"(?:true|false),\s*{string_literal}\s*\}}"
         )
-        strings.update(match.group(1) for match in catalog_pattern.finditer(content) if match.group(1))
+        strings.update(
+            match.group(1)
+            for match in catalog_pattern.finditer(content)
+            if match.group(1)
+        )
 
     if normalized.endswith("src/game/client/components/tclient/statusbar.cpp"):
         body = extract_function_body(content, "ConnectionGradeLabel")
-        strings.update(re.findall(rf'return\s+{string_literal}\s*;', body))
+        strings.update(re.findall(rf"return\s+{string_literal}\s*;", body))
 
     if normalized.endswith("src/game/client/components/tclient/statusbar.h"):
         status_item_pattern = re.compile(
-            rf'CStatusItem\([^;]*,\s*{string_literal}\s*,\s*{string_literal}\s*\)',
+            rf"CStatusItem\([^;]*,\s*{string_literal}\s*,\s*{string_literal}\s*\)",
             re.S,
         )
         for match in status_item_pattern.finditer(content):
@@ -196,8 +210,12 @@ def main():
     # Extract from qmclient components
     strings = extract_localize_strings("src/game/client/components/qmclient")
 
-    strings |= extract_localize_strings("src/game/client/components/tclient/statusbar.cpp")
-    strings |= extract_localize_strings("src/game/client/components/tclient/statusbar.h")
+    strings |= extract_localize_strings(
+        "src/game/client/components/tclient/statusbar.cpp"
+    )
+    strings |= extract_localize_strings(
+        "src/game/client/components/tclient/statusbar.h"
+    )
     strings.update(EXTRA_LOCALIZE_STRINGS)
 
     # Sort

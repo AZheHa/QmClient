@@ -69,6 +69,7 @@
 #include "components/pie_menu.h"
 #include "components/player_points.h"
 #include "components/players.h"
+#include "components/qmclient/axiom_auto_login.h"
 #include "components/qmclient/collision_hitbox.h"
 #include "components/qmclient/data_version.h"
 #include "components/qmclient/hud_notifications.h"
@@ -278,6 +279,7 @@ public:
 	CBindWheel m_BindWheel;
 	CBgDraw m_BgDraw;
 	CQmClient m_QmClient;
+	CQmAxiomAutoLogin m_QmAxiomAutoLogin;
 	CQmMonitoring m_QmMonitoring;
 	CQmHudNotifications m_QmHudNotifications;
 	CQmWeaponTrajectory m_QmWeaponTrajectory;

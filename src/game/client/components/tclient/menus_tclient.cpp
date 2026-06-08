@@ -5459,29 +5459,13 @@ void CMenus::RenderSettingsTClientConfigs(CUIRect MainView)
 	static std::vector<const SConfigVariable *> s_vAllClientVars;
 	if(s_vAllClientVars.empty())
 	{
-		auto IsLegacyMigratedQmConfig = [](const char *pScriptName) {
-			return str_comp(pScriptName, "cl_scoreboard_points") == 0 ||
-			       str_comp(pScriptName, "cl_scoreboard_sort_mode") == 0 ||
-			       str_comp(pScriptName, "cl_dummy_miniview") == 0 ||
-			       str_comp(pScriptName, "cl_dummy_miniview_auto") == 0 ||
-			       str_comp(pScriptName, "cl_dummy_miniview_size") == 0 ||
-			       str_comp(pScriptName, "cl_dummy_miniview_zoom") == 0 ||
-			       str_comp(pScriptName, "cl_smtc_enable") == 0 ||
-			       str_comp(pScriptName, "cl_smtc_show_hud") == 0;
-		};
 		auto Collector = [](const SConfigVariable *pVar, void *pUserData) {
 			auto *pVec = static_cast<std::vector<const SConfigVariable *> *>(pUserData);
 			pVec->push_back(pVar);
 		};
 		std::vector<const SConfigVariable *> vCollectedVars;
 		ConfigManager()->PossibleConfigVariables("", FlagMask, Collector, &vCollectedVars);
-		for(const SConfigVariable *pVar : vCollectedVars)
-		{
-			const char *pScriptName = pVar->m_pScriptName ? pVar->m_pScriptName : "";
-			if(IsLegacyMigratedQmConfig(pScriptName))
-				continue;
-			s_vAllClientVars.push_back(pVar);
-		}
+		s_vAllClientVars = std::move(vCollectedVars);
 		std::sort(s_vAllClientVars.begin(), s_vAllClientVars.end(), [](const SConfigVariable *a, const SConfigVariable *b) {
 			if(a->m_ConfigDomain != b->m_ConfigDomain)
 				return a->m_ConfigDomain < b->m_ConfigDomain;

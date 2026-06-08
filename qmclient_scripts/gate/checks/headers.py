@@ -30,7 +30,7 @@ def run(results: ResultCollector, included: list[str], dry_run: bool = False) ->
     _run_script(
         results,
         "头文件 guard 检查",
-        REPO_ROOT / "scripts" / "check_header_guards.py",
+        REPO_ROOT / "qmclient_scripts" / "check_header_guards.py",
         dry_run,
     )
     _run_script(
@@ -42,6 +42,6 @@ def run(results: ResultCollector, included: list[str], dry_run: bool = False) ->
     _run_script(
         results,
         "未使用头文件检查",
-        REPO_ROOT / "scripts" / "check_unused_header_files.py",
+        REPO_ROOT / "qmclient_scripts" / "check_unused_header_files.py",
         dry_run,
     )

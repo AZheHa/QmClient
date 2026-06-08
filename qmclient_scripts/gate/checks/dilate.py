@@ -15,10 +15,39 @@ def run(results: ResultCollector, included: list[str], dry_run: bool = False) ->
     if dry_run:
         results.add("INFO", "Dilate 图像检查", "DryRun，仅展示命令")
         return
-    build_dir = REPO_ROOT / "release"
+    build_dir = REPO_ROOT / "cmake-build-dilate"
     build_dir.mkdir(exist_ok=True)
-    code, out = runner.run(
-        [
+    cmake_script = REPO_ROOT / "qmclient_scripts" / "cmake-windows.cmd"
+    if runner.resolve_cmake_command() == "cmd.exe" and cmake_script.exists():
+        configure_cmd = [
+            "cmd.exe",
+            "/c",
+            runner.to_windows_path(str(cmake_script)),
+            "-G",
+            "Ninja",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCLIENT=OFF",
+            "-DDOWNLOAD_GTEST=OFF",
+            "-S",
+            str(REPO_ROOT),
+            "-B",
+            str(build_dir),
+        ]
+        build_cmd = [
+            "cmd.exe",
+            "/c",
+            runner.to_windows_path(str(cmake_script)),
+            "--build",
+            str(build_dir),
+            "--config",
+            "Release",
+            "--target",
+            "dilate",
+            "-j",
+            "14",
+        ]
+    else:
+        configure_cmd = [
             "cmake",
             "-G",
             "Ninja",
@@ -29,15 +58,8 @@ def run(results: ResultCollector, included: list[str], dry_run: bool = False) ->
             str(REPO_ROOT),
             "-B",
             str(build_dir),
-        ],
-        title="Build dilate tool (configure)",
-        check=False,
-    )
-    if code != 0:
-        results.add("FAIL", "Build dilate tool (configure)", out)
-        return
-    code, out = runner.run(
-        [
+        ]
+        build_cmd = [
             "cmake",
             "--build",
             str(build_dir),
@@ -45,7 +67,19 @@ def run(results: ResultCollector, included: list[str], dry_run: bool = False) ->
             "Release",
             "--target",
             "dilate",
-        ],
+            "-j",
+            "14",
+        ]
+    code, out = runner.run(
+        configure_cmd,
+        title="Build dilate tool (configure)",
+        check=False,
+    )
+    if code != 0:
+        results.add("FAIL", "Build dilate tool (configure)", out)
+        return
+    code, out = runner.run(
+        build_cmd,
         title="Build dilate tool (build)",
         check=False,
     )
@@ -56,7 +90,7 @@ def run(results: ResultCollector, included: list[str], dry_run: bool = False) ->
     code, out = runner.run(
         [
             "python",
-            str(REPO_ROOT / "scripts" / "check_dilate.py"),
+            str(REPO_ROOT / "qmclient_scripts" / "check_dilate.py"),
             str(build_dir),
             str(REPO_ROOT / "data"),
         ],
