@@ -1,8 +1,7 @@
-#ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATIONS_H
-#define GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATIONS_H
+#ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATIONS_HUD_NOTIFICATIONS_H
+#define GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATIONS_HUD_NOTIFICATIONS_H
 
 #include "hud_notification_rules.h"
-#include "colored_parts.h"
 
 #include <base/color.h>
 #include <base/system.h>
@@ -10,6 +9,7 @@
 #include <engine/shared/config.h>
 
 #include <game/client/component.h>
+#include <game/client/components/qmclient/colored_parts.h>
 #include <game/client/ui_rect.h>
 #include <game/localization.h>
 

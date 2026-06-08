@@ -28,7 +28,7 @@
 #include <game/client/components/menus.h>
 #include <game/client/components/qmclient/keyword_reply_rules.h>
 #include <game/client/components/qmclient/perf_logging.h>
-#include <game/client/components/qmclient/translate_ui_settings.h>
+#include <game/client/components/qmclient/translate/translate_ui_settings.h>
 #include <game/client/components/skins.h>
 #include <game/client/components/tclient/bindchat.h>
 #include <game/client/components/tclient/bindwheel.h>

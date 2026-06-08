@@ -149,7 +149,9 @@ def extract_known_indirect_strings(path, content):
         )
         strings.update(m.group(1) for m in helper_pattern.finditer(content))
 
-    if normalized.endswith("src/game/client/components/qmclient/monitoring.cpp"):
+    if normalized.endswith(
+        "src/game/client/components/qmclient/monitoring/monitoring.cpp"
+    ):
         for function_name in (
             "LocalizeGradeSummary",
             "LocalizeCauseDetail",
@@ -165,7 +167,7 @@ def extract_known_indirect_strings(path, content):
         )
 
     if normalized.endswith(
-        "src/game/client/components/qmclient/hud_notification_static_rules.h"
+        "src/game/client/components/qmclient/hud_notifications/hud_notification_static_rules.h"
     ):
         static_rule_pattern = re.compile(
             rf"\bX\(\s*{string_literal}\s*,\s*{string_literal}\s*\)"
@@ -175,7 +177,7 @@ def extract_known_indirect_strings(path, content):
         )
 
     if normalized.endswith(
-        "src/game/client/components/qmclient/hud_notification_catalog.cpp"
+        "src/game/client/components/qmclient/hud_notifications/hud_notification_catalog.cpp"
     ):
         catalog_pattern = re.compile(
             rf"\{{\s*EServerMessageRoute::[A-Za-z]+,\s*"

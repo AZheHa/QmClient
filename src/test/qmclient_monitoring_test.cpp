@@ -1,5 +1,5 @@
 #define CONF_TEST 1
-#include <game/client/components/qmclient/monitoring.h>
+#include <game/client/components/qmclient/monitoring/monitoring.h>
 #include <game/client/components/qmclient/perf_logging.h>
 
 #include <gtest/gtest.h>

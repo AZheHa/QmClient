@@ -9,9 +9,9 @@
 #include <engine/shared/json.h>
 
 #include <game/client/components/qmclient/qmclient_utils.h>
-#include <game/client/components/qmclient/voice_capture_pipeline.h>
-#include <game/client/components/qmclient/voice_core.h>
-#include <game/client/components/qmclient/voice_utils.h>
+#include <game/client/components/qmclient/voice/voice_capture_pipeline.h>
+#include <game/client/components/qmclient/voice/voice_core.h>
+#include <game/client/components/qmclient/voice/voice_utils.h>
 
 #include <gtest/gtest.h>
 #include <test/test.h>

@@ -1,6 +1,5 @@
 #include "voice_core.h"
 
-#include "qmclient.h"
 #include "voice_capture_pipeline.h"
 #include "voice_utils.h"
 
@@ -15,6 +14,7 @@
 #include <engine/shared/console.h>
 #include <engine/textrender.h>
 
+#include <game/client/components/qmclient/qmclient.h>
 #include <game/client/gameclient.h>
 
 #if defined(CONF_PLATFORM_ANDROID)

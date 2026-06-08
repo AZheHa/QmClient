@@ -1,7 +1,8 @@
 #include "hud_notification_rules.h"
+
 #include "hud_notification_catalog.h"
-#include "hud_notification_static_rules.h"
 #include "hud_notification_static_alias_rules.h"
+#include "hud_notification_static_rules.h"
 #include "hud_notification_static_upstream_rules.h"
 
 #include <game/localization.h>
@@ -92,11 +93,11 @@ namespace
 		Key = QmHudNotifications::EMessageKey::None;
 
 #define QM_TRY_STATIC_KEY(pLiteral, KeyName) \
-		if(str_comp(pMessage, pLiteral) == 0) \
-		{ \
-			Key = QmHudNotifications::EMessageKey::KeyName; \
-			return true; \
-		}
+	if(str_comp(pMessage, pLiteral) == 0) \
+	{ \
+		Key = QmHudNotifications::EMessageKey::KeyName; \
+		return true; \
+	}
 		QM_HUD_NOTIFICATION_STATIC_UPSTREAM_RULES(QM_TRY_STATIC_KEY)
 		QM_HUD_NOTIFICATION_STATIC_ALIAS_RULES(QM_TRY_STATIC_KEY)
 #undef QM_TRY_STATIC_KEY
@@ -169,26 +170,26 @@ namespace
 		}
 
 #define QM_TRY_FORMAT_STATIC_NOTIFICATION(pDomain, pOriginal, pLocalized) \
-		if(str_comp(pMessage, pOriginal) == 0) \
-		{ \
-			Domain = pDomain; \
-			str_copy(pBuf, Localize(pLocalized), BufSize); \
-			return true; \
-		} \
-		if(str_comp(pMessage, pLocalized) == 0) \
-		{ \
-			Domain = pDomain; \
-			str_copy(pBuf, Localize(pLocalized), BufSize); \
-			return true; \
-		}
+	if(str_comp(pMessage, pOriginal) == 0) \
+	{ \
+		Domain = pDomain; \
+		str_copy(pBuf, Localize(pLocalized), BufSize); \
+		return true; \
+	} \
+	if(str_comp(pMessage, pLocalized) == 0) \
+	{ \
+		Domain = pDomain; \
+		str_copy(pBuf, Localize(pLocalized), BufSize); \
+		return true; \
+	}
 #define QM_TRY_FORMAT_STATIC_TEAM_NOTIFICATION(pOriginal, pLocalized) \
-		QM_TRY_FORMAT_STATIC_NOTIFICATION(QmHudNotifications::EServerMessageDomain::Team, pOriginal, pLocalized)
+	QM_TRY_FORMAT_STATIC_NOTIFICATION(QmHudNotifications::EServerMessageDomain::Team, pOriginal, pLocalized)
 #define QM_TRY_FORMAT_STATIC_SWAP_RESCUE_NOTIFICATION(pOriginal, pLocalized) \
-		QM_TRY_FORMAT_STATIC_NOTIFICATION(QmHudNotifications::EServerMessageDomain::SwapRescue, pOriginal, pLocalized)
+	QM_TRY_FORMAT_STATIC_NOTIFICATION(QmHudNotifications::EServerMessageDomain::SwapRescue, pOriginal, pLocalized)
 #define QM_TRY_FORMAT_STATIC_VOTE_MODERATION_NOTIFICATION(pOriginal, pLocalized) \
-		QM_TRY_FORMAT_STATIC_NOTIFICATION(QmHudNotifications::EServerMessageDomain::VoteModeration, pOriginal, pLocalized)
+	QM_TRY_FORMAT_STATIC_NOTIFICATION(QmHudNotifications::EServerMessageDomain::VoteModeration, pOriginal, pLocalized)
 #define QM_TRY_FORMAT_STATIC_STATUS_NOTIFICATION(pOriginal, pLocalized) \
-		QM_TRY_FORMAT_STATIC_NOTIFICATION(QmHudNotifications::EServerMessageDomain::Status, pOriginal, pLocalized)
+	QM_TRY_FORMAT_STATIC_NOTIFICATION(QmHudNotifications::EServerMessageDomain::Status, pOriginal, pLocalized)
 		QM_HUD_NOTIFICATION_STATIC_TEAM_RULES(QM_TRY_FORMAT_STATIC_TEAM_NOTIFICATION)
 		QM_HUD_NOTIFICATION_STATIC_SWAP_RESCUE_RULES(QM_TRY_FORMAT_STATIC_SWAP_RESCUE_NOTIFICATION)
 		QM_HUD_NOTIFICATION_STATIC_VOTE_MODERATION_RULES(QM_TRY_FORMAT_STATIC_VOTE_MODERATION_NOTIFICATION)
@@ -988,8 +989,8 @@ namespace QmHudNotifications
 			return true;
 		const char *pLeaveGameMarker = pMessage[0] == '\'' ? str_find(pMessage + 1, "' has left the game") : nullptr;
 		const bool IsLeaveGameBroadcast = pLeaveGameMarker != nullptr &&
-			(str_comp(pLeaveGameMarker, "' has left the game") == 0 ||
-				(str_comp_num(pLeaveGameMarker, "' has left the game (", str_length("' has left the game (")) == 0 && str_endswith(pMessage, ")") != nullptr));
+						  (str_comp(pLeaveGameMarker, "' has left the game") == 0 ||
+							  (str_comp_num(pLeaveGameMarker, "' has left the game (", str_length("' has left the game (")) == 0 && str_endswith(pMessage, ")") != nullptr));
 		if(str_startswith(pMessage, "Usage:") ||
 			str_startswith(pMessage, "用法：") ||
 			str_startswith(pMessage, "Example:") ||

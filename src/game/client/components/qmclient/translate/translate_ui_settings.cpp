@@ -1,12 +1,14 @@
+#include "translate_ui_settings.h"
+
 #include <base/color.h>
+
 #include <engine/shared/config.h>
 #include <engine/textrender.h>
+
 #include <game/client/components/menus.h>
 #include <game/client/gameclient.h>
 #include <game/client/ui.h>
 #include <game/localization.h>
-
-#include "translate_ui_settings.h"
 
 void NTranslateUiSettings::RenderTranslateUiModule(CMenus *pMenus, CUIRect &CardContent, float LineHeight, float BodySize, float LineSpacing)
 {

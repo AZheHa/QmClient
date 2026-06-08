@@ -2768,13 +2768,13 @@ if(CLIENT)
     components/qmclient/collision_hitbox.h
     components/qmclient/colored_parts.h
     components/qmclient/data_version.h
-    components/qmclient/hud_notification_catalog.cpp
-    components/qmclient/hud_notification_catalog.h
-    components/qmclient/hud_notification_rules.cpp
-    components/qmclient/hud_notification_rules.h
-    components/qmclient/hud_notification_static_rules.h
-    components/qmclient/hud_notifications.cpp
-    components/qmclient/hud_notifications.h
+    components/qmclient/hud_notifications/hud_notification_catalog.cpp
+    components/qmclient/hud_notifications/hud_notification_catalog.h
+    components/qmclient/hud_notifications/hud_notification_rules.cpp
+    components/qmclient/hud_notifications/hud_notification_rules.h
+    components/qmclient/hud_notifications/hud_notification_static_rules.h
+    components/qmclient/hud_notifications/hud_notifications.cpp
+    components/qmclient/hud_notifications/hud_notifications.h
     components/qmclient/input_overlay.cpp
     components/qmclient/input_overlay.h
     components/qmclient/jelly_tee.cpp
@@ -2785,9 +2785,9 @@ if(CLIENT)
     components/qmclient/menus_qmclient.cpp
     components/qmclient/modes.cpp
     components/qmclient/modes.h
-    components/qmclient/monitoring.cpp
-    components/qmclient/monitoring_device_perf.cpp
-    components/qmclient/monitoring.h
+    components/qmclient/monitoring/monitoring.cpp
+    components/qmclient/monitoring/monitoring_device_perf.cpp
+    components/qmclient/monitoring/monitoring.h
     components/qmclient/qmclient.cpp
     components/qmclient/qmclient.h
     components/qmclient/qmclient_utils.cpp
@@ -2796,22 +2796,22 @@ if(CLIENT)
     components/qmclient/scripting.h
     components/qmclient/scripting/impl.cpp
     components/qmclient/scripting/impl.h
-    components/qmclient/translate.cpp
-    components/qmclient/translate.h
-    components/qmclient/translate_parse.cpp
-    components/qmclient/translate_parse.h
-    components/qmclient/translate_ui_settings.cpp
-    components/qmclient/translate_ui_settings.h
+    components/qmclient/translate/translate.cpp
+    components/qmclient/translate/translate.h
+    components/qmclient/translate/translate_parse.cpp
+    components/qmclient/translate/translate_parse.h
+    components/qmclient/translate/translate_ui_settings.cpp
+    components/qmclient/translate/translate_ui_settings.h
     components/qmclient/update_version.cpp
     components/qmclient/update_version.h
-    components/qmclient/voice_capture_pipeline.cpp
-    components/qmclient/voice_capture_pipeline.h
-    components/qmclient/voice_component.cpp
-    components/qmclient/voice_component.h
-    components/qmclient/voice_core.cpp
-    components/qmclient/voice_core.h
-    components/qmclient/voice_utils.cpp
-    components/qmclient/voice_utils.h
+    components/qmclient/voice/voice_capture_pipeline.cpp
+    components/qmclient/voice/voice_capture_pipeline.h
+    components/qmclient/voice/voice_component.cpp
+    components/qmclient/voice/voice_component.h
+    components/qmclient/voice/voice_core.cpp
+    components/qmclient/voice/voice_core.h
+    components/qmclient/voice/voice_utils.cpp
+    components/qmclient/voice/voice_utils.h
     components/qmclient/weapon_trajectory.cpp
     components/qmclient/weapon_trajectory.h
     components/race_demo.cpp
@@ -3775,17 +3775,17 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     src/game/client/components/assets_resource_registry.cpp
     src/generated/client_data.h
     src/generated/client_data7.h
-    src/game/client/components/qmclient/hud_notification_catalog.cpp
-    src/game/client/components/qmclient/hud_notification_rules.cpp
-    src/game/client/components/qmclient/monitoring_device_perf.cpp
+    src/game/client/components/qmclient/hud_notifications/hud_notification_catalog.cpp
+    src/game/client/components/qmclient/hud_notifications/hud_notification_rules.cpp
+    src/game/client/components/qmclient/monitoring/monitoring_device_perf.cpp
     src/game/client/live/live_director.cpp
     src/game/client/live/live_replay_buffer.cpp
     src/game/client/components/qmclient/modes.cpp
     src/game/client/components/qmclient/update_version.cpp
     src/game/client/components/qmclient/qmclient_utils.cpp
-    src/game/client/components/qmclient/translate_parse.cpp
-    src/game/client/components/qmclient/voice_capture_pipeline.cpp
-    src/game/client/components/qmclient/voice_utils.cpp
+    src/game/client/components/qmclient/translate/translate_parse.cpp
+    src/game/client/components/qmclient/voice/voice_capture_pipeline.cpp
+    src/game/client/components/qmclient/voice/voice_utils.cpp
     src/engine/client/blocklist_driver.cpp
     src/engine/client/blocklist_driver.h
     src/engine/client/serverbrowser.cpp

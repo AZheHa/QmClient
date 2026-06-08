@@ -2,7 +2,7 @@
 
 #include <base/system.h>
 #include <engine/shared/json.h>
-#include <game/client/components/qmclient/translate_parse.h>
+#include <game/client/components/qmclient/translate/translate_parse.h>
 
 #include <gtest/gtest.h>
 

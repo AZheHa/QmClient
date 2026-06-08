@@ -1,5 +1,5 @@
-#ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_MONITORING_H
-#define GAME_CLIENT_COMPONENTS_QMCLIENT_MONITORING_H
+#ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_MONITORING_MONITORING_H
+#define GAME_CLIENT_COMPONENTS_QMCLIENT_MONITORING_MONITORING_H
 
 #include <base/system.h>
 #include <base/types.h>
@@ -453,12 +453,12 @@ inline SQmMonitoringHudLayout QmComputeMonitoringHudLayout(float ScreenWidth, fl
 	PanelW = std::min(PanelW, 1040.0f * UiScale);
 	PanelH = std::min(PanelH, 1000.0f * UiScale);
 	const float PreferredContentHeight = (QM_MONITORING_HEADER_HEIGHT +
-						 QM_MONITORING_SECTION_GAP * 4.0f +
-						 QM_MONITORING_MAIN_GRAPH_HEIGHT +
-						 QM_MONITORING_FPS_GRAPH_HEIGHT +
-						 QM_MONITORING_PRIMARY_CARDS_HEIGHT +
-						 QM_MONITORING_SECONDARY_CARDS_HEIGHT) *
-						UiScale;
+						     QM_MONITORING_SECTION_GAP * 4.0f +
+						     QM_MONITORING_MAIN_GRAPH_HEIGHT +
+						     QM_MONITORING_FPS_GRAPH_HEIGHT +
+						     QM_MONITORING_PRIMARY_CARDS_HEIGHT +
+						     QM_MONITORING_SECONDARY_CARDS_HEIGHT) *
+					     UiScale;
 	PanelH = std::min(PanelH, std::round(PreferredContentHeight + Padding * 2.0f));
 	PanelW = std::min(PanelW, ScreenWidth);
 	PanelH = std::min(PanelH, ScreenHeight);

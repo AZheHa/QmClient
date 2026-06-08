@@ -1,8 +1,8 @@
-#include <game/client/components/qmclient/hud_notifications.h>
+#include <game/client/components/qmclient/hud_notifications/hud_notifications.h>
 #include <game/client/components/hud_editor.h>
-#include <game/client/components/qmclient/hud_notification_catalog.h>
-#include <game/client/components/qmclient/hud_notification_rules.h>
-#include <game/client/components/qmclient/hud_notification_static_rules.h>
+#include <game/client/components/qmclient/hud_notifications/hud_notification_catalog.h>
+#include <game/client/components/qmclient/hud_notifications/hud_notification_rules.h>
+#include <game/client/components/qmclient/hud_notifications/hud_notification_static_rules.h>
 
 #ifdef QM_HUD_NOTIFICATION_STATIC_RULES
 #error Old mixed static rule table should not be exposed through hud_notification_rules.h

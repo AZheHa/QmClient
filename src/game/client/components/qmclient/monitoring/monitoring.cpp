@@ -1,7 +1,5 @@
 #include "monitoring.h"
 
-#include "perf_logging.h"
-
 #include <base/math.h>
 #include <base/system.h>
 
@@ -10,6 +8,7 @@
 #include <engine/shared/config.h>
 #include <engine/textrender.h>
 
+#include <game/client/components/qmclient/perf_logging.h>
 #include <game/client/ui.h>
 #include <game/localization.h>
 

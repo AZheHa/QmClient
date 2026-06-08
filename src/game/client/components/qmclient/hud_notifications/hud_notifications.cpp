@@ -1,4 +1,5 @@
 #include "hud_notifications.h"
+
 #include <base/color.h>
 #include <base/system.h>
 

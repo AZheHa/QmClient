@@ -1,5 +1,5 @@
-#ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATION_STATIC_RULES_H
-#define GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATION_STATIC_RULES_H
+#ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATIONS_HUD_NOTIFICATION_STATIC_RULES_H
+#define GAME_CLIENT_COMPONENTS_QMCLIENT_HUD_NOTIFICATIONS_HUD_NOTIFICATION_STATIC_RULES_H
 
 // Compatibility layer for pre-semantic static categories that are still consumed by
 // hud_notification_rules.cpp. The semantic upstream/alias tables are the canonical
