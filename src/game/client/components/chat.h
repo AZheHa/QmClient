@@ -74,8 +74,6 @@ class CChat : public CComponent
 		std::shared_ptr<CManagedTeeRenderInfo> m_pManagedTeeRenderInfo;
 
 		float m_TextYOffset;
-		float m_XOffset;
-		float m_RenderWidth;
 		float m_CutOffProgress;
 
 		int m_TimesRepeated;
@@ -201,7 +199,6 @@ class CChat : public CComponent
 	void SendChatQueued(int Team, const char *pLine, bool AllowOutgoingTranslation);
 	int CountInitializedLines() const;
 	int CountVisibleLinesFrom(int BacklogLine) const;
-	bool IsOwnChatLine(const CLine &Line) const;
 
 	static float EaseInQuad(float t);
 	static float CalculateCutOffAlpha(float CutOffT);
@@ -302,19 +299,6 @@ public:
 	static bool IsCopyClickDrag(vec2 Press, vec2 Release)
 	{
 		return length(Release - Press) <= 5.0f;
-	}
-	static float OwnChatLineOffsetX(float Begin, float RightEdge, float LineWidth, bool OwnLine)
-	{
-		if(!OwnLine)
-			return 0.0f;
-		return std::max(0.0f, RightEdge - Begin - std::max(0.0f, LineWidth));
-	}
-	static float ChatLineTeeCenterX(float LineX, float LineWidth, float RealMsgPaddingX, float TeeSize, bool OwnLine)
-	{
-		const float TeeOffset = (RealMsgPaddingX + TeeSize) / 2.0f;
-		if(!OwnLine)
-			return LineX + TeeOffset;
-		return LineX + std::max(TeeOffset, std::max(0.0f, LineWidth) - TeeOffset);
 	}
 	static QmHudNotifications::EServerMessageClass ResolveLineServerMessageClass(int ClientId, const char *pLine, std::optional<QmHudNotifications::EServerMessageClass> KnownServerMessageClass = std::nullopt)
 	{
