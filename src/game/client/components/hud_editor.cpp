@@ -527,6 +527,23 @@ int CHudEditor::FindHoveredVisibleElement() const
 	return -1;
 }
 
+CHudEditor::SAlignmentReferences CHudEditor::BuildAlignmentReferences(EHudEditorElement DraggingElement) const
+{
+	SAlignmentReferences References;
+	for(const SVisibleElement &Visible : m_vVisibleElements)
+	{
+		if(Visible.m_Element == DraggingElement || Visible.m_Rect.w <= 0.0f || Visible.m_Rect.h <= 0.0f)
+			continue;
+		dbg_assert(References.m_XCount < (int)References.m_aXReferences.size(), "too many HUD editor x alignment references");
+		dbg_assert(References.m_YCount < (int)References.m_aYReferences.size(), "too many HUD editor y alignment references");
+		if(References.m_XCount < (int)References.m_aXReferences.size())
+			References.m_aXReferences[References.m_XCount++] = {Visible.m_Rect.x, Visible.m_Rect.w};
+		if(References.m_YCount < (int)References.m_aYReferences.size())
+			References.m_aYReferences[References.m_YCount++] = {Visible.m_Rect.y, Visible.m_Rect.h};
+	}
+	return References;
+}
+
 void CHudEditor::UpdateInteractionUi()
 {
 	if(m_InteractionUiActive)
@@ -803,8 +820,9 @@ void CHudEditor::OnRender()
 			const float Scale = std::clamp(State.m_ScalePercent / 100.0f, MIN_SCALE_PERCENT / 100.0f, MAX_SCALE_PERCENT / 100.0f);
 			const float Width = Visible.m_BaseWidth * Scale;
 			const float Height = Visible.m_BaseHeight * Scale;
-			const float X = QmHudEditor::SnapAxisToScreenEdges(Ui()->MouseX() - m_DragGrabOffset.x, Width, pUiScreen->x, pUiScreen->w);
-			const float Y = QmHudEditor::SnapAxisToScreenEdges(Ui()->MouseY() - m_DragGrabOffset.y, Height, pUiScreen->y, pUiScreen->h);
+			const SAlignmentReferences References = BuildAlignmentReferences(Visible.m_Element);
+			const float X = QmHudEditor::SnapAxisToGuides(Ui()->MouseX() - m_DragGrabOffset.x, Width, pUiScreen->x, pUiScreen->w, References.m_aXReferences.data(), References.m_XCount);
+			const float Y = QmHudEditor::SnapAxisToGuides(Ui()->MouseY() - m_DragGrabOffset.y, Height, pUiScreen->y, pUiScreen->h, References.m_aYReferences.data(), References.m_YCount);
 			const bool SnapLeft = std::fabs(X - pUiScreen->x) <= HUD_EDITOR_EDGE_ANCHOR_DISTANCE;
 			const bool SnapRight = std::fabs(X + Width - (pUiScreen->x + pUiScreen->w)) <= HUD_EDITOR_EDGE_ANCHOR_DISTANCE;
 			const bool SnapTop = std::fabs(Y - pUiScreen->y) <= HUD_EDITOR_EDGE_ANCHOR_DISTANCE;
@@ -873,7 +891,7 @@ void CHudEditor::OnRender()
 	constexpr float HelpLineHeight = 8.0f;
 	const char *apHelpLines[] = {
 		Localize("Drag HUD modules with the left mouse button"),
-		Localize("Modules snap to screen edges while dragging"),
+		Localize("Modules snap to screen edges, center lines and other HUD modules while dragging"),
 		Localize("Use the mouse wheel on a hovered module to scale it by 5%"),
 		Localize("Press Esc to exit the HUD editor"),
 	};

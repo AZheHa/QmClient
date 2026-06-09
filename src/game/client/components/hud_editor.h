@@ -19,6 +19,12 @@ namespace QmHudEditor
 	inline constexpr float SNAP_DISTANCE = 6.0f;
 	inline constexpr float EPSILON = 0.001f;
 
+	struct SAxisReference
+	{
+		float m_Position = 0.0f;
+		float m_Size = 0.0f;
+	};
+
 	inline float SnapAxisToScreenEdges(float Position, float Size, float ScreenStart, float ScreenSize)
 	{
 		const float ScreenEnd = ScreenStart + ScreenSize;
@@ -38,6 +44,47 @@ namespace QmHudEditor
 		TrySnap(ScreenStart, std::fabs(Position - ScreenStart));
 		TrySnap(ScreenEnd - Size, std::fabs(Position + Size - ScreenEnd));
 		return SnappedPosition;
+	}
+
+	inline float SnapAxisToGuides(float Position, float Size, float ScreenStart, float ScreenSize, const SAxisReference *pReferences, int ReferenceCount)
+	{
+		const float ScreenEnd = ScreenStart + ScreenSize;
+		const float ScreenCenter = ScreenStart + ScreenSize * 0.5f;
+		const float MinPosition = ScreenStart;
+		const float MaxPosition = Size >= ScreenSize ? ScreenStart : ScreenEnd - Size;
+		float SnappedPosition = std::clamp(Position, MinPosition, MaxPosition);
+		float BestDistance = SNAP_DISTANCE + EPSILON;
+
+		const auto TrySnap = [&](float Candidate, float Distance) {
+			if(Distance <= SNAP_DISTANCE && Distance < BestDistance)
+			{
+				SnappedPosition = std::clamp(Candidate, MinPosition, MaxPosition);
+				BestDistance = Distance;
+			}
+		};
+
+		TrySnap(ScreenStart, std::fabs(Position - ScreenStart));
+		TrySnap(ScreenEnd - Size, std::fabs(Position + Size - ScreenEnd));
+		TrySnap(ScreenCenter - Size * 0.5f, std::fabs(Position + Size * 0.5f - ScreenCenter));
+
+		if(pReferences != nullptr)
+		{
+			for(int i = 0; i < ReferenceCount; ++i)
+			{
+				const float ReferenceStart = pReferences[i].m_Position;
+				const float ReferenceEnd = pReferences[i].m_Position + pReferences[i].m_Size;
+				const float ReferenceCenter = pReferences[i].m_Position + pReferences[i].m_Size * 0.5f;
+				TrySnap(ReferenceStart, std::fabs(Position - ReferenceStart));
+				TrySnap(ReferenceCenter - Size * 0.5f, std::fabs(Position + Size * 0.5f - ReferenceCenter));
+				TrySnap(ReferenceEnd - Size, std::fabs(Position + Size - ReferenceEnd));
+			}
+		}
+		return SnappedPosition;
+	}
+
+	inline float SnapAxisToScreenGuides(float Position, float Size, float ScreenStart, float ScreenSize)
+	{
+		return SnapAxisToGuides(Position, Size, ScreenStart, ScreenSize, nullptr, 0);
 	}
 } // namespace QmHudEditor
 
@@ -176,6 +223,14 @@ private:
 		bool m_Scalable = true;
 	};
 
+	struct SAlignmentReferences
+	{
+		std::array<QmHudEditor::SAxisReference, static_cast<int>(EHudEditorElement::Count)> m_aXReferences{};
+		std::array<QmHudEditor::SAxisReference, static_cast<int>(EHudEditorElement::Count)> m_aYReferences{};
+		int m_XCount = 0;
+		int m_YCount = 0;
+	};
+
 	static constexpr int ELEMENT_COUNT = static_cast<int>(EHudEditorElement::Count);
 	static constexpr int POSITION_SCALE = 10000;
 	static constexpr int MIN_SCALE_PERCENT = 25;
@@ -211,6 +266,7 @@ private:
 	bool HandleElementDoubleClick(EHudEditorElement Element);
 	bool DoJumpHintTextArea(CLineInput *pLineInput, const CUIRect *pRect, float FontSize);
 	void RenderJumpHintTextEditor(const CUIRect &Screen);
+	SAlignmentReferences BuildAlignmentReferences(EHudEditorElement DraggingElement) const;
 	bool ComputeTransformPlacement(EHudEditorElement Element, const CUIRect &TransformRect, const CUIRect &VisibleRect, bool Scalable, STransformScope &Scope, SVisibleElement *pVisible);
 	static const char *ElementToken(EHudEditorElement Element);
 	static int ElementFromToken(const char *pToken);
