@@ -3941,12 +3941,16 @@ bool CMenus::PrewarmSettingsPageRuntimeCache(CUIRect ContentView, int Page, int 
 {
 	Page = SettingsCanonicalPage(Page);
 	const int64_t PerfStartTime = PerfDebugStartTime();
+	if(Page == SETTINGS_TCLIENT)
+		Tab = CanonicalizeTClientCacheTab(Tab);
+	else if(Page == SETTINGS_ASSETS)
+		Tab = CurrentSettingsAssetsTab();
 	if(!SettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi))
 	{
 		LogSettingsWarmupPerf(Page, Tab, "miss", "n/a", ESettingsWarmupMissReason::PAGE_FBO_UNSUPPORTED, PerfDebugElapsedMs(PerfStartTime));
 		return false;
 	}
-	if(!SettingsPageCanUsePageFbo(Page, SETTINGS_ASSETS))
+	if(!SettingsPageCanUsePageFbo(Page, SETTINGS_ASSETS, -1, Tab))
 	{
 		LogSettingsWarmupPerf(Page, Tab, "miss", "n/a", ESettingsWarmupMissReason::PAGE_FBO_UNSUPPORTED, PerfDebugElapsedMs(PerfStartTime));
 		return false;
@@ -3956,10 +3960,6 @@ bool CMenus::PrewarmSettingsPageRuntimeCache(CUIRect ContentView, int Page, int 
 		LogSettingsWarmupPerf(Page, Tab, "miss", "n/a", ESettingsWarmupMissReason::PAGE_FBO_UNSUPPORTED, PerfDebugElapsedMs(PerfStartTime));
 		return false;
 	}
-	if(Page == SETTINGS_TCLIENT)
-		Tab = CanonicalizeTClientCacheTab(Tab);
-	else if(Page == SETTINGS_ASSETS)
-		Tab = CurrentSettingsAssetsTab();
 
 	SSettingsPageRuntimeCache *pCache = GetSettingsPageRuntimeCache(Page, Tab);
 	if(pCache == nullptr)
@@ -4117,20 +4117,21 @@ bool CMenus::PrewarmSettingsPageResources(int Page, int Tab, const CUIRect &Cont
 bool CMenus::DrawSettingsPageRuntimeCache(CUIRect ContentView, int Page, int Tab, float ScrollY)
 {
 	const int64_t PerfStartTime = PerfDebugStartTime();
+	Page = SettingsCanonicalPage(Page);
+	if(Page == SETTINGS_TCLIENT)
+		Tab = CanonicalizeTClientCacheTab(Tab);
+	else if(Page == SETTINGS_ASSETS)
+		Tab = CurrentSettingsAssetsTab();
 	if(!SettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi))
 	{
 		LogSettingsWarmupPerf(Page, Tab, "miss", "n/a", ESettingsWarmupMissReason::PAGE_FBO_UNSUPPORTED, PerfDebugElapsedMs(PerfStartTime));
 		return false;
 	}
-	if(!SettingsPageCanUsePageFbo(Page, SETTINGS_ASSETS))
+	if(!SettingsPageCanUsePageFbo(Page, SETTINGS_ASSETS, -1, Tab))
 	{
 		LogSettingsWarmupPerf(Page, Tab, "miss", "n/a", ESettingsWarmupMissReason::PAGE_FBO_UNSUPPORTED, PerfDebugElapsedMs(PerfStartTime));
 		return false;
 	}
-	if(Page == SETTINGS_TCLIENT)
-		Tab = CanonicalizeTClientCacheTab(Tab);
-	else if(Page == SETTINGS_ASSETS)
-		Tab = CurrentSettingsAssetsTab();
 	SSettingsPageRuntimeCache *pCache = GetSettingsPageRuntimeCache(Page, Tab);
 	if(pCache == nullptr)
 	{
