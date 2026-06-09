@@ -309,6 +309,13 @@ public:
 			return 0.0f;
 		return std::max(0.0f, RightEdge - Begin - std::max(0.0f, LineWidth));
 	}
+	static float ChatLineTeeCenterX(float LineX, float LineWidth, float RealMsgPaddingX, float TeeSize, bool OwnLine)
+	{
+		const float TeeOffset = (RealMsgPaddingX + TeeSize) / 2.0f;
+		if(!OwnLine)
+			return LineX + TeeOffset;
+		return LineX + std::max(TeeOffset, std::max(0.0f, LineWidth) - TeeOffset);
+	}
 	static QmHudNotifications::EServerMessageClass ResolveLineServerMessageClass(int ClientId, const char *pLine, std::optional<QmHudNotifications::EServerMessageClass> KnownServerMessageClass = std::nullopt)
 	{
 		if(ClientId != SERVER_MSG)

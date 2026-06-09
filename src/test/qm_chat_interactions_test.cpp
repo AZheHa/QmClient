@@ -40,6 +40,13 @@ TEST(QmChatInteractions, OwnChatLineOffsetAlignsToRightEdge)
 	EXPECT_FLOAT_EQ(CChat::OwnChatLineOffsetX(5.0f, 4.0f, 20.0f, true), 0.0f);
 }
 
+TEST(QmChatInteractions, OwnChatLinePlacesTeeAtRightEdge)
+{
+	EXPECT_FLOAT_EQ(CChat::ChatLineTeeCenterX(10.0f, 200.0f, 5.0f, 7.0f, false), 16.0f);
+	EXPECT_FLOAT_EQ(CChat::ChatLineTeeCenterX(10.0f, 200.0f, 5.0f, 7.0f, true), 204.0f);
+	EXPECT_FLOAT_EQ(CChat::ChatLineTeeCenterX(10.0f, 4.0f, 5.0f, 7.0f, true), 16.0f);
+}
+
 TEST(QmChatInteractions, ReusesKnownServerMessageClassWithoutReanalysis)
 {
 	const auto Class = CChat::ResolveLineServerMessageClass(-1, "DDraceNetwork Version: 18.9", QmHudNotifications::EServerMessageClass::Prompt);

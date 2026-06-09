@@ -2096,6 +2096,46 @@ void CChat::OnPrepareLines(float y)
 			}
 		}
 
+		const bool PlayerLine = Line.m_ClientId >= 0 && Line.m_aName[0] != '\0';
+		const bool OwnLine = PlayerLine && IsOwnChatLine(Line);
+		auto MeasureMessageText = [&](CTextCursor &Cursor) {
+			if(pTranslatedText)
+			{
+				TextRender()->TextEx(&Cursor, pTranslatedText);
+				if(pTranslatedLanguage)
+				{
+					TextRender()->TextEx(&Cursor, " [");
+					TextRender()->TextEx(&Cursor, pTranslatedLanguage);
+					TextRender()->TextEx(&Cursor, "]");
+				}
+				TextRender()->TextEx(&Cursor, "\n");
+				Cursor.m_FontSize *= 0.8f;
+				TextRender()->TextEx(&Cursor, pText);
+				Cursor.m_FontSize /= 0.8f;
+			}
+			else if(pTranslatedError)
+			{
+				TextRender()->TextEx(&Cursor, pText);
+				TextRender()->TextEx(&Cursor, "\n");
+				Cursor.m_FontSize *= 0.8f;
+				TextRender()->TextEx(&Cursor, pTranslatedError);
+				Cursor.m_FontSize /= 0.8f;
+			}
+			else
+			{
+				TextRender()->TextEx(&Cursor, pText);
+			}
+		};
+		auto MeasurePlayerSuffix = [&](CTextCursor &Cursor) {
+			TextRender()->TextEx(&Cursor, ": ");
+			if(Line.m_Friend && g_Config.m_ClMessageFriend)
+				TextRender()->TextEx(&Cursor, "♥ ");
+			TextRender()->TextEx(&Cursor, aClientId);
+			TextRender()->TextEx(&Cursor, Line.m_aName);
+			if(Line.m_TimesRepeated > 0)
+				TextRender()->TextEx(&Cursor, aCount);
+		};
+
 		// get the y offset (calculate it if we haven't done that yet)
 		if(Line.m_aYOffset[OffsetType] < 0.0f)
 		{
@@ -2105,60 +2145,43 @@ void CChat::OnPrepareLines(float y)
 			MeasureCursor.m_Flags = 0;
 			MeasureCursor.m_LineWidth = LineWidth;
 
-			if(Line.m_ClientId >= 0 && Line.m_aName[0] != '\0')
+			if(PlayerLine)
 			{
-				MeasureCursor.m_X += RealMsgPaddingTee;
+				if(OwnLine && !g_Config.m_ClChatOld)
+					MeasureCursor.m_LineWidth = maximum(1.0f, MeasureCursor.m_LineWidth - RealMsgPaddingTee);
+				else
+					MeasureCursor.m_X += RealMsgPaddingTee;
 
-				if(Line.m_Friend && g_Config.m_ClMessageFriend)
+				if(!OwnLine && Line.m_Friend && g_Config.m_ClMessageFriend)
 				{
 					TextRender()->TextEx(&MeasureCursor, "♥ ");
 				}
 			}
 
-			TextRender()->TextEx(&MeasureCursor, aClientId);
-			TextRender()->TextEx(&MeasureCursor, Line.m_aName);
-			if(Line.m_TimesRepeated > 0)
-				TextRender()->TextEx(&MeasureCursor, aCount);
-
-			if(Line.m_ClientId >= 0 && Line.m_aName[0] != '\0')
+			if(!OwnLine)
 			{
-				TextRender()->TextEx(&MeasureCursor, ": ");
+				TextRender()->TextEx(&MeasureCursor, aClientId);
+				TextRender()->TextEx(&MeasureCursor, Line.m_aName);
+				if(Line.m_TimesRepeated > 0)
+					TextRender()->TextEx(&MeasureCursor, aCount);
+
+				if(PlayerLine)
+				{
+					TextRender()->TextEx(&MeasureCursor, ": ");
+				}
 			}
 
 			CTextCursor AppendCursor = MeasureCursor;
 			AppendCursor.m_LongestLineWidth = 0.0f;
-			if(!IsScoreBoardOpen && !g_Config.m_ClChatOld)
+			if(!OwnLine && !IsScoreBoardOpen && !g_Config.m_ClChatOld)
 			{
 				AppendCursor.m_StartX = MeasureCursor.m_X;
 				AppendCursor.m_LineWidth -= MeasureCursor.m_LongestLineWidth;
 			}
 
-			if(pTranslatedText)
-			{
-				TextRender()->TextEx(&AppendCursor, pTranslatedText);
-				if(pTranslatedLanguage)
-				{
-					TextRender()->TextEx(&AppendCursor, " [");
-					TextRender()->TextEx(&AppendCursor, pTranslatedLanguage);
-					TextRender()->TextEx(&AppendCursor, "]");
-				}
-				TextRender()->TextEx(&AppendCursor, "\n");
-				AppendCursor.m_FontSize *= 0.8f;
-				TextRender()->TextEx(&AppendCursor, pText);
-				AppendCursor.m_FontSize /= 0.8f;
-			}
-			else if(pTranslatedError)
-			{
-				TextRender()->TextEx(&AppendCursor, pText);
-				TextRender()->TextEx(&AppendCursor, "\n");
-				AppendCursor.m_FontSize *= 0.8f;
-				TextRender()->TextEx(&AppendCursor, pTranslatedError);
-				AppendCursor.m_FontSize /= 0.8f;
-			}
-			else
-			{
-				TextRender()->TextEx(&AppendCursor, pText);
-			}
+			MeasureMessageText(AppendCursor);
+			if(OwnLine)
+				MeasurePlayerSuffix(AppendCursor);
 
 			Line.m_aYOffset[OffsetType] = AppendCursor.Height() + RealMsgPaddingY;
 		}
@@ -2182,11 +2205,14 @@ void CChat::OnPrepareLines(float y)
 		LineCursor.m_LineWidth = LineWidth;
 
 		// Message is from valid player
-		if(Line.m_ClientId >= 0 && Line.m_aName[0] != '\0')
+		if(PlayerLine)
 		{
-			LineCursor.m_X += RealMsgPaddingTee;
+			if(OwnLine && !g_Config.m_ClChatOld)
+				LineCursor.m_LineWidth = maximum(1.0f, LineCursor.m_LineWidth - RealMsgPaddingTee);
+			else
+				LineCursor.m_X += RealMsgPaddingTee;
 
-			if(Line.m_Friend && g_Config.m_ClMessageFriend)
+			if(!OwnLine && Line.m_Friend && g_Config.m_ClMessageFriend)
 			{
 				TextRender()->TextColor(color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClMessageFriendHeartColor)));
 				TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &LineCursor, "♥ ");
@@ -2216,20 +2242,41 @@ void CChat::OnPrepareLines(float y)
 		else
 			NameColor = ColorRGBA(0.8f, 0.8f, 0.8f, 1.0f);
 
-		TextRender()->TextColor(NameColor);
-		TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &LineCursor, aClientId);
-		TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &LineCursor, Line.m_aName);
+		auto RenderPlayerSuffix = [&](CTextCursor &Cursor) {
+			TextRender()->TextColor(NameColor);
+			TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &Cursor, ": ");
+			if(Line.m_Friend && g_Config.m_ClMessageFriend)
+			{
+				TextRender()->TextColor(color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClMessageFriendHeartColor)));
+				TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &Cursor, "♥ ");
+				TextRender()->TextColor(NameColor);
+			}
+			TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &Cursor, aClientId);
+			TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &Cursor, Line.m_aName);
+			if(Line.m_TimesRepeated > 0)
+			{
+				TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.3f);
+				TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &Cursor, aCount);
+			}
+		};
 
-		if(Line.m_TimesRepeated > 0)
-		{
-			TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.3f);
-			TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &LineCursor, aCount);
-		}
-
-		if(Line.m_ClientId >= 0 && Line.m_aName[0] != '\0')
+		if(!OwnLine)
 		{
 			TextRender()->TextColor(NameColor);
-			TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &LineCursor, ": ");
+			TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &LineCursor, aClientId);
+			TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &LineCursor, Line.m_aName);
+
+			if(Line.m_TimesRepeated > 0)
+			{
+				TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.3f);
+				TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &LineCursor, aCount);
+			}
+
+			if(PlayerLine)
+			{
+				TextRender()->TextColor(NameColor);
+				TextRender()->CreateOrAppendTextContainer(Line.m_TextContainerIndex, &LineCursor, ": ");
+			}
 		}
 
 		ColorRGBA Color;
@@ -2272,7 +2319,7 @@ void CChat::OnPrepareLines(float y)
 
 		CTextCursor AppendCursor = LineCursor;
 		AppendCursor.m_LongestLineWidth = 0.0f;
-		if(!IsScoreBoardOpen && !g_Config.m_ClChatOld)
+		if(!OwnLine && !IsScoreBoardOpen && !g_Config.m_ClChatOld)
 		{
 			AppendCursor.m_StartX = LineCursor.m_X;
 			AppendCursor.m_LineWidth -= LineCursor.m_LongestLineWidth;
@@ -2332,6 +2379,9 @@ void CChat::OnPrepareLines(float y)
 			AppendCursor.m_vColorSplits.clear();
 		}
 
+		if(OwnLine)
+			RenderPlayerSuffix(AppendCursor);
+
 		if(Line.m_aText[0] != '\0' || Line.m_aName[0] != '\0')
 		{
 			float FullWidth = RealMsgPaddingX * 1.5f;
@@ -2343,6 +2393,8 @@ void CChat::OnPrepareLines(float y)
 			{
 				FullWidth += maximum(LineCursor.m_LongestLineWidth, AppendCursor.m_LongestLineWidth);
 			}
+			if(OwnLine && !g_Config.m_ClChatOld)
+				FullWidth += RealMsgPaddingTee;
 			Line.m_RenderWidth = FullWidth;
 			Line.m_XOffset = OwnChatLineOffsetX(Begin, ChatRight, FullWidth, IsOwnChatLine(Line));
 			if(!g_Config.m_ClChatOld)
@@ -2744,7 +2796,8 @@ void CChat::OnRender()
 
 				vec2 OffsetToMid;
 				CRenderTools::GetRenderTeeOffsetToRenderedTee(pIdleState, &TeeRenderInfo, OffsetToMid);
-				vec2 TeeRenderPos(x + Line.m_XOffset + AnimOffsetX + (RealMsgPaddingX + TeeSize) / 2.0f, y + OffsetTeeY + FullHeightMinusTee / 2.0f + OffsetToMid.y);
+				const float TeeCenterX = ChatLineTeeCenterX(LineX, LineWidth, RealMsgPaddingX, TeeSize, IsOwnChatLine(Line));
+				vec2 TeeRenderPos(TeeCenterX + AnimOffsetX, y + OffsetTeeY + FullHeightMinusTee / 2.0f + OffsetToMid.y);
 				RenderTools()->RenderTee(pIdleState, &TeeRenderInfo, EMOTE_NORMAL, vec2(1, 0.1f), TeeRenderPos, AnimAlpha);
 			}
 
