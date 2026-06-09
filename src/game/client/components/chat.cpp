@@ -3151,8 +3151,8 @@ void CChat::OpenChatLineMenu(const CLine &Line, vec2 ChatMousePos)
 	else
 		str_copy(m_ChatLinePopupContext.m_aName, Line.m_aName);
 
-	constexpr float MenuWidth = 150.0f;
-	constexpr float MenuHeight = 6.0f * 19.0f + 10.0f;
+	constexpr float MenuWidth = 188.0f;
+	constexpr float MenuHeight = 238.0f;
 	const float Height = 300.0f;
 	const float Width = Height * Graphics()->ScreenAspect();
 	const vec2 ChatToUiScale(Ui()->Screen()->w / Width, Ui()->Screen()->h / Height);
@@ -3224,45 +3224,99 @@ CUi::EPopupMenuFunctionResult CChat::PopupChatLineMenu(void *pContext, CUIRect V
 	CChat *pChat = pPopupContext->m_pChat;
 	CUi *pUi = pChat->Ui();
 
-	View.Margin(3.0f, &View);
-	constexpr float FontSize = 8.0f;
-	constexpr float ButtonHeight = 18.0f;
-	constexpr float ButtonSpacing = 1.0f;
+	View.Margin(5.0f, &View);
 
-	auto DoEntry = [&](CButtonContainer *pButton, const char *pText, bool Enabled) {
-		CUIRect Button;
+	CUIRect Header, Divider;
+	View.HSplitTop(40.0f, &Header, &View);
+	View.HSplitTop(4.0f, &Divider, &View);
+
+	Header.Draw(ColorRGBA(0.08f, 0.11f, 0.14f, 0.82f), IGraphics::CORNER_ALL, 5.0f);
+	Header.Margin(5.0f, &Header);
+
+	CUIRect NameRow, PreviewRow;
+	Header.HSplitTop(14.0f, &NameRow, &PreviewRow);
+	char aName[96];
+	if(pPopupContext->m_aName[0] != '\0')
+		str_copy(aName, pPopupContext->m_aName);
+	else
+		str_copy(aName, Localize("Chat"));
+
+	SLabelProperties LabelProps;
+	LabelProps.m_MaxWidth = NameRow.w;
+	LabelProps.m_EllipsisAtEnd = true;
+	LabelProps.SetColor(ColorRGBA(0.92f, 0.98f, 1.0f, 0.95f));
+	pUi->DoLabel(&NameRow, aName, 8.0f, TEXTALIGN_ML, LabelProps);
+
+	LabelProps.m_MaxWidth = PreviewRow.w;
+	LabelProps.SetColor(ColorRGBA(0.72f, 0.82f, 0.88f, 0.78f));
+	pUi->DoLabel(&PreviewRow, pPopupContext->m_aText, 7.0f, TEXTALIGN_ML, LabelProps);
+
+	Divider.HMargin(1.5f, &Divider);
+	Divider.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, 0.13f), IGraphics::CORNER_ALL, 1.0f);
+	View.HSplitTop(4.0f, nullptr, &View);
+
+	constexpr float ButtonHeight = 24.0f;
+	constexpr float ButtonSpacing = 3.5f;
+	constexpr float FontSize = 9.5f;
+	constexpr float IconSize = 9.5f;
+	constexpr float IconWidth = 21.0f;
+
+	auto DoEntry = [&](CButtonContainer *pButton, const char *pIcon, const char *pText, bool Enabled, ColorRGBA AccentColor) {
+		CUIRect Button, IconRect, LabelRect;
 		View.HSplitTop(ButtonHeight, &Button, &View);
-		const bool Clicked = pUi->DoButton_PopupMenu(pButton, pText, &Button, FontSize, TEXTALIGN_ML, 4.0f, false, Enabled);
 		View.HSplitTop(ButtonSpacing, nullptr, &View);
-		return Active && Clicked;
+		const CUIRect ButtonHitRect = Button;
+
+		const bool Hovered = Active && Enabled && pUi->MouseHovered(&Button);
+		const ColorRGBA BackgroundColor = Enabled ?
+							  (Hovered ? ColorRGBA(0.18f, 0.25f, 0.30f, 0.96f) : ColorRGBA(1.0f, 1.0f, 1.0f, 0.07f)) :
+							  ColorRGBA(0.0f, 0.0f, 0.0f, 0.18f);
+		Button.Draw(BackgroundColor, IGraphics::CORNER_ALL, 5.0f);
+
+		Button.VMargin(6.0f, &Button);
+		Button.VSplitLeft(IconWidth, &IconRect, &LabelRect);
+
+		pChat->TextRender()->TextColor(Enabled ? AccentColor : ColorRGBA(0.55f, 0.60f, 0.64f, 0.45f));
+		pUi->DoLabel(&IconRect, pIcon, IconSize, TEXTALIGN_MC);
+		pChat->TextRender()->TextColor(Enabled ? ColorRGBA(0.93f, 0.96f, 0.98f, 0.96f) : ColorRGBA(0.62f, 0.67f, 0.70f, 0.45f));
+		pUi->DoLabel(&LabelRect, pText, FontSize, TEXTALIGN_ML);
+		pChat->TextRender()->TextColor(pChat->TextRender()->DefaultTextColor());
+
+		return Active && Enabled && pUi->DoButtonLogic(pButton, 0, &ButtonHitRect, BUTTONFLAG_LEFT);
 	};
 
-	if(DoEntry(&pPopupContext->m_CopyButton, Localize("Copy"), pPopupContext->m_aText[0] != '\0'))
+	if(DoEntry(&pPopupContext->m_CopyButton, FontIcons::FONT_ICON_COPY, Localize("Copy"), pPopupContext->m_aText[0] != '\0', ColorRGBA(0.74f, 0.88f, 1.0f, 1.0f)))
 	{
 		pChat->Input()->SetClipboardText(pPopupContext->m_aText);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
-	if(DoEntry(&pPopupContext->m_AddOneButton, Localize("Add one"), pPopupContext->m_aText[0] != '\0'))
+	if(DoEntry(&pPopupContext->m_AddOneButton, FontIcons::FONT_ICON_ARROWS_ROTATE, Localize("Add one"), pPopupContext->m_aText[0] != '\0', ColorRGBA(0.70f, 0.95f, 0.78f, 1.0f)))
 	{
 		pChat->RepeatChatLine(*pPopupContext);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
-	if(DoEntry(&pPopupContext->m_ReplyButton, Localize("Reply"), pPopupContext->m_PlayerLine && pPopupContext->m_aName[0] != '\0'))
+	if(DoEntry(&pPopupContext->m_ReplyButton, FontIcons::FONT_ICON_COMMENT, Localize("Reply"), pPopupContext->m_PlayerLine && pPopupContext->m_aName[0] != '\0', ColorRGBA(0.88f, 0.78f, 1.0f, 1.0f)))
 	{
 		pChat->ReplyToChatLine(*pPopupContext);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
-	if(DoEntry(&pPopupContext->m_MutePlayerButton, Localize("Mute player"), pPopupContext->m_PlayerLine && !pPopupContext->m_LocalPlayer))
+
+	View.HSplitTop(2.0f, &Divider, &View);
+	Divider.HMargin(0.75f, &Divider);
+	Divider.Draw(ColorRGBA(1.0f, 1.0f, 1.0f, 0.09f), IGraphics::CORNER_ALL, 1.0f);
+	View.HSplitTop(3.0f, nullptr, &View);
+
+	if(DoEntry(&pPopupContext->m_MutePlayerButton, FontIcons::FONT_ICON_BAN, Localize("Mute player"), pPopupContext->m_PlayerLine && !pPopupContext->m_LocalPlayer, ColorRGBA(1.0f, 0.50f, 0.52f, 1.0f)))
 	{
 		pChat->GameClient()->m_aClients[pPopupContext->m_ClientId].m_ChatIgnore = true;
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
-	if(DoEntry(&pPopupContext->m_AddBlockedWordButton, Localize("Add to blocked words"), pPopupContext->m_aText[0] != '\0'))
+	if(DoEntry(&pPopupContext->m_AddBlockedWordButton, FontIcons::FONT_ICON_COMMENT_SLASH, Localize("Add to blocked words"), pPopupContext->m_aText[0] != '\0', ColorRGBA(1.0f, 0.67f, 0.45f, 1.0f)))
 	{
 		pChat->AddTextToBlockWords(pPopupContext->m_aText);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
-	if(DoEntry(&pPopupContext->m_CopyNameButton, Localize("Copy name"), pPopupContext->m_PlayerLine && pPopupContext->m_aName[0] != '\0'))
+	if(DoEntry(&pPopupContext->m_CopyNameButton, FontIcons::FONT_ICON_USER, Localize("Copy name"), pPopupContext->m_PlayerLine && pPopupContext->m_aName[0] != '\0', ColorRGBA(0.78f, 0.88f, 0.95f, 1.0f)))
 	{
 		pChat->Input()->SetClipboardText(pPopupContext->m_aName);
 		return CUi::POPUP_CLOSE_CURRENT;
