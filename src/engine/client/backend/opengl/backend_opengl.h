@@ -63,7 +63,7 @@ protected:
 	std::vector<SOpenGLRenderTarget> m_vRenderTargets;
 	TWGLint m_aRenderTargetPreviousViewport[4] = {0, 0, 0, 0};
 	TWGLint m_RenderTargetPreviousFramebuffer = 0;
-	bool m_bRenderTargetActive = false;
+	bool m_RenderTargetActive = false;
 
 	uint32_t m_CanvasWidth = 0;
 	uint32_t m_CanvasHeight = 0;

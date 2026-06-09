@@ -816,20 +816,20 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 	const float LgLabelBaseWidth = CompactLayout ? 148.0f : 170.0f;
 	const float LgLabelMinWidth = CompactLayout ? 96.0f : 120.0f;
 	const float LgLabelWidth = std::clamp(LgLabelBaseWidth * UiScale, LgLabelMinWidth, LgLabelMaxWidth); // 左侧标签列宽度（固定）
-	const float LG_HeadlineSize = LgHeadlineSize;
-	const float LG_TipHeight = LgTipHeight;
-	const float LG_TipSize = LgTipSize;
-	const float LG_LineHeight = LgLineHeight;
-	const float LG_LabelWidth = LgLabelWidth;
-	const float LG_BodySize = LgBodySize;
-	const float LG_LineSpacing = LgLineSpacing;
+	const float LgHeadlineSizeNew = LgHeadlineSize;
+	const float LgTipHeightNew = LgTipHeight;
+	const float LgTipSizeNew = LgTipSize;
+	const float LgLineHeightNew = LgLineHeight;
+	const float LgLabelWidthNew = LgLabelWidth;
+	const float LgBodySizeNew = LgBodySize;
+	const float LgLineSpacingNew = LgLineSpacing;
 
 	// === 颜色定义 ===
 	const ColorRGBA LgGlassColor(0.08f, 0.09f, 0.12f, LgCardAlpha);
 	const ColorRGBA LgHighlightColor(1.0f, 1.0f, 1.0f, 0.05f);
 	const ColorRGBA LgShadowColor(0.0f, 0.0f, 0.0f, 0.12f);
 	const ColorRGBA LgTipTextColor(1.0f, 1.0f, 1.0f, 0.65f);
-	const ColorRGBA LG_TipTextColor = LgTipTextColor;
+	const ColorRGBA LgTipTextColorNew = LgTipTextColor;
 
 	CUIRect LeftView, RightView;
 
@@ -938,20 +938,20 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 	};
 	auto DoModuleHeadlineNew = [&](CUIRect &Content, int RainbowIndex, const char *pTitle, const char *pTip, const char *pNewFeatureId) {
 		CUIRect TitleRect, TipRect;
-		Content.HSplitTop(LG_HeadlineSize, &TitleRect, &Content);
+		Content.HSplitTop(LgHeadlineSizeNew, &TitleRect, &Content);
 		const bool Unread = !IsQmNewFeatureMarkRead(pNewFeatureId);
 		char aTitle[128];
 		TextRender()->TextColor(GetRainbowColor(RainbowIndex));
-		Ui()->DoLabel(&TitleRect, QmNewFeatureLabel(pTitle, pNewFeatureId, aTitle, sizeof(aTitle)), LG_HeadlineSize, TEXTALIGN_ML);
+		Ui()->DoLabel(&TitleRect, QmNewFeatureLabel(pTitle, pNewFeatureId, aTitle, sizeof(aTitle)), LgHeadlineSizeNew, TEXTALIGN_ML);
 		TextRender()->TextColor(TextRender()->DefaultTextColor());
 		if(Unread)
 			DrawQmNewFeatureDot(TitleRect);
 		MarkQmNewFeatureHovered(pNewFeatureId, TitleRect);
-		Content.HSplitTop(LG_TipHeight, &TipRect, &Content);
+		Content.HSplitTop(LgTipHeightNew, &TipRect, &Content);
 		if(pTip && pTip[0] != '\0' && Ui()->MouseHovered(&TitleRect))
 		{
-			TextRender()->TextColor(LG_TipTextColor);
-			Ui()->DoLabel(&TipRect, pTip, LG_TipSize, TEXTALIGN_ML);
+			TextRender()->TextColor(LgTipTextColorNew);
+			Ui()->DoLabel(&TipRect, pTip, LgTipSizeNew, TEXTALIGN_ML);
 			TextRender()->TextColor(TextRender()->DefaultTextColor());
 		}
 	};
@@ -5090,17 +5090,17 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 				CardContent.HSplitTop(LgCardPadding, nullptr, &CardContent);
 				if(g_Config.m_QmWeaponSwitchAnim)
 				{
-					CardContent.HSplitTop(LG_LineHeight, &Row, &CardContent);
+					CardContent.HSplitTop(LgLineHeightNew, &Row, &CardContent);
 					static std::vector<const char *> s_WeaponSwitchAnimScopeDropDownNames;
 					s_WeaponSwitchAnimScopeDropDownNames = {Localize("Self only"), Localize("Local"), Localize("All players")};
 					static CUi::SDropDownState s_WeaponSwitchAnimScopeDropDownState;
 					static CScrollRegion s_WeaponSwitchAnimScopeDropDownScrollRegion;
 					s_WeaponSwitchAnimScopeDropDownState.m_SelectionPopupContext.m_pScrollRegion = &s_WeaponSwitchAnimScopeDropDownScrollRegion;
-					Row.VSplitLeft(LG_LabelWidth, &LabelCol, &ControlCol);
+					Row.VSplitLeft(LgLabelWidthNew, &LabelCol, &ControlCol);
 					const char *pScopeNewFeatureId = "qm_2_62_8_weapon_switch_scope";
 					const bool ScopeFeatureUnread = !IsQmNewFeatureMarkRead(pScopeNewFeatureId);
 					char aScopeLabel[128];
-					Ui()->DoLabel(&LabelCol, QmNewFeatureLabel(Localize("Animation range"), pScopeNewFeatureId, aScopeLabel, sizeof(aScopeLabel)), LG_BodySize, TEXTALIGN_ML);
+					Ui()->DoLabel(&LabelCol, QmNewFeatureLabel(Localize("Animation range"), pScopeNewFeatureId, aScopeLabel, sizeof(aScopeLabel)), LgBodySizeNew, TEXTALIGN_ML);
 					if(ScopeFeatureUnread)
 						DrawQmNewFeatureDot(LabelCol);
 					MarkQmNewFeatureHovered(pScopeNewFeatureId, Row);
@@ -5108,7 +5108,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 					const int WeaponSwitchAnimScopeNew = Ui()->DoDropDown(&ControlCol, WeaponSwitchAnimScope, s_WeaponSwitchAnimScopeDropDownNames.data(), s_WeaponSwitchAnimScopeDropDownNames.size(), s_WeaponSwitchAnimScopeDropDownState);
 					if(g_Config.m_QmWeaponSwitchAnimScope != WeaponSwitchAnimScopeNew)
 						g_Config.m_QmWeaponSwitchAnimScope = WeaponSwitchAnimScopeNew;
-					CardContent.HSplitTop(LG_LineSpacing, nullptr, &CardContent);
+					CardContent.HSplitTop(LgLineSpacingNew, nullptr, &CardContent);
 				}
 				CardContent.HSplitTop(LgCardPadding, nullptr, &CardContent);
 				Column.y = CardContent.y;
