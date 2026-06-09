@@ -23,15 +23,11 @@ static float SolveBezierY(float TargetX, const SUiBezier &Bezier)
 {
 	auto SampleX = [&](float t) {
 		const float OneMinusT = 1.0f - t;
-		return 3.0f * OneMinusT * OneMinusT * t * Bezier.m_X1
-			+ 3.0f * OneMinusT * t * t * Bezier.m_X2
-			+ t * t * t;
+		return 3.0f * OneMinusT * OneMinusT * t * Bezier.m_X1 + 3.0f * OneMinusT * t * t * Bezier.m_X2 + t * t * t;
 	};
 	auto SampleXPrime = [&](float t) {
 		const float OneMinusT = 1.0f - t;
-		return 3.0f * OneMinusT * OneMinusT * Bezier.m_X1
-			+ 6.0f * OneMinusT * t * (Bezier.m_X2 - Bezier.m_X1)
-			+ 3.0f * t * t * (1.0f - Bezier.m_X2);
+		return 3.0f * OneMinusT * OneMinusT * Bezier.m_X1 + 6.0f * OneMinusT * t * (Bezier.m_X2 - Bezier.m_X1) + 3.0f * t * t * (1.0f - Bezier.m_X2);
 	};
 
 	float t = TargetX;
@@ -49,9 +45,7 @@ static float SolveBezierY(float TargetX, const SUiBezier &Bezier)
 	}
 
 	const float OneMinusT = 1.0f - t;
-	return 3.0f * OneMinusT * OneMinusT * t * Bezier.m_Y1
-		+ 3.0f * OneMinusT * t * t * Bezier.m_Y2
-		+ t * t * t;
+	return 3.0f * OneMinusT * OneMinusT * t * Bezier.m_Y1 + 3.0f * OneMinusT * t * t * Bezier.m_Y2 + t * t * t;
 }
 
 float CUiV2AnimationRuntime::ApplyEasing(float t, const SUiAnimTransition &Transition) const
@@ -74,15 +68,13 @@ float CUiV2AnimationRuntime::ApplyEasing(float t, const SUiAnimTransition &Trans
 	}
 	case EEasing::EASE_OUT_BACK:
 	{
-		constexpr float c1 = 1.70158f;
-		constexpr float c3 = c1 + 1.0f;
+		constexpr float C1 = 1.70158f;
+		constexpr float C3 = C1 + 1.0f;
 		const float Shifted = Clamped - 1.0f;
-		return 1.0f + c3 * Shifted * Shifted * Shifted + c1 * Shifted * Shifted;
+		return 1.0f + C3 * Shifted * Shifted * Shifted + C1 * Shifted * Shifted;
 	}
 	case EEasing::EASE_IN_OUT_CUBIC:
-		return Clamped < 0.5f
-			? 4.0f * Clamped * Clamped * Clamped
-			: 1.0f - std::pow(-2.0f * Clamped + 2.0f, 3.0f) / 2.0f;
+		return Clamped < 0.5f ? 4.0f * Clamped * Clamped * Clamped : 1.0f - std::pow(-2.0f * Clamped + 2.0f, 3.0f) / 2.0f;
 	case EEasing::CUBIC_BEZIER:
 		return SolveBezierY(Clamped, Transition.m_Bezier);
 	}
@@ -285,10 +277,10 @@ void CUiV2AnimationRuntime::AdvanceSpring(SActiveTrack &Track, float Dt) const
 	const float Stiffness = std::max(Cfg.m_Stiffness, 0.0f);
 	const float Damping = std::max(Cfg.m_Damping, 0.0f);
 
-	constexpr float kFixedSubStep = 1.0f / 240.0f;
-	constexpr int kMaxSubSteps = 8;
-	int SubSteps = static_cast<int>(std::ceil(Dt / kFixedSubStep));
-	SubSteps = std::clamp(SubSteps, 1, kMaxSubSteps);
+	constexpr float KFixedSubStep = 1.0f / 240.0f;
+	constexpr int KMaxSubSteps = 8;
+	int SubSteps = static_cast<int>(std::ceil(Dt / KFixedSubStep));
+	SubSteps = std::clamp(SubSteps, 1, KMaxSubSteps);
 	const float SubDt = Dt / static_cast<float>(SubSteps);
 
 	for(int i = 0; i < SubSteps; ++i)
@@ -299,8 +291,7 @@ void CUiV2AnimationRuntime::AdvanceSpring(SActiveTrack &Track, float Dt) const
 		Track.m_Current += Track.m_Velocity * SubDt;
 	}
 
-	const bool AtRest = std::abs(Track.m_Current - Track.m_Target) < Cfg.m_RestEpsilon
-		&& std::abs(Track.m_Velocity) < Cfg.m_RestVelocity;
+	const bool AtRest = std::abs(Track.m_Current - Track.m_Target) < Cfg.m_RestEpsilon && std::abs(Track.m_Velocity) < Cfg.m_RestVelocity;
 	if(AtRest)
 		Track.m_RestTimerSec += Dt;
 	else
@@ -314,7 +305,7 @@ void CUiV2AnimationRuntime::Advance(float Dt)
 	const float ClampedDt = std::min(Dt, 1.0f / 15.0f);
 	m_TimeSec += ClampedDt;
 
-	constexpr float kSpringRestHoldSec = 0.033f;
+	constexpr float KSpringRestHoldSec = 0.033f;
 
 	std::deque<STrackKey> vCompleted;
 	for(auto &Pair : m_ActiveTracks)
@@ -326,7 +317,7 @@ void CUiV2AnimationRuntime::Advance(float Dt)
 		if(Track.m_Transition.m_Driver == EUiAnimDriver::SPRING)
 		{
 			AdvanceSpring(Track, ClampedDt);
-			if(Track.m_RestTimerSec >= kSpringRestHoldSec)
+			if(Track.m_RestTimerSec >= KSpringRestHoldSec)
 			{
 				Track.m_Current = Track.m_Target;
 				Track.m_Velocity = 0.0f;

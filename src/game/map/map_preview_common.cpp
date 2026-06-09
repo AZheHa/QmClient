@@ -136,6 +136,8 @@ namespace MapPreview
 
 		const size_t NewWidth = Right - Left + 1;
 		const size_t NewHeight = Bottom - Top + 1;
+		if(NewWidth == 0 || NewHeight == 0)
+			return false;
 		if(NewWidth == Image.m_Width && NewHeight == Image.m_Height && Left == 0 && Top == 0)
 			return false;
 
