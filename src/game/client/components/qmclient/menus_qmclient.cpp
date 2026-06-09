@@ -656,6 +656,13 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		}
 		return pText;
 	};
+	auto MiniFeaturesNewFeatureId = [&]() {
+		if(!IsQmNewFeatureMarkRead("qm_2_69_0_chat_context_menu"))
+			return "qm_2_69_0_chat_context_menu";
+		if(!IsQmNewFeatureMarkRead("qm_2_66_0_editor_collab_4p"))
+			return "qm_2_66_0_editor_collab_4p";
+		return "qm_2_63_0_new_ime";
+	};
 
 	{
 		if(m_QmClientSettingsTab < 0 || m_QmClientSettingsTab >= NUMBER_OF_QMCLIENT_SETTINGS_TABS)
@@ -722,6 +729,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 					const char *apFunctionFeatureIds[] = {
 						"qm_2_63_0_new_ime",
 						"qm_2_66_0_editor_collab_4p",
+						"qm_2_69_0_chat_context_menu",
 					};
 					if(AnyQmNewFeatureUnread(apFunctionFeatureIds, (int)std::size(apFunctionFeatureIds)))
 						DrawQmNewFeatureDot(Button);
@@ -2535,7 +2543,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		case EQmModuleId::KeyBinds:
 			return {3, Localize("Key Bindings"), Localize("Common key bindings")};
 		case EQmModuleId::MiniFeatures:
-			return {2, Localize("Dream Features"), Localize("Only what you can't imagine, nothing Dream can't do"), IsQmNewFeatureMarkRead("qm_2_66_0_editor_collab_4p") ? "qm_2_63_0_new_ime" : "qm_2_66_0_editor_collab_4p"};
+			return {2, Localize("Dream Features"), Localize("Only what you can't imagine, nothing Dream can't do"), MiniFeaturesNewFeatureId()};
 		case EQmModuleId::SkinTransition:
 			return {
 				5,
@@ -3537,7 +3545,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 				Column.HSplitTop(LgCardPadding, nullptr, &Column);
 				Column.VSplitLeft(LgCardPadding, nullptr, &CardContent);
 				CardContent.VSplitRight(LgCardPadding, &CardContent, nullptr);
-				const char *pMiniFeaturesNewFeatureId = IsQmNewFeatureMarkRead("qm_2_66_0_editor_collab_4p") ? "qm_2_63_0_new_ime" : "qm_2_66_0_editor_collab_4p";
+				const char *pMiniFeaturesNewFeatureId = MiniFeaturesNewFeatureId();
 				DoModuleHeadlineNew(CardContent, 2, Localize("Dream Features"), Localize("Only what you can't imagine, nothing Dream can't do!"), pMiniFeaturesNewFeatureId);
 
 				{

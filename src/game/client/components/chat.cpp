@@ -1005,8 +1005,10 @@ bool CChat::OnInput(const IInput::CEvent &Event)
 		return false;
 
 	const bool LanguageMenuOpen = m_LanguageMenuOpen || Ui()->IsPopupOpen(&m_LanguagePopupContext);
+	const bool ChatLineMenuOpen = Ui()->IsPopupOpen(&m_ChatLinePopupContext);
+	const bool AnyChatPopupOpen = LanguageMenuOpen || ChatLineMenuOpen;
 	const bool IsWheelEvent = Event.m_Key == KEY_MOUSE_WHEEL_UP || Event.m_Key == KEY_MOUSE_WHEEL_DOWN;
-	if(!LanguageMenuOpen && (Event.m_Flags & IInput::FLAG_PRESS) && IsWheelEvent)
+	if(!AnyChatPopupOpen && (Event.m_Flags & IInput::FLAG_PRESS) && IsWheelEvent)
 	{
 		const float Height = 300.0f;
 		const float Width = Height * Graphics()->ScreenAspect();
@@ -1033,7 +1035,7 @@ bool CChat::OnInput(const IInput::CEvent &Event)
 	}
 
 	// ===== 翻译按钮处理（优先级高于输入框）=====
-	if(!LanguageMenuOpen && m_TranslateButton.m_RectValid)
+	if(!AnyChatPopupOpen && m_TranslateButton.m_RectValid)
 	{
 		const vec2 MousePos = GetChatMousePos();
 		const bool InsideButton =
@@ -1084,10 +1086,13 @@ bool CChat::OnInput(const IInput::CEvent &Event)
 		}
 	}
 
-	// 翻译设置弹窗打开时，键盘确认/取消只作用于弹窗，不能穿透到聊天提交/关闭。
-	if(LanguageMenuOpen && (Event.m_Flags & IInput::FLAG_PRESS) && (Event.m_Key == KEY_ESCAPE || Event.m_Key == KEY_RETURN || Event.m_Key == KEY_KP_ENTER))
+	// 聊天弹窗打开时，键盘确认/取消只作用于弹窗，不能穿透到聊天提交/关闭。
+	if(AnyChatPopupOpen && (Event.m_Flags & IInput::FLAG_PRESS) && (Event.m_Key == KEY_ESCAPE || Event.m_Key == KEY_RETURN || Event.m_Key == KEY_KP_ENTER))
 	{
-		CloseLanguageMenu();
+		if(LanguageMenuOpen)
+			CloseLanguageMenu();
+		if(ChatLineMenuOpen)
+			CloseChatLineMenu();
 		return true;
 	}
 
@@ -1097,6 +1102,11 @@ bool CChat::OnInput(const IInput::CEvent &Event)
 		if(m_LanguageMenuOpen || Ui()->IsPopupOpen(&m_LanguagePopupContext))
 		{
 			CloseLanguageMenu();
+			return true;
+		}
+		if(Ui()->IsPopupOpen(&m_ChatLinePopupContext))
+		{
+			CloseChatLineMenu();
 			return true;
 		}
 
@@ -1400,6 +1410,7 @@ void CChat::EnableMode(int Team)
 void CChat::DisableMode()
 {
 	CloseLanguageMenu();
+	CloseChatLineMenu();
 
 	if(m_Mode != MODE_NONE)
 	{
@@ -2592,6 +2603,7 @@ void CChat::OnRender()
 	}
 
 	const bool LanguageMenuOpen = m_LanguageMenuOpen || Ui()->IsPopupOpen(&m_LanguagePopupContext);
+	const bool ChatLineMenuOpen = Ui()->IsPopupOpen(&m_ChatLinePopupContext);
 	const vec2 MousePos = GetChatMousePos();
 	const bool MouseDown = Input()->KeyIsPressed(KEY_MOUSE_1);
 	const bool InsideInputBlock =
@@ -2612,8 +2624,9 @@ void CChat::OnRender()
 		MousePos.x <= ScrollbarRect.x + ScrollbarRect.w &&
 		MousePos.y >= ScrollbarRect.y &&
 		MousePos.y <= ScrollbarRect.y + ScrollbarRect.h;
-	const bool ChatCopyActive = m_Mode != MODE_NONE && !LanguageMenuOpen && !InsideInputBlock && !InsideTranslateButton && !InsideScrollbar && !m_ScrollbarDragging;
+	const bool ChatCopyActive = m_Mode != MODE_NONE && !LanguageMenuOpen && !ChatLineMenuOpen && !InsideInputBlock && !InsideTranslateButton && !InsideScrollbar && !m_ScrollbarDragging;
 	const bool CopyClickReleased = m_MouseIsPress && !MouseDown && IsCopyClickDrag(m_MousePress, MousePos);
+	const bool ChatLineMenuRequested = ChatCopyActive && Input()->KeyPress(KEY_MOUSE_2);
 	if(ChatCopyActive)
 	{
 		if(!m_MouseIsPress && MouseDown)
@@ -2649,6 +2662,7 @@ void CChat::OnRender()
 
 	bool RenderedAnyLines = false;
 	const CLine *pClickedLine = nullptr;
+	const CLine *pMenuLine = nullptr;
 
 	// Keep chat rendering static and only smooth the overflow cut-off.
 	for(int i = m_BacklogCurLine; i < MAX_LINES; i++)
@@ -2669,6 +2683,8 @@ void CChat::OnRender()
 		const CUIRect RenderedTextRect = {x, y, ChatRect.w - x, LineHeight};
 		if(CopyClickReleased && MousePos.x >= RenderedTextRect.x && MousePos.x <= RenderedTextRect.x + RenderedTextRect.w && MousePos.y >= RenderedTextRect.y && MousePos.y <= RenderedTextRect.y + RenderedTextRect.h)
 			pClickedLine = &Line;
+		if(ChatLineMenuRequested && MousePos.x >= RenderedTextRect.x && MousePos.x <= RenderedTextRect.x + RenderedTextRect.w && MousePos.y >= RenderedTextRect.y && MousePos.y <= RenderedTextRect.y + RenderedTextRect.h)
+			pMenuLine = &Line;
 
 		// Don't abort the full render pass on a single malformed line.
 		if(!LineHeightValid)
@@ -2734,6 +2750,10 @@ void CChat::OnRender()
 	{
 		Input()->SetClipboardText(pClickedLine->m_aText);
 	}
+	if(ChatLineMenuRequested && pMenuLine != nullptr && pMenuLine->m_aText[0] != '\0')
+	{
+		OpenChatLineMenu(*pMenuLine, MousePos);
+	}
 
 	if(ShowChatScrollbar)
 	{
@@ -2788,8 +2808,8 @@ void CChat::OnRender()
 
 	GameClient()->m_HudEditor.EndTransform(HudEditorScope);
 
-	// 渲染翻译设置弹窗。
-	if(m_Mode != MODE_NONE && Ui()->IsPopupOpen(&m_LanguagePopupContext))
+	// 渲染聊天相关弹窗。
+	if(m_Mode != MODE_NONE && (Ui()->IsPopupOpen(&m_LanguagePopupContext) || Ui()->IsPopupOpen(&m_ChatLinePopupContext)))
 	{
 		Ui()->StartCheck();
 		Ui()->Update();
@@ -3114,6 +3134,141 @@ void CChat::CloseLanguageMenu()
 		Ui()->ClosePopupMenu(&m_LanguagePopupContext, true);
 	m_LanguageMenuOpen = false;
 	m_TranslateButton.m_IsPressed = false;
+}
+
+void CChat::OpenChatLineMenu(const CLine &Line, vec2 ChatMousePos)
+{
+	CloseLanguageMenu();
+
+	m_ChatLinePopupContext.m_pChat = this;
+	m_ChatLinePopupContext.m_ClientId = Line.m_ClientId;
+	m_ChatLinePopupContext.m_TeamNumber = Line.m_TeamNumber;
+	str_copy(m_ChatLinePopupContext.m_aText, Line.m_aText);
+	m_ChatLinePopupContext.m_PlayerLine = Line.m_ClientId >= 0 && Line.m_ClientId < MAX_CLIENTS;
+	m_ChatLinePopupContext.m_LocalPlayer = m_ChatLinePopupContext.m_PlayerLine && GameClient()->IsLocalClientId(Line.m_ClientId);
+	if(m_ChatLinePopupContext.m_PlayerLine)
+		GameClient()->FormatStreamerName(Line.m_ClientId, m_ChatLinePopupContext.m_aName, sizeof(m_ChatLinePopupContext.m_aName));
+	else
+		str_copy(m_ChatLinePopupContext.m_aName, Line.m_aName);
+
+	constexpr float MenuWidth = 150.0f;
+	constexpr float MenuHeight = 6.0f * 19.0f + 10.0f;
+	const float Height = 300.0f;
+	const float Width = Height * Graphics()->ScreenAspect();
+	const vec2 ChatToUiScale(Ui()->Screen()->w / Width, Ui()->Screen()->h / Height);
+	vec2 MenuPos = ChatMousePos * ChatToUiScale;
+	MenuPos.x = std::clamp(MenuPos.x, 0.0f, maximum(0.0f, Ui()->Screen()->w - MenuWidth));
+	MenuPos.y = std::clamp(MenuPos.y, 0.0f, maximum(0.0f, Ui()->Screen()->h - MenuHeight));
+
+	Ui()->DoPopupMenu(&m_ChatLinePopupContext, MenuPos.x, MenuPos.y, MenuWidth, MenuHeight, &m_ChatLinePopupContext, PopupChatLineMenu);
+}
+
+void CChat::CloseChatLineMenu()
+{
+	if(Ui()->IsPopupOpen(&m_ChatLinePopupContext))
+		Ui()->ClosePopupMenu(&m_ChatLinePopupContext, true);
+}
+
+void CChat::AddTextToBlockWords(const char *pText)
+{
+	if(AppendBlockWordToList(g_Config.m_QmBlockWordsList, sizeof(g_Config.m_QmBlockWordsList), pText))
+		g_Config.m_QmBlockWordsEnabled = 1;
+}
+
+void CChat::ReplyToChatLine(const CChatLinePopupContext &Context)
+{
+	if(!Context.m_PlayerLine || Context.m_aName[0] == '\0')
+		return;
+
+	if(Context.m_TeamNumber == TEAM_WHISPER_SEND || Context.m_TeamNumber == TEAM_WHISPER_RECV)
+	{
+		EnableMode(0);
+		char aReply[MAX_LINE_LENGTH];
+		BuildWhisperCommand(aReply, sizeof(aReply), Context.m_aName, "");
+		m_Input.Set(aReply);
+		m_Input.SetCursorOffset(m_Input.GetLength());
+		m_Input.SelectNothing();
+		return;
+	}
+
+	EnableMode(Context.m_TeamNumber == 1 ? 1 : 0);
+	char aReply[MAX_LINE_LENGTH];
+	str_format(aReply, sizeof(aReply), "%s: ", Context.m_aName);
+	m_Input.Set(aReply);
+	m_Input.SetCursorOffset(m_Input.GetLength());
+	m_Input.SelectNothing();
+}
+
+void CChat::RepeatChatLine(const CChatLinePopupContext &Context)
+{
+	if(Context.m_aText[0] == '\0')
+		return;
+
+	if(Context.m_TeamNumber == TEAM_WHISPER_SEND || Context.m_TeamNumber == TEAM_WHISPER_RECV)
+	{
+		if(!Context.m_PlayerLine || Context.m_aName[0] == '\0')
+			return;
+
+		char aLine[MAX_LINE_LENGTH];
+		if(BuildWhisperCommand(aLine, sizeof(aLine), Context.m_aName, Context.m_aText))
+			SendChat(0, aLine);
+		return;
+	}
+
+	SendChat(Context.m_TeamNumber == 1 ? 1 : 0, Context.m_aText);
+}
+
+CUi::EPopupMenuFunctionResult CChat::PopupChatLineMenu(void *pContext, CUIRect View, bool Active)
+{
+	CChatLinePopupContext *pPopupContext = static_cast<CChatLinePopupContext *>(pContext);
+	CChat *pChat = pPopupContext->m_pChat;
+	CUi *pUi = pChat->Ui();
+
+	View.Margin(3.0f, &View);
+	constexpr float FontSize = 8.0f;
+	constexpr float ButtonHeight = 18.0f;
+	constexpr float ButtonSpacing = 1.0f;
+
+	auto DoEntry = [&](CButtonContainer *pButton, const char *pText, bool Enabled) {
+		CUIRect Button;
+		View.HSplitTop(ButtonHeight, &Button, &View);
+		const bool Clicked = pUi->DoButton_PopupMenu(pButton, pText, &Button, FontSize, TEXTALIGN_ML, 4.0f, false, Enabled);
+		View.HSplitTop(ButtonSpacing, nullptr, &View);
+		return Active && Clicked;
+	};
+
+	if(DoEntry(&pPopupContext->m_CopyButton, Localize("Copy"), pPopupContext->m_aText[0] != '\0'))
+	{
+		pChat->Input()->SetClipboardText(pPopupContext->m_aText);
+		return CUi::POPUP_CLOSE_CURRENT;
+	}
+	if(DoEntry(&pPopupContext->m_AddOneButton, Localize("Add one"), pPopupContext->m_aText[0] != '\0'))
+	{
+		pChat->RepeatChatLine(*pPopupContext);
+		return CUi::POPUP_CLOSE_CURRENT;
+	}
+	if(DoEntry(&pPopupContext->m_ReplyButton, Localize("Reply"), pPopupContext->m_PlayerLine && pPopupContext->m_aName[0] != '\0'))
+	{
+		pChat->ReplyToChatLine(*pPopupContext);
+		return CUi::POPUP_CLOSE_CURRENT;
+	}
+	if(DoEntry(&pPopupContext->m_MutePlayerButton, Localize("Mute player"), pPopupContext->m_PlayerLine && !pPopupContext->m_LocalPlayer))
+	{
+		pChat->GameClient()->m_aClients[pPopupContext->m_ClientId].m_ChatIgnore = true;
+		return CUi::POPUP_CLOSE_CURRENT;
+	}
+	if(DoEntry(&pPopupContext->m_AddBlockedWordButton, Localize("Add to blocked words"), pPopupContext->m_aText[0] != '\0'))
+	{
+		pChat->AddTextToBlockWords(pPopupContext->m_aText);
+		return CUi::POPUP_CLOSE_CURRENT;
+	}
+	if(DoEntry(&pPopupContext->m_CopyNameButton, Localize("Copy name"), pPopupContext->m_PlayerLine && pPopupContext->m_aName[0] != '\0'))
+	{
+		pChat->Input()->SetClipboardText(pPopupContext->m_aName);
+		return CUi::POPUP_CLOSE_CURRENT;
+	}
+
+	return CUi::POPUP_KEEP_OPEN;
 }
 
 CUi::EPopupMenuFunctionResult CChat::PopupLanguageMenu(void *pContext, CUIRect View, bool Active)

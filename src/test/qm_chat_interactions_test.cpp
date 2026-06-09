@@ -32,6 +32,36 @@ TEST(QmChatInteractions, ClickDragThreshold)
 	EXPECT_FALSE(CChat::IsCopyClickDrag(vec2(10.0f, 10.0f), vec2(30.0f, 10.0f)));
 }
 
+TEST(QmChatInteractions, AppendsBlockWordsWithSeparator)
+{
+	char aList[32] = "";
+
+	EXPECT_TRUE(CChat::AppendBlockWordToList(aList, sizeof(aList), "spam"));
+	EXPECT_STREQ(aList, "spam");
+
+	EXPECT_TRUE(CChat::AppendBlockWordToList(aList, sizeof(aList), "eggs"));
+	EXPECT_STREQ(aList, "spam;eggs");
+}
+
+TEST(QmChatInteractions, DoesNotAppendEmptyOrFullBlockWords)
+{
+	char aList[8] = "filled";
+
+	EXPECT_FALSE(CChat::AppendBlockWordToList(aList, sizeof(aList), ""));
+	EXPECT_STREQ(aList, "filled");
+
+	EXPECT_FALSE(CChat::AppendBlockWordToList(aList, sizeof(aList), "x"));
+	EXPECT_STREQ(aList, "filled");
+}
+
+TEST(QmChatInteractions, BuildsEscapedWhisperCommand)
+{
+	char aCommand[128];
+
+	EXPECT_TRUE(CChat::BuildWhisperCommand(aCommand, sizeof(aCommand), "Name \"A\"", "hello"));
+	EXPECT_STREQ(aCommand, "/w \"Name \\\"A\\\"\" hello");
+}
+
 TEST(QmChatInteractions, ReusesKnownServerMessageClassWithoutReanalysis)
 {
 	const auto Class = CChat::ResolveLineServerMessageClass(-1, "DDraceNetwork Version: 18.9", QmHudNotifications::EServerMessageClass::Prompt);
