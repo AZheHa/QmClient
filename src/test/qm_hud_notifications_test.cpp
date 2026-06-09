@@ -997,6 +997,26 @@ TEST(QmHudEditorGeometry, SnapsOnlyToScreenEdges)
 	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToScreenEdges(257.0f, 40.0f, 0.0f, 300.0f), 260.0f);
 }
 
+TEST(QmHudEditorGeometry, SnapsToScreenCenterGuide)
+{
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToScreenGuides(101.0f, 40.0f, 0.0f, 300.0f), 101.0f);
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToScreenGuides(4.0f, 40.0f, 0.0f, 300.0f), 0.0f);
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToScreenGuides(257.0f, 40.0f, 0.0f, 300.0f), 260.0f);
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToScreenGuides(127.0f, 40.0f, 0.0f, 300.0f), 130.0f);
+}
+
+TEST(QmHudEditorGeometry, SnapsToOtherModuleAlignmentGuides)
+{
+	const QmHudEditor::SAxisReference aReferences[] = {
+		{40.0f, 60.0f},
+	};
+
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToGuides(44.0f, 30.0f, 0.0f, 300.0f, aReferences, 1), 40.0f);
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToGuides(57.0f, 30.0f, 0.0f, 300.0f, aReferences, 1), 55.0f);
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToGuides(68.0f, 30.0f, 0.0f, 300.0f, aReferences, 1), 70.0f);
+	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToGuides(120.0f, 30.0f, 0.0f, 300.0f, aReferences, 1), 120.0f);
+}
+
 TEST(QmHudEditorGeometry, HudNotificationsUsesStableLayoutToken)
 {
 	const char *pToken = QmHudEditor::ElementToken(EHudEditorElement::HudNotifications);
