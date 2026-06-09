@@ -403,6 +403,8 @@ CChat::CLine::CLine()
 	m_aYOffset[0] = -1.0f;
 	m_aYOffset[1] = -1.0f;
 	m_TextYOffset = 0.0f;
+	m_XOffset = 0.0f;
+	m_RenderWidth = 0.0f;
 	m_CutOffProgress = 0.0f;
 	m_ForceVisible = false;
 	m_ServerMessageClass = QmHudNotifications::EServerMessageClass::None;
@@ -420,6 +422,8 @@ void CChat::CLine::Reset(CChat &This)
 	m_aYOffset[0] = -1.0f;
 	m_aYOffset[1] = -1.0f;
 	m_TextYOffset = 0.0f;
+	m_XOffset = 0.0f;
+	m_RenderWidth = 0.0f;
 	m_CutOffProgress = 0.0f;
 	m_Friend = false;
 	m_ForceVisible = false;
@@ -726,6 +730,8 @@ void CChat::RebuildChat()
 		// recalculate sizes
 		Line.m_aYOffset[0] = -1.0f;
 		Line.m_aYOffset[1] = -1.0f;
+		Line.m_XOffset = 0.0f;
+		Line.m_RenderWidth = 0.0f;
 		Line.m_CutOffProgress = 0.0f;
 	}
 }
@@ -799,6 +805,13 @@ int CChat::CountVisibleLinesFrom(int BacklogLine) const
 			++Count;
 	}
 	return Count;
+}
+
+bool CChat::IsOwnChatLine(const CLine &Line) const
+{
+	if(Line.m_TeamNumber == TEAM_WHISPER_SEND || GameClient()->IsLocalClientId(Line.m_ClientId))
+		return true;
+	return Client()->State() == IClient::STATE_DEMOPLAYBACK && Line.m_ClientId >= 0 && Line.m_ClientId == GameClient()->m_Snap.m_LocalClientId;
 }
 
 void CChat::InvalidateLineTranslation(CLine &Line)
@@ -1964,6 +1977,9 @@ void CChat::OnPrepareLines(float y)
 {
 	float x = 5.0f;
 	float FontSize = this->FontSize();
+	const float ScreenHeight = 300.0f;
+	const float ScreenWidth = ScreenHeight * Graphics()->ScreenAspect();
+	const float ChatRectWidth = std::min(ScreenWidth, std::max(190.0f, g_Config.m_ClChatWidth + 32.0f));
 	const bool FocusModeActive = g_Config.m_QmFocusMode != 0;
 	const bool FocusHideChat = FocusModeActive && g_Config.m_QmFocusModeHideChat;
 	const bool FocusHideSystemInfoMessages = FocusModeActive && g_Config.m_QmFocusModeHideSystemInfoMessages;
@@ -1995,6 +2011,7 @@ void CChat::OnPrepareLines(float y)
 	float HeightLimit = IsScoreBoardOpen ? 180.0f : (m_PrevShowChat ? 50.0f : 200.0f);
 	float Begin = x;
 	float TextBegin = Begin + RealMsgPaddingX / 2.0f;
+	const float ChatRight = maximum(Begin, ChatRectWidth - CHAT_SCROLLBAR_WIDTH - CHAT_SCROLLBAR_MARGIN * 2.0f);
 	int OffsetType = IsScoreBoardOpen ? 1 : 0;
 
 	for(int i = m_BacklogCurLine; i < MAX_LINES; i++)
@@ -2315,7 +2332,7 @@ void CChat::OnPrepareLines(float y)
 			AppendCursor.m_vColorSplits.clear();
 		}
 
-		if(!g_Config.m_ClChatOld && (Line.m_aText[0] != '\0' || Line.m_aName[0] != '\0'))
+		if(Line.m_aText[0] != '\0' || Line.m_aName[0] != '\0')
 		{
 			float FullWidth = RealMsgPaddingX * 1.5f;
 			if(!IsScoreBoardOpen && !g_Config.m_ClChatOld)
@@ -2326,8 +2343,13 @@ void CChat::OnPrepareLines(float y)
 			{
 				FullWidth += maximum(LineCursor.m_LongestLineWidth, AppendCursor.m_LongestLineWidth);
 			}
-			Graphics()->SetColor(1, 1, 1, 1);
-			Line.m_QuadContainerIndex = Graphics()->CreateRectQuadContainer(Begin, y, FullWidth, Line.m_aYOffset[OffsetType], MessageRounding(), IGraphics::CORNER_ALL);
+			Line.m_RenderWidth = FullWidth;
+			Line.m_XOffset = OwnChatLineOffsetX(Begin, ChatRight, FullWidth, IsOwnChatLine(Line));
+			if(!g_Config.m_ClChatOld)
+			{
+				Graphics()->SetColor(1, 1, 1, 1);
+				Line.m_QuadContainerIndex = Graphics()->CreateRectQuadContainer(Begin, y, FullWidth, Line.m_aYOffset[OffsetType], MessageRounding(), IGraphics::CORNER_ALL);
+			}
 		}
 
 		TextRender()->SetRenderFlags(CurRenderFlags);
@@ -2666,7 +2688,9 @@ void CChat::OnRender()
 		const float LineHeight = LineHeightValid ? Line.m_aYOffset[OffsetType] : FontSize() + RealMsgPaddingY;
 
 		y -= LineHeight;
-		const CUIRect RenderedTextRect = {x, y, ChatRect.w - x, LineHeight};
+		const float LineX = x + Line.m_XOffset;
+		const float LineWidth = Line.m_RenderWidth > 0.0f ? Line.m_RenderWidth : ChatRect.w - x;
+		const CUIRect RenderedTextRect = {LineX, y, LineWidth, LineHeight};
 		if(CopyClickReleased && MousePos.x >= RenderedTextRect.x && MousePos.x <= RenderedTextRect.x + RenderedTextRect.w && MousePos.y >= RenderedTextRect.y && MousePos.y <= RenderedTextRect.y + RenderedTextRect.h)
 			pClickedLine = &Line;
 
@@ -2702,14 +2726,14 @@ void CChat::OnRender()
 			if(Line.m_QuadContainerIndex != -1)
 			{
 				Graphics()->SetColor(BackgroundBaseColor.WithMultipliedAlpha(AnimAlpha));
-				Graphics()->RenderQuadContainerEx(Line.m_QuadContainerIndex, 0, -1, AnimOffsetX, ((y + RealMsgPaddingY / 2.0f) - Line.m_TextYOffset));
+				Graphics()->RenderQuadContainerEx(Line.m_QuadContainerIndex, 0, -1, Line.m_XOffset + AnimOffsetX, ((y + RealMsgPaddingY / 2.0f) - Line.m_TextYOffset));
 			}
 		}
 
 		if(Line.m_TextContainerIndex.Valid())
 		{
 			RenderedAnyLines = true;
-			ExtendBounds(x, y, ChatRect.w - x, LineHeight);
+			ExtendBounds(LineX, y, LineWidth, LineHeight);
 			if(!g_Config.m_ClChatOld && Line.m_pManagedTeeRenderInfo != nullptr)
 			{
 				CTeeRenderInfo &TeeRenderInfo = Line.m_pManagedTeeRenderInfo->TeeRenderInfo();
@@ -2720,13 +2744,13 @@ void CChat::OnRender()
 
 				vec2 OffsetToMid;
 				CRenderTools::GetRenderTeeOffsetToRenderedTee(pIdleState, &TeeRenderInfo, OffsetToMid);
-				vec2 TeeRenderPos(x + AnimOffsetX + (RealMsgPaddingX + TeeSize) / 2.0f, y + OffsetTeeY + FullHeightMinusTee / 2.0f + OffsetToMid.y);
+				vec2 TeeRenderPos(x + Line.m_XOffset + AnimOffsetX + (RealMsgPaddingX + TeeSize) / 2.0f, y + OffsetTeeY + FullHeightMinusTee / 2.0f + OffsetToMid.y);
 				RenderTools()->RenderTee(pIdleState, &TeeRenderInfo, EMOTE_NORMAL, vec2(1, 0.1f), TeeRenderPos, AnimAlpha);
 			}
 
 			const ColorRGBA TextColor = DefaultTextColor.WithMultipliedAlpha(AnimAlpha);
 			const ColorRGBA TextOutlineColor = DefaultTextOutlineColor.WithMultipliedAlpha(AnimAlpha);
-			TextRender()->RenderTextContainer(Line.m_TextContainerIndex, TextColor, TextOutlineColor, AnimOffsetX, (y + RealMsgPaddingY / 2.0f) - Line.m_TextYOffset);
+			TextRender()->RenderTextContainer(Line.m_TextContainerIndex, TextColor, TextOutlineColor, Line.m_XOffset + AnimOffsetX, (y + RealMsgPaddingY / 2.0f) - Line.m_TextYOffset);
 		}
 	}
 

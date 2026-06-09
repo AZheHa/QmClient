@@ -32,6 +32,14 @@ TEST(QmChatInteractions, ClickDragThreshold)
 	EXPECT_FALSE(CChat::IsCopyClickDrag(vec2(10.0f, 10.0f), vec2(30.0f, 10.0f)));
 }
 
+TEST(QmChatInteractions, OwnChatLineOffsetAlignsToRightEdge)
+{
+	EXPECT_FLOAT_EQ(CChat::OwnChatLineOffsetX(5.0f, 385.0f, 120.0f, false), 0.0f);
+	EXPECT_FLOAT_EQ(CChat::OwnChatLineOffsetX(5.0f, 385.0f, 120.0f, true), 260.0f);
+	EXPECT_FLOAT_EQ(CChat::OwnChatLineOffsetX(5.0f, 385.0f, 400.0f, true), 0.0f);
+	EXPECT_FLOAT_EQ(CChat::OwnChatLineOffsetX(5.0f, 4.0f, 20.0f, true), 0.0f);
+}
+
 TEST(QmChatInteractions, ReusesKnownServerMessageClassWithoutReanalysis)
 {
 	const auto Class = CChat::ResolveLineServerMessageClass(-1, "DDraceNetwork Version: 18.9", QmHudNotifications::EServerMessageClass::Prompt);
