@@ -49,6 +49,7 @@ struct SSettingsSection
 	const char *m_pName;
 	ESettingsSectionState m_State = ESettingsSectionState::UNINITIALIZED;
 	float m_CachedHeight = 0.0f;
+	bool m_HasCachedHeight = false;
 
 	std::function<float(CUIRect &)> m_MeasureFn;
 	std::function<float(CUIRect &)> m_RenderCompactFn;
@@ -154,6 +155,7 @@ public:
 	static bool IsVisibleSummarySectionName(const char *pName);
 	void SetRuntimeKey(const SSettingsSectionCacheRuntimeKey &RuntimeKey);
 	void SetProgressiveEnabled(bool Enabled);
+	void SetDeferredFarMeasurementEnabled(bool Enabled);
 
 	// -- State exposed for the rendering loop (updated externally) --
 
@@ -175,6 +177,7 @@ private:
 	bool m_Initialized = false;
 	bool m_Complete = false;
 	bool m_ProgressiveEnabled = false;
+	bool m_DeferredFarMeasurementEnabled = false;
 	SSettingsSectionCacheRuntimeKey m_RuntimeKey;
 
 	// Warmup state

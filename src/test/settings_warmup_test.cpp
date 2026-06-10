@@ -260,6 +260,35 @@ TEST(SettingsWarmup, TClientPrewarmOnlyPathStillAdvancesVisibleSectionLoaders)
 	EXPECT_NE(RightPrewarmBody.find("s_RightSectionLoader.Process();"), std::string::npos);
 }
 
+TEST(SettingsWarmup, TClientSectionLoadersEnableDeferredFarMeasurement)
+{
+	std::ifstream TClientFile(TestSourcePath("src/game/client/components/tclient/menus_tclient.cpp"));
+	ASSERT_TRUE(TClientFile.good());
+	std::stringstream TClientBuffer;
+	TClientBuffer << TClientFile.rdbuf();
+	const std::string TClientSource = TClientBuffer.str();
+
+	const size_t RenderPos = TClientSource.find("void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)");
+	ASSERT_NE(RenderPos, std::string::npos);
+	const size_t RenderEnd = TClientSource.find("void CMenus::LoadSettingsRuntimeCacheMetadata()", RenderPos);
+	ASSERT_NE(RenderEnd, std::string::npos);
+	const std::string RenderBody = TClientSource.substr(RenderPos, RenderEnd - RenderPos);
+
+	const size_t LeftProgressivePos = RenderBody.find("s_VisualFontLoader.SetProgressiveEnabled(false);");
+	ASSERT_NE(LeftProgressivePos, std::string::npos);
+	const size_t LeftDeferredPos = RenderBody.find("s_VisualFontLoader.SetDeferredFarMeasurementEnabled(true);", LeftProgressivePos);
+	ASSERT_NE(LeftDeferredPos, std::string::npos);
+	const size_t LeftBeginPos = RenderBody.find("s_VisualFontLoader.Begin(LeftView, 5.0f);", LeftDeferredPos);
+	ASSERT_NE(LeftBeginPos, std::string::npos);
+
+	const size_t RightProgressivePos = RenderBody.find("s_RightSectionLoader.SetProgressiveEnabled(false);");
+	ASSERT_NE(RightProgressivePos, std::string::npos);
+	const size_t RightDeferredPos = RenderBody.find("s_RightSectionLoader.SetDeferredFarMeasurementEnabled(true);", RightProgressivePos);
+	ASSERT_NE(RightDeferredPos, std::string::npos);
+	const size_t RightBeginPos = RenderBody.find("s_RightSectionLoader.Begin(RightView, 5.0f);", RightDeferredPos);
+	ASSERT_NE(RightBeginPos, std::string::npos);
+}
+
 TEST(SettingsRuntimeCache, BudgetStopsEveryMainThreadCost)
 {
 	SSettingsWarmupFrameBudget Budget;

@@ -57,6 +57,7 @@ void CSectionLoader::Register(std::vector<SSettingsSection> vSections)
 
 			NewSection.m_State = OldSection.m_State;
 			NewSection.m_CachedHeight = OldSection.m_CachedHeight;
+			NewSection.m_HasCachedHeight = OldSection.m_HasCachedHeight;
 			NewSection.m_LastConfigHash = OldSection.m_LastConfigHash;
 			NewSection.m_Dirty = OldSection.m_Dirty;
 			vTransferred[OldIndex] = true;
@@ -81,6 +82,11 @@ void CSectionLoader::SetProgressiveEnabled(bool Enabled)
 	m_ProgressiveEnabled = Enabled;
 }
 
+void CSectionLoader::SetDeferredFarMeasurementEnabled(bool Enabled)
+{
+	m_DeferredFarMeasurementEnabled = Enabled;
+}
+
 void CSectionLoader::Begin(CUIRect MainView, float TimeBudgetMs)
 {
 	m_MainView = MainView;
@@ -99,6 +105,7 @@ bool CSectionLoader::Process()
 		{
 			Section.m_State = ESettingsSectionState::UNINITIALIZED;
 			Section.m_CachedHeight = 0.0f;
+			Section.m_HasCachedHeight = false;
 			Section.m_Dirty = true;
 		}
 		m_Initialized = true;
@@ -116,11 +123,31 @@ bool CSectionLoader::Process()
 		SSettingsSection &Section = m_vSections[m_CurrentIndex];
 		if(!m_ProgressiveEnabled && Section.m_State != ESettingsSectionState::FULL)
 		{
+			const CUIRect EstimatedSectionRect{m_MainView.x, m_RunningColumn.y, m_MainView.w, Section.m_CachedHeight};
+			const bool CanDeferFarMeasurement =
+				m_DeferredFarMeasurementEnabled &&
+				Section.m_HasCachedHeight &&
+				!Section.m_Dirty &&
+				ComputeViewportPriority(EstimatedSectionRect) > 1;
+			if(CanDeferFarMeasurement)
+			{
+				Section.m_State = ESettingsSectionState::FULL;
+				m_RunningColumn.y += Section.m_CachedHeight;
+				++m_CurrentIndex;
+				continue;
+			}
+
 			CUIRect MeasureColumn = m_RunningColumn;
 			if(Section.m_MeasureFn)
+			{
 				Section.m_CachedHeight = Section.m_MeasureFn(MeasureColumn);
+				Section.m_HasCachedHeight = true;
+			}
 			else
+			{
 				Section.m_CachedHeight = 0.0f;
+				Section.m_HasCachedHeight = true;
+			}
 			Section.m_State = ESettingsSectionState::FULL;
 			Section.m_LastConfigHash = ComputeConfigHash(Section);
 			Section.m_Dirty = false;
@@ -132,10 +159,18 @@ bool CSectionLoader::Process()
 		case ESettingsSectionState::UNINITIALIZED:
 		{
 			if(Section.m_MeasureFn)
+			{
 				Section.m_CachedHeight = Section.m_MeasureFn(m_RunningColumn);
+				Section.m_HasCachedHeight = true;
+			}
 			else
+			{
 				Section.m_CachedHeight = 0.0f;
+				Section.m_HasCachedHeight = true;
+			}
 			Section.m_State = ESettingsSectionState::MEASURING;
+			Section.m_LastConfigHash = ComputeConfigHash(Section);
+			Section.m_Dirty = false;
 			++m_CurrentIndex;
 			break;
 		}
@@ -166,9 +201,14 @@ bool CSectionLoader::Process()
 			{
 				Section.m_State = ESettingsSectionState::FULL;
 				if(Section.m_RenderFullFn)
-					Section.m_RenderFullFn(m_RunningColumn);
+				{
+					Section.m_CachedHeight = Section.m_RenderFullFn(m_RunningColumn);
+					Section.m_HasCachedHeight = true;
+				}
 				else
+				{
 					m_RunningColumn.y += Section.m_CachedHeight;
+				}
 				Section.m_LastConfigHash = ComputeConfigHash(Section);
 				Section.m_Dirty = false;
 				++UnlockedThisFrame;
@@ -188,6 +228,7 @@ bool CSectionLoader::Process()
 			{
 				CUIRect MeasureColumn = m_RunningColumn;
 				Section.m_CachedHeight = Section.m_MeasureFn(MeasureColumn);
+				Section.m_HasCachedHeight = true;
 				Section.m_LastConfigHash = ComputeConfigHash(Section);
 			}
 			const CUIRect SectionRect{m_MainView.x, m_RunningColumn.y, m_MainView.w, Section.m_CachedHeight};
@@ -199,9 +240,14 @@ bool CSectionLoader::Process()
 				break;
 			}
 			if(Section.m_RenderFullFn)
+			{
 				Section.m_CachedHeight = Section.m_RenderFullFn(m_RunningColumn);
+				Section.m_HasCachedHeight = true;
+			}
 			else
+			{
 				m_RunningColumn.y += Section.m_CachedHeight;
+			}
 			if(Section.m_Dirty)
 				Section.m_LastConfigHash = ComputeConfigHash(Section);
 			Section.m_Dirty = false;
@@ -277,6 +323,7 @@ bool CSectionLoader::Warmup(const SSessionUiCache *pCache, float TimeBudgetMs)
 		{
 			Section.m_State = ESettingsSectionState::UNINITIALIZED;
 			Section.m_CachedHeight = 0.0f;
+			Section.m_HasCachedHeight = false;
 		}
 	}
 
@@ -300,6 +347,7 @@ bool CSectionLoader::Warmup(const SSessionUiCache *pCache, float TimeBudgetMs)
 				{
 					CUIRect MeasureRect = m_MainView;
 					Section.m_CachedHeight = Section.m_MeasureFn(MeasureRect);
+					Section.m_HasCachedHeight = true;
 				}
 				Section.m_State = ESettingsSectionState::MEASURING;
 			}

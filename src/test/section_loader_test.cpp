@@ -245,6 +245,134 @@ TEST(SectionLoader, FarFullSectionRendersAfterScrollingIntoView)
 	EXPECT_EQ(FarFullRenderCount, 1);
 }
 
+TEST(SectionLoader, DeferredFarMeasurementRequiresKnownHeight)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(false);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+	int FarMeasureCount = 0;
+
+	SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
+	SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+	Far.m_MeasureFn = [&FarMeasureCount](CUIRect &Rect) -> float {
+		++FarMeasureCount;
+		return ConsumeHeight(Rect, 50.0f);
+	};
+
+	Loader.Register({Top, Far});
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(FarMeasureCount, 1);
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 950.0f);
+}
+
+TEST(SectionLoader, DeferredFarMeasurementUsesCleanCachedHeight)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(false);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+	int FarMeasureCount = 0;
+	int FarFullRenderCount = 0;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		Far.m_MeasureFn = [&FarMeasureCount](CUIRect &Rect) -> float {
+			++FarMeasureCount;
+			return ConsumeHeight(Rect, 50.0f);
+		};
+		Far.m_RenderFullFn = [&FarFullRenderCount](CUIRect &Rect) -> float {
+			++FarFullRenderCount;
+			return ConsumeHeight(Rect, 50.0f);
+		};
+		return std::vector<SSettingsSection>{Top, Far};
+	};
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(FarMeasureCount, 1);
+	EXPECT_EQ(FarFullRenderCount, 0);
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(FarMeasureCount, 1);
+	EXPECT_EQ(FarFullRenderCount, 0);
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 950.0f);
+}
+
+TEST(SectionLoader, DeferredFarMeasurementSkipsNonFullCleanFarSection)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(true);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+	int FarMeasureCount = 0;
+	int FarFullRenderCount = 0;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		Far.m_MeasureFn = [&FarMeasureCount](CUIRect &Rect) -> float {
+			++FarMeasureCount;
+			return ConsumeHeight(Rect, 50.0f);
+		};
+		Far.m_RenderFullFn = [&FarFullRenderCount](CUIRect &Rect) -> float {
+			++FarFullRenderCount;
+			return ConsumeHeight(Rect, 50.0f);
+		};
+		return std::vector<SSettingsSection>{Top, Far};
+	};
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_TRUE(Loader.Process());
+	EXPECT_EQ(FarMeasureCount, 1);
+
+	Loader.SetProgressiveEnabled(false);
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+
+	EXPECT_EQ(FarMeasureCount, 1);
+	EXPECT_EQ(FarFullRenderCount, 0);
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 950.0f);
+}
+
+TEST(SectionLoader, DeferredFarMeasurementDoesNotSkipDirtyHeight)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(false);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+	int FarMeasureHeight = 50;
+	int FarMeasureCount = 0;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		Far.m_MeasureFn = [&FarMeasureHeight, &FarMeasureCount](CUIRect &Rect) -> float {
+			++FarMeasureCount;
+			return ConsumeHeight(Rect, (float)FarMeasureHeight);
+		};
+		Far.m_DependencyConfigInts = {&FarMeasureHeight};
+		return std::vector<SSettingsSection>{Top, Far};
+	};
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(FarMeasureCount, 1);
+
+	FarMeasureHeight = 80;
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+
+	EXPECT_EQ(FarMeasureCount, 2);
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 980.0f);
+}
+
 TEST(SectionLoader, FullSectionsAfterUnfinishedSectionStillRender)
 {
 	CSectionLoader Loader;

@@ -1593,6 +1593,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 	// Initialize VisualFont section loader for this frame
 	s_VisualFontLoader.SetRuntimeKey(MakeSettingsSectionRuntimeKey(LeftView, Graphics()));
 	s_VisualFontLoader.SetProgressiveEnabled(false);
+	s_VisualFontLoader.SetDeferredFarMeasurementEnabled(true);
 	s_VisualFontLoader.m_ScrollY = ScrollOffset.y;
 	s_VisualFontLoader.Begin(LeftView, 5.0f);
 
@@ -2573,6 +2574,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 		Column = RightView;
 		s_RightSectionLoader.SetRuntimeKey(MakeSettingsSectionRuntimeKey(RightView, Graphics()));
 		s_RightSectionLoader.SetProgressiveEnabled(false);
+		s_RightSectionLoader.SetDeferredFarMeasurementEnabled(true);
 		s_RightSectionLoader.m_ScrollY = ScrollOffset.y;
 		s_RightSectionLoader.Begin(RightView, 5.0f);
 
