@@ -1632,6 +1632,7 @@ set(EXPECTED_DATA
   qmclient/languages/russian.txt
   qmclient/languages/serbian.txt
   qmclient/languages/serbian_cyrillic.txt
+  qmclient/languages/simplified_chinese.txt
   qmclient/languages/slovak.txt
   qmclient/languages/spanish.txt
   qmclient/languages/swedish.txt

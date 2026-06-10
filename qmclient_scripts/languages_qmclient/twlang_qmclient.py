@@ -112,5 +112,6 @@ def translations(filename):
 
 
 def localizes():
-    englishlist = list(check_folder("src"))
-    return englishlist
+    import extract_strings
+
+    return [(key, "") for key in extract_strings.collect_strings()]

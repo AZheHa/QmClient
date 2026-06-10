@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Migrate QmClient Localize("Chinese") keys to English keys.
+"""Legacy helper to migrate QmClient Localize("Chinese") keys to English keys.
 
-The migration uses data/qmclient/languages/english.txt as the source of truth:
+The active QmClient localization model uses English source keys and keeps
+data/qmclient/languages/english.txt empty. This script is retained only for
+cleanup if old or newly introduced Chinese source keys need to be migrated.
+
+The migration map comes from generate_all.py's legacy Chinese-to-English seed
+tables, EXTRA_TRANSLATIONS below, static notification rules, and, for backward
+compatibility, any old reverse-map entries still present in english.txt:
 
     Chinese key
     == English key
 
 It only rewrites direct Localize("...") literal keys when a matching Chinese key
-exists in english.txt. Unknown keys are reported for manual follow-up.
+exists in those migration maps. Unknown keys are reported for manual follow-up.
 """
 
 from __future__ import annotations
@@ -21,7 +27,9 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
-ENGLISH_TRANSLATIONS = PROJECT_ROOT / "data" / "qmclient" / "languages" / "english.txt"
+LEGACY_ENGLISH_REVERSE_TRANSLATIONS = (
+    PROJECT_ROOT / "data" / "qmclient" / "languages" / "english.txt"
+)
 SIMPLIFIED_CHINESE = (
     PROJECT_ROOT / "data" / "qmclient" / "languages" / "simplified_chinese.txt"
 )
@@ -551,7 +559,7 @@ def write_report(
     if not any(file_replacements.values()):
         lines.append("  none")
     lines.append("")
-    lines.append("English key collisions in english.txt:")
+    lines.append("English key collisions in migration maps:")
     if collisions:
         for english, chinese_keys in collisions.items():
             lines.append(f"  {english}: {', '.join(chinese_keys)}")
@@ -590,7 +598,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Only report changes")
     args = parser.parse_args()
 
-    pairs = read_language_pairs(ENGLISH_TRANSLATIONS)
+    pairs = read_language_pairs(LEGACY_ENGLISH_REVERSE_TRANSLATIONS)
     cn_to_en, en_to_cn, collisions = build_maps(pairs)
     existing_simplified = read_existing_simplified(SIMPLIFIED_CHINESE)
 

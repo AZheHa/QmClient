@@ -989,7 +989,7 @@ float CMenus::LayoutTClientThemeCacheSection(CUIRect &CurrentColumn, bool Render
 	if(Render)
 	{
 		Button.VSplitLeft(100.0f, &Label, &Button);
-		Ui()->DoLabel(&Label, Localize("Custom Font: "), FontSize, TEXTALIGN_ML);
+		Ui()->DoLabel(&Label, Localize("Custom Font:"), FontSize, TEXTALIGN_ML);
 		static std::vector<std::string> s_FontDropDownNamesOwned;
 		static std::vector<const char *> s_FontDropDownNames;
 		static CUi::SDropDownState s_FontDropDownState;
@@ -1044,7 +1044,7 @@ float CMenus::LayoutTClientThemeCacheSection(CUIRect &CurrentColumn, bool Render
 	if(Render)
 	{
 		Button.VSplitLeft(120.0f, &Label, &Button);
-		Ui()->DoLabel(&Label, Localize("Hammer Mode: "), FontSize, TEXTALIGN_ML);
+		Ui()->DoLabel(&Label, Localize("Hammer Mode:"), FontSize, TEXTALIGN_ML);
 		static std::vector<const char *> s_DropDownNames;
 		s_DropDownNames = {Localize("Normal", "Hammer Mode"), Localize("Rotate with cursor", "Hammer Mode"), Localize("Rotate with cursor like gun", "Hammer Mode")};
 		static CUi::SDropDownState s_DropDownState;
@@ -1076,7 +1076,7 @@ float CMenus::RenderTClientThemeInteractiveLayer(CUIRect &CurrentColumn)
 	CUIRect Label, Button;
 	CurrentColumn.HSplitTop(LineSize, &Button, &CurrentColumn);
 	Button.VSplitLeft(100.0f, &Label, &Button);
-	Ui()->DoLabel(&Label, Localize("Custom Font: "), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, Localize("Custom Font:"), FontSize, TEXTALIGN_ML);
 	static std::vector<std::string> s_FontDropDownNamesOwned;
 	static std::vector<const char *> s_FontDropDownNames;
 	static CUi::SDropDownState s_FontDropDownState;
@@ -1128,7 +1128,7 @@ float CMenus::RenderTClientThemeInteractiveLayer(CUIRect &CurrentColumn)
 	CurrentColumn.HSplitTop(MarginExtraSmall, nullptr, &CurrentColumn);
 	CurrentColumn.HSplitTop(LineSize, &Button, &CurrentColumn);
 	Button.VSplitLeft(120.0f, &Label, &Button);
-	Ui()->DoLabel(&Label, Localize("Hammer Mode: "), FontSize, TEXTALIGN_ML);
+	Ui()->DoLabel(&Label, Localize("Hammer Mode:"), FontSize, TEXTALIGN_ML);
 	static std::vector<const char *> s_DropDownNames;
 	s_DropDownNames = {Localize("Normal", "Hammer Mode"), Localize("Rotate with cursor", "Hammer Mode"), Localize("Rotate with cursor like gun", "Hammer Mode")};
 	static CUi::SDropDownState s_HammerDropDownState;
@@ -1706,7 +1706,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 				CUIRect FontDropDownRect;
 				CurrentColumn.HSplitTop(LineSize, &FontDropDownRect, &CurrentColumn);
 				FontDropDownRect.VSplitLeft(100.0f, &Label, &FontDropDownRect);
-				Ui()->DoLabel(&Label, Localize("Custom Font: "), FontSize, TEXTALIGN_ML);
+				Ui()->DoLabel(&Label, Localize("Custom Font:"), FontSize, TEXTALIGN_ML);
 				static std::vector<std::string> s_FontDropDownNamesOwned;
 				static std::vector<const char *> s_FontDropDownNames;
 				static CUi::SDropDownState s_FontDropDownState;
@@ -1780,7 +1780,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 				CUIRect DropDownRect;
 				CurrentColumn.HSplitTop(LineSize, &DropDownRect, &CurrentColumn);
 				DropDownRect.VSplitLeft(120.0f, &Label, &DropDownRect);
-				Ui()->DoLabel(&Label, Localize("Hammer Mode: "), FontSize, TEXTALIGN_ML);
+				Ui()->DoLabel(&Label, Localize("Hammer Mode:"), FontSize, TEXTALIGN_ML);
 				CPerfTimer HammerModeTimer;
 				static std::vector<const char *> s_DropDownNames;
 				s_DropDownNames = {Localize("Normal", "Hammer Mode"), Localize("Rotate with cursor", "Hammer Mode"), Localize("Rotate with cursor like gun", "Hammer Mode")};
@@ -1827,7 +1827,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 				CUIRect FontDropDownRect;
 				CurrentColumn.HSplitTop(LineSize, &FontDropDownRect, &CurrentColumn);
 				FontDropDownRect.VSplitLeft(100.0f, &Label, &FontDropDownRect);
-				Ui()->DoLabel(&Label, Localize("Custom Font: "), FontSize, TEXTALIGN_ML);
+				Ui()->DoLabel(&Label, Localize("Custom Font:"), FontSize, TEXTALIGN_ML);
 				static std::vector<std::string> s_FontDropDownNamesOwned;
 				static std::vector<const char *> s_FontDropDownNames;
 				static CUi::SDropDownState s_FontDropDownState;
@@ -1890,7 +1890,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 				CUIRect DropDownRect;
 				CurrentColumn.HSplitTop(LineSize, &DropDownRect, &CurrentColumn);
 				DropDownRect.VSplitLeft(120.0f, &Label, &DropDownRect);
-				Ui()->DoLabel(&Label, Localize("Hammer Mode: "), FontSize, TEXTALIGN_ML);
+				Ui()->DoLabel(&Label, Localize("Hammer Mode:"), FontSize, TEXTALIGN_ML);
 				static std::vector<const char *> s_DropDownNames;
 				s_DropDownNames = {Localize("Normal", "Hammer Mode"), Localize("Rotate with cursor", "Hammer Mode"), Localize("Rotate with cursor like gun", "Hammer Mode")};
 				static CUi::SDropDownState s_DropDownState;
