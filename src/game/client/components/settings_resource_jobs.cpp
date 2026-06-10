@@ -379,7 +379,7 @@ int SettingsSkinBackgroundRequestFrameBudget(const SSettingsResourceFrameContext
 	if(Context.m_ScrollActive || Context.m_PostScrollRecoveryFrames > 0)
 		return 0;
 	if(SettingsSkinBackgroundDrainActive(Context, TeeSettingsActive))
-		return 24;
+		return 8;
 	return 6;
 }
 
@@ -402,9 +402,17 @@ SSettingsSkinBackgroundRequestBudgetOutput SettingsSkinBackgroundRequestBudgetDe
 		return Output;
 	}
 
+	const int HardBacklogLimit = maximum(CountFuseLimit, maximum(Input.m_DefaultBudget, 1) * 8);
+	if(Input.m_BackgroundRequested >= HardBacklogLimit)
+	{
+		Output.m_BlockReason = ESettingsSkinBackgroundRequestBlockReason::STALL_BACKPRESSURE;
+		return Output;
+	}
+
 	const int BacklogHighWatermark = maximum(VisibleReserve * 8, CountFuseLimit * 2);
 	if(Input.m_BackgroundRequested >= BacklogHighWatermark &&
-		Input.m_RecentLoadedDelta <= 0)
+		Input.m_RecentLoadedDelta <= 0 &&
+		Input.m_RecentAdmittedDelta <= 0)
 	{
 		Output.m_BlockReason = ESettingsSkinBackgroundRequestBlockReason::STALL_BACKPRESSURE;
 		return Output;
@@ -559,7 +567,7 @@ namespace
 			Profile.m_VisibleWindowMax = ClampSettingsSkinLoadWindow(192, LoadedMax);
 			Profile.m_VisibleReserveMin = 0;
 			Profile.m_VisibleReserveMax = 0;
-			Profile.m_BackgroundRequestBudget = 24;
+			Profile.m_BackgroundRequestBudget = 8;
 			break;
 		case ESettingsSkinThroughputControllerMode::IDLE_VISIBLE:
 		default:

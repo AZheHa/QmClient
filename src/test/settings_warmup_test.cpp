@@ -1307,7 +1307,7 @@ TEST(SettingsResourceJobs, ThroughputControllerKeepsVisibleBacklogOutOfIdleDrain
 		State);
 	EXPECT_EQ(Settled.m_Mode, ESettingsSkinThroughputControllerMode::IDLE_DRAIN);
 	EXPECT_TRUE(Settled.m_BackgroundDrainActive);
-	EXPECT_EQ(Settled.m_BackgroundRequestBudget, 24);
+	EXPECT_EQ(Settled.m_BackgroundRequestBudget, 8);
 }
 
 TEST(SettingsResourceJobs, ThroughputControllerRelaxesReserveAndExpandsWindowsWhenAdmissionUnderfed)
@@ -1515,7 +1515,7 @@ TEST(SettingsResourceJobs, TeeSkinBackgroundDrainRaisesIdleThroughputBudgets)
 	EXPECT_FALSE(SettingsSkinBackgroundDrainActive(ScrollingSettled, true));
 	EXPECT_FALSE(SettingsSkinBackgroundDrainActive(IdleSettled, false));
 
-	EXPECT_EQ(SettingsSkinBackgroundRequestFrameBudget(IdleSettled, true), 24);
+	EXPECT_EQ(SettingsSkinBackgroundRequestFrameBudget(IdleSettled, true), 8);
 	EXPECT_EQ(SettingsSkinSourceLoadNormalWindow(IdleSettled, true, 64), 256);
 	EXPECT_EQ(SettingsSkinSourceLoadVisibleWindow(IdleSettled, true, 64), 256);
 	EXPECT_EQ(SettingsSkinSourceCountFuseLimit(IdleSettled, true, 64), 128);
@@ -1600,11 +1600,47 @@ TEST(SettingsResourceJobs, TeeBackgroundRequestBudgetSlowsStalledProducerWithLar
 	Input.m_DefaultBudget = 24;
 	Input.m_Pending = 4;
 	Input.m_Loading = 4;
-	Input.m_BackgroundRequested = 300;
-	Input.m_CountFuseLimit = 128;
+	Input.m_BackgroundRequested = 160;
+	Input.m_CountFuseLimit = 64;
+	Input.m_VisibleReserve = 8;
+	Input.m_RecentLoadedDelta = 0;
+	Input.m_RecentAdmittedDelta = 0;
+	Input.m_DrainActive = true;
+
+	const auto Decision = SettingsSkinBackgroundRequestBudgetDecision(Input);
+	EXPECT_EQ(Decision.m_RequestBudget, 0);
+	EXPECT_EQ(Decision.m_BlockReason, ESettingsSkinBackgroundRequestBlockReason::STALL_BACKPRESSURE);
+}
+
+TEST(SettingsResourceJobs, TeeBackgroundRequestBudgetAllowsAdmittedProgressBelowHardCap)
+{
+	SSettingsSkinBackgroundRequestBudgetInput Input;
+	Input.m_DefaultBudget = 24;
+	Input.m_Pending = 4;
+	Input.m_Loading = 4;
+	Input.m_BackgroundRequested = 160;
+	Input.m_CountFuseLimit = 64;
 	Input.m_VisibleReserve = 8;
 	Input.m_RecentLoadedDelta = 0;
 	Input.m_RecentAdmittedDelta = 3;
+	Input.m_DrainActive = true;
+
+	const auto Decision = SettingsSkinBackgroundRequestBudgetDecision(Input);
+	EXPECT_EQ(Decision.m_RequestBudget, 24);
+	EXPECT_EQ(Decision.m_BlockReason, ESettingsSkinBackgroundRequestBlockReason::NONE);
+}
+
+TEST(SettingsResourceJobs, TeeBackgroundRequestBudgetCapsHealthyBacklogBeforeQueueInflates)
+{
+	SSettingsSkinBackgroundRequestBudgetInput Input;
+	Input.m_DefaultBudget = 24;
+	Input.m_Pending = 8;
+	Input.m_Loading = 8;
+	Input.m_BackgroundRequested = 256;
+	Input.m_CountFuseLimit = 128;
+	Input.m_VisibleReserve = 0;
+	Input.m_RecentLoadedDelta = 4;
+	Input.m_RecentAdmittedDelta = 4;
 	Input.m_DrainActive = true;
 
 	const auto Decision = SettingsSkinBackgroundRequestBudgetDecision(Input);
