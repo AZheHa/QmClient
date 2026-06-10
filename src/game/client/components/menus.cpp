@@ -3701,6 +3701,48 @@ bool CMenus::IsSettingsPageActive() const
 	return m_MenuPage == PAGE_SETTINGS;
 }
 
+const char *CMenus::CurrentQmUiPerfPage() const
+{
+	if(!IsSettingsPageActive())
+		return nullptr;
+
+	switch(SettingsCanonicalPage(g_Config.m_UiSettingsPage))
+	{
+	case SETTINGS_GENERAL: return "settings:general";
+	case SETTINGS_TEE: return "settings:tee";
+	case SETTINGS_APPEARANCE: return "settings:appearance";
+	case SETTINGS_CONTROLS: return "settings:controls";
+	case SETTINGS_GRAPHICS: return "settings:graphics";
+	case SETTINGS_SOUND: return "settings:sound";
+	case SETTINGS_DDNET: return "settings:ddnet";
+	case SETTINGS_ASSETS: return "settings:assets";
+	case SETTINGS_TCLIENT: return "settings:tclient";
+	case SETTINGS_QMCLIENT: return "settings:qmclient";
+	default: return "settings:unknown";
+	}
+}
+
+const char *CMenus::CurrentQmUiPerfOperation() const
+{
+	if(!IsSettingsPageActive())
+		return nullptr;
+
+	switch(SettingsCanonicalPage(g_Config.m_UiSettingsPage))
+	{
+	case SETTINGS_GENERAL: return "settings_general";
+	case SETTINGS_TEE: return "settings_tee";
+	case SETTINGS_APPEARANCE: return "settings_appearance";
+	case SETTINGS_CONTROLS: return "settings_controls";
+	case SETTINGS_GRAPHICS: return "settings_graphics";
+	case SETTINGS_SOUND: return "settings_sound";
+	case SETTINGS_DDNET: return "settings_ddnet";
+	case SETTINGS_ASSETS: return "settings_assets";
+	case SETTINGS_TCLIENT: return "settings_tclient";
+	case SETTINGS_QMCLIENT: return "settings_qmclient";
+	default: return "settings_unknown";
+	}
+}
+
 void CMenus::OnReset()
 {
 	ResetReportScan();

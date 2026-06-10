@@ -2101,8 +2101,45 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	int VisibleNonTerminalWaitingCount = 0;
 	int TotalReadyCount = 0;
 	int OldSelected = -1;
+	for(size_t i = 0; i < vSkinList.size(); ++i)
+	{
+		CSkins::CSkinListEntry &SkinListEntry = vSkinList[i];
+		if(!m_Dummy ? SkinListEntry.IsSelectedMain() : SkinListEntry.IsSelectedDummy())
+			OldSelected = (int)i;
+
+		const CSkins::CSkinContainer *pSkinContainer = SkinListEntry.SkinContainer();
+		if(pSkinContainer == nullptr)
+			continue;
+
+		const auto State = pSkinContainer->State();
+		const auto &EntryColorKey = SkinListEntry.ColorKey();
+		const bool EntryUseCustomColor = EntryColorKey.has_value() ? EntryColorKey->m_UseCustomColor : *pUseCustomColor != 0;
+		const int EntryColorBody = EntryColorKey.has_value() ? EntryColorKey->m_ColorBody : (int)*pColorBody;
+		const int EntryColorFeet = EntryColorKey.has_value() ? EntryColorKey->m_ColorFeet : (int)*pColorFeet;
+		const std::string PreviewCacheKey = SSettingsTeeListPreviewCache::Key(pSkinContainer->Name(), m_Dummy, EntryUseCustomColor, EntryColorBody, EntryColorFeet, *pEmote);
+		const CManagedTeeRenderInfo *pCachedPreview = gs_TeeListPreviewCache.Find(PreviewCacheKey);
+		const bool SourceReady = State == CSkins::CSkinContainer::EState::LOADED;
+		const bool TerminalFailure = State == CSkins::CSkinContainer::EState::ERROR || State == CSkins::CSkinContainer::EState::NOT_FOUND;
+		if(SettingsSkinListEntryReady(SourceReady, TerminalFailure, pCachedPreview != nullptr))
+			++TotalReadyCount;
+	}
 	s_vQueueButtonIds.resize(vSkinList.size());
+	const auto ListFrameStartTime = time_get_nanoseconds();
 	s_ListBox.DoStart(50.0f, vSkinList.size(), 4, 2, OldSelected, &MainView);
+	if(m_SkinListScrollToSelected && OldSelected >= 0)
+	{
+		s_ListBox.ScrollToSelected();
+		m_SkinListScrollToSelected = false;
+	}
+	const SSettingsSkinListVisibleRange VisibleRange = SettingsSkinListVisibleRangeForScroll(
+		s_ListBox.ScrollOffsetY(),
+		s_ListBox.ViewHeight(),
+		50.0f,
+		4,
+		(int)vSkinList.size(),
+		1);
+	int RowsIterated = 0;
+	int RowsRendered = 0;
 	auto DoButtonSkinQueue = [&](const void *pButtonId, const void *pParentId, bool InQueue, bool Disabled, const CUIRect *pRect) {
 		if(InQueue || (pParentId != nullptr && Ui()->HotItem() == pParentId) || Ui()->HotItem() == pButtonId)
 		{
@@ -2125,10 +2162,22 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 		const bool Clicked = Ui()->DoButtonLogic(pButtonId, 0, pRect, BUTTONFLAG_LEFT);
 		return Clicked && !Disabled;
 	};
-	for(size_t i = 0; i < vSkinList.size(); ++i)
+	if(VisibleRange.m_FirstItem > 0)
+		s_ListBox.SkipItems(VisibleRange.m_FirstItem);
+	for(size_t i = (size_t)VisibleRange.m_FirstItem; i < (size_t)VisibleRange.m_EndItem; ++i)
 	{
 		CSkins::CSkinListEntry &SkinListEntry = vSkinList[i];
+		const bool RowStart = s_ListBox.ItemIndex() % s_ListBox.ItemsPerRow() == 0;
+		if(RowStart)
+			++RowsIterated;
+
 		const CSkins::CSkinContainer *pSkinContainer = vSkinList[i].SkinContainer();
+		if(pSkinContainer == nullptr)
+		{
+			s_ListBox.SkipItems(1);
+			continue;
+		}
+
 		const auto State = pSkinContainer->State();
 		const auto &EntryColorKey = SkinListEntry.ColorKey();
 		const bool EntryUseCustomColor = EntryColorKey.has_value() ? EntryColorKey->m_UseCustomColor : *pUseCustomColor != 0;
@@ -2140,24 +2189,14 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 		const bool TerminalFailure = State == CSkins::CSkinContainer::EState::ERROR || State == CSkins::CSkinContainer::EState::NOT_FOUND;
 		const bool PreviewCacheReady = pCachedPreview != nullptr;
 		const bool EntryReady = SettingsSkinListEntryReady(SourceReady, TerminalFailure, PreviewCacheReady);
-		if(EntryReady)
-			++TotalReadyCount;
-
-		if(!m_Dummy ? SkinListEntry.IsSelectedMain() : SkinListEntry.IsSelectedDummy())
-		{
-			OldSelected = i;
-			if(m_SkinListScrollToSelected)
-			{
-				s_ListBox.ScrollToSelected();
-				m_SkinListScrollToSelected = false;
-			}
-		}
 
 		const CListboxItem Item = s_ListBox.DoNextItem(SkinListEntry.ListItemId(), OldSelected >= 0 && (size_t)OldSelected == i);
 		if(!Item.m_Visible)
 		{
 			continue;
 		}
+		if(RowStart)
+			++RowsRendered;
 
 		vVisibleSkinIndices.push_back(i);
 		const bool EntryNonTerminalWaiting =
@@ -2280,6 +2319,9 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 
 		RenderSkinStatus(Item.m_Rect, pSkinContainer, SkinListEntry.ErrorTooltipId(), PreviewCacheReady);
 	}
+	const int TailItems = (int)vSkinList.size() - VisibleRange.m_EndItem;
+	if(TailItems > 0)
+		s_ListBox.SkipItems(TailItems);
 	for(auto It = vVisibleSkinIndices.rbegin(); It != vVisibleSkinIndices.rend(); ++It)
 	{
 		vSkinList[*It].RequestLoad(ESettingsResourcePriority::VISIBLE);
@@ -2579,6 +2621,19 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 		}
 	}
 	const int NewSelected = s_ListBox.DoEnd();
+	if(PerfDebugEnabled())
+	{
+		const double ListFrameDurationMs = std::chrono::duration<double, std::milli>(time_get_nanoseconds() - ListFrameStartTime).count();
+		if(QmPerfShouldLogDuration(ListFrameDurationMs, false))
+		{
+			const int RowsSkipped = maximum(0, VisibleRange.m_TotalRows - RowsRendered);
+			char aPayload[256];
+			str_format(aPayload, sizeof(aPayload),
+				"event=list_frame page=settings:tee rows_total=%d rows_visible=%d rows_rendered=%d rows_iterated=%d rows_skipped=%d first_visible_index=%d last_visible_index=%d dur_ms=%.3f source=settings_tee",
+				VisibleRange.m_TotalRows, VisibleRange.m_VisibleRows, RowsRendered, RowsIterated, RowsSkipped, FirstVisibleIndex, LastVisibleIndex, ListFrameDurationMs);
+			QmPerfLogPayload("perf/interaction", aPayload, Client(), "settings:tee");
+		}
+	}
 
 	const bool SkinListScrollActive = s_ListBox.ScrollbarActive() || s_ListBox.ScrollbarAnimating();
 	m_SettingsScrollActive = m_SettingsScrollActive || SkinListScrollActive;

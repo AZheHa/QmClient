@@ -241,7 +241,9 @@ def main():
             f.write(s + "\n")
 
     rel_outpath = os.path.relpath(STRINGS_FILE, PROJECT_ROOT)
-    print(f"Extracted {len(sorted_strings)} unique localization strings to {rel_outpath}")
+    print(
+        f"Extracted {len(sorted_strings)} unique localization strings to {rel_outpath}"
+    )
 
     # Also print them
     for i, s in enumerate(sorted_strings):

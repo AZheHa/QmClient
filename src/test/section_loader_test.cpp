@@ -812,6 +812,144 @@ TEST(SectionLoader, InvalidateAfterLanguageSwitch)
 	EXPECT_EQ(RenderCount, 3);
 }
 
+TEST(SectionLoader, RuntimeKeyChangeInvalidatesCachedHeightsWithReason)
+{
+	CSectionLoader Loader;
+	int MeasuredHeight = 40;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Section;
+		Section.m_pName = "RuntimeKeyDirty";
+		Section.m_MeasureFn = [&MeasuredHeight](CUIRect &Rect) -> float {
+			return ConsumeHeight(Rect, (float)MeasuredHeight);
+		};
+		Section.m_RenderCompactFn = Section.m_MeasureFn;
+		Section.m_RenderFullFn = Section.m_MeasureFn;
+		return std::vector<SSettingsSection>{Section};
+	};
+
+	SSettingsSectionCacheRuntimeKey RuntimeKey;
+	RuntimeKey.m_ViewportWidth = 400;
+	RuntimeKey.m_ViewportHeight = 240;
+	RuntimeKey.m_UiScale = 100;
+	RuntimeKey.m_ConfigHash = 1;
+	RuntimeKey.m_LanguageHash = 2;
+	RuntimeKey.m_FontHash = 3;
+	RuntimeKey.m_BackendHash = 4;
+	RuntimeKey.m_WindowHash = 5;
+	Loader.SetRuntimeKey(RuntimeKey);
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 40.0f);
+
+	MeasuredHeight = 70;
+	RuntimeKey.m_UiScale = 125;
+	Loader.SetRuntimeKey(RuntimeKey);
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 70.0f);
+	EXPECT_EQ(Loader.LastFrameStats().m_DirtyReason, ESettingsCacheDirtyReason::UI_SCALE);
+	EXPECT_GE(Loader.LastFrameStats().m_LayoutDirtySections, 1);
+}
+
+TEST(SectionLoader, DeferredFarMeasurementTracksVisibleAndSkippedTelemetry)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(false);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+
+	auto MakeSections = [&]() {
+		SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		return std::vector<SSettingsSection>{Top, Far};
+	};
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsTotal, 2);
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsVisible, 1);
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsSkipped, 1);
+	EXPECT_EQ(Loader.LastFrameStats().m_LayoutDirtySections, 0);
+}
+
+TEST(SectionLoader, DirtyReasonTelemetryResetsAfterCleanFrame)
+{
+	CSectionLoader Loader;
+	int MeasuredHeight = 40;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Section;
+		Section.m_pName = "DirtyReasonReset";
+		Section.m_MeasureFn = [&MeasuredHeight](CUIRect &Rect) -> float {
+			return ConsumeHeight(Rect, (float)MeasuredHeight);
+		};
+		Section.m_RenderCompactFn = Section.m_MeasureFn;
+		Section.m_RenderFullFn = Section.m_MeasureFn;
+		return std::vector<SSettingsSection>{Section};
+	};
+
+	SSettingsSectionCacheRuntimeKey RuntimeKey;
+	RuntimeKey.m_ViewportWidth = 400;
+	RuntimeKey.m_ViewportHeight = 240;
+	RuntimeKey.m_UiScale = 100;
+	RuntimeKey.m_ConfigHash = 1;
+	RuntimeKey.m_LanguageHash = 2;
+	RuntimeKey.m_FontHash = 3;
+	RuntimeKey.m_BackendHash = 4;
+	RuntimeKey.m_WindowHash = 5;
+	Loader.SetRuntimeKey(RuntimeKey);
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+
+	RuntimeKey.m_UiScale = 125;
+	Loader.SetRuntimeKey(RuntimeKey);
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(Loader.LastFrameStats().m_DirtyReason, ESettingsCacheDirtyReason::UI_SCALE);
+	EXPECT_GE(Loader.LastFrameStats().m_LayoutDirtySections, 1);
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(Loader.LastFrameStats().m_LayoutDirtySections, 0);
+	EXPECT_EQ(Loader.LastFrameStats().m_DirtyReason, ESettingsCacheDirtyReason::NONE);
+}
+
+TEST(SectionLoader, VisibilityTelemetryUsesMeasuredSectionRect)
+{
+	CSectionLoader Loader;
+	int MeasuredHeight = 300;
+
+	SSettingsSection Section;
+	Section.m_pName = "MeasuredVisibility";
+	Section.m_MeasureFn = [&MeasuredHeight](CUIRect &Rect) -> float {
+		return ConsumeHeight(Rect, (float)MeasuredHeight);
+	};
+	Section.m_RenderCompactFn = Section.m_MeasureFn;
+	Section.m_RenderFullFn = Section.m_MeasureFn;
+
+	Loader.m_ScrollY = -400.0f;
+	Loader.Register({Section});
+	Loader.Begin(CUIRect{0, -400.0f, 400, 240}, 100.0f);
+
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsTotal, 1);
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsVisible, 1);
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsSkipped, 0);
+}
+
 TEST(SectionLoader, RejectsVisibleSummarySectionNames)
 {
 	EXPECT_FALSE(CSectionLoader::IsVisibleSummarySectionName("DeferredSummary:Mouse"));

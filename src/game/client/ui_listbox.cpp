@@ -179,6 +179,38 @@ CListboxItem CListBox::DoNextItem(const void *pId, bool Selected, float CornerRa
 	return Item;
 }
 
+void CListBox::SkipItems(int Count)
+{
+	Count = std::max(0, Count);
+	while(Count > 0 && m_ListBoxItemIndex < m_ListBoxNumItems)
+	{
+		if(m_ListBoxItemIndex % m_ListBoxItemsPerRow == 0)
+		{
+			m_ListBoxView.HSplitTop(m_ListBoxRowHeight, &m_RowView, &m_ListBoxView);
+			m_ScrollRegion.AddRect(m_RowView);
+		}
+
+		const int ItemIndexInRow = m_ListBoxItemIndex % m_ListBoxItemsPerRow;
+		const int ItemsLeftInRow = m_ListBoxItemsPerRow - ItemIndexInRow;
+		if(m_ListBoxUpdateScroll &&
+			m_ListBoxSelectedIndex >= m_ListBoxItemIndex &&
+			m_ListBoxSelectedIndex < m_ListBoxItemIndex + ItemsLeftInRow)
+		{
+			m_ScrollRegion.ScrollHere(CScrollRegion::SCROLLHERE_KEEP_IN_VIEW);
+			m_ListBoxUpdateScroll = false;
+		}
+
+		const int ItemsToSkip = std::min(Count, ItemsLeftInRow);
+		for(int i = 0; i < ItemsToSkip; ++i)
+		{
+			CUIRect Skipped;
+			m_RowView.VSplitLeft(m_RowView.w / (m_ListBoxItemsPerRow - m_ListBoxItemIndex % m_ListBoxItemsPerRow), &Skipped, &m_RowView);
+			++m_ListBoxItemIndex;
+		}
+		Count -= ItemsToSkip;
+	}
+}
+
 CListboxItem CListBox::DoCustomRow(float Height, bool ScrollHere)
 {
 	CListboxItem Item = {};

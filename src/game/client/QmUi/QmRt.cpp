@@ -35,11 +35,24 @@ void CUiRuntimeV2::Reset()
 	m_RenderBridge.BeginFrame();
 	m_LastStats = {};
 	m_DebugLogAccumulator = 0.0f;
+	ClearPerfContext();
 }
 
 bool CUiRuntimeV2::Enabled() const
 {
 	return m_pGameClient != nullptr;
+}
+
+void CUiRuntimeV2::SetPerfContext(const char *pPage, const char *pOperation)
+{
+	str_copy(m_aPerfPage, pPage != nullptr ? pPage : "", sizeof(m_aPerfPage));
+	str_copy(m_aPerfOperation, pOperation != nullptr ? pOperation : "", sizeof(m_aPerfOperation));
+}
+
+void CUiRuntimeV2::ClearPerfContext()
+{
+	m_aPerfPage[0] = '\0';
+	m_aPerfOperation[0] = '\0';
 }
 
 void CUiRuntimeV2::OnRender()
@@ -86,10 +99,11 @@ void CUiRuntimeV2::OnRender()
 	}
 
 	m_LastStats.m_BuildTreeMs = TreeBeginMs + TreeEndMs;
-	m_LastStats.m_LayoutMs = 0.0f; // layout computed externally by callers
 	m_LastStats.m_AnimMs = AnimAdvanceMs;
 	m_LastStats.m_RenderBridgeMs = RenderBridgeBeginMs;
 	m_LastStats.m_NodeCount = m_Tree.NodeCount();
+	m_LastStats.m_ActiveAnimCount = m_AnimRuntime.ActiveTrackCount();
+	m_LastStats.m_QueuedAnimCount = m_AnimRuntime.QueuedTrackCount();
 
 	if(g_Config.m_QmUiRuntimeV2Debug)
 	{
@@ -104,6 +118,18 @@ void CUiRuntimeV2::OnRender()
 	char aExtra[96];
 	str_format(aExtra, sizeof(aExtra), "nodes=%d", m_LastStats.m_NodeCount);
 	LogPerfStage(m_pGameClient->Client(), "ui_runtime_total", RenderTimer.ElapsedMs(), false, aExtra);
+
+	char aPayload[256];
+	str_format(aPayload, sizeof(aPayload),
+		"event=ui_runtime operation=%s nodes=%d anim_ms=%.3f active_anims=%d queued_anims=%d render_bridge_ms=%.3f duration_ms=%.3f",
+		m_aPerfOperation[0] != '\0' ? m_aPerfOperation : "unknown",
+		m_LastStats.m_NodeCount,
+		m_LastStats.m_AnimMs,
+		m_LastStats.m_ActiveAnimCount,
+		m_LastStats.m_QueuedAnimCount,
+		m_LastStats.m_RenderBridgeMs,
+		RenderTimer.ElapsedMs());
+	QmPerfLogPayload("perf/ui_runtime", aPayload, m_pGameClient->Client(), m_aPerfPage[0] != '\0' ? m_aPerfPage : nullptr);
 }
 
 const SUiV2PerfStats &CUiRuntimeV2::LastStats() const

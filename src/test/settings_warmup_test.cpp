@@ -143,6 +143,38 @@ TEST(SettingsWarmup, RuntimeCacheNumericKeysClampBeforeIntConversion)
 	EXPECT_EQ(SettingsRuntimeCacheRoundedKey(-std::numeric_limits<float>::max()), std::numeric_limits<int>::min());
 }
 
+TEST(SettingsResourceJobs, SkinListVisibleRangeKeepsTotalLengthStable)
+{
+	const SSettingsSkinListVisibleRange Range = SettingsSkinListVisibleRangeForScroll(125.0f, 300.0f, 50.0f, 4, 101, 1);
+
+	EXPECT_EQ(Range.m_TotalItems, 101);
+	EXPECT_EQ(Range.m_TotalRows, 26);
+	EXPECT_EQ(Range.m_FirstVisibleRow, 1);
+	EXPECT_EQ(Range.m_LastVisibleRow, 9);
+	EXPECT_EQ(Range.m_FirstItem, 4);
+	EXPECT_EQ(Range.m_EndItem, 40);
+	EXPECT_EQ(Range.m_VisibleRows, 9);
+	EXPECT_EQ(Range.m_RenderedItems, 36);
+	EXPECT_EQ(Range.m_SkippedItems, 65);
+}
+
+TEST(SettingsResourceJobs, SkinListVisibleRangeHandlesShortAndEmptyLists)
+{
+	const SSettingsSkinListVisibleRange Empty = SettingsSkinListVisibleRangeForScroll(0.0f, 300.0f, 50.0f, 4, 0, 1);
+	EXPECT_EQ(Empty.m_TotalItems, 0);
+	EXPECT_EQ(Empty.m_TotalRows, 0);
+	EXPECT_EQ(Empty.m_FirstItem, 0);
+	EXPECT_EQ(Empty.m_EndItem, 0);
+	EXPECT_EQ(Empty.m_SkippedItems, 0);
+
+	const SSettingsSkinListVisibleRange Short = SettingsSkinListVisibleRangeForScroll(500.0f, 300.0f, 50.0f, 4, 7, 1);
+	EXPECT_EQ(Short.m_TotalItems, 7);
+	EXPECT_EQ(Short.m_TotalRows, 2);
+	EXPECT_EQ(Short.m_FirstItem, 0);
+	EXPECT_EQ(Short.m_EndItem, 7);
+	EXPECT_EQ(Short.m_SkippedItems, 0);
+}
+
 TEST(SettingsWarmup, TeePageWarmupStartsSkinSourcePrewarm)
 {
 	std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
@@ -360,6 +392,43 @@ TEST(SettingsRuntimeCache, InvalidationReasonNamesAreStable)
 	EXPECT_STREQ(SettingsInvalidationReasonName(ESettingsInvalidationReason::CONFIG_HASH_CHANGED), "config_hash_changed");
 	EXPECT_STREQ(SettingsInvalidationReasonName(ESettingsInvalidationReason::SECTION_SIZE_CHANGED), "section_size_changed");
 	EXPECT_STREQ(SettingsInvalidationReasonName(ESettingsInvalidationReason::RESOURCE_DIRECTORY_CHANGED), "resource_directory_changed");
+}
+
+TEST(SettingsRuntimeCache, RuntimeKeyMismatchNamesDirtyReason)
+{
+	SSettingsSectionCacheRuntimeKey Base;
+	Base.m_ViewportWidth = 900;
+	Base.m_ViewportHeight = 620;
+	Base.m_UiScale = 100;
+	Base.m_ConfigHash = 10;
+	Base.m_LanguageHash = 11;
+	Base.m_FontHash = 12;
+	Base.m_BackendHash = 13;
+	Base.m_WindowHash = 14;
+
+	SSettingsSectionCacheRuntimeKey Language = Base;
+	Language.m_LanguageHash++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Language), ESettingsCacheDirtyReason::LANGUAGE);
+
+	SSettingsSectionCacheRuntimeKey Font = Base;
+	Font.m_FontHash++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Font), ESettingsCacheDirtyReason::FONT);
+
+	SSettingsSectionCacheRuntimeKey Backend = Base;
+	Backend.m_BackendHash++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Backend), ESettingsCacheDirtyReason::GRAPHICS_RESET);
+
+	SSettingsSectionCacheRuntimeKey UiScale = Base;
+	UiScale.m_UiScale++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, UiScale), ESettingsCacheDirtyReason::UI_SCALE);
+
+	SSettingsSectionCacheRuntimeKey Viewport = Base;
+	Viewport.m_ViewportHeight++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Viewport), ESettingsCacheDirtyReason::WINDOW_SIZE);
+
+	SSettingsSectionCacheRuntimeKey Config = Base;
+	Config.m_ConfigHash++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Config), ESettingsCacheDirtyReason::CONFIG);
 }
 
 TEST(SettingsRuntimeCache, CompactVisibleTextIsRejected)

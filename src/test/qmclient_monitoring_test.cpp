@@ -203,6 +203,41 @@ TEST(QmMonitoringHelpers, DeviceMetricsDefaultToUnavailable)
 	EXPECT_FLOAT_EQ(Perf.m_DiskReadMbPerSec, -1.0f);
 }
 
+TEST(QmMonitoringHelpers, TeeSkinListFrameTelemetryExposesRowsFields)
+{
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+	EXPECT_NE(Source.find("event=list_frame page=settings:tee"), std::string::npos);
+	EXPECT_NE(Source.find("rows_total=%d rows_visible=%d rows_rendered=%d rows_iterated=%d rows_skipped=%d"), std::string::npos);
+	EXPECT_NE(Source.find("first_visible_index=%d last_visible_index=%d"), std::string::npos);
+}
+
+TEST(QmMonitoringHelpers, QmUiRuntimeTelemetryExposesSettingsContext)
+{
+	std::ifstream HeaderFile(TestSourcePath("src/game/client/QmUi/QmRt.h"));
+	ASSERT_TRUE(HeaderFile.good());
+	std::stringstream HeaderBuffer;
+	HeaderBuffer << HeaderFile.rdbuf();
+	const std::string Header = HeaderBuffer.str();
+
+	std::ifstream SourceFile(TestSourcePath("src/game/client/QmUi/QmRt.cpp"));
+	ASSERT_TRUE(SourceFile.good());
+	std::stringstream SourceBuffer;
+	SourceBuffer << SourceFile.rdbuf();
+	const std::string Source = SourceBuffer.str();
+
+	EXPECT_NE(Header.find("void SetPerfContext(const char *pPage, const char *pOperation);"), std::string::npos);
+	EXPECT_EQ(Header.find("float m_LayoutMs = 0.0f;"), std::string::npos);
+	EXPECT_NE(Header.find("int m_ActiveAnimCount = 0;"), std::string::npos);
+	EXPECT_NE(Header.find("int m_QueuedAnimCount = 0;"), std::string::npos);
+	EXPECT_NE(Source.find("active_anims=%d queued_anims=%d"), std::string::npos);
+	EXPECT_EQ(Source.find("layout_ms=%.3f"), std::string::npos);
+	EXPECT_NE(Source.find("QmPerfLogPayload(\"perf/ui_runtime\""), std::string::npos);
+}
+
 namespace
 {
 
@@ -529,9 +564,11 @@ TEST(QmMonitoringHelpers, MenuPerfEventsExposePageAttributionFields)
 		const std::string Source = Buffer.str();
 
 		EXPECT_NE(Source.find("void CSectionLoader::InvalidateCache(ESettingsCacheDirtyReason Reason)"), std::string::npos);
-		EXPECT_NE(Source.find("(void)Reason;"), std::string::npos);
+		EXPECT_EQ(Source.find("(void)Reason;"), std::string::npos);
+		EXPECT_NE(Source.find("m_LastDirtyReason = Reason;"), std::string::npos);
 		EXPECT_NE(Source.find("Section.m_Dirty = true;"), std::string::npos);
-		EXPECT_EQ(Source.find("CacheDirtyReasonName"), std::string::npos);
+		EXPECT_NE(Source.find("event=section_loader sections_total=%d sections_visible=%d sections_skipped=%d layout_dirty=%d dirty_reason=%s"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsCacheDirtyReasonName(m_LastFrameStats.m_DirtyReason)"), std::string::npos);
 		EXPECT_EQ(Source.find("*pDirtyReason = Section.m_DirtyReason"), std::string::npos);
 	}
 	{

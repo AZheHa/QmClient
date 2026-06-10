@@ -121,6 +121,19 @@ function testServerBrowserListFrameAttributionUsesRowCounts() {
   assert.match(attribution[0].details, /rows_skipped=1182/);
 }
 
+function testQmUiRuntimeAttributionUsesDedicatedKind() {
+  const entries = parseLog([
+    '2026-06-10 12:00:00 I perf/ui_runtime: {"system":"perf/ui_runtime","frame":"1","session":"7","page":"settings:qmclient","event":"ui_runtime","operation":"settings_qmclient","nodes":"120","anim_ms":"0.200","active_anims":"3","queued_anims":"1","render_bridge_ms":"0.050","duration_ms":"0.400"}',
+  ].join('\n'));
+
+  const attribution = pagePerformanceAttribution(entries);
+
+  assert.equal(attribution.length, 1);
+  assert.equal(attribution[0].kind, 'UI Runtime');
+  assert.equal(attribution[0].page, 'settings:qmclient');
+  assert.match(attribution[0].summary, /operation=settings_qmclient/);
+}
+
 function testPerfEventClassifiersKeepBoundariesTight() {
   const entries = parseLog([
     '2026-06-04 12:00:00 I perf/menu: stage=settings_page_content duration_ms=6.000 frame=10 page=settings:tee',
@@ -413,6 +426,7 @@ testParseLogWithDiagnosticsCountsInvalidLines();
 testReportIncludesInteractionAndDeviceSections();
 testReportAttributesPagePerformanceEvents();
 testServerBrowserListFrameAttributionUsesRowCounts();
+testQmUiRuntimeAttributionUsesDedicatedKind();
 testPerfEventClassifiersKeepBoundariesTight();
 testPageSwitchBoundaryDoesNotEnterDurationAttribution();
 testSnapshotIgnoresEventOnlyTelemetry();

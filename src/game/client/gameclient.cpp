@@ -2038,6 +2038,11 @@ void CGameClient::OnRender()
 
 	{
 		CPerfTimer StageTimer;
+		const char *pPerfPage = m_Menus.CurrentQmUiPerfPage();
+		if(pPerfPage != nullptr)
+			m_UiRuntimeV2.SetPerfContext(pPerfPage, m_Menus.CurrentQmUiPerfOperation());
+		else
+			m_UiRuntimeV2.ClearPerfContext();
 		m_UiRuntimeV2.OnRender();
 		LogPerfStage(this, "ui_runtime_v2", StageTimer.ElapsedMs());
 	}

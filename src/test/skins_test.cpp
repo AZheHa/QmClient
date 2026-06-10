@@ -249,6 +249,28 @@ TEST(Skins, TeeBackgroundRequestsWaitForAdmissionBeforePending)
 	EXPECT_NE(StartLoading.find("Stats.m_NumPending++;"), std::string::npos);
 }
 
+TEST(Skins, TeeSkinListVirtualizationKeepsTotalListLength)
+{
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+	const size_t RenderTeePos = Source.find("void CMenus::RenderSettingsTee(CUIRect MainView)");
+	ASSERT_NE(RenderTeePos, std::string::npos);
+	const size_t RenderTeeEnd = Source.find("void CMenus::RenderSettings", RenderTeePos + 1);
+	const std::string RenderTeeBody = Source.substr(RenderTeePos, RenderTeeEnd - RenderTeePos);
+
+	EXPECT_NE(RenderTeeBody.find("s_ListBox.DoStart(50.0f, vSkinList.size(), 4, 2, OldSelected, &MainView);"), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("SettingsSkinListVisibleRangeForScroll("), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("s_ListBox.SkipItems("), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("int RowsRendered = 0;"), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("if(RowStart)\n\t\t\t++RowsRendered;"), std::string::npos);
+	EXPECT_EQ(RenderTeeBody.find("const int RowsRendered = RowsIterated;"), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("event=list_frame page=settings:tee"), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("rows_total=%d rows_visible=%d rows_rendered=%d rows_iterated=%d rows_skipped=%d"), std::string::npos);
+}
+
 TEST(Skins, TeePriorityRequestsReclaimBackgroundRequestedBeforeAdmittedBackgroundWork)
 {
 	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));

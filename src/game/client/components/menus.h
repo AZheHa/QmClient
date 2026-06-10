@@ -1599,6 +1599,8 @@ public:
 
 	bool IsActive() const { return m_MenuActive; }
 	bool IsSettingsPageActive() const;
+	const char *CurrentQmUiPerfPage() const;
+	const char *CurrentQmUiPerfOperation() const;
 	SSettingsResourceFrameContext SettingsResourceFrameContext() const { return {m_SettingsScrollActive, false, m_SettingsPostScrollRecoveryFrames, m_SettingsHighPrioritySettled}; }
 	void SetActive(bool Active);
 

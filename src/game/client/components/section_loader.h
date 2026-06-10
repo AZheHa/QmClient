@@ -1,7 +1,7 @@
 #ifndef GAME_CLIENT_COMPONENTS_SECTION_LOADER_H
 #define GAME_CLIENT_COMPONENTS_SECTION_LOADER_H
 
-#include <game/client/components/settings_warmup.h>
+#include <game/client/components/settings_runtime_cache.h>
 #include <game/client/ui_rect.h>
 
 #include <cstdint>
@@ -14,19 +14,6 @@ enum class ESettingsSectionState : uint8_t
 	MEASURING,
 	COMPACT,
 	FULL,
-};
-
-enum class ESettingsCacheDirtyReason : uint8_t
-{
-	NONE,
-	CONFIG,
-	LANGUAGE,
-	WINDOW_SIZE,
-	UI_SCALE,
-	FONT,
-	ACTIVE_INTERACTION,
-	GRAPHICS_RESET,
-	UNKNOWN,
 };
 
 /**
@@ -75,6 +62,15 @@ struct SSessionUiCache
 	float m_LastScrollY = 0.0f;
 	SSettingsSectionCacheRuntimeKey m_RuntimeKey;
 	bool m_Valid = false;
+};
+
+struct SSectionLoaderFrameStats
+{
+	int m_SectionsTotal = 0;
+	int m_SectionsVisible = 0;
+	int m_SectionsSkipped = 0;
+	int m_LayoutDirtySections = 0;
+	ESettingsCacheDirtyReason m_DirtyReason = ESettingsCacheDirtyReason::NONE;
 };
 
 /**
@@ -166,6 +162,7 @@ public:
 	// -- Profiling --
 
 	const char *GetPerfReport() const;
+	const SSectionLoaderFrameStats &LastFrameStats() const { return m_LastFrameStats; }
 
 private:
 	std::vector<SSettingsSection> m_vSections;
@@ -188,6 +185,8 @@ private:
 
 	// Profiling
 	double m_TotalFrameTimeMs = 0.0;
+	SSectionLoaderFrameStats m_LastFrameStats;
+	ESettingsCacheDirtyReason m_LastDirtyReason = ESettingsCacheDirtyReason::NONE;
 
 	/** 0 = in viewport, 1 = near, 2 = far. */
 	int ComputeViewportPriority(const CUIRect &SectionRect) const;

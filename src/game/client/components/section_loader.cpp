@@ -73,8 +73,9 @@ void CSectionLoader::SetRuntimeKey(const SSettingsSectionCacheRuntimeKey &Runtim
 {
 	if(m_RuntimeKey == RuntimeKey)
 		return;
+	const ESettingsCacheDirtyReason DirtyReason = SettingsRuntimeKeyMismatchDirtyReason(m_RuntimeKey, RuntimeKey);
 	m_RuntimeKey = RuntimeKey;
-	InvalidateCache(ESettingsCacheDirtyReason::WINDOW_SIZE);
+	InvalidateCache(DirtyReason);
 }
 
 void CSectionLoader::SetProgressiveEnabled(bool Enabled)
@@ -99,6 +100,10 @@ void CSectionLoader::Begin(CUIRect MainView, float TimeBudgetMs)
 
 bool CSectionLoader::Process()
 {
+	m_LastFrameStats = {};
+	m_LastFrameStats.m_SectionsTotal = (int)m_vSections.size();
+	m_LastFrameStats.m_DirtyReason = ESettingsCacheDirtyReason::NONE;
+
 	if(!m_Initialized)
 	{
 		for(auto &Section : m_vSections)
@@ -117,22 +122,40 @@ bool CSectionLoader::Process()
 	CPerfTimer FrameTimer;
 	int UnlockedThisFrame = 0;
 	const int MaxUnlockPerFrame = 2;
+	const auto RecordSectionVisibility = [this](float SectionStartY, const SSettingsSection &Section, SSectionLoaderFrameStats &Stats) {
+		const float ActualHeight = maximum(Section.m_CachedHeight, m_RunningColumn.y - SectionStartY);
+		const CUIRect ActualSectionRect{m_MainView.x, SectionStartY, m_MainView.w, ActualHeight};
+		if(ComputeViewportPriority(ActualSectionRect) <= 1)
+			++Stats.m_SectionsVisible;
+		else
+			++Stats.m_SectionsSkipped;
+	};
 
 	while(m_CurrentIndex < (int)m_vSections.size())
 	{
 		SSettingsSection &Section = m_vSections[m_CurrentIndex];
+		const float SectionStartY = m_RunningColumn.y;
+		const bool SectionDirty = Section.m_Dirty;
+		const CUIRect EstimatedSectionRect{m_MainView.x, SectionStartY, m_MainView.w, Section.m_CachedHeight};
+		const int Priority = ComputeViewportPriority(EstimatedSectionRect);
+		if(SectionDirty)
+		{
+			++m_LastFrameStats.m_LayoutDirtySections;
+			m_LastFrameStats.m_DirtyReason = m_LastDirtyReason;
+		}
+
 		if(!m_ProgressiveEnabled && Section.m_State != ESettingsSectionState::FULL)
 		{
-			const CUIRect EstimatedSectionRect{m_MainView.x, m_RunningColumn.y, m_MainView.w, Section.m_CachedHeight};
 			const bool CanDeferFarMeasurement =
 				m_DeferredFarMeasurementEnabled &&
 				Section.m_HasCachedHeight &&
 				!Section.m_Dirty &&
-				ComputeViewportPriority(EstimatedSectionRect) > 1;
+				Priority > 1;
 			if(CanDeferFarMeasurement)
 			{
 				Section.m_State = ESettingsSectionState::FULL;
 				m_RunningColumn.y += Section.m_CachedHeight;
+				RecordSectionVisibility(SectionStartY, Section, m_LastFrameStats);
 				++m_CurrentIndex;
 				continue;
 			}
@@ -176,8 +199,6 @@ bool CSectionLoader::Process()
 		}
 		case ESettingsSectionState::MEASURING:
 		{
-			const CUIRect SectionRect{m_MainView.x, m_RunningColumn.y, m_MainView.w, Section.m_CachedHeight};
-			const int Priority = ComputeViewportPriority(SectionRect);
 			if(Priority <= 1)
 			{
 				Section.m_State = ESettingsSectionState::COMPACT;
@@ -195,8 +216,6 @@ bool CSectionLoader::Process()
 		}
 		case ESettingsSectionState::COMPACT:
 		{
-			const CUIRect SectionRect{m_MainView.x, m_RunningColumn.y, m_MainView.w, Section.m_CachedHeight};
-			const int Priority = ComputeViewportPriority(SectionRect);
 			if(Priority > 1)
 			{
 				m_RunningColumn.y += Section.m_CachedHeight;
@@ -237,8 +256,7 @@ bool CSectionLoader::Process()
 				Section.m_HasCachedHeight = true;
 				Section.m_LastConfigHash = ComputeConfigHash(Section);
 			}
-			const CUIRect SectionRect{m_MainView.x, m_RunningColumn.y, m_MainView.w, Section.m_CachedHeight};
-			if(ComputeViewportPriority(SectionRect) > 1)
+			if(Priority > 1)
 			{
 				m_RunningColumn.y += Section.m_CachedHeight;
 				Section.m_Dirty = false;
@@ -261,6 +279,8 @@ bool CSectionLoader::Process()
 			break;
 		}
 		}
+
+		RecordSectionVisibility(SectionStartY, Section, m_LastFrameStats);
 	}
 
 	if(m_CurrentIndex >= (int)m_vSections.size())
@@ -283,10 +303,15 @@ bool CSectionLoader::Process()
 	// Profiling: log when budget is exceeded and perf-debug is enabled
 	if(g_Config.m_QmPerfDebug && m_TotalFrameTimeMs > 1.0)
 	{
-		char aPayload[256];
+		char aPayload[320];
 		str_format(aPayload, sizeof(aPayload),
-			"stage=section_loader sections=%d budget_ms=%.1f actual_ms=%.1f complete=%d",
-			(int)m_vSections.size(), m_BudgetPerFrameMs, m_TotalFrameTimeMs,
+			"event=section_loader sections_total=%d sections_visible=%d sections_skipped=%d layout_dirty=%d dirty_reason=%s budget_ms=%.1f actual_ms=%.1f complete=%d",
+			m_LastFrameStats.m_SectionsTotal,
+			m_LastFrameStats.m_SectionsVisible,
+			m_LastFrameStats.m_SectionsSkipped,
+			m_LastFrameStats.m_LayoutDirtySections,
+			SettingsCacheDirtyReasonName(m_LastFrameStats.m_DirtyReason),
+			m_BudgetPerFrameMs, m_TotalFrameTimeMs,
 			m_Complete ? 1 : 0);
 		QmPerfLogPayload("perf/section_loader", aPayload);
 	}
@@ -393,7 +418,7 @@ bool CSectionLoader::IsWarmupComplete() const
 
 void CSectionLoader::InvalidateCache(ESettingsCacheDirtyReason Reason)
 {
-	(void)Reason;
+	m_LastDirtyReason = Reason;
 	for(auto &Section : m_vSections)
 		Section.m_Dirty = true;
 }
@@ -406,6 +431,7 @@ void CSectionLoader::SetDirtyByConfig(const void *pConfigVar)
 		{
 			if(static_cast<const void *>(pInt) == pConfigVar)
 			{
+				m_LastDirtyReason = ESettingsCacheDirtyReason::CONFIG;
 				Section.m_Dirty = true;
 				return;
 			}
@@ -414,6 +440,7 @@ void CSectionLoader::SetDirtyByConfig(const void *pConfigVar)
 		{
 			if(static_cast<const void *>(pCol) == pConfigVar)
 			{
+				m_LastDirtyReason = ESettingsCacheDirtyReason::CONFIG;
 				Section.m_Dirty = true;
 				return;
 			}

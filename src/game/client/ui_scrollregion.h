@@ -138,6 +138,7 @@ public:
 	void ScrollRelativeDirect(float ScrollAmount);
 	void SetScrollOffsetY(float OffsetY);
 	const CUIRect *ClipRect() const { return &m_ClipRect; }
+	float ContentScrollOffsetY() const { return m_ContentScrollOff.y; }
 	void DoEdgeScrolling();
 	bool RectClipped(const CUIRect &Rect) const;
 	bool ScrollbarShown() const;

@@ -98,6 +98,7 @@ export const PERF_SYSTEM = {
   DEVICE: 'perf/device',
   SKIN_UX: 'perf/skin-ux',
   SECTION: 'perf/section',
+  UI_RUNTIME: 'perf/ui_runtime',
 } as const;
 
 export const PERF_EVENT = {
@@ -191,7 +192,7 @@ export interface PageStats {
   outliers: number[];
 }
 
-export type AttributionKind = 'List Interaction' | 'UI Rebuild' | 'Work Drain';
+export type AttributionKind = 'List Interaction' | 'UI Rebuild' | 'Work Drain' | 'UI Runtime' | 'Session Summary';
 
 export interface AttributionEntry {
   kind: AttributionKind;
@@ -273,6 +274,23 @@ export function pagePerformanceAttribution(entries: PerfEntry[]): AttributionEnt
     const event = eventName(e);
     if (isPageSwitchEvent(e)) {
       continue;
+    } else if (e.system === PERF_SYSTEM.UI_RUNTIME) {
+      attribution.push({
+        kind: 'UI Runtime',
+        timestamp: e.timestamp,
+        page: field(e, 'page', 'unknown'),
+        durationMs: entryDurationMs(e) ?? e.durationMs,
+        summary: summaryKv(
+          ['operation', field(e, 'operation')],
+          ['nodes', field(e, 'nodes')],
+          ['active_anims', field(e, 'active_anims')],
+        ),
+        details: summaryKv(
+          ['anim_ms', field(e, 'anim_ms')],
+          ['render_bridge_ms', field(e, 'render_bridge_ms')],
+          ['queued_anims', field(e, 'queued_anims')],
+        ),
+      });
     } else if (isListFrameEvent(e)) {
       attribution.push(makeEntry(
         e,
@@ -303,9 +321,10 @@ export function pagePerformanceAttribution(entries: PerfEntry[]): AttributionEnt
         ),
       ));
     } else if (isWorkDrainEvent(e)) {
+      const SessionScoped = field(e, 'scope') === 'session';
       attribution.push(makeEntry(
         e,
-        'Work Drain',
+        SessionScoped ? 'Session Summary' : 'Work Drain',
         summaryKv(
           ['kind', field(e, 'kind', event === PERF_EVENT.LIST_DRAIN_SUMMARY ? 'merge' : '')],
           ['count', field(e, 'count')],

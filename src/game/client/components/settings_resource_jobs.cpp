@@ -34,6 +34,33 @@ float SettingsSkinPreviewCenterOffset(float PreviewMinX, float PreviewMaxX)
 	return -(PreviewMinX + PreviewMaxX) * 0.5f;
 }
 
+SSettingsSkinListVisibleRange SettingsSkinListVisibleRangeForScroll(float ScrollY, float ViewHeight, float RowHeight, int ItemsPerRow, int TotalItems, int ExtraRows)
+{
+	SSettingsSkinListVisibleRange Range;
+	Range.m_TotalItems = std::max(0, TotalItems);
+	if(Range.m_TotalItems <= 0 || RowHeight <= 0.0f || ItemsPerRow <= 0 || ViewHeight <= 0.0f)
+		return Range;
+
+	Range.m_TotalRows = (Range.m_TotalItems + ItemsPerRow - 1) / ItemsPerRow;
+	const float TotalHeight = Range.m_TotalRows * RowHeight;
+	const float MaxScrollY = std::max(0.0f, TotalHeight - ViewHeight);
+	const float ClampedScrollY = std::clamp(ScrollY, 0.0f, MaxScrollY);
+	const int SafeExtraRows = std::max(0, ExtraRows);
+	const int FirstRow = std::max(0, (int)std::floor(ClampedScrollY / RowHeight) - SafeExtraRows);
+	const int LastRowExclusive = std::min(
+		Range.m_TotalRows,
+		(int)std::ceil((ClampedScrollY + ViewHeight) / RowHeight) + SafeExtraRows);
+
+	Range.m_FirstVisibleRow = std::min(FirstRow, Range.m_TotalRows);
+	Range.m_LastVisibleRow = LastRowExclusive > Range.m_FirstVisibleRow ? LastRowExclusive - 1 : Range.m_FirstVisibleRow - 1;
+	Range.m_FirstItem = std::min(Range.m_FirstVisibleRow * ItemsPerRow, Range.m_TotalItems);
+	Range.m_EndItem = std::min(LastRowExclusive * ItemsPerRow, Range.m_TotalItems);
+	Range.m_VisibleRows = std::max(0, LastRowExclusive - Range.m_FirstVisibleRow);
+	Range.m_RenderedItems = std::max(0, Range.m_EndItem - Range.m_FirstItem);
+	Range.m_SkippedItems = std::max(0, Range.m_TotalItems - Range.m_RenderedItems);
+	return Range;
+}
+
 bool SettingsSkinListEntryReady(bool SourceReady, bool TerminalFailure, bool PreviewCacheReady)
 {
 	return SourceReady || TerminalFailure || PreviewCacheReady;

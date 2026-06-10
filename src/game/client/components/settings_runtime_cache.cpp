@@ -65,6 +65,29 @@ bool SettingsRuntimeCacheKeyMatches(const SSettingsRuntimeCacheKey &A, const SSe
 	       A.m_ConfigHash == B.m_ConfigHash;
 }
 
+ESettingsCacheDirtyReason SettingsRuntimeKeyMismatchDirtyReason(const SSettingsSectionCacheRuntimeKey &Current, const SSettingsSectionCacheRuntimeKey &Next)
+{
+	if(Current == Next)
+		return ESettingsCacheDirtyReason::NONE;
+	if(Current.m_ViewportWidth != Next.m_ViewportWidth ||
+		Current.m_ViewportHeight != Next.m_ViewportHeight ||
+		Current.m_WindowHash != Next.m_WindowHash)
+	{
+		return ESettingsCacheDirtyReason::WINDOW_SIZE;
+	}
+	if(Current.m_UiScale != Next.m_UiScale)
+		return ESettingsCacheDirtyReason::UI_SCALE;
+	if(Current.m_LanguageHash != Next.m_LanguageHash)
+		return ESettingsCacheDirtyReason::LANGUAGE;
+	if(Current.m_FontHash != Next.m_FontHash)
+		return ESettingsCacheDirtyReason::FONT;
+	if(Current.m_BackendHash != Next.m_BackendHash)
+		return ESettingsCacheDirtyReason::GRAPHICS_RESET;
+	if(Current.m_ConfigHash != Next.m_ConfigHash)
+		return ESettingsCacheDirtyReason::CONFIG;
+	return ESettingsCacheDirtyReason::UNKNOWN;
+}
+
 bool SettingsWarmupConsumeBudget(SSettingsWarmupFrameBudget &Budget, ESettingsWarmupCost Cost)
 {
 	int *pBudgetCounter = nullptr;
@@ -141,6 +164,23 @@ const char *SettingsInvalidationReasonName(ESettingsInvalidationReason Reason)
 	case ESettingsInvalidationReason::CONFIG_HASH_CHANGED: return "config_hash_changed";
 	case ESettingsInvalidationReason::SECTION_SIZE_CHANGED: return "section_size_changed";
 	case ESettingsInvalidationReason::RESOURCE_DIRECTORY_CHANGED: return "resource_directory_changed";
+	}
+	return "unknown";
+}
+
+const char *SettingsCacheDirtyReasonName(ESettingsCacheDirtyReason Reason)
+{
+	switch(Reason)
+	{
+	case ESettingsCacheDirtyReason::NONE: return "none";
+	case ESettingsCacheDirtyReason::CONFIG: return "config";
+	case ESettingsCacheDirtyReason::LANGUAGE: return "language";
+	case ESettingsCacheDirtyReason::WINDOW_SIZE: return "window_size";
+	case ESettingsCacheDirtyReason::UI_SCALE: return "ui_scale";
+	case ESettingsCacheDirtyReason::FONT: return "font";
+	case ESettingsCacheDirtyReason::ACTIVE_INTERACTION: return "active_interaction";
+	case ESettingsCacheDirtyReason::GRAPHICS_RESET: return "graphics_reset";
+	case ESettingsCacheDirtyReason::UNKNOWN: return "unknown";
 	}
 	return "unknown";
 }

@@ -1,6 +1,8 @@
 #ifndef GAME_CLIENT_COMPONENTS_SETTINGS_RUNTIME_CACHE_H
 #define GAME_CLIENT_COMPONENTS_SETTINGS_RUNTIME_CACHE_H
 
+#include <game/client/components/settings_warmup.h>
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -57,6 +59,19 @@ enum class ESettingsInvalidationReason
 	RESOURCE_DIRECTORY_CHANGED,
 };
 
+enum class ESettingsCacheDirtyReason : uint8_t
+{
+	NONE,
+	CONFIG,
+	LANGUAGE,
+	WINDOW_SIZE,
+	UI_SCALE,
+	FONT,
+	ACTIVE_INTERACTION,
+	GRAPHICS_RESET,
+	UNKNOWN,
+};
+
 struct SSettingsWarmupFrameBudget
 {
 	int m_MaxTextContainers = 8;
@@ -79,10 +94,12 @@ struct SSettingsRuntimeCacheKey
 int SettingsCanonicalPage(int Page);
 bool SettingsPageVisibleInRightTabBar(int Page);
 bool SettingsRuntimeCacheKeyMatches(const SSettingsRuntimeCacheKey &A, const SSettingsRuntimeCacheKey &B);
+ESettingsCacheDirtyReason SettingsRuntimeKeyMismatchDirtyReason(const SSettingsSectionCacheRuntimeKey &Current, const SSettingsSectionCacheRuntimeKey &Next);
 bool SettingsWarmupConsumeBudget(SSettingsWarmupFrameBudget &Budget, ESettingsWarmupCost Cost);
 const char *SettingsWarmupMissReasonName(ESettingsWarmupMissReason Reason);
 const char *SettingsTClientPerfStageName(ETClientSettingsPerfStage Stage);
 const char *SettingsInvalidationReasonName(ESettingsInvalidationReason Reason);
+const char *SettingsCacheDirtyReasonName(ESettingsCacheDirtyReason Reason);
 bool SettingsRuntimeCacheAllowsVisibleCompactText(const char *pRenderName);
 void LogSettingsResourcePerf(int Page, const char *pJob, int Count, int Budget, int Remaining, ESettingsWarmupMissReason Reason, double DurationMs);
 bool SettingsInvalidationClearsTextPool(ESettingsInvalidationReason Reason);

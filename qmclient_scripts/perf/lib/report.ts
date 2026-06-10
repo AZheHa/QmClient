@@ -411,7 +411,7 @@ ${pages.length > 1 ? `<section class="section">
     <h2>页面性能归因</h2>
   </div>
   <p class="body-text">按页面切换、列表处理、UI rebuild 和 work drain 四类事件汇总长帧来源。这里不统计 FBO 命中率，也不把 FBO 作为页面性能判断入口。</p>
-  ${attribution.length === 0 ? '<p class="body-text" style="color:rgba(var(--ink-rgb),0.4);font-style:italic">本次日志未包含 page_switch、list_frame、section 或 work_drain 归因事件。</p>' : `<table class="data-table">
+  ${attribution.length === 0 ? '<p class="body-text" style="color:rgba(var(--ink-rgb),0.4);font-style:italic">本次日志未包含 list_frame、section、ui_runtime 或 work_drain 归因事件。</p>' : `<table class="data-table">
     <thead><tr><th>Timestamp</th><th>Kind</th><th>Page</th><th>Duration</th><th>Summary</th><th>Details</th></tr></thead>
     <tbody>
       ${attribution.slice(0, 30).map(e => `<tr><td class="mono">${escapeHtml(e.timestamp.slice(11, 19))}</td><td>${escapeHtml(e.kind)}</td><td>${escapeHtml(e.page)}</td><td class="mono">${e.durationMs.toFixed(3)}ms</td><td class="mono">${escapeHtml(e.summary)}</td><td class="mono">${escapeHtml(e.details)}</td></tr>`).join('')}
