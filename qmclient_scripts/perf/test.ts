@@ -357,6 +357,19 @@ function testReportCoreKpisUseFrameTimeSamplesConsistently() {
   assert.match(html, /最大尖峰耗时 20\.0ms/);
 }
 
+function testReportTooltipsCanFloatOutsideCharts() {
+  const entries = parseLog([
+    '2026-06-04 12:00:00 I perf/menu: stage=settings_page_content duration_ms=6.000 frame=10 page=settings:tee',
+  ].join('\n'));
+
+  const html = generateReport(entries, 'qm_perf_tooltip.log', null);
+
+  assert.match(html, /\.figure \.chart-wrap\{[^}]*overflow:visible/);
+  assert.match(html, /const tooltipPosition = /);
+  assert.match(html, /position: tooltipPosition/);
+  assert.match(html, /pointer-events:none/);
+}
+
 function testSummaryJsonCanBeSerializedForDebugBundle() {
   const entries = parseLog([
     '2026-06-04 12:00:00 I perf/menu: stage=settings_page_content duration_ms=6.000 frame=10 page=settings:tee',
@@ -415,6 +428,7 @@ testKpiThresholdsAlignWithVerdictBudget();
 testReportIncludesSectionTop10();
 testReportShowsQualityAndUnavailableData();
 testReportCoreKpisUseFrameTimeSamplesConsistently();
+testReportTooltipsCanFloatOutsideCharts();
 testSummaryJsonCanBeSerializedForDebugBundle();
 testSummaryJsonMarksUnavailableVerdictForEmptyFrameSamples();
 testAnalyzeWritesBundleAndArchiveSummaryFiles();

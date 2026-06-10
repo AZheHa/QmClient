@@ -155,7 +155,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-weigh
 
 /* ── Chart Figure ── */
 .figure{margin-top:1rem}
-.figure .chart-wrap{background:white;border:1px solid var(--hairline-strong);border-radius:2px;overflow:hidden}
+.figure .chart-wrap{background:white;border:1px solid var(--hairline-strong);border-radius:2px;overflow:visible}
 .figure .chart-inner{width:100%;height:320px}
 .figure .chart-inner.tall{height:400px}
 .figure .chart-inner.short{height:240px}
@@ -503,12 +503,28 @@ const DATA = ${dataJson};
   const axisName = { color: '#a3a3a3', fontFamily: F, fontSize: 11 };
   const gridLine = { lineStyle: { color: '#e5e3df', type: 'dashed' } };
   const axisLine = { lineStyle: { color: '#d1cec8' } };
+  const tooltipPosition = (point, params, dom, rect, size) => {
+    const gap = 18;
+    const margin = 12;
+    const viewW = size.viewSize[0];
+    const viewH = size.viewSize[1];
+    const boxW = size.contentSize[0];
+    const boxH = size.contentSize[1];
+    let x = point[0] + gap;
+    let y = point[1] - boxH - gap;
+    if (x + boxW + margin > viewW) x = point[0] - boxW - gap;
+    if (y < margin) y = point[1] + gap;
+    if (y + boxH + margin > viewH) y = viewH - boxH - margin;
+    return [Math.max(margin, x), Math.max(margin, y)];
+  };
   const tooltipStyle = {
     backgroundColor: '#fdfcfa',
     borderColor: '#d1cec8',
     borderWidth: 1,
+    confine: true,
+    position: tooltipPosition,
     textStyle: { color: ink, fontFamily: F, fontSize: 12 },
-    extraCssText: 'box-shadow:0 2px 8px rgba(10,31,61,0.06);',
+    extraCssText: 'max-width:260px;white-space:normal;box-shadow:0 8px 22px rgba(10,31,61,0.14);pointer-events:none;z-index:30;',
   };
   const primaryColor = '#8B9DAF';
   const areaFill = { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139,157,175,0.10)' }, { offset: 1, color: 'rgba(139,157,175,0)' }] };

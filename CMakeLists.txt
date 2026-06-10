@@ -2020,7 +2020,7 @@ set(EXPECTED_DATA
   wordlist.txt
 )
 
-set_glob(DATA GLOB_RECURSE "cfg;chai;frag;json;map;md;otf;png;rcss;rml;rules;ttc;ttf;txt;vert;wv" data ${EXPECTED_DATA})
+set_glob(DATA GLOB_RECURSE "cfg;chai;frag;json;map;md;otf;png;rules;ttc;ttf;txt;vert;wv" data ${EXPECTED_DATA})
 
 ########################################################################
 # COPY DATA AND SHARED LIBS
@@ -2033,13 +2033,6 @@ foreach(datafile ${DATA})
   file(COPY ${datafile} DESTINATION ${DESTINATION})
 endforeach()
 
-# Keep UI data in sync with the build directory when files change.
-set(DATA_UI)
-foreach(datafile ${DATA})
-  if(datafile MATCHES "/data/ui/")
-    list(APPEND DATA_UI ${datafile})
-  endif()
-endforeach()
 if(DATA)
   # Keep the whole runtime data directory in sync with the build directory on every build.
   # This custom target has no OUTPUT, so it always runs when game-client is built.
