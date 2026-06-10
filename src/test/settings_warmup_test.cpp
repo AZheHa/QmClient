@@ -1296,6 +1296,8 @@ TEST(SettingsResourceJobs, AssetsPageRejectsWholePageFbo)
 	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_GRAPHICS, CMenus::SETTINGS_ASSETS));
 	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_QMCLIENT, CMenus::SETTINGS_ASSETS));
 	EXPECT_TRUE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_TCLIENT, CMenus::SETTINGS_ASSETS));
+	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_TCLIENT, CMenus::SETTINGS_ASSETS, -1, 0));
+	EXPECT_TRUE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_TCLIENT, CMenus::SETTINGS_ASSETS, -1, 1));
 	EXPECT_TRUE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_LANGUAGE, CMenus::SETTINGS_ASSETS));
 }
 
@@ -1313,9 +1315,26 @@ TEST(SettingsWarmup, GraphicsPageRuntimeWarmupDoesNotRenderSystemControls)
 	ASSERT_NE(DrawPos, std::string::npos);
 	const std::string WarmupBody = MenusSource.substr(WarmupPos, DrawPos - WarmupPos);
 
-	EXPECT_NE(WarmupBody.find("if(!SettingsPageCanUsePageFbo(Page, SETTINGS_ASSETS))"), std::string::npos);
+	const size_t TClientTabCanonicalizePos = WarmupBody.find("Tab = CanonicalizeTClientCacheTab(Tab);");
+	const size_t FboCheckPos = WarmupBody.find("if(!SettingsPageCanUsePageFbo(Page, SETTINGS_ASSETS, -1, Tab))");
+	ASSERT_NE(TClientTabCanonicalizePos, std::string::npos);
+	ASSERT_NE(FboCheckPos, std::string::npos);
+	EXPECT_LT(TClientTabCanonicalizePos, FboCheckPos);
 	EXPECT_NE(WarmupBody.find("RenderSettingsGraphics(CacheView);"), std::string::npos);
 	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_GRAPHICS, CMenus::SETTINGS_ASSETS));
+}
+
+TEST(SettingsWarmup, RuntimeWarmupSkipsUnsupportedSiblingPageFbos)
+{
+	std::ifstream MenusSourceFile("src/game/client/components/tclient/menus_tclient.cpp");
+	ASSERT_TRUE(MenusSourceFile.good());
+	std::stringstream MenusBuffer;
+	MenusBuffer << MenusSourceFile.rdbuf();
+	const std::string MenusSource = MenusBuffer.str();
+
+	EXPECT_NE(MenusSource.find("if(!SettingsPageCanUsePageFbo(SETTINGS_TCLIENT, SETTINGS_ASSETS, -1, Tab))"), std::string::npos);
+	EXPECT_NE(MenusSource.find("if(!SettingsPageCanUsePageFbo(SETTINGS_QMCLIENT, SETTINGS_ASSETS, -1, Tab))"), std::string::npos);
+	EXPECT_NE(MenusSource.find("const bool PageFboSupported = SettingsPageCanUsePageFbo(SETTINGS_TCLIENT, SETTINGS_ASSETS, -1, TClientTab);"), std::string::npos);
 }
 
 TEST(SettingsResourceJobs, AssetWarmupTracksAllTabsAndCycles)

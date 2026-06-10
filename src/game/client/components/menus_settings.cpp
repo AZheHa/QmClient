@@ -286,6 +286,71 @@ namespace
 
 	STeeSettingsPageState gs_TeeSettingsPageState;
 
+	struct SSettingsTeeIdentityNameInputState
+	{
+		CLineInput m_aInputs[2];
+		char m_aaBuffers[2][MAX_NAME_LENGTH] = {};
+		char m_aaSyncedNames[2][MAX_NAME_LENGTH] = {};
+		bool m_aDirty[2] = {};
+
+		static int Index(bool Dummy) { return Dummy ? 1 : 0; }
+
+		CLineInput &Input(bool Dummy)
+		{
+			const int InputIndex = Index(Dummy);
+			m_aInputs[InputIndex].SetBuffer(m_aaBuffers[InputIndex], sizeof(m_aaBuffers[InputIndex]));
+			return m_aInputs[InputIndex];
+		}
+
+		bool IsDirty(bool Dummy) const
+		{
+			return m_aDirty[Index(Dummy)];
+		}
+
+		void MarkDirty(bool Dummy)
+		{
+			m_aDirty[Index(Dummy)] = true;
+		}
+
+		void SyncFromConfig(bool Dummy, const char *pConfigName)
+		{
+			const int InputIndex = Index(Dummy);
+			CLineInput &NameInput = Input(Dummy);
+			if(m_aDirty[InputIndex] || NameInput.IsActive() || str_comp(m_aaSyncedNames[InputIndex], pConfigName) == 0)
+				return;
+
+			NameInput.Set(pConfigName);
+			str_copy(m_aaSyncedNames[InputIndex], pConfigName, sizeof(m_aaSyncedNames[InputIndex]));
+		}
+
+		bool CommitToConfig(bool Dummy, char *pConfigName, size_t ConfigNameSize)
+		{
+			const int InputIndex = Index(Dummy);
+			if(!m_aDirty[InputIndex])
+				return false;
+
+			CLineInput &NameInput = Input(Dummy);
+			const bool Changed = str_comp(pConfigName, NameInput.GetString()) != 0;
+			if(Changed)
+				str_copy(pConfigName, NameInput.GetString(), ConfigNameSize);
+			str_copy(m_aaSyncedNames[InputIndex], pConfigName, sizeof(m_aaSyncedNames[InputIndex]));
+			m_aDirty[InputIndex] = false;
+			return Changed;
+		}
+	};
+
+	SSettingsTeeIdentityNameInputState gs_TeeIdentityNameInputState;
+
+	char *SettingsTeeIdentityNameConfig(bool Dummy)
+	{
+		return Dummy ? g_Config.m_ClDummyName : g_Config.m_PlayerName;
+	}
+
+	size_t SettingsTeeIdentityNameConfigSize(bool Dummy)
+	{
+		return Dummy ? sizeof(g_Config.m_ClDummyName) : sizeof(g_Config.m_PlayerName);
+	}
+
 	void BeginTeeListDrainPerfSession(const CSkins &Skins, int64_t NowNs)
 	{
 		gs_TeeListDrainPerfSession.m_Active = true;
@@ -901,39 +966,46 @@ CUi::EPopupMenuFunctionResult CMenus::PopupSettingsCountrySelection(void *pConte
 
 void CMenus::RenderSettingsTeeIdentity(CUIRect MainView, CUIRect *pFlagButton)
 {
-	static CLineInput s_NameInput;
 	static CLineInput s_ClanInput;
 	int *pCountry = nullptr;
+	const bool Dummy = m_Dummy;
+	char *pNameConfig = SettingsTeeIdentityNameConfig(Dummy);
+	const size_t NameConfigSize = SettingsTeeIdentityNameConfigSize(Dummy);
+	CLineInput &NameInputLine = gs_TeeIdentityNameInputState.Input(Dummy);
+	gs_TeeIdentityNameInputState.SyncFromConfig(Dummy, pNameConfig);
 	if(!m_Dummy)
 	{
 		pCountry = &g_Config.m_PlayerCountry;
-		s_NameInput.SetBuffer(g_Config.m_PlayerName, sizeof(g_Config.m_PlayerName));
-		s_NameInput.SetEmptyText(Client()->PlayerName());
+		NameInputLine.SetEmptyText(Client()->PlayerName());
 		s_ClanInput.SetBuffer(g_Config.m_PlayerClan, sizeof(g_Config.m_PlayerClan));
 	}
 	else
 	{
 		pCountry = &g_Config.m_ClDummyCountry;
-		s_NameInput.SetBuffer(g_Config.m_ClDummyName, sizeof(g_Config.m_ClDummyName));
-		s_NameInput.SetEmptyText(Client()->DummyName());
+		NameInputLine.SetEmptyText(Client()->DummyName());
 		s_ClanInput.SetBuffer(g_Config.m_ClDummyClan, sizeof(g_Config.m_ClDummyClan));
 	}
 
-	CUIRect NameSide, ClanSide, NameLabel, NameInput, ClanLabel, ClanInput, FlagButton;
+	CUIRect NameSide, ClanSide, NameLabel, NameInputRect, ClanLabel, ClanInput, FlagButton;
 	const float IdentityGap = 12.0f;
 	const float AvailableIdentityWidth = maximum(0.0f, MainView.w - IdentityGap);
 	const float NameSideWidth = AvailableIdentityWidth * 0.52f;
 	MainView.VSplitLeft(NameSideWidth, &NameSide, &ClanSide);
 	ClanSide.VSplitLeft(IdentityGap, nullptr, &ClanSide);
-	NameSide.VSplitLeft(45.0f, &NameLabel, &NameInput);
+	NameSide.VSplitLeft(45.0f, &NameLabel, &NameInputRect);
 	ClanSide.VSplitLeft(40.0f, &ClanLabel, &ClanInput);
 	ClanInput.VSplitRight(40.0f, &ClanInput, &FlagButton);
 	ClanInput.VSplitRight(6.0f, &ClanInput, nullptr);
 
 	Ui()->DoLabel(&NameLabel, Localize("Name"), 14.0f, TEXTALIGN_ML);
 	Ui()->DoLabel(&ClanLabel, Localize("Clan"), 14.0f, TEXTALIGN_ML);
-	if(Ui()->DoEditBox(&s_NameInput, &NameInput, 14.0f))
-		SetNeedSendInfo();
+	if(Ui()->DoEditBox(&NameInputLine, &NameInputRect, 14.0f))
+		gs_TeeIdentityNameInputState.MarkDirty(Dummy);
+	if(gs_TeeIdentityNameInputState.IsDirty(Dummy) && !NameInputLine.IsActive())
+	{
+		if(gs_TeeIdentityNameInputState.CommitToConfig(Dummy, pNameConfig, NameConfigSize))
+			SetNeedSendInfo(Dummy);
+	}
 	if(Ui()->DoEditBox(&s_ClanInput, &ClanInput, 14.0f))
 		SetNeedSendInfo();
 
@@ -1216,6 +1288,8 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	static CButtonContainer s_PlayerTabButton;
 	if(DoButton_MenuTab(&s_PlayerTabButton, pPlayerTabLabel, s_TeeSubTab == 0, &PlayerTab, IGraphics::CORNER_L, nullptr, nullptr, nullptr, nullptr, 4.0f))
 	{
+		if(gs_TeeIdentityNameInputState.CommitToConfig(m_Dummy, SettingsTeeIdentityNameConfig(m_Dummy), SettingsTeeIdentityNameConfigSize(m_Dummy)))
+			SetNeedSendInfo(m_Dummy);
 		s_TeeSubTab = 0;
 		m_Dummy = false;
 		m_SkinListScrollToSelected = true;
@@ -1225,6 +1299,8 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	if(DoButton_MenuTab(&s_DummyTabButton, pDummyTabLabel, s_TeeSubTab == 1, &DummyTab,
 		   SeparateProfilesTab ? IGraphics::CORNER_R : IGraphics::CORNER_NONE, nullptr, nullptr, nullptr, nullptr, 4.0f))
 	{
+		if(gs_TeeIdentityNameInputState.CommitToConfig(m_Dummy, SettingsTeeIdentityNameConfig(m_Dummy), SettingsTeeIdentityNameConfigSize(m_Dummy)))
+			SetNeedSendInfo(m_Dummy);
 		s_TeeSubTab = 1;
 		m_Dummy = true;
 		m_SkinListScrollToSelected = true;
@@ -1234,6 +1310,8 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	if(DoButton_MenuTab(&s_ProfilesTabButton, pProfilesTabLabel, s_TeeSubTab == 2, &ProfilesTab,
 		   SeparateProfilesTab ? IGraphics::CORNER_ALL : IGraphics::CORNER_R, nullptr, nullptr, nullptr, nullptr, 4.0f))
 	{
+		if(gs_TeeIdentityNameInputState.CommitToConfig(m_Dummy, SettingsTeeIdentityNameConfig(m_Dummy), SettingsTeeIdentityNameConfigSize(m_Dummy)))
+			SetNeedSendInfo(m_Dummy);
 		s_TeeSubTab = 2;
 	}
 

@@ -3379,6 +3379,12 @@ bool CMenus::PrewarmSettingsTClientRuntimeCacheSibling(CUIRect ContentView)
 				m_aSettingsTClientSiblingPrewarmed[Tab] = true;
 			continue;
 		}
+		if(!SettingsPageCanUsePageFbo(SETTINGS_TCLIENT, SETTINGS_ASSETS, -1, Tab))
+		{
+			if(Tab >= 0 && Tab < 6)
+				m_aSettingsTClientSiblingPrewarmed[Tab] = true;
+			continue;
+		}
 		if(PrewarmSettingsPageRuntimeCache(ContentView, SETTINGS_TCLIENT, Tab, m_SettingsRuntimeMetadata.m_LastScrollY) && Tab >= 0 && Tab < 6)
 			m_aSettingsTClientSiblingPrewarmed[Tab] = true;
 		break;
@@ -3401,6 +3407,11 @@ bool CMenus::PrewarmSettingsQmClientRuntimeCacheSibling(CUIRect ContentView)
 		const int Tab = s_NextQmClientRuntimeCachePrewarmTab;
 		s_NextQmClientRuntimeCachePrewarmTab = (s_NextQmClientRuntimeCachePrewarmTab + 1) % NUMBER_OF_QMCLIENT_SETTINGS_TABS;
 		if(Tab == m_QmClientSettingsTab)
+		{
+			m_aSettingsQmClientSiblingPrewarmed[Tab] = true;
+			continue;
+		}
+		if(!SettingsPageCanUsePageFbo(SETTINGS_QMCLIENT, SETTINGS_ASSETS, -1, Tab))
 		{
 			m_aSettingsQmClientSiblingPrewarmed[Tab] = true;
 			continue;
@@ -3459,14 +3470,14 @@ bool CMenus::PrewarmSettingsRuntimeCaches(CUIRect MainView)
 		}
 		else if(JobPage == SETTINGS_TEE)
 		{
-			const bool ResourcesReady = PrewarmSettingsPageResources(SETTINGS_TEE, PageTab, ContentView);
-			m_aSettingsPagePrewarmed[Slot] = ResourcesReady;
-			if(ResourcesReady)
-				++m_SettingsStartupWarmupCursor;
+			(void)PrewarmSettingsPageResources(SETTINGS_TEE, PageTab, ContentView);
+			m_aSettingsPagePrewarmed[Slot] = true;
+			++m_SettingsStartupWarmupCursor;
 		}
 		else if(JobPage == SETTINGS_TCLIENT)
 		{
-			const bool PageReady = PrewarmSettingsPageRuntimeCache(ContentView, SETTINGS_TCLIENT, TClientTab, Job.m_ScrollY);
+			const bool PageFboSupported = SettingsPageCanUsePageFbo(SETTINGS_TCLIENT, SETTINGS_ASSETS, -1, TClientTab);
+			const bool PageReady = !PageFboSupported || PrewarmSettingsPageRuntimeCache(ContentView, SETTINGS_TCLIENT, TClientTab, Job.m_ScrollY);
 			PrewarmSettingsTClient(ContentView);
 			m_aSettingsPagePrewarmed[Slot] = PageReady;
 			if(PageReady)
@@ -3474,9 +3485,10 @@ bool CMenus::PrewarmSettingsRuntimeCaches(CUIRect MainView)
 		}
 		else
 		{
+			const bool PageFboSupported = SettingsPageCanUsePageFbo(JobPage, SETTINGS_ASSETS, -1, PageTab);
 			const bool ResourcesReady = PrewarmSettingsPageResources(JobPage, PageTab, ContentView);
-			const bool PageReady = PrewarmSettingsPageRuntimeCache(ContentView, JobPage, PageTab, Job.m_ScrollY, ResourcesReady);
-			m_aSettingsPagePrewarmed[Slot] = SettingsPageCanUsePageFbo(JobPage, SETTINGS_ASSETS, -1, PageTab) ? (ResourcesReady && PageReady) : ResourcesReady;
+			const bool PageReady = !PageFboSupported || PrewarmSettingsPageRuntimeCache(ContentView, JobPage, PageTab, Job.m_ScrollY, ResourcesReady);
+			m_aSettingsPagePrewarmed[Slot] = PageFboSupported ? (ResourcesReady && PageReady) : true;
 			if(m_aSettingsPagePrewarmed[Slot])
 				++m_SettingsStartupWarmupCursor;
 		}

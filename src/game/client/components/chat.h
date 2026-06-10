@@ -274,6 +274,26 @@ class CChat : public CComponent
 	CLanguagePopupContext m_LanguagePopupContext;
 	bool m_LanguageMenuOpen = false;
 
+	class CChatLinePopupContext : public SPopupMenuId
+	{
+	public:
+		CChat *m_pChat = nullptr;
+		int m_ClientId = CLIENT_MSG;
+		int m_TeamNumber = 0;
+		char m_aName[64] = "";
+		char m_aText[MAX_LINE_LENGTH] = "";
+		bool m_PlayerLine = false;
+		bool m_LocalPlayer = false;
+
+		CButtonContainer m_CopyButton;
+		CButtonContainer m_AddOneButton;
+		CButtonContainer m_ReplyButton;
+		CButtonContainer m_MutePlayerButton;
+		CButtonContainer m_AddBlockedWordButton;
+		CButtonContainer m_CopyNameButton;
+	};
+	CChatLinePopupContext m_ChatLinePopupContext;
+
 public:
 	CChat();
 	int Sizeof() const override { return sizeof(*this); }
@@ -299,6 +319,36 @@ public:
 	static bool IsCopyClickDrag(vec2 Press, vec2 Release)
 	{
 		return length(Release - Press) <= 5.0f;
+	}
+	static bool AppendBlockWordToList(char *pList, size_t ListSize, const char *pWord)
+	{
+		if(pList == nullptr || pWord == nullptr || pWord[0] == '\0' || ListSize == 0)
+			return false;
+
+		const size_t ListLength = str_length(pList);
+		const size_t SeparatorLength = ListLength > 0 ? 1 : 0;
+		const size_t WordLength = str_length(pWord);
+		if(ListLength + SeparatorLength + WordLength >= ListSize)
+			return false;
+
+		if(SeparatorLength > 0)
+			str_append(pList, ";", ListSize);
+
+		const size_t WordStart = str_length(pList);
+		str_append(pList, pWord, ListSize);
+		return str_length(pList) > WordStart;
+	}
+	static bool BuildWhisperCommand(char *pBuf, size_t BufSize, const char *pName, const char *pMessage)
+	{
+		if(pBuf == nullptr || pName == nullptr || pName[0] == '\0' || pMessage == nullptr || BufSize == 0)
+			return false;
+
+		str_copy(pBuf, "/w \"", BufSize);
+		char *pDst = pBuf + str_length(pBuf);
+		str_escape(&pDst, pName, pBuf + BufSize);
+		str_append(pBuf, "\" ", BufSize);
+		str_append(pBuf, pMessage, BufSize);
+		return true;
 	}
 	static QmHudNotifications::EServerMessageClass ResolveLineServerMessageClass(int ClientId, const char *pLine, std::optional<QmHudNotifications::EServerMessageClass> KnownServerMessageClass = std::nullopt)
 	{
@@ -353,6 +403,12 @@ public:
 	void CloseLanguageMenu();
 	bool IsLanguageMenuOpen() const { return m_LanguageMenuOpen; }
 	static CUi::EPopupMenuFunctionResult PopupLanguageMenu(void *pContext, CUIRect View, bool Active);
+	void OpenChatLineMenu(const CLine &Line, vec2 ChatMousePos);
+	void CloseChatLineMenu();
+	static CUi::EPopupMenuFunctionResult PopupChatLineMenu(void *pContext, CUIRect View, bool Active);
+	void AddTextToBlockWords(const char *pText);
+	void ReplyToChatLine(const CChatLinePopupContext &Context);
+	void RepeatChatLine(const CChatLinePopupContext &Context);
 
 	// 聊天行索引辅助方法（用于翻译任务的内存安全）
 	int GetLineIndex(const CLine *pLine) const;

@@ -282,7 +282,7 @@ private:
 	int64_t m_PendingCompatUntil = 0;
 
 	int BuildVisibleNotificationList(bool EditorPreview, const SNotification *(&apVisible)[8], SNotification &PreviewNotification);
-	CUIRect MeasureVisibleRect(const CUIRect &BaseRect, bool EditorPreview, QmHudNotifications::EHorizontalFlow Flow);
+	CUIRect MeasureVisibleRect(const CUIRect &BaseRect, bool EditorPreview, QmHudNotifications::EHorizontalFlow Flow, bool StableEditorGeometry);
 	SEditorPreviewMetrics MeasureEditorPreviewMetrics(const CUIRect &BaseRect);
 	CUIRect MeasureEditorPreviewRect(const CUIRect &BaseRect, QmHudNotifications::EHorizontalFlow Flow);
 	CUIRect MeasureEditorPreviewDragRect(const CUIRect &BaseRect);

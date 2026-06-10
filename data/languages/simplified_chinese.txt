@@ -4209,6 +4209,24 @@ Both
 Separate with commas
 == 用 , 分隔
 
+Copy
+== 复制
+
+Add one
+== 加一
+
+Reply
+== 回复
+
+Mute player
+== 屏蔽玩家
+
+Add to blocked words
+== 添加到屏蔽词
+
+Copy name
+== 复制名字
+
 Blocked words
 == 屏蔽词
 
