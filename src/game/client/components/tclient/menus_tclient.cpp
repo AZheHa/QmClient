@@ -947,10 +947,7 @@ float CMenus::RenderTClientCacheSectionFallback(CUIRect &CurrentColumn, float To
 
 void CMenus::ConfigureSplitCachedStaticLayer(SSettingsSection &Section, const char *pTitle, std::function<float(CUIRect &)> MeasureSection, std::function<float(CUIRect &)> RenderInteractiveSection, float TopMargin)
 {
-	Section.m_CanCacheStaticLayer = true;
-	Section.m_KeepCachedHeightStable = true;
-	Section.m_StaticCachePadding = MarginBetweenViews * 0.6666f;
-	Section.m_RenderStaticLayerFn = [this, pTitle, MeasureSection = std::move(MeasureSection), TopMargin](CUIRect &Col) -> float {
+	Section.m_RenderCompactFn = [this, pTitle, MeasureSection = std::move(MeasureSection), RenderInteractiveSection, TopMargin](CUIRect &Col) -> float {
 		CUIRect Label;
 		const float SavedY = Col.y;
 		CUIRect MeasuredColumn = Col;
@@ -960,17 +957,10 @@ void CMenus::ConfigureSplitCachedStaticLayer(SSettingsSection &Section, const ch
 		Col.HSplitTop(HeadlineHeight, &Label, &Col);
 		Ui()->DoLabel(&Label, Localize(pTitle), HeadlineFontSize, TEXTALIGN_ML);
 		Col.HSplitTop(MarginSmall, nullptr, &Col);
-		Col.y = SavedY + Height;
-		return Height;
-	};
-	Section.m_RenderInteractiveLayerFn = [RenderInteractiveSection = std::move(RenderInteractiveSection), TopMargin](CUIRect &Col) -> float {
-		const float SavedY = Col.y;
-		Col.HSplitTop(TopMargin, nullptr, &Col);
-		Col.HSplitTop(HeadlineHeight, nullptr, &Col);
-		Col.HSplitTop(MarginSmall, nullptr, &Col);
 		RenderInteractiveSection(Col);
 		return Col.y - SavedY;
 	};
+	Section.m_RenderFullFn = Section.m_RenderCompactFn;
 }
 
 float CMenus::LayoutTClientThemeCacheSection(CUIRect &CurrentColumn, bool Render)
@@ -1384,10 +1374,6 @@ SSettingsSection CMenus::BuildTClientThemeCacheSection()
 	SSettingsSection S;
 	S.m_pName = "Visual: Font & Cursor";
 	S.m_MeasureFn = [this](CUIRect &Col) -> float { return LayoutTClientThemeCacheSection(Col, false); };
-	S.m_RenderCompactFn = [this](CUIRect &Col) -> float {
-		return RenderTClientCacheSectionFallback(Col, MarginBetweenSections, &CMenus::LayoutTClientThemeCacheSection);
-	};
-	S.m_RenderFullFn = S.m_RenderCompactFn;
 	ConfigureSplitCachedStaticLayer(S, "Visual: Font & Cursor", [this](CUIRect &Col) -> float { return LayoutTClientThemeCacheSection(Col, false); }, [this](CUIRect &Col) -> float { return RenderTClientThemeInteractiveLayer(Col); }, MarginBetweenSections);
 	S.m_DependencyConfigInts = {&g_Config.m_TcCursorScale, &g_Config.m_TcAnimateWheelTime, &g_Config.m_TcHammerRotatesWithCursor};
 	return S;
@@ -1398,10 +1384,6 @@ SSettingsSection CMenus::BuildTClientAutoReplyCacheSection()
 	SSettingsSection S;
 	S.m_pName = "Auto reply";
 	S.m_MeasureFn = [this](CUIRect &Col) -> float { return LayoutTClientAutoReplyCacheSection(Col, false); };
-	S.m_RenderCompactFn = [this](CUIRect &Col) -> float {
-		return RenderTClientCacheSectionFallback(Col, MarginBetweenSections, &CMenus::LayoutTClientAutoReplyCacheSection);
-	};
-	S.m_RenderFullFn = S.m_RenderCompactFn;
 	ConfigureSplitCachedStaticLayer(S, "Auto reply", [this](CUIRect &Col) -> float { return LayoutTClientAutoReplyCacheSection(Col, false); }, [this](CUIRect &Col) -> float { return RenderTClientAutoReplyInteractiveLayer(Col); }, MarginBetweenSections);
 	S.m_DependencyConfigInts = {&g_Config.m_TcAutoReplyMuted, &g_Config.m_TcAutoReplyMinimized};
 	return S;
@@ -1412,10 +1394,6 @@ SSettingsSection CMenus::BuildTClientPetCacheSection()
 	SSettingsSection S;
 	S.m_pName = "Pet";
 	S.m_MeasureFn = [this](CUIRect &Col) -> float { return LayoutTClientPetCacheSection(Col, false); };
-	S.m_RenderCompactFn = [this](CUIRect &Col) -> float {
-		return RenderTClientCacheSectionFallback(Col, MarginBetweenSections, &CMenus::LayoutTClientPetCacheSection);
-	};
-	S.m_RenderFullFn = S.m_RenderCompactFn;
 	ConfigureSplitCachedStaticLayer(S, "Pet", [this](CUIRect &Col) -> float { return LayoutTClientPetCacheSection(Col, false); }, [this](CUIRect &Col) -> float { return RenderTClientPetInteractiveLayer(Col); }, MarginBetweenSections);
 	S.m_DependencyConfigInts = {&g_Config.m_TcPetShow, &g_Config.m_TcPetSize, &g_Config.m_TcPetAlpha};
 	return S;
@@ -1426,10 +1404,6 @@ SSettingsSection CMenus::BuildTClientHudCacheSection()
 	SSettingsSection S;
 	S.m_pName = "HUD";
 	S.m_MeasureFn = [this](CUIRect &Col) -> float { return LayoutTClientHudCacheSection(Col, false); };
-	S.m_RenderCompactFn = [this](CUIRect &Col) -> float {
-		return RenderTClientCacheSectionFallback(Col, Margin, &CMenus::LayoutTClientHudCacheSection);
-	};
-	S.m_RenderFullFn = S.m_RenderCompactFn;
 	ConfigureSplitCachedStaticLayer(S, "HUD", [this](CUIRect &Col) -> float { return LayoutTClientHudCacheSection(Col, false); }, [this](CUIRect &Col) -> float { return RenderTClientHudInteractiveLayer(Col); }, Margin);
 	S.m_DependencyConfigInts = {
 		&g_Config.m_TcMiniVoteHud,
@@ -1462,52 +1436,10 @@ std::vector<SSettingsSection> CMenus::BuildTClientRightCacheSections()
 	return vSections;
 }
 
-bool CMenus::PrepareTClientSettingsRuntimeCacheSection(CUIRect SectionView, const char *pSectionId, CSectionLoader *&pLoader, const char *&pLoaderSectionName, bool ConfigureRuntimeState)
-{
-	pLoader = nullptr;
-	pLoaderSectionName = nullptr;
-	if(str_comp(pSectionId, "theme") == 0 || str_comp(pSectionId, "auto-reply") == 0 || str_comp(pSectionId, "pet") == 0)
-	{
-		pLoader = &s_VisualFontLoader;
-		pLoaderSectionName = str_comp(pSectionId, "theme") == 0      ? "Visual: Font & Cursor" :
-				     str_comp(pSectionId, "auto-reply") == 0 ? "Auto reply" :
-									       "Pet";
-		s_VisualFontLoader.Register(BuildTClientLeftCacheSections());
-		if(ConfigureRuntimeState)
-		{
-			s_VisualFontLoader.SetGraphicsForCache(Graphics());
-			s_VisualFontLoader.SetRuntimeKey(MakeSettingsSectionRuntimeKey(SectionView, Graphics()));
-			s_VisualFontLoader.SetProgressiveEnabled(false);
-			s_VisualFontLoader.SetLiveStaticCacheRecordingEnabled(false);
-		}
-		return true;
-	}
-	if(str_comp(pSectionId, "misc") == 0 || str_comp(pSectionId, "hud") == 0)
-	{
-		pLoader = &s_RightSectionLoader;
-		pLoaderSectionName = "HUD";
-		s_RightSectionLoader.Register(BuildTClientRightCacheSections());
-		if(ConfigureRuntimeState)
-		{
-			s_RightSectionLoader.SetGraphicsForCache(Graphics());
-			s_RightSectionLoader.SetRuntimeKey(MakeSettingsSectionRuntimeKey(SectionView, Graphics()));
-			s_RightSectionLoader.SetProgressiveEnabled(false);
-			s_RightSectionLoader.SetLiveStaticCacheRecordingEnabled(false);
-		}
-		return true;
-	}
-	return false;
-}
-
 void CMenus::InvalidateTClientSettingsRuntimeCacheSections(ESettingsCacheDirtyReason Reason)
 {
 	s_VisualFontLoader.InvalidateCache(Reason);
 	s_RightSectionLoader.InvalidateCache(Reason);
-	InvalidateSettingsPageRuntimeCache(SETTINGS_TCLIENT, -1);
-}
-bool CMenus::TClientSettingsSubcachesReady() const
-{
-	return s_VisualFontLoader.IsComplete() && s_RightSectionLoader.IsComplete();
 }
 
 void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
@@ -1584,10 +1516,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 		return Col.y - SavedY;
 	};
 	auto FillSplitCachedStaticLayer = [&](SSettingsSection &Section, const char *pTitle, auto &&MeasureSection, auto &&RenderInteractiveSection, float TopMargin) {
-		Section.m_CanCacheStaticLayer = true;
-		Section.m_KeepCachedHeightStable = true;
-		Section.m_StaticCachePadding = MarginBetweenViews * 0.6666f;
-		Section.m_RenderStaticLayerFn = [&, pTitle, TopMargin](CUIRect &Col) -> float {
+		Section.m_RenderCompactFn = [&, pTitle, TopMargin](CUIRect &Col) -> float {
 			const float SavedY = Col.y;
 			CUIRect MeasuredColumn = Col;
 			const float Height = MeasureSection(MeasuredColumn);
@@ -1597,36 +1526,21 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 			Col.HSplitTop(HeadlineHeight, &Label, &Col);
 			Ui()->DoLabel(&Label, Localize(pTitle), HeadlineFontSize, TEXTALIGN_ML);
 			Col.HSplitTop(MarginSmall, nullptr, &Col);
-			Col.y = SavedY + Height;
-			return Height;
-		};
-		Section.m_RenderInteractiveLayerFn = [&, TopMargin](CUIRect &Col) -> float {
-			const float SavedY = Col.y;
-			Col.HSplitTop(TopMargin, nullptr, &Col);
-			Col.HSplitTop(HeadlineHeight, nullptr, &Col);
-			Col.HSplitTop(MarginSmall, nullptr, &Col);
 			RenderInteractiveSection(Col);
 			return Col.y - SavedY;
 		};
+		Section.m_RenderFullFn = Section.m_RenderCompactFn;
 	};
 	auto FillCachedStaticLayer = [&](SSettingsSection &Section, auto &LayoutSection) {
-		Section.m_CanCacheStaticLayer = true;
-		Section.m_StaticCachePadding = MarginBetweenViews * 0.6666f;
-		CUi *pUi = Ui();
-		Section.m_RenderStaticLayerFn = [&LayoutSection, &DrawSectionBox, pUi](CUIRect &Col) -> float {
+		Section.m_RenderCompactFn = [&LayoutSection, &DrawSectionBox](CUIRect &Col) -> float {
 			const float SavedY = Col.y;
 			CUIRect MeasuredColumn = Col;
 			CUIRect BoxRect = LayoutSection(MeasuredColumn, false);
 			DrawSectionBox(BoxRect);
-			CUiRenderOnlyGuard RenderOnlyGuard(pUi);
 			LayoutSection(Col, true);
 			return Col.y - SavedY;
 		};
-		Section.m_RenderInteractiveLayerFn = [&LayoutSection](CUIRect &Col) -> float {
-			float SavedY = Col.y;
-			LayoutSection(Col, true);
-			return Col.y - SavedY;
-		};
+		Section.m_RenderFullFn = Section.m_RenderCompactFn;
 	};
 	[[maybe_unused]] auto CalcHudSectionHeight = [&]() {
 		float Height = 0.0f;
@@ -1672,10 +1586,8 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 	RightView.VSplitRight(MarginSmall, &RightView, nullptr);
 
 	// Initialize VisualFont section loader for this frame
-	s_VisualFontLoader.SetGraphicsForCache(Graphics());
 	s_VisualFontLoader.SetRuntimeKey(MakeSettingsSectionRuntimeKey(LeftView, Graphics()));
 	s_VisualFontLoader.SetProgressiveEnabled(false);
-	s_VisualFontLoader.SetLiveStaticCacheRecordingEnabled(false);
 	s_VisualFontLoader.m_ScrollY = ScrollOffset.y;
 	s_VisualFontLoader.Begin(LeftView, 5.0f);
 
@@ -2634,7 +2546,9 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 
 		if(PrewarmOnly)
 		{
-			s_VisualFontLoader.PrewarmStaticRenderTargets(LeftView, ScrollOffset.y, 2.0f, true);
+			s_VisualFontLoader.Process();
+			Column = s_VisualFontLoader.GetRunningColumn();
+			LeftView = Column;
 			LogSettingsStage("tclient_settings_left_prewarm", VisualSectionsTotalTimer);
 		}
 		else
@@ -2652,10 +2566,8 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 	{
 		CPerfTimer RightColumnTimer;
 		Column = RightView;
-		s_RightSectionLoader.SetGraphicsForCache(Graphics());
 		s_RightSectionLoader.SetRuntimeKey(MakeSettingsSectionRuntimeKey(RightView, Graphics()));
 		s_RightSectionLoader.SetProgressiveEnabled(false);
-		s_RightSectionLoader.SetLiveStaticCacheRecordingEnabled(false);
 		s_RightSectionLoader.m_ScrollY = ScrollOffset.y;
 		s_RightSectionLoader.Begin(RightView, 5.0f);
 
@@ -3328,7 +3240,9 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 
 		if(PrewarmOnly)
 		{
-			s_RightSectionLoader.PrewarmStaticRenderTargets(RightView, ScrollOffset.y, 2.0f, true);
+			s_RightSectionLoader.Process();
+			Column = s_RightSectionLoader.GetRunningColumn();
+			RightView = Column;
 			LogSettingsStage("tclient_settings_right_prewarm", RightColumnTimer);
 			return;
 		}
@@ -3349,183 +3263,6 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 	ScrollRegion.h = 0.0f;
 	s_ScrollRegion.AddRect(ScrollRegion);
 	s_ScrollRegion.End();
-}
-
-void CMenus::PrewarmSettingsTClient(CUIRect MainView)
-{
-	if(!SettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi))
-		return;
-	RenderSettingsTClientSettings(TClientSettingsContentView(MainView), true);
-}
-
-bool CMenus::PrewarmSettingsTClientRuntimeCacheSibling(CUIRect ContentView)
-{
-	if(!SettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi))
-		return true;
-	static int s_NextTClientRuntimeCachePrewarmTab = TCLIENT_TAB_SETTINGS;
-	for(int Attempt = 0; Attempt < NUMBER_OF_TCLIENT_TABS; ++Attempt)
-	{
-		const int Tab = s_NextTClientRuntimeCachePrewarmTab;
-		s_NextTClientRuntimeCachePrewarmTab = (s_NextTClientRuntimeCachePrewarmTab + 1) % NUMBER_OF_TCLIENT_TABS;
-		if(IsFlagSet(g_Config.m_TcTClientSettingsTabs, Tab))
-		{
-			if(Tab >= 0 && Tab < 6)
-				m_aSettingsTClientSiblingPrewarmed[Tab] = true;
-			continue;
-		}
-		if(Tab == m_TClientSettingsTab)
-		{
-			if(Tab >= 0 && Tab < 6)
-				m_aSettingsTClientSiblingPrewarmed[Tab] = true;
-			continue;
-		}
-		if(!SettingsPageCanUsePageFbo(SETTINGS_TCLIENT, SETTINGS_ASSETS, -1, Tab))
-		{
-			if(Tab >= 0 && Tab < 6)
-				m_aSettingsTClientSiblingPrewarmed[Tab] = true;
-			continue;
-		}
-		if(PrewarmSettingsPageRuntimeCache(ContentView, SETTINGS_TCLIENT, Tab, m_SettingsRuntimeMetadata.m_LastScrollY) && Tab >= 0 && Tab < 6)
-			m_aSettingsTClientSiblingPrewarmed[Tab] = true;
-		break;
-	}
-	for(int Tab = 0; Tab < 6; ++Tab)
-	{
-		if(!m_aSettingsTClientSiblingPrewarmed[Tab])
-			return false;
-	}
-	return true;
-}
-
-bool CMenus::PrewarmSettingsQmClientRuntimeCacheSibling(CUIRect ContentView)
-{
-	if(!SettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi))
-		return true;
-	static int s_NextQmClientRuntimeCachePrewarmTab = QMCLIENT_SETTINGS_TAB_VISUAL;
-	for(int Attempt = 0; Attempt < NUMBER_OF_QMCLIENT_SETTINGS_TABS; ++Attempt)
-	{
-		const int Tab = s_NextQmClientRuntimeCachePrewarmTab;
-		s_NextQmClientRuntimeCachePrewarmTab = (s_NextQmClientRuntimeCachePrewarmTab + 1) % NUMBER_OF_QMCLIENT_SETTINGS_TABS;
-		if(Tab == m_QmClientSettingsTab)
-		{
-			m_aSettingsQmClientSiblingPrewarmed[Tab] = true;
-			continue;
-		}
-		if(!SettingsPageCanUsePageFbo(SETTINGS_QMCLIENT, SETTINGS_ASSETS, -1, Tab))
-		{
-			m_aSettingsQmClientSiblingPrewarmed[Tab] = true;
-			continue;
-		}
-		if(PrewarmSettingsPageRuntimeCache(ContentView, SETTINGS_QMCLIENT, Tab, 0.0f))
-			m_aSettingsQmClientSiblingPrewarmed[Tab] = true;
-		break;
-	}
-	for(int Tab = 0; Tab < NUMBER_OF_QMCLIENT_SETTINGS_TABS; ++Tab)
-	{
-		if(!m_aSettingsQmClientSiblingPrewarmed[Tab])
-			return false;
-	}
-	return true;
-}
-
-void CMenus::PrepareSettingsRuntimeWarmupPlan()
-{
-	m_SettingsStartupWarmupPlan = BuildSettingsWarmupStartupPlan(m_SettingsRuntimeMetadata, BuildSettingsPageRuntimeRegistry());
-	m_SettingsStartupWarmupCursor = 0;
-}
-
-bool CMenus::PrewarmSettingsRuntimeCaches(CUIRect MainView)
-{
-	if(!SettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi))
-		return true;
-	CUIRect ContentView = MainView;
-	const float TabBarWidth = std::clamp(ContentView.w * 0.16f, 132.0f, 168.0f);
-	ContentView.VSplitRight(TabBarWidth, &ContentView, nullptr);
-	ContentView.VSplitRight(10.0f, &ContentView, nullptr);
-	ContentView.Margin(10.0f, &ContentView);
-	if(m_NeedRestartGraphics || m_NeedRestartSound || m_NeedRestartUpdate)
-	{
-		ContentView.HSplitBottom(20.0f, &ContentView, nullptr);
-		ContentView.HSplitBottom(10.0f, &ContentView, nullptr);
-	}
-
-	if(m_SettingsStartupWarmupPlan.m_vPageJobs.empty() ||
-		m_SettingsStartupWarmupCursor > m_SettingsStartupWarmupPlan.m_vPageJobs.size())
-	{
-		PrepareSettingsRuntimeWarmupPlan();
-	}
-
-	const int QmClientTab = CanonicalizePersistedQmClientTab(m_SettingsRuntimeMetadata.m_LastQmTab >= 0 ? m_SettingsRuntimeMetadata.m_LastQmTab : m_QmClientSettingsTab);
-	const int TClientTab = CanonicalizePersistedTClientTab(m_SettingsRuntimeMetadata.m_LastTClientTab >= 0 ? m_SettingsRuntimeMetadata.m_LastTClientTab : m_TClientSettingsTab);
-	const int AssetsTab = CurrentSettingsAssetsTab();
-	if(m_SettingsStartupWarmupCursor < m_SettingsStartupWarmupPlan.m_vPageJobs.size())
-	{
-		const SSettingsWarmupPageJob &Job = m_SettingsStartupWarmupPlan.m_vPageJobs[m_SettingsStartupWarmupCursor];
-		const int JobPage = Job.m_Page;
-		const int PageTab = JobPage == SETTINGS_TCLIENT ? TClientTab : (JobPage == SETTINGS_QMCLIENT ? QmClientTab : (JobPage == SETTINGS_ASSETS ? AssetsTab : Job.m_Tab));
-		const int Slot = SettingsPageRuntimeCacheSlot(JobPage, PageTab);
-		if(Slot < 0 || m_aSettingsPagePrewarmed[Slot])
-		{
-			++m_SettingsStartupWarmupCursor;
-		}
-		else if(JobPage == SETTINGS_TEE)
-		{
-			(void)PrewarmSettingsPageResources(SETTINGS_TEE, PageTab, ContentView);
-			m_aSettingsPagePrewarmed[Slot] = true;
-			++m_SettingsStartupWarmupCursor;
-		}
-		else if(JobPage == SETTINGS_TCLIENT)
-		{
-			const bool PageFboSupported = SettingsPageCanUsePageFbo(SETTINGS_TCLIENT, SETTINGS_ASSETS, -1, TClientTab);
-			const bool PageReady = !PageFboSupported || PrewarmSettingsPageRuntimeCache(ContentView, SETTINGS_TCLIENT, TClientTab, Job.m_ScrollY);
-			PrewarmSettingsTClient(ContentView);
-			m_aSettingsPagePrewarmed[Slot] = PageReady;
-			if(PageReady)
-				++m_SettingsStartupWarmupCursor;
-		}
-		else
-		{
-			const bool PageFboSupported = SettingsPageCanUsePageFbo(JobPage, SETTINGS_ASSETS, -1, PageTab);
-			const bool ResourcesReady = PrewarmSettingsPageResources(JobPage, PageTab, ContentView);
-			const bool PageReady = !PageFboSupported || PrewarmSettingsPageRuntimeCache(ContentView, JobPage, PageTab, Job.m_ScrollY, ResourcesReady);
-			m_aSettingsPagePrewarmed[Slot] = PageFboSupported ? (ResourcesReady && PageReady) : true;
-			if(m_aSettingsPagePrewarmed[Slot])
-				++m_SettingsStartupWarmupCursor;
-		}
-	}
-	else
-	{
-		(void)PrewarmSettingsTClientRuntimeCacheSibling(ContentView);
-		(void)PrewarmSettingsQmClientRuntimeCacheSibling(ContentView);
-	}
-	bool TClientSiblingsReady = true;
-	for(int Tab = 0; Tab < 6; ++Tab)
-		TClientSiblingsReady = TClientSiblingsReady && m_aSettingsTClientSiblingPrewarmed[Tab];
-	bool QmClientSiblingsReady = true;
-	for(int Tab = 0; Tab < NUMBER_OF_QMCLIENT_SETTINGS_TABS; ++Tab)
-		QmClientSiblingsReady = QmClientSiblingsReady && m_aSettingsQmClientSiblingPrewarmed[Tab];
-	const int GeneralSlot = SettingsPageRuntimeCacheSlot(SETTINGS_GENERAL, -1);
-	const int TeeSlot = SettingsPageRuntimeCacheSlot(SETTINGS_TEE, -1);
-	const int AppearanceSlot = SettingsPageRuntimeCacheSlot(SETTINGS_APPEARANCE, -1);
-	const int ControlsSlot = SettingsPageRuntimeCacheSlot(SETTINGS_CONTROLS, -1);
-	const int GraphicsSlot = SettingsPageRuntimeCacheSlot(SETTINGS_GRAPHICS, -1);
-	const int SoundSlot = SettingsPageRuntimeCacheSlot(SETTINGS_SOUND, -1);
-	const int DdnetSlot = SettingsPageRuntimeCacheSlot(SETTINGS_DDNET, -1);
-	const int AssetsSlot = SettingsPageRuntimeCacheSlot(SETTINGS_ASSETS, AssetsTab);
-	const int TClientSlot = SettingsPageRuntimeCacheSlot(SETTINGS_TCLIENT, TClientTab);
-	const int QmClientSlot = SettingsPageRuntimeCacheSlot(SETTINGS_QMCLIENT, QmClientTab);
-	return m_aSettingsPagePrewarmed[GeneralSlot] &&
-	       m_aSettingsPagePrewarmed[TeeSlot] &&
-	       m_aSettingsPagePrewarmed[AppearanceSlot] &&
-	       m_aSettingsPagePrewarmed[ControlsSlot] &&
-	       m_aSettingsPagePrewarmed[GraphicsSlot] &&
-	       m_aSettingsPagePrewarmed[SoundSlot] &&
-	       m_aSettingsPagePrewarmed[DdnetSlot] &&
-	       m_aSettingsPagePrewarmed[AssetsSlot] &&
-	       m_aSettingsPagePrewarmed[TClientSlot] &&
-	       m_aSettingsPagePrewarmed[QmClientSlot] &&
-	       TClientSiblingsReady &&
-	       QmClientSiblingsReady;
 }
 
 void CMenus::LoadSettingsRuntimeCacheMetadata()
@@ -3560,7 +3297,6 @@ void CMenus::LoadSettingsRuntimeCacheMetadata()
 	m_SettingsTClientScrollRestorePending = SessionCache.m_Valid && RuntimeKeyMatches;
 	if(SessionCache.m_LastQmTab >= 0)
 		m_QmClientSettingsTab = CanonicalizePersistedQmClientTab(SessionCache.m_LastQmTab);
-	PrepareSettingsRuntimeWarmupPlan();
 }
 
 void CMenus::SaveSettingsRuntimeCacheMetadata()

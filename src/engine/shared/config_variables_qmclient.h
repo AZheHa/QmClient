@@ -369,8 +369,6 @@ MACRO_CONFIG_INT(QmFootParticles, qm_foot_particles, 0, 0, 1, CFGFLAG_CLIENT | C
 
 // Settings performance - 性能
 MACRO_CONFIG_INT(QmSettingsPrewarm, qm_settings_prewarm, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启动和菜单空闲时预热设置页")
-MACRO_CONFIG_INT(QmSettingsFboCache, qm_settings_fbo_cache, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "使用 FBO 缓存设置页静态层")
-MACRO_CONFIG_INT(QmSettingsFboCacheDebug, qm_settings_fbo_cache_debug, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "显示设置页 FBO 缓存调试信息")
 
 // Chat Bubble Settings - 聊天气泡
 MACRO_CONFIG_INT(QmChatSaveDraft, qm_chat_save_draft, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "关闭聊天时保留未发送内容")

@@ -1806,11 +1806,9 @@ public:
 	void ForceRefreshLanPage();
 	void SetShowStart(bool ShowStart);
 	void ShowQuitPopup();
-	bool PrewarmSettingsRuntimeCaches(CUIRect MainView);
-	void PrepareSettingsRuntimeWarmupPlan();
-	static int SettingsRuntimeCacheWarmupSteps() { return (int)BuildSettingsPageRuntimeRegistry().m_vPages.size() + 6 + (NUMBER_OF_QMCLIENT_SETTINGS_TABS - 1); }
 	void LoadSettingsRuntimeCacheMetadata();
 	void SaveSettingsRuntimeCacheMetadata();
+	void PrewarmVisibleSettingsResources(CUIRect MainView);
 	CUIElement &SettingsTextElement(int Page, int Tab, const char *pTextId);
 	void DoSettingsLabelStreamed(CUIElement &Element, const CUIRect *pRect, const char *pText, float Size, int Align, const SLabelProperties &LabelProps = {}, int StrLen = -1, const CTextCursor *pReadCursor = nullptr, bool Render = true);
 	void InvalidateSettingsTextPool();
@@ -1838,37 +1836,26 @@ private:
 		int m_Reused = 0;
 	};
 
-	struct SSettingsGenericSectionCache
+	struct SSettingsRuntimeMetadata
 	{
-		CSectionLoader m_Loader;
-		std::string m_SectionName;
+		int m_LastPage = -1;
+		int m_LastTClientTab = -1;
+		int m_LastQmTab = -1;
+		int m_LastScrollPage = -1;
+		float m_LastScrollY = 0.0f;
+		SSettingsRuntimeCacheKey m_RuntimeKey;
+		bool m_Valid = false;
 	};
 
-	struct SSettingsPageRuntimeCache
-	{
-		SSettingsPageRuntimeCacheState m_State;
-		IGraphics::CRenderTargetHandle m_RenderTarget;
-		int m_RenderTargetWidth = 0;
-		int m_RenderTargetHeight = 0;
-	};
-
-	SSettingsRuntimeCacheMetadata m_SettingsRuntimeMetadata;
-	SSettingsWarmupStartupPlan m_SettingsStartupWarmupPlan;
+	SSettingsRuntimeMetadata m_SettingsRuntimeMetadata;
 	SSettingsWarmupFrameBudget m_SettingsFrameBudget;
-	size_t m_SettingsStartupWarmupCursor = 0;
 	float m_SettingsTClientCurrentScrollY = 0.0f;
 	bool m_SettingsTClientScrollRestorePending = false;
 	bool m_SettingsPageSwitchActive = false;
 	bool m_SettingsScrollActive = false;
 	int m_SettingsPostScrollRecoveryFrames = 0;
 	bool m_SettingsHighPrioritySettled = false;
-	SSettingsPageRuntimeCache m_aSettingsPageRuntimeCaches[SETTINGS_PAGE_RUNTIME_CACHE_SLOTS];
-	bool m_aSettingsPagePrewarmed[SETTINGS_PAGE_RUNTIME_CACHE_SLOTS] = {};
-	bool m_aSettingsTClientSiblingPrewarmed[6] = {};
-	bool m_aSettingsQmClientSiblingPrewarmed[NUMBER_OF_QMCLIENT_SETTINGS_TABS] = {};
-	int m_SettingsRuntimePrewarmCursor = 0;
 	std::unordered_map<std::string, SSettingsTextPoolEntry> m_SettingsTextPool;
-	std::unordered_map<std::string, std::unique_ptr<SSettingsGenericSectionCache>> m_SettingsGenericSectionCaches;
 	uint64_t m_SettingsTextPoolLanguageHash = 0;
 	uint64_t m_SettingsTextPoolFontHash = 0;
 	SSettingsTextPerfStats *m_pActiveSettingsTextPerfStats = nullptr;
@@ -1902,8 +1889,6 @@ private:
 	void DrawTClientCacheSectionBox(CUIRect BoxRect);
 	float RenderTClientCacheSectionFallback(CUIRect &CurrentColumn, float TopMargin, float (CMenus::*pLayoutSection)(CUIRect &, bool));
 	void ConfigureSplitCachedStaticLayer(SSettingsSection &Section, const char *pTitle, std::function<float(CUIRect &)> MeasureSection, std::function<float(CUIRect &)> RenderInteractiveSection, float TopMargin);
-	bool PrepareTClientSettingsRuntimeCacheSection(CUIRect SectionView, const char *pSectionId, CSectionLoader *&pLoader, const char *&pLoaderSectionName, bool ConfigureRuntimeState = true);
-	bool PrepareGenericSettingsRuntimeCacheSection(CUIRect SectionView, int Page, int Tab, const char *pSectionId, CSectionLoader *&pLoader, const char *&pLoaderSectionName, bool ConfigureRuntimeState = true);
 	float LayoutTClientThemeCacheSection(CUIRect &CurrentColumn, bool Render);
 	float RenderTClientThemeInteractiveLayer(CUIRect &CurrentColumn);
 	float LayoutTClientAutoReplyCacheSection(CUIRect &CurrentColumn, bool Render);
@@ -1912,22 +1897,9 @@ private:
 	float RenderTClientPetInteractiveLayer(CUIRect &CurrentColumn);
 	float LayoutTClientHudCacheSection(CUIRect &CurrentColumn, bool Render);
 	float RenderTClientHudInteractiveLayer(CUIRect &CurrentColumn);
-	void PrewarmSettingsTClient(CUIRect MainView);
-	bool TClientSettingsSubcachesReady() const;
-	bool PrewarmSettingsTClientRuntimeCacheSibling(CUIRect ContentView);
-	bool PrewarmSettingsQmClientRuntimeCacheSibling(CUIRect ContentView);
-	bool PrewarmSettingsPageRuntimeCache(CUIRect ContentView, int Page, int Tab, float ScrollY = 0.0f, bool ResourcesReady = true);
-	bool DrawSettingsPageRuntimeCache(CUIRect ContentView, int Page, int Tab, float ScrollY = 0.0f);
-	bool ConsumeSettingsFrameBudget(ESettingsWarmupCost Cost, int Page, int Tab, const char *pPageFbo, const char *pSectionFbo);
-	void InvalidateSettingsPageRuntimeCache(int Page, int Tab);
 	void InvalidateTClientSettingsRuntimeCacheSections(ESettingsCacheDirtyReason Reason = ESettingsCacheDirtyReason::CONFIG);
-	bool PrewarmSettingsSectionRuntimeCache(CUIRect SectionView, int Page, int Tab, const char *pSectionId);
-	bool DrawSettingsSectionRuntimeCache(CUIRect SectionView, int Page, int Tab, const char *pSectionId, ESettingsCacheDirtyReason *pDirtyReason = nullptr);
-	void InvalidateSettingsSectionRuntimeCache(int Page, int Tab, const char *pSectionId);
-	void DestroySettingsPageRuntimeCaches();
 	bool PrewarmSettingsPageResources(int Page, int Tab, const CUIRect &ContentView);
 	bool PrewarmSettingsAssetResources();
-	SSettingsPageRuntimeCache *GetSettingsPageRuntimeCache(int Page, int Tab);
 	void RenderSettingsTClientBindWheel(CUIRect MainView);
 	void RenderSettingsTClientChatBinds(CUIRect MainView);
 	void RenderSettingsTClientWarList(CUIRect MainView);

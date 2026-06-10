@@ -34,8 +34,6 @@ bool CSettingsWarmupScheduler::WarmupFrame(double BudgetMs)
 			const bool RightLastPage = Right.m_Page == m_LastSessionPage;
 			if(LeftLastPage != RightLastPage)
 				return LeftLastPage;
-			if(Left.m_Kind != Right.m_Kind)
-				return Left.m_Kind == ESettingsWarmupKind::RUNTIME_FBO;
 			return Left.m_Priority < Right.m_Priority;
 		});
 		m_Sorted = true;

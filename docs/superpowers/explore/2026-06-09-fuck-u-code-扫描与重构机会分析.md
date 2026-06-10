@@ -1,8 +1,16 @@
 ---
 type: spike
 date: 2026-06-09
-status: active
+updated: 2026-06-10
+status: partial-outdated
 confidence: medium
+scope:
+  - qmclient_scripts/perf/lib/report.ts
+  - qmclient_scripts/perf/lib/stats.ts
+  - src/game/client/components/qmclient/
+  - src/game/client/components/chat.cpp
+  - src/game/client/components/console.cpp
+commit: 4d59334c9
 related:
   - docs/superpowers/explore/components-modularization.md
   - docs/superpowers/explore/2026-05-27-DDNet菜单UI规范探索.md
@@ -12,19 +20,19 @@ related:
 
 ## 速答
 
-基于 fuck-u-code 全仓扫描（糟糕指数 75.68/100，"微臭青年"）和已有探索/审查报告交叉分析：**扫描出的 Top 5 问题文件全部是 DDNet 上游遗产，不应触碰。** QmClient 自有代码中真正值得重构的点分为三层：
+基于 fuck-u-code 全仓扫描（糟糕指数 75.68/100，"微臭青年"）和已有探索/审查报告交叉分析：**扫描出的 Top 5 问题文件全部是 DDNet 上游遗产，不应触碰。** 截至当前提交，原先记录为 P0 的 perf 两项收口已经完成，因此这份文档现在主要保留 P1/P2 的结构性判断，不能再把 P0 当作待办。
 
-- **P0 审查收口（2 项）**：perf 系统的阈值不一致和采样偏差检测，改动小、有测试保护、影响用户可见的报表正确性。
+- **P0 审查收口（2 项，已完成）**：perf 系统的阈值不一致和采样偏差检测都已在当前代码中收口，不再构成待执行重构项。
 - **P1 探索落地（3 项）**：`menus_qmclient.cpp` 661KB 拆分、`qmclient/` 浅层目录分组（voice/translate/hud_notifications）、`colored_parts.h` 归属决策。
 - **P2 上游遗产（5 项）**：`menus_settings.cpp`、`menus_browser.cpp`、`menus_settings_assets.cpp`、`sixup_translate_game.cpp`、`menus_assets_editor.cpp` — 仅记录不行动。
 
-优先级公式：影响面 × 修复成本 ÷ 风险。P0 两项是典型高 ROI 重构（2 行改动，有测试保护），P1 需要独立任务/分支推进，P2 不在 QmClient 补丁范围内。
+优先级公式：影响面 × 修复成本 ÷ 风险。当前仍值得推进的是 P1，P2 继续只作边界记录；P0 可作为“已验证收口”的历史背景保留。
 
 ```mermaid
 flowchart TB
-    subgraph P0["P0: 审查收口（本期可执行）"]
-        R1["R1: KPI 卡片 vs 判定横幅阈值不一致<br/>report.ts + stats.ts"]
-        R2["R2: 采样偏差检测 4.17ms → 4ms<br/>stats.ts"]
+    subgraph P0["P0: 审查收口（已完成）"]
+        R1["R1: KPI 卡片 vs 判定横幅阈值已统一<br/>report.ts + stats.ts"]
+        R2["R2: 采样偏差检测已改用 4ms 默认值<br/>stats.ts"]
     end
     subgraph P1["P1: 探索落地（需独立任务）"]
         R3["R3: menus_qmclient.cpp 661KB 拆分<br/>按功能域拆分"]
@@ -91,12 +99,12 @@ flowchart TB
 
 ## 2. 关键证据
 
-### 2.1 P0: 审查收口（本期可执行）
+### 2.1 P0: 审查收口（已完成）
 
 | # | 结论 | 证据 | 位置 |
 |---|------|------|------|
-| R1 | KPI 卡片阈值与判定横幅阈值使用不同截止值，可能导致 KPI 显示 "WARN" 而判定横幅显示 "PASS" | 审查报告 Finding 1：`report.ts` 章节中 KPI 卡片和判定横幅从不同变量读取阈值 | `qmclient_scripts/perf/lib/report.ts:269-270` vs `stats.ts:493-496` |
-| R2 | `isSamplingBiased` 使用 4.17ms 而非系统实际默认 4ms，偏差检测可能漏报 | 审查报告 Finding 2：硬编码值与 `qm_perf_frame_budget_ms` 默认值不一致 | `qmclient_scripts/perf/lib/stats.ts:81` |
+| R1 | `p99`/`Max` KPI 卡片当前已与判定逻辑共用 `BUDGET.h60` / `BUDGET.h60Double`，原先的阈值不一致已收口 | `metricClass(p.p99, BUDGET.h60, BUDGET.h60Double)` 与 `computeVerdict` 使用相同预算常量 | `qmclient_scripts/perf/lib/report.ts:297-298` vs `qmclient_scripts/perf/lib/stats.ts:500-502` |
+| R2 | `isSamplingBiased` 当前默认使用 `BUDGET.samplingDefault`，而该值已明确为 4ms，原先的 4.17ms 偏差已收口 | `samplingDefault: 4`，`isSamplingBiased(..., thresholdMs = BUDGET.samplingDefault)` | `qmclient_scripts/perf/lib/stats.ts:70` and `qmclient_scripts/perf/lib/stats.ts:83` |
 
 ### 2.2 P1: 探索落地（需独立任务）
 
@@ -120,15 +128,15 @@ flowchart TB
 
 ## 3. 分项重构判断
 
-### 3.1 R1 + R2: 审查收口（P0）
+### 3.1 R1 + R2: 审查收口（P0，已完成）
 
-**可执行性：高。** 两项都在 `qmclient_scripts/perf/` 下，属于当前分支的改动范围。改动规模极小（各 1-2 行），有 TypeScript 测试套件保护，不涉及 C++ 编译。
+**当前状态：已完成。** 两项都在 `qmclient_scripts/perf/` 下，且当前代码已经完成收口，不再构成待执行项。
 
-**为什么值得做：**
-- R1 直接影响报表的用户可信度——如果同一指标在不同位置显示矛盾的判定，用户会怀疑整个量化系统的正确性。
-- R2 可能导致采样偏差漏报，使得性能分析报表漏掉真实的帧时间问题。
+**为什么保留这段记录：**
+- R1 曾直接影响报表的用户可信度，保留它有助于解释为什么当前阈值统一是必要的。
+- R2 曾导致采样偏差漏报风险，保留它有助于后续避免再把默认采样阈值漂回 4.17ms。
 
-**为什么现在不做：** 用户要求先落文档不执行。这两项应该在下一次 perf 系统改动时优先收口。
+**当前含义：** 这里只能作为历史收口记录，不应再被引用为“下一轮 perf 系统改动要优先处理”的待办。
 
 ### 3.2 R3: menus_qmclient.cpp 拆分（P1）
 
@@ -167,8 +175,8 @@ flowchart TB
 ## 4. 探索范围
 
 - **逐文件核验：**
-  - `qmclient_scripts/perf/lib/report.ts` — R1 阈值不一致的具体代码
-  - `qmclient_scripts/perf/lib/stats.ts` — R1 判定阈值 + R2 采样偏差检测
+  - `qmclient_scripts/perf/lib/report.ts` — R1 当前 KPI 阈值已对齐的代码
+  - `qmclient_scripts/perf/lib/stats.ts` — R1 判定阈值 + R2 当前采样默认值
   - `src/game/client/components/qmclient/menus_qmclient.cpp` — R3 文件大小和功能域分布
   - `src/game/client/components/qmclient/` — R4 目录平铺现状
   - `src/game/client/components/qmclient/colored_parts.h` — R5 include 引用链
@@ -189,10 +197,10 @@ flowchart TB
 
 **confidence: medium**
 
-- P0 两项来自已执行的代码审查，有具体代码位置和确认的严重级别，置信度高。
+- P0 两项最初来自 2026-06-09 的代码审查，但本次更新已经按当前代码重新核验，结论从“待收口”改为“已收口”，置信度高。
 - P1 三项来自 2026-06-09 的 `components-modularization.md` 探索，已交叉验证过 CMake、gameclient.h 和测试 include 引用，足以支撑"值得做"的判断。但未执行实际迁移，不能作为实施计划。
 - P2 来自 fuck-u-code 自动扫描，工具分析可能遗漏上下文（如数据文件被误判为代码），且扫描器标记的命名/注释问题需要人工确认。但 Top 5 文件的规模类指标（行数、复杂度、嵌套深度）是客观测量，置信度高。
-- 整体判断"不值得大动干戈"的结论置信度高——因为 Top 5 全是上游代码这个事实是确定的，且项目规则明确禁止修改它们。
+- 整体判断"不值得大动干戈"的结论置信度高——因为 Top 5 全是上游代码这个事实是确定的，且项目规则明确禁止修改它们；但由于 P0 已变化，这份文档状态应降为 `partial-outdated`。
 
 ---
 
@@ -216,7 +224,7 @@ flowchart TB
 
 ## 8. 后续建议
 
-1. **近期：** 在下一轮 perf 系统改动时优先收口 R1 + R2（改动极小，直接在改动中附带修正即可，无需独立 PR）。
-2. **中期：** 为 R3（menus_qmclient.cpp 拆分）和 R4（qmclient/ 目录分组）各建一份独立 superpowers plan，在专门的 feature 分支上推进，不要混入功能分支。
+1. **近期：** 如需继续推进结构治理，优先从 R3（`menus_qmclient.cpp` 拆分）或 R4（`qmclient/` 目录分组）中任选一个独立建 plan，不要再以 P0 为入口。
+2. **中期：** 为 R3 和 R4 各建一份独立 superpowers plan，在专门的 feature 分支上推进，不要混入功能分支。
 3. **长期：** 跟踪上游 DDNet 对巨型菜单文件的官方重构动向，在合并上游时适配而不是自行改造。
 4. **工具链：** 建议在 gate 流程中增加 fuck-u-code 或类似复杂度扫描，但配置为只报告 `src/game/client/components/qmclient/` 和 `qmclient_scripts/` 等 QmClient 自有目录，避免上游文件噪声淹没真正的问题。

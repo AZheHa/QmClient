@@ -903,8 +903,6 @@ void SettingsApplyActiveTeeSkinFrameBudget(SSettingsWarmupFrameBudget &Budget, b
 		return;
 
 	Budget.m_MaxGpuUploads = SettingsSkinGpuUploadUnits(true);
-	Budget.m_MaxGpuReadbacks = 1;
-	Budget.m_MaxPreviewCacheIo = 1;
 	Budget.m_MaxJobResultMerges = 2;
 }
 
@@ -1070,44 +1068,13 @@ bool SettingsAssetPreviewHandleMatches(const SSettingsAssetPreviewHandle &Handle
 	       Handle.m_Name == pName;
 }
 
-bool SettingsPageCacheCanUseRecordedResources(bool CacheMatches, bool RenderTargetValid, bool ResourcesReadyAtRecord, bool DependenciesReadyAtRecord)
-{
-	return CacheMatches && RenderTargetValid && ResourcesReadyAtRecord && DependenciesReadyAtRecord;
-}
-
-ESettingsWarmupMissReason SettingsPageRecordedCacheMissReason(bool CacheMatches, bool RenderTargetValid, bool ResourcesReadyAtRecord, bool DependenciesReadyAtRecord)
-{
-	if(SettingsPageCacheCanUseRecordedResources(CacheMatches, RenderTargetValid, ResourcesReadyAtRecord, DependenciesReadyAtRecord))
-		return ESettingsWarmupMissReason::NONE;
-	if(CacheMatches && RenderTargetValid)
-	{
-		if(!DependenciesReadyAtRecord)
-			return ESettingsWarmupMissReason::DEPENDENCY_NOT_READY;
-		if(!ResourcesReadyAtRecord)
-			return ESettingsWarmupMissReason::RESOURCE_PLAN_PENDING;
-	}
-	return ESettingsWarmupMissReason::PAGE_FBO_NOT_READY;
-}
-
-bool SettingsPageCanUsePageFbo(int Page, int AssetsPage, int DynamicPreviewPage, int Tab)
-{
-	const bool IsTClientSettingsPage = Page == CMenus::SETTINGS_TCLIENT && Tab == 0;
-	const bool IsTeeSettingsPage = Page == CMenus::SETTINGS_TEE || Page == CMenus::SETTINGS_PLAYER;
-	const bool IsSystemSettingsPage = Page == CMenus::SETTINGS_GRAPHICS;
-	const bool IsQmClientSettingsPage = Page == CMenus::SETTINGS_QMCLIENT;
-	return Page >= 0 && Page != AssetsPage && Page != DynamicPreviewPage && !IsTClientSettingsPage && !IsTeeSettingsPage && !IsSystemSettingsPage && !IsQmClientSettingsPage;
-}
-
 const char *SettingsWarmupBudgetStopMissReasonName(ESettingsWarmupStopReason StopReason)
 {
 	switch(StopReason)
 	{
 	case ESettingsWarmupStopReason::NONE: return "none";
 	case ESettingsWarmupStopReason::TEXT_BUDGET: return "text_budget";
-	case ESettingsWarmupStopReason::FBO_BUDGET: return "fbo_budget";
 	case ESettingsWarmupStopReason::GPU_UPLOAD_BUDGET: return "gpu_upload_budget";
-	case ESettingsWarmupStopReason::GPU_READBACK_BUDGET: return "gpu_readback_budget";
-	case ESettingsWarmupStopReason::PREVIEW_CACHE_IO_BUDGET: return "preview_cache_io_budget";
 	case ESettingsWarmupStopReason::MERGE_BUDGET: return "merge_budget";
 	case ESettingsWarmupStopReason::ACTIVE_ITEM: return "active_item";
 	}

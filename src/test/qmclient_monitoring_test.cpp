@@ -440,9 +440,9 @@ TEST(QmMonitoringHelpers, MenuPerfEventsExposePageAttributionFields)
 
 		EXPECT_NE(Source.find("event=page_switch from=%s to=%s dur_ms=%.3f"), std::string::npos);
 		EXPECT_NE(Source.find("event=section page=%s section=%s dur_ms=%.3f visible=%d dirty=%s text_new=%d text_reused=%d"), std::string::npos);
-		EXPECT_NE(Source.find("CSectionLoader::CacheDirtyReasonName(DirtyReason)"), std::string::npos);
-		EXPECT_NE(Source.find("TextStats.m_New"), std::string::npos);
-		EXPECT_NE(Source.find("TextStats.m_Reused"), std::string::npos);
+		EXPECT_NE(Source.find("LogSettingsSectionPerf(IClient *pClient, int Page, int Tab, const char *pSectionId, double DurationMs, const char *pDirtyReason, int TextNew, int TextReused)"), std::string::npos);
+		EXPECT_NE(Source.find("pDirtyReason != nullptr ? pDirtyReason : \"unknown\""), std::string::npos);
+		EXPECT_NE(Source.find("TextNew, TextReused"), std::string::npos);
 		EXPECT_EQ(Source.find("SectionCacheHit ? \"clean\" : \"cache_miss\", 0, 0"), std::string::npos);
 		EXPECT_EQ(Source.find("\"cache_miss\""), std::string::npos);
 		EXPECT_NE(Source.find("page=%s transition=%d sections=%d sections_visible=%d tab=%s"), std::string::npos);
@@ -474,9 +474,11 @@ TEST(QmMonitoringHelpers, MenuPerfEventsExposePageAttributionFields)
 		Buffer << File.rdbuf();
 		const std::string Source = Buffer.str();
 
-		EXPECT_NE(Source.find("CacheDirtyReasonName"), std::string::npos);
-		EXPECT_NE(Source.find("case ESettingsCacheDirtyReason::CONFIG: return \"config\""), std::string::npos);
-		EXPECT_NE(Source.find("*pDirtyReason = Section.m_DirtyReason"), std::string::npos);
+		EXPECT_NE(Source.find("void CSectionLoader::InvalidateCache(ESettingsCacheDirtyReason Reason)"), std::string::npos);
+		EXPECT_NE(Source.find("(void)Reason;"), std::string::npos);
+		EXPECT_NE(Source.find("Section.m_Dirty = true;"), std::string::npos);
+		EXPECT_EQ(Source.find("CacheDirtyReasonName"), std::string::npos);
+		EXPECT_EQ(Source.find("*pDirtyReason = Section.m_DirtyReason"), std::string::npos);
 	}
 	{
 		std::ifstream File(TestSourcePath("src/game/client/components/menus_demo.cpp"));

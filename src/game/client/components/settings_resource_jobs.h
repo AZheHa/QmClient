@@ -338,9 +338,6 @@ size_t SettingsAssetPreviewResidentBudgetBytes(size_t OverrideMb, int Percent, f
 int SettingsAssetPreviewBudgetedTextureSize(int MaxTextureSize, int MinTextureSize, size_t TextureBudgetBytes, size_t CurrentTextureMemoryBytes, size_t ResidentPreviewBytes);
 std::string SettingsAssetPreviewHandleKey(const SSettingsAssetPreviewHandle &Handle);
 bool SettingsAssetPreviewHandleMatches(const SSettingsAssetPreviewHandle &Handle, int CurrentTab, unsigned CurrentEpoch, size_t CurrentIndex, const char *pName);
-bool SettingsPageCacheCanUseRecordedResources(bool CacheMatches, bool RenderTargetValid, bool ResourcesReadyAtRecord, bool DependenciesReadyAtRecord = true);
-ESettingsWarmupMissReason SettingsPageRecordedCacheMissReason(bool CacheMatches, bool RenderTargetValid, bool ResourcesReadyAtRecord, bool DependenciesReadyAtRecord = true);
-bool SettingsPageCanUsePageFbo(int Page, int AssetsPage, int DynamicPreviewPage = -1, int Tab = -1);
 const char *SettingsWarmupBudgetStopMissReasonName(ESettingsWarmupStopReason StopReason);
 bool SettingsAssetWarmupAllTabsReady(const bool *pReadyTabs, int TabCount);
 int SettingsAssetWarmupNextTab(int CurrentTab, int TabCount);

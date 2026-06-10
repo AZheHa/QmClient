@@ -4510,105 +4510,59 @@ void CMenus::RenderSettings(CUIRect MainView)
 		CPerfTimer StageTimer;
 		int NumSections = 0;
 		int NumSectionsVisible = 0;
-		auto DrawOrPrewarmSection = [&](int Page, int Tab, const char *pSectionId) {
-			CPerfTimer SectionTimer;
-			SSettingsTextPerfStats TextStats;
-			SSettingsTextPerfStats *pPreviousTextStats = m_pActiveSettingsTextPerfStats;
-			m_pActiveSettingsTextPerfStats = &TextStats;
-			ESettingsCacheDirtyReason DirtyReason = ESettingsCacheDirtyReason::UNKNOWN;
-			const bool SectionCacheHit = DrawSettingsSectionRuntimeCache(ContentView, Page, Tab, pSectionId, &DirtyReason);
-			if(!SectionCacheHit)
-				(void)PrewarmSettingsSectionRuntimeCache(ContentView, Page, Tab, pSectionId);
-			m_pActiveSettingsTextPerfStats = pPreviousTextStats;
-			++NumSections;
-			++NumSectionsVisible;
-			LogSettingsSectionPerf(Client(), Page, Tab, pSectionId, SectionTimer.ElapsedMs(), SectionCacheHit ? "clean" : CSectionLoader::CacheDirtyReasonName(DirtyReason), TextStats.m_New, TextStats.m_Reused);
-		};
 		if(g_Config.m_UiSettingsPage == SETTINGS_GENERAL)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_GENERAL);
-			DrawOrPrewarmSection(SETTINGS_GENERAL, -1, "language-list");
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_GENERAL, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsGeneral(ContentView);
+			RenderSettingsGeneral(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_TEE)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_TEE);
-			DrawOrPrewarmSection(SETTINGS_TEE, -1, "identity");
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_TEE, -1);
-			if(!RuntimeCacheHit)
-			{
-				if(Client()->IsSixup())
-					RenderSettingsTee7(ContentView);
-				else
-					RenderSettingsTee(ContentView);
-			}
+			if(Client()->IsSixup())
+				RenderSettingsTee7(ContentView);
+			else
+				RenderSettingsTee(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_APPEARANCE)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_APPEARANCE);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_APPEARANCE, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsAppearance(ContentView);
+			RenderSettingsAppearance(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_CONTROLS)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_CONTROLS);
-			DrawOrPrewarmSection(SETTINGS_CONTROLS, -1, "movement");
-			DrawOrPrewarmSection(SETTINGS_CONTROLS, -1, "weapons");
-			DrawOrPrewarmSection(SETTINGS_CONTROLS, -1, "voting");
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_CONTROLS, -1);
-			if(!RuntimeCacheHit)
-				m_MenusSettingsControls.Render(ContentView);
+			m_MenusSettingsControls.Render(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_GRAPHICS)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_GRAPHICS);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_GRAPHICS, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsGraphics(ContentView);
+			RenderSettingsGraphics(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_SOUND)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_SOUND);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_SOUND, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsSound(ContentView);
+			RenderSettingsSound(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_DDNET)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_DDNET);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_DDNET, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsDDNet(ContentView);
+			RenderSettingsDDNet(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_ASSETS)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_ASSETS);
-			DrawOrPrewarmSection(SETTINGS_ASSETS, -1, "resource-list");
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_ASSETS, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsCustom(ContentView);
+			RenderSettingsCustom(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(13);
-			const float TClientCacheScrollY = m_SettingsTClientScrollRestorePending ? m_SettingsRuntimeMetadata.m_LastScrollY : m_SettingsTClientCurrentScrollY;
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_TCLIENT, m_TClientSettingsTab, TClientCacheScrollY);
-			if(!RuntimeCacheHit)
-				RenderSettingsTClient(ContentView);
+			RenderSettingsTClient(ContentView);
 			m_SettingsRuntimeMetadata.m_LastTClientTab = m_TClientSettingsTab;
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(15);
-			const char *pQmSection = m_QmClientSettingsTab == QMCLIENT_SETTINGS_TAB_CONFIG ? "config" :
-													 (m_QmClientSettingsTab == QMCLIENT_SETTINGS_TAB_CONTRIBUTORS ? "contributors" : "general");
-			DrawOrPrewarmSection(SETTINGS_QMCLIENT, m_QmClientSettingsTab, pQmSection);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_QMCLIENT, m_QmClientSettingsTab);
-			if(!RuntimeCacheHit)
-				RenderSettingsQmClient(ContentView);
+			RenderSettingsQmClient(ContentView);
 			m_SettingsRuntimeMetadata.m_LastQmTab = m_QmClientSettingsTab;
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_PROFILES)
