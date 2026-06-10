@@ -19,9 +19,6 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 STRINGS_FILE = os.path.join(SCRIPT_DIR, "extracted_strings.txt")
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "data", "qmclient", "languages")
-BASE_SIMPLIFIED_CHINESE = os.path.join(
-    PROJECT_ROOT, "data", "languages", "simplified_chinese.txt"
-)
 BASE_LANGUAGES_DIR = os.path.join(PROJECT_ROOT, "data", "languages")
 
 # ---------------------------------------------------------------------------
@@ -80,7 +77,11 @@ def is_chinese(s):
 
 
 # ---------------------------------------------------------------------------
-# English translations for Chinese keys (manually curated)
+# Legacy Chinese-to-English source map.
+#
+# The active localization model uses English source keys. These maps are kept
+# only as seed data so simplified_chinese.txt can be regenerated after the old
+# Chinese source keys were migrated to English.
 # ---------------------------------------------------------------------------
 EN_TRANSLATIONS = {
     # ── 通用 / General ──
@@ -736,8 +737,8 @@ QMCLIENT_SIMPLIFIED_STATIC_NOTIFICATION_TRANSLATIONS = {
     "你必须加入队伍才能在本服务器游玩；队伍上锁后，队内任意玩家死亡都会导致全队死亡": "You have to be in a team to play on this server and all of your team will die if the team is locked",
 }
 
-# Additional Chinese-to-English translations for strings that appear in the extracted list
-# but are in the format of "X 不透明度" etc. We'll handle these programmatically with common patterns.
+# Additional legacy fragments for old source strings in the form "X 不透明度".
+# They are kept for migration/reference data, not for the active key model.
 _PATTERN_TRANSLATIONS = {
     "不透明度": "Opacity",
     "颜色": "Color",
@@ -756,9 +757,16 @@ _PATTERN_TRANSLATIONS = {
     "接收": "Receive",
 }
 
+SIMPLIFIED_CHINESE_PASSTHROUGH_KEYS = {
+    "DeepSeek",
+    "OpenAI",
+    "SecretId",
+    "SecretKey",
+}
+
 
 def translate_to_english(chinese_str):
-    """Translate a Chinese string to English using the manual dictionary.
+    """Translate a legacy Chinese source string using the manual dictionary.
     Falls back to the original string if no translation is found."""
     # Check exact match first
     if chinese_str in EN_TRANSLATIONS:
@@ -992,102 +1000,107 @@ QMCLIENT_SIMPLIFIED_SOURCE_TRANSLATIONS = {
     "x = DDNet CPU% / 总 CPU%": "x = DDNet CPU% / total CPU%",
     "y = DDNet 内存占用": "y = DDNet memory usage",
     "_ 或 ' ' = 空白间隔": "_ or ' ' = blank spacer",
-    "栖梦": "QmClient",
-    "正在尝试 Axiom 自动登录": "Trying Axiom auto login",
-    "Axiom 自动登录成功": "Axiom auto login succeeded",
-    "Axiom 自动登录失败，正在重试": "Axiom auto login failed, retrying",
-    "Axiom 自动登录失败": "Axiom auto login failed",
-    "运行 chai 脚本": "Run chai script",
-    "正在尝试 Axiom 分身自动登录": "Trying Axiom dummy auto login",
-    "更新提示": "Update notice",
-    "你已经是最新版本": "You are already on the latest version",
-    "当前版本不是最新版，请前往 QQ 群更新最新版": "Your current version is outdated. Please update from the QQ group.",
-    "关闭": "disable",
-    "临时自由镜头": "Temporary free camera",
-    "按住左键自由镜头": "Hold left click for free camera",
-    "直播导播": "Live director",
-    "%d 个队伍": "%d teams",
-    "%d 个玩家": "%d players",
-    "暂无可导播玩家": "No director players available",
-    "%c 队伍 %d": "%c Team %d",
-    "- 您在这张图有%d个存档！": "- You have %d saves on this map!",
-    "- 保存者按顺序是:": "- Save owners in order:",
-    "- 密码依次为:": "- Save codes in order:",
-    "你的队伍已被解锁队伍图块解除锁定": "Your team was unlocked by an unlock team tile",
-    "发送时在末尾追加 [ru]、[en]、[ja] 等语言代码": "Append language codes like [ru], [en], [ja] at the end when sending",
-    "自动翻译会跳过简体中文、繁体中文和服务器消息": "Auto-translate will skip simplified Chinese, traditional Chinese, and server messages",
-    "缓冲内存": "Buffer memory",
-    "客户端 CPU 占用偏高": "Client CPU usage is high",
-    "客户端帧时间异常": "Client frame time is abnormal",
-    "客户端性能压力偏高": "Client performance pressure is high",
-    "客户端预测耗时偏高": "Client prediction time is high",
-    "连接断开": "Connection disconnected",
-    "连接下行": "Connection downstream",
-    "连接偏高": "Connection elevated",
-    "连接正常": "Connection normal",
-    "连接严重异常": "Connection severely abnormal",
-    "连接上行": "Connection upstream",
-    "DDNet/总 CPU": "DDNet/total CPU",
-    "DeepSeek": "DeepSeek",
-    "偏高": "Elevated",
-    "展开模块": "Expand module",
-    "帧时间": "Frame time",
-    "游戏/预测 Tick": "Game/predicted tick",
-    "隐藏 Echo 消息": "Hide Echo messages",
-    "隐藏死亡/重生特效": "Hide death/respawn effects",
-    "隐藏方向": "Hide direction indicators",
-    "隐藏炮击特效": "Hide explosion effects",
-    "隐藏冻结特效": "Hide freeze effects",
-    "隐藏锤击特效": "Hide hammer effects",
-    "隐藏入场/版本提示": "Hide join/version prompts",
-    "隐藏跳跃特效": "Hide jump effects",
-    "隐藏击杀/完成": "Hide kill/finish messages",
-    "隐藏地图进度": "Hide map progress",
-    "隐藏名字板": "Hide nameplates",
-    "隐藏名字": "Hide names",
-    "隐藏玩家消息": "Hide player messages",
-    "隐藏记分板": "Hide scoreboard",
-    "隐藏服务器提示通知": "Hide server prompt notifications",
-    "隐藏武器火焰": "Hide weapon muzzle flashes",
-    "界面": "Interface",
-    "抖动": "Jitter",
-    "延迟": "Latency",
-    "内存": "Memory",
-    "最小化模块": "Minimize module",
-    "静音死亡/重生": "Mute death/respawn sounds",
-    "静音锤击": "Mute hammer sounds",
-    "静音跳跃": "Mute jump sounds",
-    "暂无明显异常": "No obvious anomaly",
-    "当前未连接到游戏服务器": "Not connected to a game server",
-    "只有 Apple 才能做到": "Only Apple Can Do",
-    "OpenAI": "OpenAI",
-    "切换武器时播放滑入旋转动画": "Play a slide-in rotation animation when switching weapons",
-    "预测波动明显，延迟变化较大": "Prediction jitter is obvious, latency changes are large",
-    "预测值抬升，预测链路压力偏高": "Prediction latency is elevated, prediction path pressure is high",
-    "预测耗时": "Prediction time",
-    "接收": "Receive",
-    "存在重发迹象，链路质量可疑": "Resend signs detected, connection quality is suspicious",
-    "回拉率": "Rollback rate",
-    "服务器 RTT 抬升，回包链路波动较明显": "Server RTT is elevated, response path is unstable",
-    "时间回拉": "Server rollback",
-    "严重": "Severe",
-    "系统媒体控制": "SMTC",
-    "暂存内存": "Staging memory",
-    "流式内存": "Streamed memory",
-    "腾讯云 SecretId": "Tencent Cloud SecretId",
-    "腾讯云 SecretKey": "Tencent Cloud SecretKey",
-    "纹理内存": "Texture memory",
-    "SecretId": "SecretId",
-    "SecretKey": "SecretKey",
-    "武器动画": "Weapon animation",
-    "武器切换动画": "Weapon switch animation",
+    '栖梦': 'QmClient',
+    '正在尝试 Axiom 自动登录': 'Trying Axiom auto login',
+    'Axiom 自动登录成功': 'Axiom auto login succeeded',
+    'Axiom 自动登录失败，正在重试': 'Axiom auto login failed, retrying',
+    'Axiom 自动登录失败': 'Axiom auto login failed',
+    '运行 chai 脚本': 'Run chai script',
+    '正在尝试 Axiom 分身自动登录': 'Trying Axiom dummy auto login',
+    '更新提示': 'Update notice',
+    '你已经是最新版本': 'You are already on the latest version',
+    '当前版本不是最新版，请前往 QQ 群更新最新版': 'Your current version is outdated. Please update from the QQ group.',
+    '关闭': 'disable',
+    '临时自由镜头': 'Temporary free camera',
+    '按住左键自由镜头': 'Hold left click for free camera',
+    '直播导播': 'Live director',
+    '%d 个队伍': '%d teams',
+    '%d 个玩家': '%d players',
+    '暂无可导播玩家': 'No director players available',
+    '%c 队伍 %d': '%c Team %d',
+    '- 您在这张图有%d个存档！': '- You have %d saves on this map!',
+    '- 保存者按顺序是:': '- Save owners in order:',
+    '- 密码依次为:': '- Save codes in order:',
+    '你的队伍已被解锁队伍图块解除锁定': 'Your team was unlocked by an unlock team tile',
+    '还有 %d 个代码': '+%d more codes',
+    '发送时在末尾追加 [ru]、[en]、[ja] 等语言代码': 'Append language codes like [ru], [en], [ja] at the end when sending',
+    '自动翻译会跳过简体中文、繁体中文和服务器消息': 'Auto-translate will skip simplified Chinese, traditional Chinese, and server messages',
+    '缓冲内存': 'Buffer memory',
+    '客户端 CPU 占用偏高': 'Client CPU usage is high',
+    '客户端帧时间异常': 'Client frame time is abnormal',
+    '客户端性能压力偏高': 'Client performance pressure is high',
+    '客户端预测耗时偏高': 'Client prediction time is high',
+    '连接断开': 'Connection disconnected',
+    '连接下行': 'Connection downstream',
+    '连接偏高': 'Connection elevated',
+    '连接正常': 'Connection normal',
+    '连接严重异常': 'Connection severely abnormal',
+    '连接上行': 'Connection upstream',
+    'DDNet/总 CPU': 'DDNet/total CPU',
+    'DeepSeek': 'DeepSeek',
+    '偏高': 'Elevated',
+    '展开模块': 'Expand module',
+    '帧时间': 'Frame time',
+    '游戏/预测 Tick': 'Game/predicted tick',
+    '隐藏 Echo 消息': 'Hide Echo messages',
+    '隐藏死亡/重生特效': 'Hide death/respawn effects',
+    '隐藏方向': 'Hide direction indicators',
+    '隐藏炮击特效': 'Hide explosion effects',
+    '隐藏冻结特效': 'Hide freeze effects',
+    '隐藏锤击特效': 'Hide hammer effects',
+    '隐藏入场/版本提示': 'Hide join/version prompts',
+    '隐藏跳跃特效': 'Hide jump effects',
+    '隐藏击杀/完成': 'Hide kill/finish messages',
+    '隐藏地图进度': 'Hide map progress',
+    '隐藏名字板': 'Hide nameplates',
+    '隐藏名字': 'Hide names',
+    '隐藏玩家消息': 'Hide player messages',
+    '隐藏记分板': 'Hide scoreboard',
+    '隐藏服务器提示通知': 'Hide server prompt notifications',
+    '隐藏武器火焰': 'Hide weapon muzzle flashes',
+    '界面': 'Interface',
+    '抖动': 'Jitter',
+    '延迟': 'Latency',
+    '内存': 'Memory',
+    '最小化模块': 'Minimize module',
+    '静音死亡/重生': 'Mute death/respawn sounds',
+    '静音锤击': 'Mute hammer sounds',
+    '静音跳跃': 'Mute jump sounds',
+    '暂无明显异常': 'No obvious anomaly',
+    '当前未连接到游戏服务器': 'Not connected to a game server',
+    '暂无状态栏项目': 'No status bar items',
+    '只有 Apple 才能做到': 'Only Apple Can Do',
+    'OpenAI': 'OpenAI',
+    '切换武器时播放滑入旋转动画': 'Play a slide-in rotation animation when switching weapons',
+    '预测波动明显，延迟变化较大': 'Prediction jitter is obvious, latency changes are large',
+    '预测值抬升，预测链路压力偏高': 'Prediction latency is elevated, prediction path pressure is high',
+    '预测耗时': 'Prediction time',
+    '接收': 'Receive',
+    '存在重发迹象，链路质量可疑': 'Resend signs detected, connection quality is suspicious',
+    '回拉率': 'Rollback rate',
+    '服务器 RTT 抬升，回包链路波动较明显': 'Server RTT is elevated, response path is unstable',
+    '时间回拉': 'Server rollback',
+    '严重': 'Severe',
+    '系统媒体控制': 'SMTC',
+    'QmClient 设置': 'QmClient Settings',
+    '暂存内存': 'Staging memory',
+    '流式内存': 'Streamed memory',
+    '腾讯云 SecretId': 'Tencent Cloud SecretId',
+    '腾讯云 SecretKey': 'Tencent Cloud SecretKey',
+    '纹理内存': 'Texture memory',
+    '自定义字体:': 'Custom Font:',
+    '锤子模式:': 'Hammer Mode:',
+    'SecretId': 'SecretId',
+    'SecretKey': 'SecretKey',
+    '武器动画': 'Weapon animation',
+    '武器切换动画': 'Weapon switch animation',
 }
 
 
 def read_strings():
     """Read extracted strings from file."""
     with open(STRINGS_FILE, "r", encoding="utf-8") as f:
-        strings = [line.rstrip("\n") for line in f if line.strip()]
+        strings = sorted({line.rstrip("\n") for line in f if line.strip()})
     return strings
 
 
@@ -1100,6 +1113,10 @@ def write_language_file(filename, entries):
         if entries:
             f.write("\n")
     print(f"  Wrote {len(entries)} entries to {filepath}")
+
+
+def language_path(filename):
+    return os.path.join(OUTPUT_DIR, f"{filename}.txt")
 
 
 def read_language_keys(filename):
@@ -1123,6 +1140,42 @@ def read_language_keys(filename):
     return keys
 
 
+def read_language_entries(filename):
+    """Read existing context-free translations so regeneration preserves work."""
+    filepath = language_path(filename)
+    entries = {}
+    if not os.path.exists(filepath):
+        return entries
+    current_key = None
+    current_context = ""
+    with open(filepath, "r", encoding="utf-8-sig") as f:
+        for raw_line in f:
+            line = raw_line.rstrip("\n")
+            if line.endswith("\r"):
+                line = line[:-1]
+            if not line or line.startswith("#"):
+                current_context = ""
+                continue
+            if line.startswith("[") and not line.startswith("[%"):
+                current_context = line[1:-1] if line.endswith("]") else ""
+                current_key = None
+                continue
+            if line.startswith("== "):
+                if current_key is not None and not current_context:
+                    entries[current_key] = line[3:]
+                continue
+            current_key = line
+    return entries
+
+
+def expected_overlay_keys(strings, filename):
+    if filename == "english":
+        return []
+
+    base_keys = read_language_keys(os.path.join(BASE_LANGUAGES_DIR, f"{filename}.txt"))
+    return [s for s in strings if not is_chinese(s) and s not in base_keys]
+
+
 def generate_english(strings):
     """English falls back to the source key, so no additive file is needed."""
     return []
@@ -1134,7 +1187,7 @@ def generate_simplified_chinese(strings):
     DDNet's base simplified_chinese.txt is loaded first, so this overlay only
     needs QmClient-specific entries that the base file does not already cover.
     """
-    base_keys = read_language_keys(BASE_SIMPLIFIED_CHINESE)
+    existing_entries = read_language_entries("simplified_chinese")
     english_to_chinese = {}
     for chinese, english in EN_TRANSLATIONS.items():
         english_to_chinese.setdefault(english, chinese)
@@ -1147,17 +1200,17 @@ def generate_simplified_chinese(strings):
 
     entries = []
     missing_translations = []
-    for s in strings:
-        if is_chinese(s) or s in base_keys:
-            continue
-        translated = english_to_chinese.get(s)
-        if translated is not None:
-            if translated != s:
-                entries.append((s, translated))
+    for s in expected_overlay_keys(strings, "simplified_chinese"):
+        existing_translation = existing_entries.get(s)
+        if existing_translation and existing_translation != s:
+            translated = existing_translation
         else:
+            translated = english_to_chinese.get(s) or existing_translation or s
+        entries.append((s, translated))
+        if translated == s and s not in SIMPLIFIED_CHINESE_PASSTHROUGH_KEYS:
             missing_translations.append(s)
     if missing_translations:
-        print("  WARNING: missing Simplified Chinese translations for English keys:")
+        print("  WARNING: untranslated Simplified Chinese placeholders:")
         for key in missing_translations:
             print(f"    - {key}")
     return entries
@@ -1170,12 +1223,8 @@ def generate_other_language(strings, filename):
     DDNet's base language is loaded first, so do not override keys that the
     base language already translates.
     """
-    base_keys = read_language_keys(os.path.join(BASE_LANGUAGES_DIR, f"{filename}.txt"))
-    entries = []
-    for s in strings:
-        if not is_chinese(s) and s not in base_keys:
-            entries.append((s, s))
-    return entries
+    existing_entries = read_language_entries(filename)
+    return [(s, existing_entries.get(s) or s) for s in expected_overlay_keys(strings, filename)]
 
 
 def create_readme():
@@ -1277,12 +1326,12 @@ def main():
     chinese_keys = sum(1 for s in strings if is_chinese(s))
     english_keys = len(strings) - chinese_keys
     print("\nSummary:")
-    print(f"  Legacy Chinese keys: {chinese_keys}")
+    print(f"  Source strings containing CJK: {chinese_keys}")
     print(f"  English source keys: {english_keys}")
     print(f"  Total unique strings: {len(strings)}")
     print(f"  Language files created: {len(LANGUAGES)}")
     print(
-        f"  Simplified Chinese source translations provided: "
+        f"  Simplified Chinese seed translations available: "
         f"{len(EN_TRANSLATIONS) + len(QMCLIENT_SIMPLIFIED_SOURCE_TRANSLATIONS) + len(QMCLIENT_SIMPLIFIED_STATIC_NOTIFICATION_TRANSLATIONS)}"
     )
 

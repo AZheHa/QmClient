@@ -1,3 +1,6 @@
+ min
+==  min
+
 %c Team %d
 == %c Team %d
 
@@ -21,6 +24,9 @@
 
 %s has requested to swap with you. To complete the swap process please wait %s seconds and then type /swap %s.
 == %s has requested to swap with you. To complete the swap process please wait %s seconds and then type /swap %s.
+
+%s not found
+== %s not found
 
 %s translating to %s before send
 == %s translating to %s before send
@@ -94,6 +100,9 @@
 '%s' would have timed out, but can use timeout protection now
 == '%s' would have timed out, but can use timeout protection now
 
++%d more codes
+== +%d more codes
+
 - Save codes in order:
 == - Save codes in order:
 
@@ -139,6 +148,9 @@ Advanced options
 Afterimage pop
 == Afterimage pop
 
+Agree
+== Agree
+
 All players
 == All players
 
@@ -163,6 +175,9 @@ Animation duration
 Animation range
 == Animation range
 
+Apply Changes
+== Apply Changes
+
 Aspect ratio preset
 == Aspect ratio preset
 
@@ -183,6 +198,9 @@ Audio issue
 
 Authorized player forced vote '%s'
 == Authorized player forced vote '%s'
+
+Auto agree vote
+== Auto agree vote
 
 Auto chat in water
 == Auto chat in water
@@ -211,8 +229,14 @@ Auto hot-reload after external saves
 Auto login Axiom server
 == Auto login Axiom server
 
+Auto map vote
+== Auto map vote
+
 Auto refresh server list
 == Auto refresh server list
+
+Auto reject vote
+== Auto reject vote
 
 Auto reply
 == Auto reply
@@ -244,8 +268,17 @@ Auto-toggle fast input
 Auto-toggle fast input others
 == Auto-toggle fast input others
 
+Automatic updates are only supported on Windows
+== Automatic updates are only supported on Windows
+
 Automatically close the current chat after waking from freeze
 == Automatically close the current chat after waking from freeze
+
+Automatically reply to muted players
+== Automatically reply to muted players
+
+Automatically reply while the window is unfocused
+== Automatically reply while the window is unfocused
 
 Axiom auto login failed
 == Axiom auto login failed
@@ -267,6 +300,9 @@ Background color
 
 Based on a pile of Windows... stuff
 == Based on a pile of Windows... stuff
+
+Blue
+== Blue
 
 Both
 == Both
@@ -298,6 +334,9 @@ Button - Enabled
 CP opacity
 == CP opacity
 
+Camera
+== Camera
+
 Camera & FOV
 == Camera & FOV
 
@@ -321,6 +360,9 @@ Can't recognize specified arguments. Usage: /tpxy x y, e.g. /tpxy 9 3.
 
 Can't swap with yourself
 == Can't swap with yourself
+
+Changes: %d
+== Changes: %d
 
 Chat Bubble
 == Chat Bubble
@@ -367,6 +409,9 @@ Classic nut
 Classic pro
 == Classic pro
 
+Clear Changes
+== Clear Changes
+
 Click to copy QQ group number
 == Click to copy QQ group number
 
@@ -394,11 +439,17 @@ Combo
 Command is not available on solo servers
 == Command is not available on solo servers
 
+Commands run in the console
+== Commands run in the console
+
 Common key bindings
 == Common key bindings
 
 Community links, updates, and sponsors moved to the Contributors tab
 == Community links, updates, and sponsors moved to the Contributors tab
+
+Compact
+== Compact
 
 Concurrency (0 = auto)
 == Concurrency (0 = auto)
@@ -484,6 +535,9 @@ Current status
 Custom API key
 == Custom API key
 
+Custom Font:
+== Custom Font:
+
 Custom aspect ratio
 == Custom aspect ratio
 
@@ -514,8 +568,14 @@ Debug graph
 Debug performance graph panel
 == Debug performance graph panel
 
+Deep freeze color
+== Deep freeze color
+
 Deep freeze opacity
 == Deep freeze opacity
+
+Deep unfreeze color
+== Deep unfreeze color
 
 Deep unfreeze opacity
 == Deep unfreeze opacity
@@ -553,6 +613,9 @@ Diamond
 Disable after picking up other weapons
 == Disable after picking up other weapons
 
+Disagree
+== Disagree
+
 Display mode
 == Display mode
 
@@ -561,6 +624,9 @@ Dissolve
 
 Do not translate server messages
 == Do not translate server messages
+
+Downloading update...
+== Downloading update...
 
 Dragging, collapsing, search, and usage history are preserved per category
 == Dragging, collapsing, search, and usage history are preserved per category
@@ -625,11 +691,17 @@ Emoticon ID
 Enable 3D background particles
 == Enable 3D background particles
 
+Enable Deleting
+== Enable Deleting
+
 Enable FTAPI auto-translate (may overload the service)
 == Enable FTAPI auto-translate (may overload the service)
 
 Enable Gores mode
 == Enable Gores mode
+
+Enable Jelly Tee
+== Enable Jelly Tee
 
 Enable Zen mode
 == Enable Zen mode
@@ -645,6 +717,9 @@ Enable dynamic FOV
 
 Enable keyword reply
 == Enable keyword reply
+
+Enable mod weapon on %d: %s
+== Enable mod weapon on %d: %s
 
 Enable pie menu
 == Enable pie menu
@@ -694,6 +769,12 @@ Event
 Example: name1|name2|name3
 == Example: name1|name2|name3
 
+Execute before connecting
+== Execute before connecting
+
+Execute on connect
+== Execute on connect
+
 Expand module
 == Expand module
 
@@ -712,8 +793,20 @@ Fade only
 Fade out
 == Fade out
 
+Failed to check for updates
+== Failed to check for updates
+
+Failed to read saves file
+== Failed to read saves file
+
 Fallback simple noise reduction strength
 == Fallback simple noise reduction strength
+
+Fast input (reduce visual latency)
+== Fast input (reduce visual latency)
+
+Fast input others
+== Fast input others
 
 Favorite maps
 == Favorite maps
@@ -732,6 +825,12 @@ Frame rate
 
 Frame time
 == Frame time
+
+Freeview cursor opacity
+== Freeview cursor opacity
+
+Freeze
+== Freeze
 
 Freeze border color
 == Freeze border color
@@ -766,6 +865,9 @@ Game/predicted tick
 Gap aim rescue
 == Gap aim rescue
 
+Ghost tools
+== Ghost tools
+
 Global toggle key
 == Global toggle key
 
@@ -793,6 +895,9 @@ Gores mode key
 Greeting text
 == Greeting text
 
+Group name
+== Group name
+
 Guide line color
 == Guide line color
 
@@ -804,6 +909,9 @@ HJ Assist
 
 HJ assist
 == HJ assist
+
+Hammer Mode:
+== Hammer Mode:
 
 Hammer skin steal
 == Hammer skin steal
@@ -889,6 +997,12 @@ Hours
 I am a robot
 == I am a robot
 
+I am away from the game window
+== I am away from the game window
+
+I muted you
+== I muted you
+
 Idiot word filter
 == Idiot word filter
 
@@ -949,6 +1063,15 @@ Invites are disabled
 Is your dummy being bullied while you control the main tee?
 == Is your dummy being bullied while you control the main tee?
 
+Jelly duration
+== Jelly duration
+
+Jelly others
+== Jelly others
+
+Jelly strength
+== Jelly strength
+
 Jitter
 == Jitter
 
@@ -978,6 +1101,9 @@ Kill Protection enabled. If you really want to join the spectators, first type /
 
 King of Gores auto weapon switch
 == King of Gores auto weapon switch
+
+L select  R swap  M select only
+== L select  R swap  M select only
 
 LLM provider
 == LLM provider
@@ -1072,6 +1198,9 @@ Max size
 Max visible notifications
 == Max visible notifications
 
+Maximum rows
+== Maximum rows
+
 Memory
 == Memory
 
@@ -1111,8 +1240,14 @@ Minimize module
 Minimum match chars
 == Minimum match chars
 
+Minimum time
+== Minimum time
+
 Minutes
 == Minutes
+
+Misc
+== Misc
 
 Mixed
 == Mixed
@@ -1122,6 +1257,9 @@ Model
 
 Moderate
 == Moderate
+
+Modified
+== Modified
 
 Move Echo and important system prompts to right-side popups
 == Move Echo and important system prompts to right-side popups
@@ -1162,6 +1300,9 @@ No audio issues detected
 No callable peer found
 == No callable peer found
 
+No chat message available to repeat
+== No chat message available to repeat
+
 No chat message to translate
 == No chat message to translate
 
@@ -1176,6 +1317,9 @@ No favorite maps yet
 
 No input device available
 == No input device available
+
+No local saves file found (ddnet-saves.txt)
+== No local saves file found (ddnet-saves.txt)
 
 No matching features found. Try other keywords
 == No matching features found. Try other keywords
@@ -1197,6 +1341,15 @@ No peer
 
 No player with this name found.
 == No player with this name found.
+
+No safe position found
+== No safe position found
+
+No saved profiles available yet. Save one first.
+== No saved profiles available yet. Save one first.
+
+No status bar items
+== No status bar items
 
 Noise reduction mode
 == Noise reduction mode
@@ -1231,6 +1384,9 @@ Notifications
 Notify when friends come online
 == Notify when friends come online
 
+Notify when only one tee is still alive:
+== Notify when only one tee is still alive:
+
 Novice
 == Novice
 
@@ -1251,6 +1407,9 @@ Oldschool
 
 Only Apple Can Do
 == Only Apple Can Do
+
+Only show outlines in the entities layer
+== Only show outlines in the entities layer
 
 Only show when the other Tee is not on screen
 == Only show when the other Tee is not on screen
@@ -1275,6 +1434,9 @@ Opened
 
 Option color
 == Option color
+
+Outline opacity
+== Outline opacity
 
 Output device
 == Output device
@@ -1360,6 +1522,9 @@ Player already invited
 Player data
 == Player data
 
+Player indicator
+== Player indicator
+
 Player is on a different team
 == Player is on a different team
 
@@ -1410,6 +1575,9 @@ Practice mode enabled for your team, happy practicing!
 
 Practice mode is disabled
 == Practice mode is disabled
+
+Predicted ghost opacity
+== Predicted ghost opacity
 
 Prediction
 == Prediction
@@ -1465,6 +1633,9 @@ QmClient
 QmClient Community
 == QmClient Community
 
+QmClient Settings
+== QmClient Settings
+
 QmClient overview
 == QmClient overview
 
@@ -1497,6 +1668,9 @@ Receive
 
 Receiving
 == Receiving
+
+Red
+== Red
 
 Refresh
 == Refresh
@@ -1609,6 +1783,9 @@ See how much you act
 Selected timertype is not supported by your client
 == Selected timertype is not supported by your client
 
+Self
+== Self
+
 Self only
 == Self only
 
@@ -1675,6 +1852,9 @@ Set color
 Severe
 == Severe
 
+Show %s group
+== Show %s group
+
 Show Coordinates
 == Show Coordinates
 
@@ -1690,6 +1870,9 @@ Show X
 Show Y
 == Show Y
 
+Show all enabled outlines
+== Show all enabled outlines
+
 Show blocked words in console
 == Show blocked words in console
 
@@ -1704,6 +1887,12 @@ Show chat messages above players
 
 Show collision and weapon interaction
 == Show collision and weapon interaction
+
+Show colors in spectator selection
+== Show colors in spectator selection
+
+Show compact vote HUD
+== Show compact vote HUD
 
 Show coordinates above players
 == Show coordinates above players
@@ -1722,6 +1911,9 @@ Show hitbox mode
 
 Show inputs
 == Show inputs
+
+Show moving tiles in entities
+== Show moving tiles in entities
 
 Show on key
 == Show on key
@@ -1746,6 +1938,21 @@ Show sponsor QR code
 
 Show team
 == Show team
+
+Show tee status bar
+== Show tee status bar
+
+Show the cursor while free spectating
+== Show the cursor while free spectating
+
+Show the number of frozen tees
+== Show the number of frozen tees
+
+Show the number of tees still alive
+== Show the number of tees still alive
+
+Show the screen center line
+== Show the screen center line
 
 Show voice connection status
 == Show voice connection status
@@ -1804,8 +2011,17 @@ Skin transition type
 Slide left
 == Slide left
 
+Smaller tees
+== Smaller tees
+
 Smooth fade
 == Smooth fade
+
+Social
+== Social
+
+Solid tile outline opacity
+== Solid tile outline opacity
 
 Solo
 == Solo
@@ -1861,6 +2077,15 @@ Streamer Mode
 Strict mode
 == Strict mode
 
+Stroke fade time
+== Stroke fade time
+
+Sub-Tick aiming
+== Sub-Tick aiming
+
+Swap ghosts with regular players
+== Swap ghosts with regular players
+
 Swap is disabled on this server.
 == Swap is disabled on this server.
 
@@ -1896,6 +2121,9 @@ System media control
 
 System prompt text
 == System prompt text
+
+Tags
+== Tags
 
 Target language
 == Target language
@@ -1953,6 +2181,12 @@ Tee hitbox
 
 Tee hitbox color
 == Tee hitbox color
+
+Tee size
+== Tee size
+
+Tee status bar
+== Tee status bar
 
 Teleport grenade disabled
 == Teleport grenade disabled
@@ -2065,6 +2299,9 @@ This team started already
 This team was disbanded because there are more players than allowed in the team.
 == This team was disbanded because there are more players than allowed in the team.
 
+Tile outlines
+== Tile outlines
+
 Time to wait before changing team: %s
 == Time to wait before changing team: %s
 
@@ -2076,6 +2313,9 @@ Timer isn't displayed.
 
 To save all players in your team have to be alive and not in '/spec'
 == To save all players in your team have to be alive and not in '/spec'
+
+Toggle ghost key
+== Toggle ghost key
 
 Too many translation tasks
 == Too many translation tasks
@@ -2134,6 +2374,9 @@ UI scale
 Unclassified audio issue
 == Unclassified audio issue
 
+Unfreeze
+== Unfreeze
+
 Unfreeze automation helpers
 == Unfreeze automation helpers
 
@@ -2155,11 +2398,32 @@ Unknown parameter. Accepted values: default, gametimer, broadcast, both, none
 Unknown status
 == Unknown status
 
+Unpredicted ghost opacity
+== Unpredicted ghost opacity
+
+Update
+== Update
+
+Update failed. Please try again
+== Update failed. Please try again
+
+Update finished. Please restart the client
+== Update finished. Please restart the client
+
+Update finished. Restarting...
+== Update finished. Restarting...
+
 Update notice
 == Update notice
 
 Updating feature list...
 == Updating feature list...
+
+Use colored skins for frozen tees
+== Use colored skins for frozen tees
+
+Use custom skins instead of the ninja tee
+== Use custom skins instead of the ninja tee
 
 Use default flags on scoreboard
 == Use default flags on scoreboard
@@ -2190,6 +2454,15 @@ View latest updates
 
 View margin
 == View margin
+
+Visual: Effects
+== Visual: Effects
+
+Visual: Font & Cursor
+== Visual: Font & Cursor
+
+Visual: Nameplates
+== Visual: Nameplates
 
 Visuals
 == Visuals
@@ -2286,6 +2559,9 @@ You are not allowed to vote because we're currently checking for VPNs. Try again
 
 You are not allowed to vote because you appear to be using a VPN. Try connecting without a VPN or contacting an admin if you think this is a mistake.
 == You are not allowed to vote because you appear to be using a VPN. Try connecting without a VPN or contacting an admin if you think this is a mistake.
+
+You are not in practice
+== You are not in practice
 
 You are not permitted to talk for the next %s seconds.
 == You are not permitted to talk for the next %s seconds.
@@ -2434,6 +2710,12 @@ You haven't previously teleported. Use /tp before using this command.
 You lost your jetpack gun
 == You lost your jetpack gun
 
+You may have installed only DDNet.exe. Please use the full QmClient folder.
+== You may have installed only DDNet.exe. Please use the full QmClient folder.
+
+You may have replaced only DDNet.exe and skipped QmClient.zip.\nPlease install the full QmClient package.
+== You may have replaced only DDNet.exe and skipped QmClient.zip.\nPlease install the full QmClient package.
+
 You must join a team and play with somebody or else you can't play
 == You must join a team and play with somebody or else you can't play
 
@@ -2464,6 +2746,9 @@ You will receive whispers
 You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.
 == You're not in a team with /practice turned on. Note that you can't earn a rank with practice enabled.
 
+You're the last one!
+== You're the last one!
+
 Your current race time is %s
 == Your current race time is %s
 
@@ -2472,6 +2757,9 @@ Your current version is outdated. Please update from the QQ group.
 
 Your favorite map manager
 == Your favorite map manager
+
+Your friend %s is online and currently on map %s!
+== Your friend %s is online and currently on map %s!
 
 Your locked team was killed because '%s' %s
 == Your locked team was killed because '%s' %s
@@ -2559,6 +2847,9 @@ p = Ping latency
 
 q = Connection quality
 == q = Connection quality
+
+qm_profile_queue: index must be between 1 and %d
+== qm_profile_queue: index must be between 1 and %d
 
 r = Race time
 == r = Race time

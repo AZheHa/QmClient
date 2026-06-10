@@ -91,6 +91,9 @@
 '%s' would have timed out, but can use timeout protection now
 == '%s' 原本会超时掉线，但现在可以使用超时保护
 
++%d more codes
+== 还有 %d 个代码
+
 - Save codes in order:
 == - 密码依次为:
 
@@ -358,6 +361,9 @@ Current status
 Custom API key
 == 自定义 API 密钥
 
+Custom Font:
+== 自定义字体:
+
 Custom aspect ratio
 == 自定义宽高比
 
@@ -375,6 +381,9 @@ Debug graph
 
 Debug performance graph panel
 == 调试性能图表面板
+
+DeepSeek
+== DeepSeek
 
 DeepSeek API key
 == DeepSeek API 密钥
@@ -505,6 +514,9 @@ Frame rate
 Frame time
 == 帧时间
 
+Freeview cursor opacity
+== 自由旁观光标不透明度
+
 Friend Notifications
 == 好友提醒
 
@@ -537,6 +549,9 @@ Guide line color
 
 HJ Assist
 == HJ辅助
+
+Hammer Mode:
+== 锤子模式:
 
 Hammer skin steal
 == 锤中偷皮
@@ -838,6 +853,9 @@ No peer
 No player with this name found.
 == 没有找到这个名字的玩家
 
+No status bar items
+== 暂无状态栏项目
+
 Noise reduction mode
 == 降噪模式
 
@@ -882,6 +900,9 @@ Only what you can't imagine, nothing Dream can't do
 
 Only what you can't imagine, nothing Dream can't do!
 == 只有你想不到，没有梦做不到！
+
+OpenAI
+== OpenAI
 
 OpenAI API key
 == OpenAI API 密钥
@@ -1000,6 +1021,9 @@ QQ group: 1076765929 (click to copy)
 QmClient Community
 == 栖梦社区
 
+QmClient Settings
+== QmClient 设置
+
 Quick action menu for players
 == 对玩家快捷操作菜单
 
@@ -1084,6 +1108,12 @@ Scores are private on this server
 Scores are public on this server
 == 本服务器的成绩是公开的
 
+SecretId
+== SecretId
+
+SecretKey
+== SecretKey
+
 See how much you act
 == 看看你有多演
 
@@ -1164,6 +1194,9 @@ Show chat messages above players
 
 Show collision and weapon interaction
 == 显示碰撞和武器交互
+
+Show colors in spectator selection
+== 旁观选择中显示颜色
 
 Show coordinates above players
 == 在玩家头顶显示坐标

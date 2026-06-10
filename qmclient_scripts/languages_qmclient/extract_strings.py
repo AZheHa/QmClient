@@ -6,6 +6,22 @@ import re
 import sys
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
+STRINGS_FILE = os.path.join(SCRIPT_DIR, "extracted_strings.txt")
+
+LOCALIZE_CALL_RE = re.compile(
+    r"(?:Localize|Localizable|TCLocalize|TCLocalizable)\s*"
+    r'\(\s*"((?:[^"\\]|\\.)*)"'
+)
+
+SOURCE_PATHS = (
+    "src/game/client/components/qmclient",
+    "src/game/client/components/tclient",
+    "src/game/client/QmUi",
+    "src/game/client/gameclient.cpp",
+)
+
 EXTRA_LOCALIZE_STRINGS = {
     "%c Team %d",
     "%d players",
@@ -91,16 +107,20 @@ def strip_cpp_comments(content):
     return "".join(out)
 
 
-def extract_localize_strings(root_dir):
-    """Walk root_dir and extract all literal strings from Localize() calls."""
-    strings = set()
-    pattern = re.compile(r'Localize\(\s*"((?:[^"\\]|\\.)*)"')
+def repo_path(path):
+    return path if os.path.isabs(path) else os.path.join(PROJECT_ROOT, path)
 
-    if os.path.isfile(root_dir):
-        paths = [root_dir]
+
+def extract_localize_strings(root_dir):
+    """Walk root_dir and extract all literal strings from localization calls."""
+    strings = set()
+    root_path = repo_path(root_dir)
+
+    if os.path.isfile(root_path):
+        paths = [root_path]
     else:
         paths = []
-        for dirpath, dirs, files in os.walk(root_dir):
+        for dirpath, dirs, files in os.walk(root_path):
             dirs.sort()
             for fname in sorted(files):
                 if fname.endswith((".cpp", ".h")):
@@ -110,14 +130,13 @@ def extract_localize_strings(root_dir):
         try:
             with open(fpath, "r", encoding="utf-8") as f:
                 content = strip_cpp_comments(f.read())
-            for m in pattern.finditer(content):
+            for m in LOCALIZE_CALL_RE.finditer(content):
                 s = m.group(1)
                 strings.add(s)
             strings.update(extract_known_indirect_strings(fpath, content))
         except Exception as e:
             print(f"Error reading {fpath}: {e}", file=sys.stderr)
 
-    # Also scan gameclient.cpp for QmClient-specific strings (language loading etc.)
     return strings
 
 
@@ -140,7 +159,7 @@ def extract_function_body(content, function_name):
 def extract_known_indirect_strings(path, content):
     """Extract project-specific strings that are later passed to Localize(pointer)."""
     strings = set()
-    normalized = path.replace("\\", "/")
+    normalized = os.path.relpath(path, PROJECT_ROOT).replace("\\", "/")
     string_literal = r'"((?:[^"\\]|\\.)*)"'
 
     if normalized.endswith("src/game/client/components/qmclient/menus_qmclient.cpp"):
@@ -206,30 +225,23 @@ def extract_known_indirect_strings(path, content):
     return strings
 
 
-def main():
-    os.chdir(os.path.dirname(__file__) + "/../..")
-
-    # Extract from qmclient components
-    strings = extract_localize_strings("src/game/client/components/qmclient")
-
-    strings |= extract_localize_strings(
-        "src/game/client/components/tclient/statusbar.cpp"
-    )
-    strings |= extract_localize_strings(
-        "src/game/client/components/tclient/statusbar.h"
-    )
+def collect_strings():
+    strings = set()
+    for source_path in SOURCE_PATHS:
+        strings |= extract_localize_strings(source_path)
     strings.update(EXTRA_LOCALIZE_STRINGS)
+    return sorted(strings)
 
-    # Sort
-    sorted_strings = sorted(strings)
 
-    # Write output
-    outpath = "qmclient_scripts/languages_qmclient/extracted_strings.txt"
-    with open(outpath, "w", encoding="utf-8", newline="\n") as f:
+def main():
+    sorted_strings = collect_strings()
+
+    with open(STRINGS_FILE, "w", encoding="utf-8", newline="\n") as f:
         for s in sorted_strings:
             f.write(s + "\n")
 
-    print(f"Extracted {len(sorted_strings)} unique Localize strings to {outpath}")
+    rel_outpath = os.path.relpath(STRINGS_FILE, PROJECT_ROOT)
+    print(f"Extracted {len(sorted_strings)} unique localization strings to {rel_outpath}")
 
     # Also print them
     for i, s in enumerate(sorted_strings):
