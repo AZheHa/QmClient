@@ -1547,7 +1547,7 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 			pSkinContainer == nullptr ?
 				CSkins::CSkinContainer::EStatusIndicator::ERROR :
 				CSkins::CSkinContainer::StatusIndicator(pSkinContainer->State());
-		Ui()->DoButtonLogic(pStatusTooltipId, 0, &StatusIcon, BUTTONFLAG_NONE);
+		Ui()->RegisterPassiveHotItem(pStatusTooltipId, &StatusIcon);
 		if(Indicator == CSkins::CSkinContainer::EStatusIndicator::LOADING)
 		{
 			Ui()->RenderProgressSpinner(StatusIcon.Center(), 5.0f);
@@ -5683,7 +5683,7 @@ void CMenus::RenderSettingsAppearance(CUIRect MainView)
 		Ui()->DoLabel_AutoLineSize(Localize("Colors of the hook collision line, in case of a possible collision with:"), 13.0f,
 			TEXTALIGN_ML, &LeftView, HeadlineHeight);
 
-		Ui()->DoButtonLogic(&s_HookCollToolTip, 0, &LeftView, BUTTONFLAG_NONE); // Just for the tooltip, result ignored
+		Ui()->RegisterPassiveHotItem(&s_HookCollToolTip, &LeftView);
 		GameClient()->m_Tooltips.DoToolTip(&s_HookCollToolTip, &LeftView, Localize("Your movements are not taken into account when calculating the line colors"));
 		DoLine_ColorPicker(&s_HookCollNoCollResetId, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &LeftView, Localize("Nothing hookable"), &g_Config.m_ClHookCollColorNoColl, ColorRGBA(1.0f, 0.0f, 0.0f, 1.0f), false);
 		DoLine_ColorPicker(&s_HookCollHookableCollResetId, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &LeftView, Localize("Something hookable"), &g_Config.m_ClHookCollColorHookableColl, ColorRGBA(130.0f / 255.0f, 232.0f / 255.0f, 160.0f / 255.0f, 1.0f), false);

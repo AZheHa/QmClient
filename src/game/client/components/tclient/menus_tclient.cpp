@@ -932,7 +932,7 @@ void CMenus::DrawTClientCacheSectionBox(CUIRect BoxRect)
 	BoxRect.h += Padding;
 	BoxRect.x -= Padding * 0.5f;
 	BoxRect.y -= Padding * 0.5f;
-	BoxRect.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.25f), IGraphics::CORNER_ALL, 10.0f);
+	Ui()->RenderBatchableRect(&BoxRect, ColorRGBA(0.0f, 0.0f, 0.0f, 0.25f), IGraphics::CORNER_ALL, 10.0f);
 }
 
 float CMenus::RenderTClientCacheSectionFallback(CUIRect &CurrentColumn, float TopMargin, float (CMenus::*pLayoutSection)(CUIRect &, bool))
@@ -948,6 +948,7 @@ float CMenus::RenderTClientCacheSectionFallback(CUIRect &CurrentColumn, float To
 void CMenus::ConfigureSplitCachedStaticLayer(SSettingsSection &Section, const char *pTitle, std::function<float(CUIRect &)> MeasureSection, std::function<float(CUIRect &)> RenderInteractiveSection, float TopMargin)
 {
 	Section.m_RenderCompactFn = [this, pTitle, MeasureSection = std::move(MeasureSection), RenderInteractiveSection, TopMargin](CUIRect &Col) -> float {
+		CUiScopedQuadBatch QuadBatchScope(Ui());
 		CUIRect Label;
 		const float SavedY = Col.y;
 		CUIRect MeasuredColumn = Col;
@@ -1510,9 +1511,10 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 		Section.h += Padding;
 		Section.x -= Padding * 0.5f;
 		Section.y -= Padding * 0.5f;
-		Section.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, 0.25f), IGraphics::CORNER_ALL, 10.0f);
+		Ui()->RenderBatchableRect(&Section, ColorRGBA(0.0f, 0.0f, 0.0f, 0.25f), IGraphics::CORNER_ALL, 10.0f);
 	};
 	auto RenderBoxedFullSection = [&](auto &LayoutSection, CUIRect &Col) -> float {
+		CUiScopedQuadBatch QuadBatchScope(Ui());
 		const float SavedY = Col.y;
 		CUIRect MeasuredColumn = Col;
 		CUIRect BoxRect = LayoutSection(MeasuredColumn, false);
@@ -1522,6 +1524,7 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 	};
 	auto FillSplitCachedStaticLayer = [&](SSettingsSection &Section, const char *pTitle, auto &&MeasureSection, auto &&RenderInteractiveSection, float TopMargin) {
 		Section.m_RenderCompactFn = [&, pTitle, TopMargin](CUIRect &Col) -> float {
+			CUiScopedQuadBatch QuadBatchScope(Ui());
 			const float SavedY = Col.y;
 			CUIRect MeasuredColumn = Col;
 			const float Height = MeasureSection(MeasuredColumn);
@@ -1537,7 +1540,8 @@ void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)
 		Section.m_RenderFullFn = Section.m_RenderCompactFn;
 	};
 	auto FillCachedStaticLayer = [&](SSettingsSection &Section, auto &LayoutSection) {
-		Section.m_RenderCompactFn = [&LayoutSection, &DrawSectionBox](CUIRect &Col) -> float {
+		Section.m_RenderCompactFn = [this, &LayoutSection, &DrawSectionBox](CUIRect &Col) -> float {
+			CUiScopedQuadBatch QuadBatchScope(Ui());
 			const float SavedY = Col.y;
 			CUIRect MeasuredColumn = Col;
 			CUIRect BoxRect = LayoutSection(MeasuredColumn, false);

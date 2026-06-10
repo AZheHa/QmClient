@@ -238,6 +238,46 @@ TEST(QmMonitoringHelpers, QmUiRuntimeTelemetryExposesSettingsContext)
 	EXPECT_NE(Source.find("QmPerfLogPayload(\"perf/ui_runtime\""), std::string::npos);
 }
 
+TEST(QmMonitoringHelpers, SectionQuadBatchingDoesNotCrossTextOrClipBoundaries)
+{
+	{
+		std::ifstream File(TestSourcePath("src/game/client/ui.h"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("class CUiScopedQuadBatch"), std::string::npos);
+		EXPECT_NE(Source.find("void BeginQuadBatch() const;"), std::string::npos);
+		EXPECT_NE(Source.find("void FlushQuadBatch() const;"), std::string::npos);
+		EXPECT_NE(Source.find("void EndQuadBatch() const;"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/ui.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("CUiScopedQuadBatch::CUiScopedQuadBatch"), std::string::npos);
+		EXPECT_NE(Source.find("CUiScopedQuadBatch::~CUiScopedQuadBatch"), std::string::npos);
+		EXPECT_NE(Source.find("void CUi::FlushQuadBatch() const"), std::string::npos);
+		EXPECT_NE(Source.find("TextRender()->RenderTextContainer"), std::string::npos);
+		EXPECT_NE(Source.find("FlushQuadBatch();\n\t\tTextRender()->RenderTextContainer"), std::string::npos);
+		EXPECT_NE(Source.find("void CUi::ClipEnable(const CUIRect *pRect)\n{\n\tFlushQuadBatch();"), std::string::npos);
+		EXPECT_NE(Source.find("void CUi::ClipDisable()\n{\n\tFlushQuadBatch();"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/tclient/menus_tclient.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("CUiScopedQuadBatch QuadBatchScope(Ui());"), std::string::npos);
+	}
+}
+
 namespace
 {
 

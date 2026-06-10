@@ -18,6 +18,7 @@ class CScrollRegion;
 class IClient;
 class IGraphics;
 class IKernel;
+class CUiScopedQuadBatch;
 
 enum class EEditState
 {
@@ -146,6 +147,19 @@ public:
 };
 
 class CUi;
+
+class CUiScopedQuadBatch
+{
+public:
+	explicit CUiScopedQuadBatch(CUi *pUi);
+	~CUiScopedQuadBatch();
+
+	CUiScopedQuadBatch(const CUiScopedQuadBatch &) = delete;
+	CUiScopedQuadBatch &operator=(const CUiScopedQuadBatch &) = delete;
+
+private:
+	CUi *m_pUi;
+};
 
 class CUIElement
 {
@@ -374,8 +388,22 @@ public:
 	};
 
 private:
+	struct SQuadBatchRectContainer
+	{
+		float m_Width = 0.0f;
+		float m_Height = 0.0f;
+		float m_Rounding = 0.0f;
+		int m_Corners = 0;
+		int m_QuadContainerIndex = -1;
+	};
+
 	bool m_Enabled;
 	int m_RenderOnlyDepth = 0;
+	mutable int m_QuadBatchDepth = 0;
+	mutable int m_QuadBatchContainerIndex = -1;
+	mutable ColorRGBA m_QuadBatchColor = ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f);
+	mutable std::vector<IGraphics::SRenderSpriteInfo> m_vQuadBatchSprites;
+	mutable std::vector<SQuadBatchRectContainer> m_vQuadBatchRectContainers;
 
 	const void *m_pHotItem = nullptr;
 	const void *m_pActiveItem = nullptr;
@@ -458,6 +486,9 @@ private:
 
 	std::vector<CUIElement *> m_vpOwnUIElements; // ui elements maintained by CUi class
 	std::vector<CUIElement *> m_vpUIElements;
+
+	int QuadBatchRectContainer(float Width, float Height, float Rounding, int Corners) const;
+	void RenderQuadContainerBatchable(int QuadContainerIndex, float X, float Y, const ColorRGBA &Color) const;
 
 public:
 	static const CLinearScrollbarScale ms_LinearScrollbarScale;
@@ -604,6 +635,7 @@ public:
 	bool MouseInside(const CUIRect *pRect) const;
 	bool MouseInsideClip() const { return !IsClipped() || MouseInside(ClipArea()); }
 	bool MouseHovered(const CUIRect *pRect) const { return !RenderOnly() && MouseInside(pRect) && MouseInsideClip(); }
+	void RegisterPassiveHotItem(const void *pId, const CUIRect *pRect);
 	void ConvertMouseMove(float *pX, float *pY, IInput::ECursorType CursorType) const;
 	void UpdateTouchState(CTouchState &State) const;
 	void ResetMouseSlow() { m_MouseSlow = false; }
@@ -625,6 +657,11 @@ public:
 	void ClipDisable();
 	const CUIRect *ClipArea() const;
 	bool IsClipped() const { return !m_vClips.empty(); }
+	void BeginQuadBatch() const;
+	void FlushQuadBatch() const;
+	void EndQuadBatch() const;
+	bool IsQuadBatchActive() const { return m_QuadBatchDepth > 0; }
+	void RenderBatchableRect(const CUIRect *pRect, ColorRGBA Color, int Corners, float Rounding) const;
 
 	int DoButtonLogic(const void *pId, int Checked, const CUIRect *pRect, unsigned Flags);
 	int DoDraggableButtonLogic(const void *pId, int Checked, const CUIRect *pRect, bool *pClicked, bool *pAbrupted);
