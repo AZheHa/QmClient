@@ -373,6 +373,39 @@ TEST(SectionLoader, DeferredFarMeasurementDoesNotSkipDirtyHeight)
 	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 980.0f);
 }
 
+TEST(SectionLoader, FarCompactSectionAdvancesWithoutRendering)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(true);
+	int FarCompactRenderCount = 0;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		Far.m_RenderCompactFn = [&FarCompactRenderCount](CUIRect &Rect) -> float {
+			++FarCompactRenderCount;
+			return ConsumeHeight(Rect, 50.0f);
+		};
+		return std::vector<SSettingsSection>{Far};
+	};
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_TRUE(Loader.Process());
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_TRUE(Loader.Process());
+	EXPECT_EQ(FarCompactRenderCount, 1);
+
+	Loader.m_ScrollY = -1000.0f;
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 0.0f);
+	EXPECT_TRUE(Loader.Process());
+
+	EXPECT_EQ(FarCompactRenderCount, 1);
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 50.0f);
+}
+
 TEST(SectionLoader, FullSectionsAfterUnfinishedSectionStillRender)
 {
 	CSectionLoader Loader;

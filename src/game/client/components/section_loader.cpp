@@ -197,6 +197,12 @@ bool CSectionLoader::Process()
 		{
 			const CUIRect SectionRect{m_MainView.x, m_RunningColumn.y, m_MainView.w, Section.m_CachedHeight};
 			const int Priority = ComputeViewportPriority(SectionRect);
+			if(Priority > 1)
+			{
+				m_RunningColumn.y += Section.m_CachedHeight;
+				++m_CurrentIndex;
+				break;
+			}
 			if(BudgetAvailable && UnlockedThisFrame < MaxUnlockPerFrame && Priority <= 1)
 			{
 				Section.m_State = ESettingsSectionState::FULL;
