@@ -536,6 +536,34 @@ TEST(Skins, TeeBackgroundWindowUsesRealDecodeJobSaturationSignal)
 	EXPECT_NE(PrepareBody.find("m_SettingsThroughputControllerOutput = SettingsSkinThroughputControllerStep({"), std::string::npos);
 }
 
+TEST(Skins, TeeFinishLoadingKeepsPriorityBeforeBackgroundSweep)
+{
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+
+	const size_t FinishLoadingPos = Source.find("void CSkins::UpdateFinishLoading(");
+	ASSERT_NE(FinishLoadingPos, std::string::npos);
+	const size_t FinishLoadingEnd = Source.find("void CSkins::RefreshEventSkins()", FinishLoadingPos);
+	ASSERT_NE(FinishLoadingEnd, std::string::npos);
+	const std::string FinishLoading = Source.substr(FinishLoadingPos, FinishLoadingEnd - FinishLoadingPos);
+
+	const size_t UsageListPos = FinishLoading.find("for(const std::string &SkinName : vUsageSnapshot)");
+	const size_t DeferBackgroundPos = FinishLoading.find("if(SettingsSkinFinalizeShouldDeferBackgroundSweep(ProcessedHighPrioritySkin, SkinsProcessedThisFrame, MaxSkinsPerFrame))");
+	const size_t BackgroundListPos = FinishLoading.find("for(const std::string &SkinName : vBackgroundSnapshot)");
+	const size_t FallbackSweepPos = FinishLoading.find("for(auto &[_, pSkinContainer] : m_Skins)");
+
+	ASSERT_NE(UsageListPos, std::string::npos);
+	ASSERT_NE(DeferBackgroundPos, std::string::npos);
+	ASSERT_NE(BackgroundListPos, std::string::npos);
+	ASSERT_NE(FallbackSweepPos, std::string::npos);
+	EXPECT_LT(UsageListPos, DeferBackgroundPos);
+	EXPECT_LT(DeferBackgroundPos, BackgroundListPos);
+	EXPECT_LT(BackgroundListPos, FallbackSweepPos);
+}
+
 TEST(Skins, TeeSettingsListEmitsRequestWindowPerfLogs)
 {
 	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
@@ -548,7 +576,7 @@ TEST(Skins, TeeSettingsListEmitsRequestWindowPerfLogs)
 	EXPECT_NE(Source.find("frame_time_avg_ms=%.3f render_frame_time_ms=%.3f admission_underfed=%d underfed_streak=%d"), std::string::npos);
 	EXPECT_NE(Source.find("visible_reserve_effective=%d"), std::string::npos);
 	EXPECT_NE(Source.find("GameClient()->m_Skins.SetSettingsTeeVisibleSnapshot(VisibleSnapshot);"), std::string::npos);
-	EXPECT_NE(Source.find("event=work_drain page=settings:tee kind=merge count=%llu bytes=%d dur_ms=%.3f stop=%s source=list_drain_summary"), std::string::npos);
+	EXPECT_NE(Source.find("event=work_drain page=settings:tee kind=merge count=%llu bytes=%d dur_ms=%.3f stop=%s source=list_drain_summary scope=session"), std::string::npos);
 	EXPECT_NE(Source.find("uploads_done_total=%llu loaded_total=%llu uploads_per_sec=%.3f loaded_per_sec=%.3f"), std::string::npos);
 	EXPECT_NE(Source.find("max_requested=%d max_pending=%d max_loading=%d max_real_inflight=%d count_fuse_limit=%d"), std::string::npos);
 	EXPECT_NE(Source.find("total_requested=%llu total_admitted=%llu total_started=%llu"), std::string::npos);

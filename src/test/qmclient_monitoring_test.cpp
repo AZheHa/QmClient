@@ -565,6 +565,6 @@ TEST(QmMonitoringHelpers, MenuPerfEventsExposePageAttributionFields)
 		Buffer << File.rdbuf();
 		const std::string Source = Buffer.str();
 
-		EXPECT_NE(Source.find("event=work_drain page=settings:tee kind=merge count=%llu bytes=%d dur_ms=%.3f stop=%s"), std::string::npos);
+		EXPECT_NE(Source.find("event=work_drain page=settings:tee kind=merge count=%llu bytes=%d dur_ms=%.3f stop=%s source=list_drain_summary scope=session"), std::string::npos);
 	}
 }

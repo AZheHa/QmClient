@@ -7,6 +7,13 @@
 #include <algorithm>
 #include <cmath>
 
+namespace
+{
+
+	constexpr int TEE_IDLE_DRAIN_FINALIZE_BUDGET = 32;
+
+}
+
 float SettingsSkinPreviewSize(float RowHeight, float PreviewWidth, float RequestedSize)
 {
 	const float MaxSize = std::max(0.0f, std::min(RowHeight, PreviewWidth) - 10.0f);
@@ -559,8 +566,8 @@ namespace
 		case ESettingsSkinThroughputControllerMode::IDLE_DRAIN:
 			Profile.m_GpuUploadLimitMin = 192;
 			Profile.m_GpuUploadLimitMax = 384;
-			Profile.m_FinalizeBudgetMin = 64;
-			Profile.m_FinalizeBudgetMax = 96;
+			Profile.m_FinalizeBudgetMin = TEE_IDLE_DRAIN_FINALIZE_BUDGET;
+			Profile.m_FinalizeBudgetMax = TEE_IDLE_DRAIN_FINALIZE_BUDGET;
 			Profile.m_NormalWindowMin = ClampSettingsSkinLoadWindow(192, LoadedMax);
 			Profile.m_NormalWindowMax = ClampSettingsSkinLoadWindow(320, LoadedMax);
 			Profile.m_VisibleWindowMin = ClampSettingsSkinLoadWindow(192, LoadedMax);

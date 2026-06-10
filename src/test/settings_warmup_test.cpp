@@ -1249,6 +1249,46 @@ TEST(SettingsResourceJobs, TeeSkinFinalizeBudgetDefersDuringScrollAndRecovery)
 	EXPECT_EQ(SettingsSkinGpuUploadFrameUnits(Recovering, true), 8);
 }
 
+TEST(SettingsResourceJobs, TeeSkinFinalizeIdleDrainUsesBoundedMergeBudget)
+{
+	SSettingsSkinThroughputControllerState State;
+	const auto Settled = SettingsSkinThroughputControllerStep({
+									  {false, false, 0, true},
+									  true,
+									  6.5f,
+									  6.0f,
+									  512,
+									  28,
+									  28,
+									  0,
+									  0,
+									  0,
+									  0,
+									  0,
+									  20,
+									  40,
+									  20,
+									  12,
+									  12,
+									  0,
+									  0,
+									  288,
+									  false,
+									  "none",
+									  "none",
+								  },
+		State);
+
+	EXPECT_EQ(Settled.m_Mode, ESettingsSkinThroughputControllerMode::IDLE_DRAIN);
+	EXPECT_TRUE(Settled.m_BackgroundDrainActive);
+	EXPECT_EQ(Settled.m_FinalizeBudgetLimit, 32);
+
+	const SSettingsResourceFrameContext Scrolling = SettingsBuildFrameContext(true, false, 0);
+	EXPECT_EQ(SettingsSkinFinalizeFrameBudget(Scrolling, true), 16);
+	const SSettingsResourceFrameContext Recovering = SettingsBuildFrameContext(false, false, 2);
+	EXPECT_EQ(SettingsSkinFinalizeFrameBudget(Recovering, true), 48);
+}
+
 TEST(SettingsResourceJobs, ActiveTeeSkinFrameBudgetAllowsEightSourceUploadsPerFrame)
 {
 	SSettingsWarmupFrameBudget Budget;
