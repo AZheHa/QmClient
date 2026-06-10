@@ -1836,6 +1836,28 @@ private:
 		int m_Reused = 0;
 	};
 
+	class CScopedSettingsTextPerfStats
+	{
+		CMenus *m_pMenus = nullptr;
+		SSettingsTextPerfStats *m_pPrevious = nullptr;
+		SSettingsTextPerfStats m_Stats;
+
+	public:
+		explicit CScopedSettingsTextPerfStats(CMenus *pMenus) :
+			m_pMenus(pMenus),
+			m_pPrevious(pMenus->m_pActiveSettingsTextPerfStats)
+		{
+			m_pMenus->m_pActiveSettingsTextPerfStats = &m_Stats;
+		}
+
+		~CScopedSettingsTextPerfStats()
+		{
+			m_pMenus->m_pActiveSettingsTextPerfStats = m_pPrevious;
+		}
+
+		const SSettingsTextPerfStats &Stats() const { return m_Stats; }
+	};
+
 	struct SSettingsRuntimeMetadata
 	{
 		int m_LastPage = -1;

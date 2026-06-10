@@ -934,6 +934,13 @@ TEST(SettingsWarmupCleanup, SourceNoLongerReferencesSettingsRuntimeFboContracts)
 	EXPECT_EQ(ResourceSource.find("SettingsPageCacheCanUseRecordedResources"), std::string::npos);
 	EXPECT_EQ(ResourceSource.find("SettingsPageRecordedCacheMissReason"), std::string::npos);
 	EXPECT_EQ(ResourceSource.find("SettingsPageCanUsePageFbo"), std::string::npos);
+
+	std::ifstream SkinsFile(TestSourcePath("src/game/client/components/skins.cpp"));
+	ASSERT_TRUE(SkinsFile.good());
+	std::stringstream SkinsBuffer;
+	SkinsBuffer << SkinsFile.rdbuf();
+	const std::string SkinsSource = SkinsBuffer.str();
+	EXPECT_EQ(SkinsSource.find("FBO_BUDGET"), std::string::npos);
 }
 
 TEST(SettingsWarmupCleanup, SourceKeepsTeeMemoryPreviewCacheAndWorkshopThumbCache)

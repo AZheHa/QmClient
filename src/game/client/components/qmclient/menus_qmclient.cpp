@@ -934,7 +934,8 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		CUIRect TitleRect, TipRect;
 		Content.HSplitTop(LgHeadlineSize, &TitleRect, &Content);
 		TextRender()->TextColor(GetRainbowColor(RainbowIndex));
-		Ui()->DoLabel(&TitleRect, pTitle, LgHeadlineSize, TEXTALIGN_ML);
+		CUIElement &TitleElement = SettingsTextElement(SETTINGS_QMCLIENT, m_QmClientSettingsTab, pTitle);
+		DoSettingsLabelStreamed(TitleElement, &TitleRect, pTitle, LgHeadlineSize, TEXTALIGN_ML);
 		TextRender()->TextColor(TextRender()->DefaultTextColor());
 		Content.HSplitTop(LgTipHeight, &TipRect, &Content);
 		if(pTip && pTip[0] != '\0' && Ui()->MouseHovered(&TitleRect))

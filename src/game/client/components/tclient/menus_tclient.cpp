@@ -955,7 +955,8 @@ void CMenus::ConfigureSplitCachedStaticLayer(SSettingsSection &Section, const ch
 		DrawTClientCacheSectionBox({Col.x, Col.y + TopMargin, Col.w, Height - TopMargin});
 		Col.HSplitTop(TopMargin, nullptr, &Col);
 		Col.HSplitTop(HeadlineHeight, &Label, &Col);
-		Ui()->DoLabel(&Label, Localize(pTitle), HeadlineFontSize, TEXTALIGN_ML);
+		CUIElement &TitleElement = SettingsTextElement(SETTINGS_TCLIENT, m_TClientSettingsTab, pTitle);
+		DoSettingsLabelStreamed(TitleElement, &Label, Localize(pTitle), HeadlineFontSize, TEXTALIGN_ML);
 		Col.HSplitTop(MarginSmall, nullptr, &Col);
 		RenderInteractiveSection(Col);
 		return Col.y - SavedY;
@@ -972,14 +973,18 @@ float CMenus::LayoutTClientThemeCacheSection(CUIRect &CurrentColumn, bool Render
 	BoxRect = CurrentColumn;
 	CurrentColumn.HSplitTop(HeadlineHeight, Render ? &Label : &TmpLabel, &CurrentColumn);
 	if(Render)
-		Ui()->DoLabel(&Label, Localize("Visual: Font & Cursor"), HeadlineFontSize, TEXTALIGN_ML);
+	{
+		CUIElement &TitleElement = SettingsTextElement(SETTINGS_TCLIENT, m_TClientSettingsTab, "tclient-visual-font-cursor-title");
+		DoSettingsLabelStreamed(TitleElement, &Label, Localize("Visual: Font & Cursor"), HeadlineFontSize, TEXTALIGN_ML);
+	}
 	CurrentColumn.HSplitTop(MarginSmall, nullptr, &CurrentColumn);
 
 	CurrentColumn.HSplitTop(LineSize, &Button, &CurrentColumn);
 	if(Render)
 	{
 		Button.VSplitLeft(100.0f, &Label, &Button);
-		Ui()->DoLabel(&Label, Localize("Custom Font:"), FontSize, TEXTALIGN_ML);
+		CUIElement &CustomFontElement = SettingsTextElement(SETTINGS_TCLIENT, m_TClientSettingsTab, "tclient-custom-font-label");
+		DoSettingsLabelStreamed(CustomFontElement, &Label, Localize("Custom Font:"), FontSize, TEXTALIGN_ML);
 		static std::vector<std::string> s_FontDropDownNamesOwned;
 		static std::vector<const char *> s_FontDropDownNames;
 		static CUi::SDropDownState s_FontDropDownState;

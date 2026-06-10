@@ -695,6 +695,7 @@ namespace
 void CMenus::RenderSettingsGeneral(CUIRect MainView)
 {
 	CPerfTimer RenderTimer;
+	CScopedSettingsTextPerfStats TextStats(this);
 	char aBuf[128 + IO_MAX_PATH_LENGTH];
 	CUIRect Label, Button, Left, Right, Game, ClientSettings;
 	MainView.HSplitTop(190.0f, &Game, &ClientSettings);
@@ -893,6 +894,7 @@ void CMenus::RenderSettingsGeneral(CUIRect MainView)
 			}
 		}
 	}
+	LogSettingsSectionPerf(Client(), SETTINGS_GENERAL, -1, "general_page", RenderTimer.ElapsedMs(), "static_text", TextStats.Stats().m_New, TextStats.Stats().m_Reused);
 	LogPerfStage(Client(), "general_page_total", RenderTimer.ElapsedMs(), false, "page=general");
 }
 
@@ -997,8 +999,10 @@ void CMenus::RenderSettingsTeeIdentity(CUIRect MainView, CUIRect *pFlagButton)
 	ClanInput.VSplitRight(40.0f, &ClanInput, &FlagButton);
 	ClanInput.VSplitRight(6.0f, &ClanInput, nullptr);
 
-	Ui()->DoLabel(&NameLabel, Localize("Name"), 14.0f, TEXTALIGN_ML);
-	Ui()->DoLabel(&ClanLabel, Localize("Clan"), 14.0f, TEXTALIGN_ML);
+	CUIElement &NameLabelElement = SettingsTextElement(SETTINGS_TEE, -1, "tee-name-label");
+	DoSettingsLabelStreamed(NameLabelElement, &NameLabel, Localize("Name"), 14.0f, TEXTALIGN_ML);
+	CUIElement &ClanLabelElement = SettingsTextElement(SETTINGS_TEE, -1, "tee-clan-label");
+	DoSettingsLabelStreamed(ClanLabelElement, &ClanLabel, Localize("Clan"), 14.0f, TEXTALIGN_ML);
 	if(Ui()->DoEditBox(&NameInputLine, &NameInputRect, 14.0f))
 		gs_TeeIdentityNameInputState.MarkDirty(Dummy);
 	if(gs_TeeIdentityNameInputState.IsDirty(Dummy) && !NameInputLine.IsActive())
@@ -5904,9 +5908,11 @@ void CMenus::RenderSettingsDDNet(CUIRect MainView)
 	CUIRect Demo;
 	MainView.HSplitTop(130.0f, &Demo, &MainView);
 	Demo.HSplitTop(30.0f, &Label, &Demo);
-	Ui()->DoLabel(&Label, Localize("Demo"), 20.0f, TEXTALIGN_ML);
+	CUIElement &DemoTitleElement = SettingsTextElement(SETTINGS_DDNET, -1, "ddnet-demo-title");
+	DoSettingsLabelStreamed(DemoTitleElement, &Label, Localize("Demo"), 20.0f, TEXTALIGN_ML);
 	Label.VSplitMid(nullptr, &Label, 20.0f);
-	Ui()->DoLabel(&Label, Localize("Ghost"), 20.0f, TEXTALIGN_ML);
+	CUIElement &GhostTitleElement = SettingsTextElement(SETTINGS_DDNET, -1, "ddnet-ghost-title");
+	DoSettingsLabelStreamed(GhostTitleElement, &Label, Localize("Ghost"), 20.0f, TEXTALIGN_ML);
 
 	Demo.HSplitTop(5.0f, nullptr, &Demo);
 	Demo.VSplitMid(&Left, &Right, 20.0f);
@@ -5970,7 +5976,8 @@ void CMenus::RenderSettingsDDNet(CUIRect MainView)
 	const float GameplayHeight = 150.0f + (g_Config.m_ClAntiPing ? 3.0f * 20.0f : 0.0f);
 	MainView.HSplitTop(GameplayHeight, &Gameplay, &MainView);
 	Gameplay.HSplitTop(30.0f, &Label, &Gameplay);
-	Ui()->DoLabel(&Label, Localize("Gameplay"), 20.0f, TEXTALIGN_ML);
+	CUIElement &GameplayTitleElement = SettingsTextElement(SETTINGS_DDNET, -1, "ddnet-gameplay-title");
+	DoSettingsLabelStreamed(GameplayTitleElement, &Label, Localize("Gameplay"), 20.0f, TEXTALIGN_ML);
 	Gameplay.HSplitTop(5.0f, nullptr, &Gameplay);
 	Gameplay.VSplitMid(&Left, &Right, 20.0f);
 
@@ -6061,7 +6068,8 @@ void CMenus::RenderSettingsDDNet(CUIRect MainView)
 		// background
 		Background.HSplitTop(30.0f, &Label, &Background);
 		Background.HSplitTop(5.0f, nullptr, &Background);
-		Ui()->DoLabel(&Label, Localize("Background"), 20.0f, TEXTALIGN_ML);
+		CUIElement &BackgroundTitleElement = SettingsTextElement(SETTINGS_DDNET, -1, "ddnet-background-title");
+		DoSettingsLabelStreamed(BackgroundTitleElement, &Label, Localize("Background"), 20.0f, TEXTALIGN_ML);
 
 		ColorRGBA GreyDefault(0.5f, 0.5f, 0.5f, 1);
 

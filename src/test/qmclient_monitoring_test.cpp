@@ -429,6 +429,46 @@ TEST(QmMonitoringHelpers, RuntimePerfCallsitesUseSharedLoggingHelpers)
 	}
 }
 
+TEST(QmMonitoringHelpers, SettingsStaticLabelsUseTextElementCache)
+{
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TEE, -1, \"tee-name-label\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TEE, -1, \"tee-clan-label\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_DDNET, -1, \"ddnet-demo-title\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_DDNET, -1, \"ddnet-ghost-title\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_DDNET, -1, \"ddnet-gameplay-title\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_DDNET, -1, \"ddnet-background-title\")"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/tclient/menus_tclient.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TCLIENT, m_TClientSettingsTab, pTitle)"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TCLIENT, m_TClientSettingsTab, \"tclient-visual-font-cursor-title\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TCLIENT, m_TClientSettingsTab, \"tclient-custom-font-label\")"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/qmclient/menus_qmclient.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_QMCLIENT, m_QmClientSettingsTab, pTitle)"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_QMCLIENT, QMCLIENT_SETTINGS_TAB_VISUAL, pText)"), std::string::npos);
+		EXPECT_EQ(Source.find("SettingsTextElement(SETTINGS_QMCLIENT, m_QmClientSettingsTab, pValue)"), std::string::npos);
+	}
+}
+
 TEST(QmMonitoringHelpers, MenuPerfEventsExposePageAttributionFields)
 {
 	{
@@ -443,9 +483,23 @@ TEST(QmMonitoringHelpers, MenuPerfEventsExposePageAttributionFields)
 		EXPECT_NE(Source.find("LogSettingsSectionPerf(IClient *pClient, int Page, int Tab, const char *pSectionId, double DurationMs, const char *pDirtyReason, int TextNew, int TextReused)"), std::string::npos);
 		EXPECT_NE(Source.find("pDirtyReason != nullptr ? pDirtyReason : \"unknown\""), std::string::npos);
 		EXPECT_NE(Source.find("TextNew, TextReused"), std::string::npos);
+		EXPECT_NE(Source.find("CScopedSettingsTextPerfStats TextStats(this);"), std::string::npos);
+		EXPECT_NE(Source.find("TextStats.Stats().m_New"), std::string::npos);
+		EXPECT_NE(Source.find("TextStats.Stats().m_Reused"), std::string::npos);
 		EXPECT_EQ(Source.find("SectionCacheHit ? \"clean\" : \"cache_miss\", 0, 0"), std::string::npos);
 		EXPECT_EQ(Source.find("\"cache_miss\""), std::string::npos);
 		EXPECT_NE(Source.find("page=%s transition=%d sections=%d sections_visible=%d tab=%s"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus.h"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("class CScopedSettingsTextPerfStats"), std::string::npos);
+		EXPECT_NE(Source.find("m_pActiveSettingsTextPerfStats = &m_Stats;"), std::string::npos);
+		EXPECT_NE(Source.find("m_pActiveSettingsTextPerfStats = m_pPrevious;"), std::string::npos);
 	}
 	{
 		std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
