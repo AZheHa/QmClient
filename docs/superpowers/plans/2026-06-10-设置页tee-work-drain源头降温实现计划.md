@@ -14,6 +14,22 @@
 
 本计划只做 `settings:tee / Work Drain` 主线优化，不重建 `qmclient_scripts/perf`，不重新引入 FBO，不把 `server_browser / list_frame`、Demo Browser 异步化、Assets drain 或统一 scheduler 重构塞进来。
 
+## Spec Phase Mapping
+
+本计划是 `docs/superpowers/specs/2026-06-10-设置页性能优化总纲.md` 的 **Phase 1 / P0-D 子计划**，不是完整总计划。
+
+| Spec 阶段 | 本计划处理方式 |
+|----------|----------------|
+| Phase 0：实现前 UI Bug Audit | 本计划新增 Task 0，作为动性能代码前的前置检查。 |
+| Phase 1：源头降温 | 本计划只处理 P0-D：`IDLE_DRAIN` 预算降到 8 + hard backlog cap。 |
+| Phase 2：缓存 | 不做。必须等 Phase 1 源头降温完成，且 telemetry 证明仍有实时 CPU 成本后再开独立计划。 |
+| Phase 3：锦上添花 | 不做。图标图集、overdraw、每帧分配审计都不进入本计划。 |
+
+Phase 1 内其它 P0 项也不混入本计划：
+
+- P0-A：文本缓存全覆盖，后续单独计划。
+- P0-B：Section 测量延迟化 / 视口外 section 跳过 widget，后续单独计划。
+
 ## Current Baseline
 
 - 起点提交：`4f0a5f8ba perf(settings): 清理设置页FBO缓存路径`
@@ -56,6 +72,71 @@
   - Add deterministic helper-level tests for the new backlog cap and idle-drain tuning.
 - Modify `src/test/skins_test.cpp`
   - Keep source-contract coverage around `menus_settings.cpp` / `skins.cpp` logging and queue-state glue.
+
+---
+
+### Task 0: UI Bug Audit Before Performance Changes
+
+**Files:**
+- Inspect: `src/game/client/components/menus_settings.cpp`
+- Inspect: `src/game/client/components/settings_resource_jobs.cpp`
+- Inspect: `src/game/client/components/skins.cpp`
+- Inspect: `src/test/settings_warmup_test.cpp`
+- Inspect: `src/test/skins_test.cpp`
+
+- [ ] **Step 1: List the affected UI paths**
+
+Record the affected paths in the implementation notes before editing production code:
+
+```text
+Affected paths:
+- Settings -> Tee tab initial entry
+- Settings -> Tee tab Player/Dummy switch
+- Tee skin list fast scroll
+- Tee skin list idle settle after scroll
+- Tee skin preview loading/status indicators
+```
+
+- [ ] **Step 2: Search for known same-path bug reports and stale cleanup notes**
+
+Run:
+
+```powershell
+rg -n "Tee|tee|skin list|Work Drain|work_drain|BACKGROUND_REQUESTED|IDLE_DRAIN|stale|错位|花屏|焦点|滚动跳动|loading|preview" docs src/test src/game/client/components
+```
+
+Expected: any relevant same-path bug or cleanup note is either out of scope and recorded, or fixed before continuing. Do not broaden this plan for unrelated Server Browser / Demo Browser / Assets findings.
+
+- [ ] **Step 3: Inspect the current Tee request and loading contracts**
+
+Verify these current contracts still exist before modifying budgets:
+
+```powershell
+rg -n "SettingsSkinBackgroundRequestBudgetDecision|SettingsSkinThroughputProfileForMode|BackgroundBudgetDecision|request_budget_block_reason|SetSettingsTeeVisibleSnapshot|UpdateStartLoading" src/game/client/components src/test
+```
+
+Expected:
+- `menus_settings.cpp` still calls `SettingsSkinBackgroundRequestBudgetDecision(...)`
+- `settings_resource_jobs.cpp` still owns `SettingsSkinThroughputProfileForMode(...)`
+- `skins.cpp` still owns admission/loading behavior
+- tests still cover `TeeSettingsListEmitsRequestWindowPerfLogs` and `ThroughputControllerKeepsVisibleBacklogOutOfIdleDrain`
+
+- [ ] **Step 4: Stop or split if a real same-path UI bug is found**
+
+If the audit finds a same-path user-visible bug that can invalidate performance measurements, stop this plan and create/fix that bug first. Examples:
+
+```text
+- Tee preview shows stale skin after scroll settles
+- Visible skin falls back to loading while already displayed
+- Player/Dummy switch loses selected skin state
+- Fast scroll changes selection unexpectedly
+```
+
+If no such bug is found, record:
+
+```text
+Phase 0 audit result: no blocking same-path UI bug found; proceed with P0-D source cooling.
+```
 
 ---
 
