@@ -241,150 +241,152 @@
     code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
   </style>
   <style>
-  :root {
-    --bg: #f4f1ea;
-    --paper: #fffdfa;
-    --paper-2: #f9f5ee;
-    --ink: #2f2a25;
-    --muted: #756d63;
-    --line: #ded4c6;
-    --accent: #4f6f73;
-    --accent-2: #b8795b;
-    --danger: #a94d45;
-    --warning: #a57536;
-    --success: #5f7f55;
-    --code-bg: #ede6dc;
-    --shadow: 0 18px 45px rgba(62, 50, 39, 0.12);
-  }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
+    :root {
+      --bg: #f4f1ea;
+      --paper: #fffdfa;
+      --paper-2: #f9f5ee;
+      --ink: #2f2a25;
+      --muted: #756d63;
+      --line: #ded4c6;
+      --accent: #4f6f73;
+      --accent-2: #b8795b;
+      --danger: #a94d45;
+      --warning: #a57536;
+      --success: #5f7f55;
+      --code-bg: #ede6dc;
+      --shadow: 0 18px 45px rgba(62, 50, 39, 0.12);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+    max-width: none;
     margin: 0;
+    padding: 0 24px 48px;
     color: var(--ink);
-    background:
-      radial-gradient(circle at 12% 0%, rgba(184, 121, 91, 0.16), transparent 30rem),
-      radial-gradient(circle at 88% 8%, rgba(79, 111, 115, 0.14), transparent 28rem),
-      linear-gradient(180deg, #f7f3ec 0%, var(--bg) 100%);
-    font-family: "Noto Sans SC", "Segoe UI", "Microsoft YaHei", sans-serif;
-    line-height: 1.72;
-  }
-  body > header, body > h1, body > h2, body > h3, body > h4, body > p, body > ul, body > ol, body > pre, body > table, body > blockquote, body > hr, body > div, body > section {
-    max-width: 1160px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  body > h1 {
-    margin-top: 44px;
-    margin-bottom: 18px;
-    padding: 34px 42px;
-    color: #fdf8ef;
-    background: linear-gradient(135deg, #24383b 0%, #4f6f73 55%, #b8795b 100%);
-    border-radius: 28px;
-    box-shadow: var(--shadow);
-    font-size: clamp(2rem, 3.2vw, 3.6rem);
-    letter-spacing: -0.04em;
-  }
-  body > h1::after {
-    content: "active spec · settings performance · report view";
-    display: block;
-    margin-top: 12px;
-    color: rgba(255, 253, 250, 0.78);
-    font-size: 0.95rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  nav#TOC {
-    max-width: 1160px;
-    margin: 0 auto 28px;
-    padding: 18px 24px;
-    background: rgba(255, 253, 250, 0.78);
-    border: 1px solid rgba(222, 212, 198, 0.9);
-    border-radius: 20px;
-    box-shadow: 0 10px 28px rgba(62, 50, 39, 0.08);
-  }
-  nav#TOC > ul { columns: 2; margin: 0; padding-left: 20px; }
-  nav#TOC li { break-inside: avoid; margin: 0.2rem 0; }
-  main, body > section.level1 {
-    max-width: 1160px;
-    margin: 0 auto 48px;
-    padding: 34px 42px;
-    background: rgba(255, 253, 250, 0.92);
-    border: 1px solid rgba(222, 212, 198, 0.95);
-    border-radius: 28px;
-    box-shadow: var(--shadow);
-  }
-  h2 {
-    margin-top: 2.4rem;
-    padding-top: 1.1rem;
-    border-top: 1px solid var(--line);
-    color: #31484b;
-    font-size: 1.65rem;
-  }
-  h3 { margin-top: 1.8rem; color: #4f3d32; font-size: 1.28rem; }
-  h4 { margin-top: 1.4rem; color: var(--accent-2); font-size: 1.05rem; }
-  p, li { font-size: 0.98rem; }
-  a { color: #315f6b; text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
-  strong { color: #2a403f; }
-  blockquote {
-    margin: 20px 0;
-    padding: 16px 20px;
-    background: linear-gradient(90deg, rgba(79,111,115,0.12), rgba(184,121,91,0.06));
-    border-left: 5px solid var(--accent);
-    border-radius: 16px;
-  }
-  hr { border: 0; height: 1px; margin: 34px auto; background: linear-gradient(90deg, transparent, var(--line), transparent); }
-  code {
-    padding: 0.12em 0.36em;
-    background: var(--code-bg);
-    border: 1px solid rgba(222, 212, 198, 0.9);
-    border-radius: 7px;
-    color: #613c2e;
-    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
-    font-size: 0.88em;
-  }
-  pre {
-    overflow-x: auto;
-    padding: 18px 20px;
-    background: #29251f;
-    color: #f7efe2;
-    border-radius: 18px;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07);
-  }
-  pre code { padding: 0; background: transparent; border: 0; color: inherit; }
-  table {
-    display: block;
-    overflow-x: auto;
-    width: 100%;
-    margin: 18px 0 28px;
-    border-collapse: collapse;
-    background: var(--paper);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: 0 8px 22px rgba(62, 50, 39, 0.06);
-  }
-  thead { background: linear-gradient(180deg, #e9dfd0, #ded4c6); }
-  th, td { padding: 10px 13px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
-  th { color: #43372e; font-weight: 750; white-space: nowrap; }
-  tbody tr:nth-child(even) { background: var(--paper-2); }
-  tbody tr:hover { background: #f1e7d9; }
-  ul, ol { padding-left: 1.35rem; }
-  li::marker { color: var(--accent-2); }
-  body > p:nth-of-type(1), h2 + p {
-    color: var(--muted);
-  }
-  @media (max-width: 760px) {
-    body { padding: 0 14px; }
-    body > h1 { padding: 24px; border-radius: 22px; }
-    main, body > section.level1 { padding: 22px 18px; border-radius: 22px; }
-    nav#TOC ul { columns: 1; }
-    th, td { min-width: 150px; }
-  }
-  @media print {
-    body { background: #fff; }
-    body > h1, main, body > section.level1, nav#TOC { box-shadow: none; }
-  }
-  </style>
+      background:
+        radial-gradient(circle at 12% 0%, rgba(184, 121, 91, 0.16), transparent 30rem),
+        radial-gradient(circle at 88% 8%, rgba(79, 111, 115, 0.14), transparent 28rem),
+        linear-gradient(180deg, #f7f3ec 0%, var(--bg) 100%);
+      font-family: "Noto Sans SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+    body > header, body > h1, body > h2, body > h3, body > h4, body > p, body > ul, body > ol, body > pre, body > table, body > blockquote, body > hr, body > div, body > section {
+      max-width: 1160px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    body > h1 {
+      margin-top: 44px;
+      margin-bottom: 18px;
+      padding: 34px 42px;
+      color: #fdf8ef;
+      background: linear-gradient(135deg, #24383b 0%, #4f6f73 55%, #b8795b 100%);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      font-size: clamp(2rem, 3.2vw, 3.6rem);
+      letter-spacing: -0.04em;
+    }
+    body > h1::after {
+      content: "active spec · settings performance · report view";
+      display: block;
+      margin-top: 12px;
+      color: rgba(255, 253, 250, 0.78);
+      font-size: 0.95rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    nav#TOC {
+      max-width: 1160px;
+      margin: 0 auto 28px;
+      padding: 18px 24px;
+      background: rgba(255, 253, 250, 0.78);
+      border: 1px solid rgba(222, 212, 198, 0.9);
+      border-radius: 20px;
+      box-shadow: 0 10px 28px rgba(62, 50, 39, 0.08);
+    }
+    nav#TOC > ul { columns: 2; margin: 0; padding-left: 20px; }
+    nav#TOC li { break-inside: avoid; margin: 0.2rem 0; }
+    main, body > section.level1 {
+      max-width: 1160px;
+      margin: 0 auto 48px;
+      padding: 34px 42px;
+      background: rgba(255, 253, 250, 0.92);
+      border: 1px solid rgba(222, 212, 198, 0.95);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+    }
+    h2 {
+      margin-top: 2.4rem;
+      padding-top: 1.1rem;
+      border-top: 1px solid var(--line);
+      color: #31484b;
+      font-size: 1.65rem;
+    }
+    h3 { margin-top: 1.8rem; color: #4f3d32; font-size: 1.28rem; }
+    h4 { margin-top: 1.4rem; color: var(--accent-2); font-size: 1.05rem; }
+    p, li { font-size: 0.98rem; }
+    a { color: #315f6b; text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
+    strong { color: #2a403f; }
+    blockquote {
+      margin: 20px 0;
+      padding: 16px 20px;
+      background: linear-gradient(90deg, rgba(79,111,115,0.12), rgba(184,121,91,0.06));
+      border-left: 5px solid var(--accent);
+      border-radius: 16px;
+    }
+    hr { border: 0; height: 1px; margin: 34px auto; background: linear-gradient(90deg, transparent, var(--line), transparent); }
+    code {
+      padding: 0.12em 0.36em;
+      background: var(--code-bg);
+      border: 1px solid rgba(222, 212, 198, 0.9);
+      border-radius: 7px;
+      color: #613c2e;
+      font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+      font-size: 0.88em;
+    }
+    pre {
+      overflow-x: auto;
+      padding: 18px 20px;
+      background: #29251f;
+      color: #f7efe2;
+      border-radius: 18px;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07);
+    }
+    pre code { padding: 0; background: transparent; border: 0; color: inherit; }
+    table {
+      display: block;
+      overflow-x: auto;
+      width: 100%;
+      margin: 18px 0 28px;
+      border-collapse: collapse;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 8px 22px rgba(62, 50, 39, 0.06);
+    }
+    thead { background: linear-gradient(180deg, #e9dfd0, #ded4c6); }
+    th, td { padding: 10px 13px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { color: #43372e; font-weight: 750; white-space: nowrap; }
+    tbody tr:nth-child(even) { background: var(--paper-2); }
+    tbody tr:hover { background: #f1e7d9; }
+    ul, ol { padding-left: 1.35rem; }
+    li::marker { color: var(--accent-2); }
+    body > p:nth-of-type(1), h2 + p {
+      color: var(--muted);
+    }
+    @media (max-width: 760px) {
+    body { padding: 0 14px 36px; }
+      body > h1 { padding: 24px; border-radius: 22px; }
+      main, body > section.level1 { padding: 22px 18px; border-radius: 22px; }
+      nav#TOC ul { columns: 1; }
+      th, td { min-width: 150px; }
+    }
+    @media print {
+      body { background: #fff; }
+      body > h1, main, body > section.level1, nav#TOC { box-shadow: none; }
+    }
+    </style>
 </head>
 <body>
 <header id="title-block-header">
@@ -535,6 +537,12 @@ E：外部资料对照</a></li>
 </ul>
 </nav>
 <h1 id="设置页性能优化总纲">设置页性能优化总纲</h1>
+<blockquote>
+<p><strong>规格状态</strong>：<code>active</code>；最近更新：<code>2026-06-11</code>。<br />
+<strong>范围</strong>：设置页全部 tab 的冷启动、切 tab、滚动性能；Tee
+页皮肤列表；性能量化系统。<br />
+<strong>取代文档</strong>：<code>2026-06-02-设置页UI性能优化第一性原理分析.md</code>、<code>2026-06-02-设置页性能量化系统设计.md</code>、<code>2026-06-11-最新日志设置页卡顿路径报告.md</code>、<code>2026-06-11-设置页P2日志根因与优化报告.md</code>、<code>2026-06-11-设置页预热系统风险与收益分析.md</code>。</p>
+</blockquote>
 <h2 id="速答">速答</h2>
 <p>设置页卡顿的根因不是"缺
 FBO"或"缺预热"，而是<strong>每一帧做了不该做的工作</strong>：不可见
@@ -543,8 +551,9 @@ section 的 widget 仍然执行、静态文本每帧重建、后台 job
 <p>当前实际代码状况：</p>
 <ul>
 <li><strong>FBO 清理已完成</strong>：设置页不再保留页面级、section 级
-FBO / recorded render target / runtime cache 路径，后续优化不再依赖任何
-FBO 命中或预热方案。</li>
+FBO / recorded render target / render-target runtime cache 路径；非 FBO
+的 CPU/runtime metadata、文本池和 section
+高度缓存仍存在，后续优化不再依赖任何 FBO 命中或预热方案。</li>
 <li><strong>CSectionLoader</strong>
 仍是核心调度器：它具备四状态机（<code>UNINITIALIZED → MEASURING → COMPACT → FULL</code>）能力，但当前
 live 调用大多显式
@@ -562,8 +571,9 @@ full render 或跳过 full render”；视口外 section 仍会被测量高度�
 <li><strong>资源 Jobs</strong> 已有完整的吞吐量控制器，但
 <code>settings:tee / Work Drain</code> 必须强制按“后台 drain / session
 归因热点”解读，不能单独当成主线程卡顿证据。可见区皮肤仍然优先加载，<code>IDLE_DRAIN</code>
-的后台请求预算 24
-更准确地说是<strong>历史请求积压的放大器</strong>；它值得作为后台吞吐和资源队列健康问题跟踪，但只有和同一目标操作窗口的
+的后台请求预算当前已收紧到 8；剩余问题更准确地说是<strong>历史请求积压和
+backlog
+上限不足</strong>。它值得作为后台吞吐和资源队列健康问题跟踪，但只有和同一目标操作窗口的
 FPS/frame-time 长帧同帧相关时，才参与卡顿根因判断。</li>
 <li><strong>当前生效的设置页 runtime prewarm 入口</strong> 是
 <code>CMenus::PrewarmVisibleSettingsResources()</code>：它先走页面资源预热，再对
@@ -934,17 +944,18 @@ contract tests，验证源码不再引用旧 FBO 合同</li>
 <tr>
 <td><code>IDLE_DRAIN</code></td>
 <td>空闲且可见区已稳定</td>
-<td><strong>24</strong>（偏大）</td>
-<td>放大历史后台请求积压</td>
+<td><strong>8</strong>（已收紧）</td>
+<td>继续推进后台请求，但仍需 backlog 上限</td>
 </tr>
 </tbody>
 </table>
-<p><strong>更准确的说法</strong>：<code>IDLE_DRAIN</code> 的预算 24
-不是“可见项被后台饿死”的根因。当前实现里，可见区皮肤仍然先于后台项被调度；真正的问题是，当用户做过一次大跨度滚动后，系统已经留下了大量历史
+<p><strong>更准确的说法</strong>：<code>IDLE_DRAIN</code> 当前预算 8
+不是“可见项被后台饿死”的根因。当前实现里，可见区皮肤仍然先于后台项被调度；真正的问题是，当用户做过一次大跨度滚动后，系统可能已经留下大量历史
 <code>BACKGROUND_REQUESTED</code>。此时如果页面进入
-<code>IDLE_DRAIN</code>，每帧最多 24 个后台请求会继续放大这份积压。perf
-数据里的 5575ms / 6839ms <code>work_drain</code> 数值应优先解释为后台
-drain / session 归因热点和队列健康信号；它本身不等价于主线程
+<code>IDLE_DRAIN</code>，后台请求会继续推进这份积压；没有硬 backlog
+上限时，队列健康仍可能恶化。perf 数据里的 5575ms / 6839ms
+<code>work_drain</code> 数值应优先解释为后台 drain / session
+归因热点和队列健康信号；它本身不等价于主线程
 frame-time，也不能单独作为“卡顿”证据。</p>
 <p><strong>背景请求预算决策</strong>（<code>SettingsSkinBackgroundRequestBudgetDecision</code>）：</p>
 <pre><code>backlog_high_watermark = max(visible_reserve * 8, count_fuse_limit * 2)
@@ -1182,8 +1193,9 @@ text container 并统计 <code>text_new</code> /
 不应污染交互帧；是否造成卡顿必须以 FPS/window frame-time 为准。</p>
 <p><strong>反模式</strong>：用户滚动后后台请求积压无限扩大，report 把
 session/drain 归因热点误当成主线程卡顿根因。</p>
-<p><strong>DDNet 现状</strong>：资源 Jobs 已有异步框架，但 IDLE_DRAIN
-模式下后台请求预算过大，导致 backlog 膨胀。<code>work_drain</code>
+<p><strong>DDNet 现状</strong>：资源 Jobs
+已有异步框架，<code>IDLE_DRAIN</code> 预算已收紧到 8，但 backlog
+硬上限和健康进展条件仍需继续收敛。<code>work_drain</code>
 可以暴露吞吐健康问题，但必须结合同帧 FPS/window
 才能判断是否影响主线程体感。</p>
 <p><strong>对应策略</strong>：D（Job 合并帧预算限制）</p>
@@ -1309,10 +1321,10 @@ TClient/QmClient <code>PrewarmOnly</code> render；仓库内
 <td><strong>B10</strong></td>
 <td>后台资源 drain / session 积压</td>
 <td>后台吞吐健康风险；不单独证明卡顿</td>
-<td>IDLE_DRAIN 后台预算过大（24），backlog
-无上限；<code>work_drain</code> 可能是 session 汇总或后台 drain
+<td>IDLE_DRAIN 后台预算已收紧到 8，但 backlog
+仍缺硬上限；<code>work_drain</code> 可能是 session 汇总或后台 drain
 归因</td>
-<td>预算系统存在但不限制 backlog 膨胀；必须结合同帧 FPS/window
+<td>预算系统存在但仍需限制 backlog 膨胀；必须结合同帧 FPS/window
 判断是否影响体感</td>
 </tr>
 <tr>
@@ -1708,18 +1720,16 @@ rows_skipped=N   # 跳过的行数</code></pre>
 preview cache 命中正确）。</p>
 <h3 id="64-策略-d后台资源-drain-积压限制对应维度-5">6.4 策略 D：后台资源
 drain 积压限制（对应维度 5）</h3>
-<p><strong>现状</strong>：<code>IDLE_DRAIN</code> 模式后台请求预算为
-24，且"健康进展"时允许继续扩大
+<p><strong>现状</strong>：<code>IDLE_DRAIN</code>
+模式后台请求预算已收紧到 8，但"健康进展"时仍可能继续扩大
 backlog。可见区项本身仍然优先，但在一次大跨度滚动已经制造出大量历史
-<code>BACKGROUND_REQUESTED</code>
-后，这个预算会继续放大积压。<code>work_drain</code>
-日志用于暴露后台队列吞吐和 session
-汇总问题；它不应被单独解释为主线程卡顿。</p>
+<code>BACKGROUND_REQUESTED</code> 后，后台 drain
+仍会继续推进积压。<code>work_drain</code> 日志用于暴露后台队列吞吐和
+session 汇总问题；它不应被单独解释为主线程卡顿。</p>
 <p><strong>改法</strong>：</p>
 <ol type="1">
-<li>将 <code>IDLE_DRAIN</code> 的后台请求预算从 24 降到
-8（<code>settings_resource_jobs.cpp</code> 的
-<code>SettingsSkinThroughputProfileForMode</code>）</li>
+<li>保持 <code>IDLE_DRAIN</code> 当前后台请求预算 8，不再重复做“降到
+8”任务</li>
 <li>在 <code>SettingsSkinBackgroundRequestBudgetDecision</code> 中增加硬
 backlog
 上限：<code>HardBacklogLimit = max(CountFuseLimit, DefaultBudget * 8)</code>，超过即阻塞</li>
@@ -1936,9 +1946,12 @@ event=work_drain page=... kind=merge/finalize/upload/publish count=... bytes=...
 
 # 操作路径 FPS 摘要（不是每帧事件，是操作结束后输出一次；已实现，字段应保持兼容）
 event=fps_summary operation=... context=offline|online page=... tab=... sample_frames=... sample_seconds=... fps_avg=... fps_min=... fps_max=... frame_ms_avg=... frame_ms_p95=... frame_ms_p99=... frame_ms_max=... menu_ms_max=... cap_limited=0/1</code></pre>
-<p><code>fps_summary</code> 的固定窗口已经覆盖
-<code>settings_open</code>、<code>settings_tab_switch</code>、<code>settings_subtab_switch</code>、<code>settings_tee_scroll</code>、<code>ingame_esc_open</code>。Report
-的目标设置页结论必须读取
+<p><code>fps_summary</code> 的操作窗口已经覆盖
+<code>settings_open</code>、<code>settings_tab_switch</code>、<code>settings_subtab_switch</code>、<code>settings_tee_scroll</code>、<code>ingame_esc_open</code>。其中
+<code>settings_open</code> / <code>settings_tab_switch</code> /
+<code>settings_subtab_switch</code> / <code>ingame_esc_open</code> 是 30
+帧 fixed window；<code>settings_tee_scroll</code> 是从滚轮输入开始，到
+250ms 无滚动后结束的 scroll window。Report 的目标设置页结论必须读取
 <code>targetSettings.verdict</code>，不能用顶层混合 <code>verdict</code>
 代替；<code>server_browser</code>、<code>internet</code>、<code>work_drain</code>
 只能作为背景热点/归因参考。</p>
@@ -1949,6 +1962,12 @@ event=fps_summary operation=... context=offline|online page=... tab=... sample_f
 覆盖检查是“至少一个 online target window”，不是严格要求
 <code>ingame_esc_open</code>；如果后续要把游戏中 Esc
 作为硬验收项，需要单独改 quality 规则。</p>
+<p><code>targetSettings.p99</code> 当前是对各目标
+<code>fps_summary.frame_ms_p99</code>
+再计算百分位，不是对所有原始帧重新汇总；<code>targetSettings.spikeCount</code>
+当前是 <code>frame_ms_max &gt; 16.67ms</code>
+的目标窗口数，不是原始尖峰帧数。对单个窗口的原始帧级判断仍应看该窗口自身的
+<code>frame_ms_p95/p99/max</code>。</p>
 <p><strong>P1 — QmUI 单独归因：</strong></p>
 <pre><code>event=ui_runtime page=... operation=... subtab=... module=... widget_scope=... nodes=... layout_ms=... layout_dirty=0/1 dirty_reason=... anim_ms=... active_anims=... render_bridge_ms=... draw_calls=... clip_pushes=... flush_count=...
 event=qmclient page=... operation=... frame=... subtab=... module=... stage=... duration_ms=... search_len=... visible_count=... snapshot_pending=...</code></pre>
@@ -2261,7 +2280,7 @@ Audit</h3>
 <td>避免强预热 CPU 卡死和布局副作用</td>
 </tr>
 <tr>
-<td>IDLE_DRAIN 预算降到 8 + 硬 backlog 上限</td>
+<td>IDLE_DRAIN backlog 硬上限 + 健康进展收敛</td>
 <td>D</td>
 <td>B10</td>
 <td>限制后台队列积压；需结合 <code>fps_summary</code>
@@ -2466,8 +2485,9 @@ layer cache API</li>
 <tbody>
 <tr>
 <td>FBO 渲染到纹理</td>
-<td>❌ 正在删除</td>
-<td>2D 游戏无后处理/3D 渲染需求，FBO 创建+录制+blit
+<td>❌ 已删除 / 不再采用</td>
+<td>设置页侧 FBO / recorded render target 清理已完成；2D 游戏无后处理/3D
+渲染需求，FBO 创建+录制+blit
 成本（1-3ms）常高于实时渲染（0.3-0.5ms）</td>
 </tr>
 <tr>
