@@ -8,7 +8,7 @@ import {
   calcPercentiles, toTimeSeries, detectSpikes, histogram, pageBreakdown,
   complianceRate, computeVerdict, generateNarrative, isSamplingBiased, BUDGET,
   kde, qqNorm, pagePerformanceAttribution, selectFrameTimeEntries, entryDurationMs,
-  inferSamplingThreshold, sectionPerformanceTop, PERF_SYSTEM,
+  inferSamplingThreshold, sectionPerformanceTop, fpsSummaries, targetSettingsSnapshot, PERF_SYSTEM,
   type Percentiles, type SpikeInfo, type PageStats, type ComparisonResult,
 } from './stats.ts';
 
@@ -42,6 +42,8 @@ export function generateReport(
   const menuDurations = menuEntries.map(e => entryDurationMs(e) ?? e.durationMs);
   const attribution = pagePerformanceAttribution(entries);
   const sectionTop = sectionPerformanceTop(entries, 10);
+  const fps = fpsSummaries(entries);
+  const targetSettings = targetSettingsSnapshot(entries);
 
   const p = calcPercentiles(frameDurations);
   const ts = toTimeSeries(allEntries);
@@ -67,6 +69,8 @@ export function generateReport(
     qqLine: { x1: 0, y1: 0, x2: p.max, y2: p.max },
     pages: pages.map(pg => ({ page: pg.page, count: pg.count, avg: pg.avg, max: pg.max, p95: pg.p95, boxPlot: pg.boxPlot, outliers: pg.outliers.slice(0, 50) })),
     interactions: interactionEntries.map(e => ({ timestamp: e.timestamp, event: e.fields.event ?? '', page: e.fields.page ?? '', frame: e.fields.frame ?? '', visibleRows: e.fields.visible_rows ?? '', firstVisibleSkin: e.fields.first_visible_skin ?? '' })),
+    fpsSummaries: fps,
+    targetSettings,
     attribution,
     sectionTop,
     skinUx: skinUxEntries.map(e => ({ timestamp: e.timestamp, event: e.fields.event ?? '', durMs: e.fields.dur_ms ?? e.fields.duration_ms ?? '', total: e.fields.total ?? '', visibleRows: e.fields.visible_rows ?? '' })),
@@ -248,6 +252,29 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-weigh
     </tbody>
   </table>
   ${quality.warnings.length === 0 ? '<p class="body-text">当前样本未发现明显采样或解析风险。</p>' : `<p class="body-text">${escapeHtml(quality.warnings.join('；'))}</p>`}
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <span class="section-num">fps</span>
+    <h2>FPS 摘要</h2>
+  </div>
+  ${fps.length === 0 ? '<p class="body-text" style="color:var(--bad)">缺少 fps_summary；目标操作窗口样本不足以验收。请重新采集设置页进入、设置页切 tab、子 tab、Tee 滚动、游戏中 Esc 打开菜单。</p>' : `<table class="data-table">
+    <thead><tr><th>Operation</th><th>Context</th><th>Page</th><th>Tab</th><th>Frames</th><th>FPS avg/min/max</th><th>Frame p95/p99/max</th><th>Cap</th></tr></thead>
+    <tbody>
+      ${fps.map(s => `<tr>
+        <td class="mono">${escapeHtml(s.operation)}</td>
+        <td>${escapeHtml(s.context)}</td>
+        <td>${escapeHtml(s.page)}</td>
+        <td class="mono">${escapeHtml(s.tab)}</td>
+        <td class="mono">${s.sampleFrames}</td>
+        <td class="mono">${s.fpsAvg.toFixed(1)} / ${s.fpsMin.toFixed(1)} / ${s.fpsMax.toFixed(1)}</td>
+        <td class="mono">${s.frameMsP95.toFixed(1)} / ${s.frameMsP99.toFixed(1)} / ${s.frameMsMax.toFixed(1)} ms</td>
+        <td>${s.capLimited ? '<span class="badge warn">cap/vsync</span>' : '<span class="badge ok">free</span>'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`}
+  <p class="body-text">目标设置页判定只使用 settings / ingame Esc 操作窗口相关样本；internet/offline 和 server browser 高耗时只作为背景热点，不参与设置页达标判定。当前目标判定：<span class="badge ${targetSettings.verdict === 'PASS' ? 'ok' : targetSettings.verdict === 'WARN' ? 'warn' : 'bad'}">${targetSettings.verdictAvailable ? targetSettings.verdict : '不足以验收'}</span>，spikes=${targetSettings.spikeCount}，p99=${targetSettings.verdictAvailable ? targetSettings.percentiles.p99.toFixed(1) + 'ms' : 'N/A'}。</p>
 </section>
 
 ${comparison ? `<section class="compare-section">

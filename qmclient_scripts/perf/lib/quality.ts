@@ -8,9 +8,13 @@ import {
   detectSpikes,
   inferSamplingThreshold,
   isSamplingBiased,
+  fpsSummaries,
+  hasOnlineTargetSettingsFpsSummary,
   pagePerformanceAttribution,
   selectFrameTimeEntries,
+  targetSettingsSnapshot,
   type AttributionEntry,
+  type FpsSummary,
   type Percentiles,
   type Verdict,
   computeVerdict,
@@ -44,6 +48,16 @@ export interface PerfBundleSummary {
   attribution: {
     top: AttributionEntry[];
   };
+  fps: {
+    available: boolean;
+    summaries: FpsSummary[];
+  };
+  targetSettings: {
+    verdict: Verdict;
+    verdictAvailable: boolean;
+    spikeCount: number;
+    percentiles: Percentiles;
+  };
 }
 
 export function reportQuality(entries: PerfEntry[], diagnostics: ParseDiagnostics): ReportQuality {
@@ -61,6 +75,13 @@ export function reportQuality(entries: PerfEntry[], diagnostics: ParseDiagnostic
   }
   if (biased) {
     warnings.push(`sampling threshold appears above default 4ms; p5=${samplingThresholdMs.toFixed(1)}ms`);
+  }
+  const fps = fpsSummaries(entries);
+  if (fps.length === 0) {
+    warnings.push('missing fps_summary; settings acceptance is incomplete');
+  }
+  if (!hasOnlineTargetSettingsFpsSummary(entries)) {
+    warnings.push('missing ingame/online operation window; settings acceptance is incomplete');
   }
 
   return {
@@ -80,6 +101,8 @@ export function summarizeForBundle(entries: PerfEntry[], sourceFile: string, dia
   const durations = frameEntries.map(e => entryDurationMs(e) ?? e.durationMs);
   const percentiles = calcPercentiles(durations);
   const spikes = detectSpikes(frameEntries, BUDGET.h60);
+  const fps = fpsSummaries(entries);
+  const targetSettings = targetSettingsSnapshot(entries);
   return {
     generatedAt: new Date().toISOString(),
     sourceFile: basename(sourceFile),
@@ -91,5 +114,10 @@ export function summarizeForBundle(entries: PerfEntry[], sourceFile: string, dia
     attribution: {
       top: pagePerformanceAttribution(entries).slice(0, 10),
     },
+    fps: {
+      available: fps.length > 0,
+      summaries: fps,
+    },
+    targetSettings,
   };
 }

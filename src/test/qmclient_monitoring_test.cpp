@@ -1,6 +1,8 @@
 #define CONF_TEST 1
 #include <game/client/components/qmclient/monitoring/monitoring.h>
 #include <game/client/components/qmclient/perf_logging.h>
+#include <game/client/components/qmclient/settings_perf_windows.h>
+#include <game/client/ui.h>
 
 #include <gtest/gtest.h>
 #include <test/test.h>
@@ -262,6 +264,7 @@ TEST(QmMonitoringHelpers, SectionQuadBatchingDoesNotCrossTextOrClipBoundaries)
 		EXPECT_NE(Source.find("CUiScopedQuadBatch::CUiScopedQuadBatch"), std::string::npos);
 		EXPECT_NE(Source.find("CUiScopedQuadBatch::~CUiScopedQuadBatch"), std::string::npos);
 		EXPECT_NE(Source.find("void CUi::FlushQuadBatch() const"), std::string::npos);
+		EXPECT_NE(Source.find("RenderQuadContainerAsSpriteMultiple(m_QuadBatchContainerIndex"), std::string::npos);
 		EXPECT_NE(Source.find("TextRender()->RenderTextContainer"), std::string::npos);
 		EXPECT_NE(Source.find("FlushQuadBatch();\n\t\tTextRender()->RenderTextContainer"), std::string::npos);
 		EXPECT_NE(Source.find("void CUi::ClipEnable(const CUIRect *pRect)\n{\n\tFlushQuadBatch();"), std::string::npos);
@@ -276,6 +279,165 @@ TEST(QmMonitoringHelpers, SectionQuadBatchingDoesNotCrossTextOrClipBoundaries)
 
 		EXPECT_NE(Source.find("CUiScopedQuadBatch QuadBatchScope(Ui());"), std::string::npos);
 	}
+}
+
+TEST(QmMonitoringHelpers, UiQuadBatchFlushGuardsInvalidRectsAndKeepsSubmissionPlan)
+{
+	EXPECT_FALSE(UiBatchableRectHasPositiveSize(0.0f, 10.0f));
+	EXPECT_FALSE(UiBatchableRectHasPositiveSize(10.0f, 0.0f));
+	EXPECT_FALSE(UiBatchableRectHasPositiveSize(-1.0f, 10.0f));
+	EXPECT_FALSE(UiBatchableRectHasPositiveSize(10.0f, -1.0f));
+	EXPECT_TRUE(UiBatchableRectHasPositiveSize(1.0f, 1.0f));
+	EXPECT_TRUE(UiBatchableRectHasPositiveSize(200.0f, 24.0f));
+
+	EXPECT_FALSE(UiQuadBatchHasPendingSubmission(-1, 0));
+	EXPECT_FALSE(UiQuadBatchHasPendingSubmission(-1, 3));
+	EXPECT_FALSE(UiQuadBatchHasPendingSubmission(2, 0));
+	EXPECT_TRUE(UiQuadBatchHasPendingSubmission(0, 1));
+	EXPECT_TRUE(UiQuadBatchHasPendingSubmission(5, 4));
+
+	const ColorRGBA Red(1.0f, 0.0f, 0.0f, 1.0f);
+	const ColorRGBA Blue(0.0f, 0.0f, 1.0f, 1.0f);
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(false, -1, Red, -1, Blue);
+		EXPECT_TRUE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_FALSE(Plan.m_FlushBeforeQueue);
+		EXPECT_FALSE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(false, -1, Red, 7, Blue);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_TRUE(Plan.m_RenderImmediately);
+		EXPECT_FALSE(Plan.m_FlushBeforeQueue);
+		EXPECT_FALSE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(true, -1, Red, 7, Blue);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_FALSE(Plan.m_FlushBeforeQueue);
+		EXPECT_TRUE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(true, 7, Red, 7, Red);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_FALSE(Plan.m_FlushBeforeQueue);
+		EXPECT_TRUE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(true, 7, Red, 8, Red);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_TRUE(Plan.m_FlushBeforeQueue);
+		EXPECT_TRUE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(true, 7, Red, 7, Blue);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_TRUE(Plan.m_FlushBeforeQueue);
+		EXPECT_TRUE(Plan.m_QueueSprite);
+	}
+}
+
+TEST(QmMonitoringHelpers, SettingsPerfWindowAccumulatesFpsAndFrameStats)
+{
+	CQmSettingsPerfWindowTracker Tracker;
+	Tracker.StartFixedFrameWindow("settings_open", "online", "settings:tee", "none", 30, false);
+
+	Tracker.RecordFrame(0.010f, 12.0, false);
+	Tracker.RecordFrame(0.020f, 30.0, false);
+	Tracker.RecordFrame(0.0f, 99.0, false);
+	Tracker.RecordFrame(-1.0f, 99.0, false);
+
+	EXPECT_TRUE(Tracker.HasActiveWindow());
+	const SQmSettingsPerfWindowSummary Summary = Tracker.FinishActiveWindow();
+
+	EXPECT_STREQ(Summary.m_aOperation, "settings_open");
+	EXPECT_STREQ(Summary.m_aContext, "online");
+	EXPECT_STREQ(Summary.m_aPage, "settings:tee");
+	EXPECT_EQ(Summary.m_SampleFrames, 2);
+	EXPECT_NEAR(Summary.m_SampleSeconds, 0.030f, 0.0001f);
+	EXPECT_NEAR(Summary.m_FpsAvg, 66.666f, 0.01f);
+	EXPECT_NEAR(Summary.m_FpsMin, 50.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FpsMax, 100.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FrameMsAvg, 15.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FrameMsP95, 20.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FrameMsP99, 20.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FrameMsMax, 20.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_MenuMsMax, 30.0f, 0.01f);
+	EXPECT_FALSE(Summary.m_CapLimited);
+	EXPECT_FALSE(Tracker.HasActiveWindow());
+}
+
+TEST(QmMonitoringHelpers, SettingsPerfWindowEndsAfterFixedFrameBudget)
+{
+	CQmSettingsPerfWindowTracker Tracker;
+	Tracker.StartFixedFrameWindow("settings_tab_switch", "offline", "settings:tclient", "0", 3, true);
+
+	EXPECT_FALSE(Tracker.RecordFrame(0.010f, 2.0, false).m_ShouldFlush);
+	EXPECT_FALSE(Tracker.RecordFrame(0.010f, 3.0, false).m_ShouldFlush);
+	const SQmSettingsPerfWindowFrameResult Result = Tracker.RecordFrame(0.010f, 4.0, false);
+
+	ASSERT_TRUE(Result.m_ShouldFlush);
+	EXPECT_EQ(Result.m_Summary.m_SampleFrames, 3);
+	EXPECT_STREQ(Result.m_Summary.m_aOperation, "settings_tab_switch");
+	EXPECT_STREQ(Result.m_Summary.m_aContext, "offline");
+	EXPECT_STREQ(Result.m_Summary.m_aPage, "settings:tclient");
+	EXPECT_STREQ(Result.m_Summary.m_aTab, "0");
+	EXPECT_TRUE(Result.m_Summary.m_CapLimited);
+	EXPECT_FALSE(Tracker.HasActiveWindow());
+}
+
+TEST(QmMonitoringHelpers, SettingsPerfScrollWindowEndsAfterIdleTimeout)
+{
+	CQmSettingsPerfWindowTracker Tracker;
+	Tracker.StartScrollWindow("settings_tee_scroll", "offline", "settings:tee", "none", 0.250f, false);
+
+	EXPECT_FALSE(Tracker.RecordFrame(0.016f, 5.0, true).m_ShouldFlush);
+	EXPECT_FALSE(Tracker.RecordFrame(0.100f, 6.0, false).m_ShouldFlush);
+	EXPECT_FALSE(Tracker.RecordFrame(0.149f, 7.0, false).m_ShouldFlush);
+	const SQmSettingsPerfWindowFrameResult Result = Tracker.RecordFrame(0.001f, 8.0, false);
+
+	ASSERT_TRUE(Result.m_ShouldFlush);
+	EXPECT_EQ(Result.m_Summary.m_SampleFrames, 4);
+	EXPECT_STREQ(Result.m_Summary.m_aOperation, "settings_tee_scroll");
+	EXPECT_NEAR(Result.m_Summary.m_MenuMsMax, 8.0f, 0.01f);
+	EXPECT_FALSE(Tracker.HasActiveWindow());
+}
+
+TEST(QmMonitoringHelpers, SettingsPerfWindowStartFlushesInterruptedWindow)
+{
+	CQmSettingsPerfWindowTracker Tracker;
+	Tracker.StartFixedFrameWindow("settings_open", "offline", "settings:tee", "none", 30, false);
+	Tracker.RecordFrame(0.016f, 7.0, false);
+	Tracker.RecordFrame(0.017f, 8.0, false);
+
+	const SQmSettingsPerfWindowFrameResult Interrupted = Tracker.StartScrollWindow("settings_tee_scroll", "offline", "settings:tee", "none", 0.250f, false);
+
+	ASSERT_TRUE(Interrupted.m_ShouldFlush);
+	EXPECT_STREQ(Interrupted.m_Summary.m_aOperation, "settings_open");
+	EXPECT_EQ(Interrupted.m_Summary.m_SampleFrames, 2);
+	EXPECT_TRUE(Tracker.HasActiveWindow());
+	EXPECT_STREQ(Tracker.ActiveOperation(), "settings_tee_scroll");
+}
+
+TEST(QmMonitoringHelpers, SettingsOpenWindowIsProtectedFromStalePreviousSettingsState)
+{
+	const std::string MenusSource = ReadTestSourceFile("src/game/client/components/menus.cpp");
+	const std::string SettingsSource = ReadTestSourceFile("src/game/client/components/menus_settings.cpp");
+
+	EXPECT_NE(MenusSource.find("OldPage != NewPage && NewPage == PAGE_SETTINGS"), std::string::npos);
+	EXPECT_NE(MenusSource.find("m_SettingsPerfLastPage = -1;"), std::string::npos);
+	EXPECT_NE(SettingsSource.find("if(m_SettingsPerfLastPage != -1)\n\t\t\tStartSettingsPerfFixedWindow(\"settings_tab_switch\""), std::string::npos);
 }
 
 namespace

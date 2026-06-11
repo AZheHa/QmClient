@@ -102,6 +102,18 @@ namespace
 		return g_Config.m_QmPerfDebugThresholdMs > 0 ? g_Config.m_QmPerfDebugThresholdMs : 1.0;
 	}
 
+	int64_t PerfDebugStartTime()
+	{
+		return PerfDebugEnabled() ? time_get() : 0;
+	}
+
+	double PerfDebugElapsedMs(int64_t StartTime)
+	{
+		if(StartTime == 0)
+			return 0.0;
+		return (time_get() - StartTime) * 1000.0 / time_freq();
+	}
+
 	void LogPerfStage(IClient *pClient, const char *pStage, const double DurationMs, const bool Force = false, const char *pExtra = nullptr)
 	{
 		QmPerfLogStage("perf/menu", pStage, DurationMs, Force, pClient, nullptr, nullptr, pExtra);
@@ -4410,6 +4422,8 @@ bool CMenus::RenderLanguageSelection(CUIRect MainView)
 
 void CMenus::RenderSettings(CUIRect MainView)
 {
+	const bool SettingsPerfEnabled = PerfDebugEnabled();
+	const int64_t SettingsRenderStartTime = PerfDebugStartTime();
 	// This handles cases where old config files have an invalid page index
 	m_SettingsScrollActive = Input()->KeyPress(KEY_MOUSE_WHEEL_UP) ||
 				 Input()->KeyPress(KEY_MOUSE_WHEEL_DOWN) ||
@@ -4431,6 +4445,8 @@ void CMenus::RenderSettings(CUIRect MainView)
 	{
 		g_Config.m_UiSettingsPage = SettingsCanonicalPage(g_Config.m_UiSettingsPage);
 	}
+	if(g_Config.m_UiSettingsPage == SETTINGS_TEE && m_SettingsScrollActive)
+		StartSettingsPerfScrollWindow(SettingsPerfContextName(), CurrentQmUiPerfPage(), "none");
 
 	if(g_Config.m_UiSettingsPage != SETTINGS_ASSETS && (m_AssetsEditorState.m_Open || m_AssetsEditorState.m_Initialized))
 		AssetsEditorCloseNow();
@@ -4443,6 +4459,7 @@ void CMenus::RenderSettings(CUIRect MainView)
 	const uint64_t SettingsPageSwitchNode = UiAnimNodeKey("settings_main_page_switch");
 
 	// render background
+	const int64_t ShellLayoutStartTime = PerfDebugStartTime();
 	CUIRect Button, TabBar, RestartBar;
 	const bool UseNewSettingsUi = g_Config.m_QmNewUi != 0;
 	if(UseNewSettingsUi)
@@ -4479,6 +4496,25 @@ void CMenus::RenderSettings(CUIRect MainView)
 	{
 		TabBar.HSplitTop(50.0f, &Button, &TabBar);
 		Button.Draw(ms_ColorTabbarActive, IGraphics::CORNER_BR, 10.0f);
+	}
+	if(SettingsPerfEnabled)
+	{
+		char aSettingsPerfTab[16];
+		const char *pSettingsPerfTab = "none";
+		if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+		{
+			str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+			pSettingsPerfTab = aSettingsPerfTab;
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+		{
+			str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+			pSettingsPerfTab = aSettingsPerfTab;
+		}
+		char aShellExtra[192];
+		str_format(aShellExtra, sizeof(aShellExtra), "context=%s page=%s tab=%s operation=%s restart=%d",
+			SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation(), NeedRestart ? 1 : 0);
+		LogPerfStage(Client(), "settings_shell_layout", PerfDebugElapsedMs(ShellLayoutStartTime), false, aShellExtra);
 	}
 
 	PrepareSettingsTabLabelCache(MainView.w);
@@ -4526,9 +4562,24 @@ void CMenus::RenderSettings(CUIRect MainView)
 			}
 		}
 
-		char aTabBarExtra[96];
-		str_format(aTabBarExtra, sizeof(aTabBarExtra), "page=%s", SettingsPageName(g_Config.m_UiSettingsPage));
-		LogPerfStage(Client(), "settings_tabbar", StageTimer.ElapsedMs(), false, aTabBarExtra);
+		if(SettingsPerfEnabled)
+		{
+			char aSettingsPerfTab[16];
+			const char *pSettingsPerfTab = "none";
+			if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			char aTabBarExtra[128];
+			str_format(aTabBarExtra, sizeof(aTabBarExtra), "context=%s page=%s tab=%s operation=%s", SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation());
+			LogPerfStage(Client(), "settings_tabbar", StageTimer.ElapsedMs(), false, aTabBarExtra);
+		}
 	}
 
 	if(!s_SettingsTransitionInitialized)
@@ -4547,6 +4598,20 @@ void CMenus::RenderSettings(CUIRect MainView)
 				SettingsPageName(s_PrevSettingsPage), SettingsPageName(g_Config.m_UiSettingsPage), 0.0);
 			QmPerfLogPayload("perf/interaction", aPayload, Client(), "settings");
 		}
+		char aWindowTab[16];
+		const char *pWindowTab = "none";
+		if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+		{
+			str_format(aWindowTab, sizeof(aWindowTab), "%d", m_QmClientSettingsTab);
+			pWindowTab = aWindowTab;
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+		{
+			str_format(aWindowTab, sizeof(aWindowTab), "%d", m_TClientSettingsTab);
+			pWindowTab = aWindowTab;
+		}
+		if(m_SettingsPerfLastPage != -1)
+			StartSettingsPerfFixedWindow("settings_tab_switch", SettingsPerfContextName(), CurrentQmUiPerfPage(), pWindowTab, 30);
 		s_SettingsTransitionDirection = UseNewSettingsUi ? (g_Config.m_UiSettingsPage > s_PrevSettingsPage ? 1.0f : -1.0f) : 0.0f;
 		if(UseNewSettingsUi)
 			TriggerUiSwitchAnimation(SettingsPageSwitchNode, 0.18f);
@@ -4633,36 +4698,81 @@ void CMenus::RenderSettings(CUIRect MainView)
 		{
 			dbg_assert_failed("ui_settings_page invalid");
 		}
-		char aTab[16];
+		char aContentTab[16];
 		const char *pTab = "none";
 		if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
 		{
-			str_format(aTab, sizeof(aTab), "%d", m_QmClientSettingsTab);
-			pTab = aTab;
+			str_format(aContentTab, sizeof(aContentTab), "%d", m_QmClientSettingsTab);
+			pTab = aContentTab;
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
 		{
-			str_format(aTab, sizeof(aTab), "%d", m_TClientSettingsTab);
-			pTab = aTab;
+			str_format(aContentTab, sizeof(aContentTab), "%d", m_TClientSettingsTab);
+			pTab = aContentTab;
 		}
-		char aContentExtra[192];
-		str_format(aContentExtra, sizeof(aContentExtra), "page=%s transition=%d sections=%d sections_visible=%d tab=%s", SettingsPageName(g_Config.m_UiSettingsPage), TransitionActive ? 1 : 0, NumSections, NumSectionsVisible, pTab);
-		LogPerfStage(Client(), "settings_page_content", StageTimer.ElapsedMs(), TransitionActive, aContentExtra);
+		if(SettingsPerfEnabled)
+		{
+			char aContentExtra[192];
+			str_format(aContentExtra, sizeof(aContentExtra), "context=%s page=%s transition=%d sections=%d sections_visible=%d tab=%s operation=%s", SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), TransitionActive ? 1 : 0, NumSections, NumSectionsVisible, pTab, SettingsPerfActiveOperation());
+			LogPerfStage(Client(), "settings_page_content", StageTimer.ElapsedMs(), TransitionActive, aContentExtra);
+		}
 	}
+
+	if(m_SettingsPerfLastPage == g_Config.m_UiSettingsPage)
+	{
+		if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT && m_SettingsPerfLastTClientTab != -1 && m_SettingsPerfLastTClientTab != m_TClientSettingsTab)
+		{
+			char aTab[16];
+			str_format(aTab, sizeof(aTab), "%d", m_TClientSettingsTab);
+			StartSettingsPerfFixedWindow("settings_subtab_switch", SettingsPerfContextName(), CurrentQmUiPerfPage(), aTab, 30);
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT && m_SettingsPerfLastQmClientTab != -1 && m_SettingsPerfLastQmClientTab != m_QmClientSettingsTab)
+		{
+			char aTab[16];
+			str_format(aTab, sizeof(aTab), "%d", m_QmClientSettingsTab);
+			StartSettingsPerfFixedWindow("settings_subtab_switch", SettingsPerfContextName(), CurrentQmUiPerfPage(), aTab, 30);
+		}
+	}
+	m_SettingsPerfLastPage = g_Config.m_UiSettingsPage;
+	m_SettingsPerfLastTClientTab = m_TClientSettingsTab;
+	m_SettingsPerfLastQmClientTab = m_QmClientSettingsTab;
 
 	m_SettingsRuntimeMetadata.m_LastPage = g_Config.m_UiSettingsPage;
 	m_SettingsRuntimeMetadata.m_Valid = true;
 
-	if(TransitionActive && TransitionAlpha > 0.0f)
 	{
-		ContentClip.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha), IGraphics::CORNER_NONE, 0.0f);
-	}
-	if(TransitionActive)
-	{
-		Ui()->ClipDisable();
+		const int64_t StageStartTime = PerfDebugStartTime();
+		if(TransitionActive && TransitionAlpha > 0.0f)
+		{
+			ContentClip.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha), IGraphics::CORNER_NONE, 0.0f);
+		}
+		if(TransitionActive)
+		{
+			Ui()->ClipDisable();
+		}
+		if(SettingsPerfEnabled)
+		{
+			char aSettingsPerfTab[16];
+			const char *pSettingsPerfTab = "none";
+			if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			char aOverlayExtra[160];
+			str_format(aOverlayExtra, sizeof(aOverlayExtra), "context=%s page=%s tab=%s operation=%s active=%d",
+				SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation(), TransitionActive ? 1 : 0);
+			LogPerfStage(Client(), "settings_transition_overlay", PerfDebugElapsedMs(StageStartTime), TransitionActive, aOverlayExtra);
+		}
 	}
 	if(NeedRestart)
 	{
+		const int64_t StageStartTime = PerfDebugStartTime();
 		CUIRect RestartWarning, RestartButton;
 		RestartBar.VSplitRight(125.0f, &RestartWarning, &RestartButton);
 		RestartWarning.VSplitRight(10.0f, &RestartWarning, nullptr);
@@ -4689,6 +4799,44 @@ void CMenus::RenderSettings(CUIRect MainView)
 				Client()->Restart();
 			}
 		}
+		if(SettingsPerfEnabled)
+		{
+			char aSettingsPerfTab[16];
+			const char *pSettingsPerfTab = "none";
+			if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			char aRestartExtra[160];
+			str_format(aRestartExtra, sizeof(aRestartExtra), "context=%s page=%s tab=%s operation=%s",
+				SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation());
+			LogPerfStage(Client(), "settings_restart_bar", PerfDebugElapsedMs(StageStartTime), false, aRestartExtra);
+		}
+	}
+	if(SettingsPerfEnabled)
+	{
+		char aSettingsPerfTab[16];
+		const char *pSettingsPerfTab = "none";
+		if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+		{
+			str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+			pSettingsPerfTab = aSettingsPerfTab;
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+		{
+			str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+			pSettingsPerfTab = aSettingsPerfTab;
+		}
+		char aRenderTotalExtra[160];
+		str_format(aRenderTotalExtra, sizeof(aRenderTotalExtra), "context=%s page=%s tab=%s operation=%s",
+			SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation());
+		LogPerfStage(Client(), "settings_render_total", PerfDebugElapsedMs(SettingsRenderStartTime), false, aRenderTotalExtra);
 	}
 }
 

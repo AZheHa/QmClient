@@ -16,6 +16,7 @@ import { generateReport } from './lib/report.ts';
 import {
   compareSessions,
   computeVerdict,
+  fpsSummaries,
   isSamplingBiased,
   isFrameTimeEntry,
   isListFrameEvent,
@@ -132,6 +133,84 @@ function testQmUiRuntimeAttributionUsesDedicatedKind() {
   assert.equal(attribution[0].kind, 'UI Runtime');
   assert.equal(attribution[0].page, 'settings:qmclient');
   assert.match(attribution[0].summary, /operation=settings_qmclient/);
+}
+
+function testFpsSummaryTelemetryFeedsReportAndBundleSummary() {
+  const entries = parseLog([
+    '2026-06-11 02:00:00 I perf/fps: {"system":"perf/fps","event":"fps_summary","operation":"settings_open","context":"online","page":"settings:tee","tab":"none","sample_frames":30,"sample_seconds":0.500,"fps_avg":60.000,"fps_min":45.000,"fps_max":120.000,"frame_ms_avg":16.667,"frame_ms_p95":22.000,"frame_ms_p99":25.000,"frame_ms_max":25.000,"cap_limited":0}',
+    '2026-06-11 02:00:00 I perf/menu: {"system":"perf/menu","frame":10,"stage":"settings_page_content","duration_ms":7.000,"page":"tee"}',
+  ].join('\n'));
+
+  const fps = fpsSummaries(entries);
+  assert.equal(fps.length, 1);
+  assert.equal(fps[0].operation, 'settings_open');
+  assert.equal(fps[0].context, 'online');
+  assert.equal(fps[0].fpsMin, 45);
+  assert.equal(fps[0].frameMsP99, 25);
+
+  const summary = summarizeForBundle(entries, 'qm_perf_fps.log', { invalidLines: 0, totalLines: 2 });
+  assert.equal(summary.fps.available, true);
+  assert.equal(summary.fps.summaries[0].page, 'settings:tee');
+  assert.equal(summary.quality.warnings.some(w => /ingame\/online/i.test(w)), false);
+
+  const html = generateReport(entries, 'qm_perf_fps.log', null);
+  assert.match(html, /FPS 摘要/);
+  assert.match(html, /settings_open/);
+  assert.match(html, /45\.0/);
+}
+
+function testMissingFpsSummaryWarnsThatSettingsAcceptanceIsIncomplete() {
+  const entries = parseLog([
+    '2026-06-11 02:00:00 I perf/menu: {"system":"perf/menu","frame":10,"stage":"settings_page_content","duration_ms":7.000,"page":"tee"}',
+  ].join('\n'));
+
+  const summary = summarizeForBundle(entries, 'qm_perf_missing_fps.log', { invalidLines: 0, totalLines: 1 });
+
+  assert.equal(summary.fps.available, false);
+  assert.match(summary.quality.warnings.join('\n'), /missing fps_summary/i);
+  assert.match(summary.quality.warnings.join('\n'), /ingame\/online/i);
+
+  const html = generateReport(entries, 'qm_perf_missing_fps.log', null);
+  assert.match(html, /缺少 fps_summary/);
+  assert.match(html, /不足以验收/);
+}
+
+function testTargetSettingsVerdictIgnoresServerBrowserFrames() {
+  const entries = parseLog([
+    '2026-06-11 02:00:00 I perf/menu: {"system":"perf/menu","frame":1,"stage":"offline_page_content","duration_ms":200.000,"page":"internet"}',
+    '2026-06-11 02:00:01 I perf/menu: {"system":"perf/menu","frame":2,"stage":"settings_page_content","duration_ms":7.000,"page":"tee"}',
+    '2026-06-11 02:00:01 I perf/fps: {"system":"perf/fps","event":"fps_summary","operation":"settings_tab_switch","context":"offline","page":"settings:tee","tab":"none","sample_frames":30,"sample_seconds":0.250,"fps_avg":120.000,"fps_min":100.000,"fps_max":180.000,"frame_ms_avg":8.000,"frame_ms_p95":9.000,"frame_ms_p99":10.000,"frame_ms_max":10.000,"cap_limited":0}',
+  ].join('\n'));
+
+  const summary = summarizeForBundle(entries, 'qm_perf_mixed.log', { invalidLines: 0, totalLines: 3 });
+
+  assert.equal(summary.targetSettings.verdict, 'PASS');
+  assert.equal(summary.targetSettings.spikeCount, 0);
+  assert.equal(summary.verdict, 'FAIL');
+}
+
+function testTargetSettingsVerdictUsesIngameEscFpsSummaryWindow() {
+  const entries = parseLog([
+    '2026-06-11 02:00:00 I perf/fps: {"system":"perf/fps","event":"fps_summary","operation":"ingame_esc_open","context":"online","page":"game","tab":"none","sample_frames":30,"sample_seconds":0.500,"fps_avg":60.000,"fps_min":30.000,"fps_max":120.000,"frame_ms_avg":16.667,"frame_ms_p95":20.000,"frame_ms_p99":45.000,"frame_ms_max":45.000,"cap_limited":0}',
+  ].join('\n'));
+
+  const summary = summarizeForBundle(entries, 'qm_perf_ingame_esc.log', { invalidLines: 0, totalLines: 1 });
+
+  assert.equal(summary.targetSettings.verdict, 'FAIL');
+  assert.equal(summary.targetSettings.verdictAvailable, true);
+  assert.equal(summary.targetSettings.spikeCount, 1);
+  assert.doesNotMatch(summary.quality.warnings.join('\n'), /missing ingame\/online/i);
+}
+
+function testGenericIngamePageContentDoesNotSatisfyOnlineCoverageWarning() {
+  const entries = parseLog([
+    '2026-06-11 02:00:00 I perf/menu: {"system":"perf/menu","frame":1,"stage":"ingame_page_content","duration_ms":7.000,"page":"game"}',
+    '2026-06-11 02:00:01 I perf/fps: {"system":"perf/fps","event":"fps_summary","operation":"settings_tab_switch","context":"offline","page":"settings:tee","tab":"none","sample_frames":30,"sample_seconds":0.250,"fps_avg":120.000,"fps_min":100.000,"fps_max":180.000,"frame_ms_avg":8.000,"frame_ms_p95":9.000,"frame_ms_p99":10.000,"frame_ms_max":10.000,"cap_limited":0}',
+  ].join('\n'));
+
+  const summary = summarizeForBundle(entries, 'qm_perf_generic_ingame.log', { invalidLines: 0, totalLines: 2 });
+
+  assert.match(summary.quality.warnings.join('\n'), /ingame\/online/i);
 }
 
 function testPerfEventClassifiersKeepBoundariesTight() {
@@ -427,6 +506,11 @@ testReportIncludesInteractionAndDeviceSections();
 testReportAttributesPagePerformanceEvents();
 testServerBrowserListFrameAttributionUsesRowCounts();
 testQmUiRuntimeAttributionUsesDedicatedKind();
+testFpsSummaryTelemetryFeedsReportAndBundleSummary();
+testMissingFpsSummaryWarnsThatSettingsAcceptanceIsIncomplete();
+testTargetSettingsVerdictIgnoresServerBrowserFrames();
+testTargetSettingsVerdictUsesIngameEscFpsSummaryWindow();
+testGenericIngamePageContentDoesNotSatisfyOnlineCoverageWarning();
 testPerfEventClassifiersKeepBoundariesTight();
 testPageSwitchBoundaryDoesNotEnterDurationAttribution();
 testSnapshotIgnoresEventOnlyTelemetry();

@@ -26,6 +26,7 @@
 #include <game/client/components/menus_ingame_touch_controls.h>
 #include <game/client/components/menus_settings_controls.h>
 #include <game/client/components/menus_start.h>
+#include <game/client/components/qmclient/settings_perf_windows.h>
 #include <game/client/components/section_loader.h>
 #include <game/client/components/settings_resource_jobs.h>
 #include <game/client/components/skins7.h>
@@ -1816,6 +1817,12 @@ public:
 	void InvalidateSettingsTextPool();
 	void InvalidateSettingsRuntimeCaches(ESettingsInvalidationReason Reason);
 	void FinalizeTeeListDrainPerfSession();
+	void StartSettingsPerfFixedWindow(const char *pOperation, const char *pContext, const char *pPage, const char *pTab, int MaxFrames);
+	void StartSettingsPerfScrollWindow(const char *pContext, const char *pPage, const char *pTab);
+	void RecordSettingsPerfWindowFrame(double MenuDurationMs);
+	void LogSettingsPerfWindowSummary(const SQmSettingsPerfWindowSummary &Summary);
+	const char *SettingsPerfContextName() const;
+	const char *SettingsPerfActiveOperation() const;
 	void ResetSettingsFrameBudgetForFrame(bool TeeSettingsActive, int TeeSkinGpuUploadsPerFrame = -1)
 	{
 		const SSettingsResourceFrameContext FrameContext = SettingsResourceFrameContext();
@@ -1837,6 +1844,11 @@ private:
 		int m_New = 0;
 		int m_Reused = 0;
 	};
+
+	CQmSettingsPerfWindowTracker m_SettingsPerfWindowTracker;
+	int m_SettingsPerfLastPage = -1;
+	int m_SettingsPerfLastTClientTab = -1;
+	int m_SettingsPerfLastQmClientTab = -1;
 
 	class CScopedSettingsTextPerfStats
 	{

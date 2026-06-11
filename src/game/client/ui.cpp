@@ -572,6 +572,9 @@ void CUi::RegisterPassiveHotItem(const void *pId, const CUIRect *pRect)
 
 int CUi::QuadBatchRectContainer(float Width, float Height, float Rounding, int Corners) const
 {
+	if(!UiBatchableRectHasPositiveSize(Width, Height))
+		return -1;
+
 	for(const SQuadBatchRectContainer &Container : m_vQuadBatchRectContainers)
 	{
 		if(Container.m_Width == Width && Container.m_Height == Height && Container.m_Rounding == Rounding && Container.m_Corners == Corners)
@@ -589,7 +592,11 @@ int CUi::QuadBatchRectContainer(float Width, float Height, float Rounding, int C
 
 void CUi::RenderQuadContainerBatchable(int QuadContainerIndex, float X, float Y, const ColorRGBA &Color) const
 {
-	if(!IsQuadBatchActive())
+	const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(IsQuadBatchActive(), m_QuadBatchContainerIndex, m_QuadBatchColor, QuadContainerIndex, Color);
+	if(Plan.m_LeavesBatchUntouched)
+		return;
+
+	if(Plan.m_RenderImmediately)
 	{
 		Graphics()->TextureClear();
 		Graphics()->SetColor(Color);
@@ -598,15 +605,18 @@ void CUi::RenderQuadContainerBatchable(int QuadContainerIndex, float X, float Y,
 		return;
 	}
 
-	if(m_QuadBatchContainerIndex != -1 && (m_QuadBatchContainerIndex != QuadContainerIndex || m_QuadBatchColor != Color))
+	if(Plan.m_FlushBeforeQueue)
 		FlushQuadBatch();
 
-	m_QuadBatchContainerIndex = QuadContainerIndex;
-	m_QuadBatchColor = Color;
-	IGraphics::SRenderSpriteInfo &Info = m_vQuadBatchSprites.emplace_back();
-	Info.m_Pos = vec2(X, Y);
-	Info.m_Scale = 1.0f;
-	Info.m_Rotation = 0.0f;
+	if(Plan.m_QueueSprite)
+	{
+		m_QuadBatchContainerIndex = QuadContainerIndex;
+		m_QuadBatchColor = Color;
+		IGraphics::SRenderSpriteInfo &Info = m_vQuadBatchSprites.emplace_back();
+		Info.m_Pos = vec2(X, Y);
+		Info.m_Scale = 1.0f;
+		Info.m_Rotation = 0.0f;
+	}
 }
 
 void CUi::BeginQuadBatch() const
@@ -616,7 +626,7 @@ void CUi::BeginQuadBatch() const
 
 void CUi::FlushQuadBatch() const
 {
-	if(m_QuadBatchContainerIndex < 0 || m_vQuadBatchSprites.empty())
+	if(!UiQuadBatchHasPendingSubmission(m_QuadBatchContainerIndex, m_vQuadBatchSprites.size()))
 		return;
 
 	Graphics()->TextureClear();

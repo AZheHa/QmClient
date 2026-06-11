@@ -161,6 +161,46 @@ private:
 	CUi *m_pUi;
 };
 
+inline bool UiBatchableRectHasPositiveSize(float Width, float Height)
+{
+	return Width > 0.0f && Height > 0.0f;
+}
+
+inline bool UiQuadBatchHasPendingSubmission(int QuadContainerIndex, size_t SpriteCount)
+{
+	return QuadContainerIndex >= 0 && SpriteCount > 0;
+}
+
+struct SUiQuadBatchSubmissionPlan
+{
+	bool m_RenderImmediately = false;
+	bool m_FlushBeforeQueue = false;
+	bool m_QueueSprite = false;
+	bool m_LeavesBatchUntouched = false;
+};
+
+inline SUiQuadBatchSubmissionPlan UiPlanQuadBatchSubmission(bool BatchActive, int CurrentQuadContainerIndex, const ColorRGBA &CurrentColor, int NextQuadContainerIndex, const ColorRGBA &NextColor)
+{
+	SUiQuadBatchSubmissionPlan Plan;
+	if(NextQuadContainerIndex < 0)
+	{
+		Plan.m_LeavesBatchUntouched = true;
+		return Plan;
+	}
+
+	if(!BatchActive)
+	{
+		Plan.m_RenderImmediately = true;
+		return Plan;
+	}
+
+	if(CurrentQuadContainerIndex != -1 && (CurrentQuadContainerIndex != NextQuadContainerIndex || CurrentColor != NextColor))
+		Plan.m_FlushBeforeQueue = true;
+
+	Plan.m_QueueSprite = true;
+	return Plan;
+}
+
 class CUIElement
 {
 	friend class CUi;

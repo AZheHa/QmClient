@@ -2371,7 +2371,11 @@ void CMenus::Render()
 	case IClient::STATE_QUITTING:
 	case IClient::STATE_RESTARTING:
 		// Render nothing except menu background. This should not happen for more than one frame.
-		LogPerfStage(Client(), "menus_render_total", RenderTimer.ElapsedMs(), true, "state=shutdown");
+		{
+			const double TotalDurationMs = RenderTimer.ElapsedMs();
+			LogPerfStage(Client(), "menus_render_total", TotalDurationMs, true, "state=shutdown");
+			RecordSettingsPerfWindowFrame(TotalDurationMs);
+		}
 		return;
 
 	case IClient::STATE_CONNECTING:
@@ -2475,7 +2479,9 @@ void CMenus::Render()
 			{
 				if(TransitionActive)
 					Ui()->ClipDisable();
-				LogPerfStage(Client(), "menus_render_total", RenderTimer.ElapsedMs(), true, "state=changed_during_offline_content");
+				const double TotalDurationMs = RenderTimer.ElapsedMs();
+				LogPerfStage(Client(), "menus_render_total", TotalDurationMs, true, "state=changed_during_offline_content");
+				RecordSettingsPerfWindowFrame(TotalDurationMs);
 				return;
 			}
 
@@ -2589,7 +2595,9 @@ void CMenus::Render()
 			{
 				if(TransitionActive)
 					Ui()->ClipDisable();
-				LogPerfStage(Client(), "menus_render_total", RenderTimer.ElapsedMs(), true, "state=changed_during_ingame_content");
+				const double TotalDurationMs = RenderTimer.ElapsedMs();
+				LogPerfStage(Client(), "menus_render_total", TotalDurationMs, true, "state=changed_during_ingame_content");
+				RecordSettingsPerfWindowFrame(TotalDurationMs);
 				return;
 			}
 
@@ -2647,7 +2655,9 @@ void CMenus::Render()
 
 	char aTotalExtra[96];
 	str_format(aTotalExtra, sizeof(aTotalExtra), "state=%s active=%d", ClientStateName(ClientState), IsActive() ? 1 : 0);
-	LogPerfStage(Client(), "menus_render_total", RenderTimer.ElapsedMs(), false, aTotalExtra);
+	const double TotalDurationMs = RenderTimer.ElapsedMs();
+	LogPerfStage(Client(), "menus_render_total", TotalDurationMs, false, aTotalExtra);
+	RecordSettingsPerfWindowFrame(TotalDurationMs);
 }
 
 void CMenus::RenderPopupFullscreen(CUIRect Screen)
@@ -3743,6 +3753,83 @@ const char *CMenus::CurrentQmUiPerfOperation() const
 	}
 }
 
+void CMenus::StartSettingsPerfFixedWindow(const char *pOperation, const char *pContext, const char *pPage, const char *pTab, int MaxFrames)
+{
+	if(!PerfDebugEnabled())
+		return;
+	const SQmSettingsPerfWindowFrameResult Interrupted = m_SettingsPerfWindowTracker.StartFixedFrameWindow(
+		pOperation,
+		pContext,
+		pPage,
+		pTab,
+		MaxFrames,
+		g_Config.m_GfxVsync != 0 || g_Config.m_GfxRefreshRate > 0);
+	if(Interrupted.m_ShouldFlush)
+		LogSettingsPerfWindowSummary(Interrupted.m_Summary);
+}
+
+void CMenus::StartSettingsPerfScrollWindow(const char *pContext, const char *pPage, const char *pTab)
+{
+	if(!PerfDebugEnabled())
+		return;
+	if(str_comp(m_SettingsPerfWindowTracker.ActiveOperation(), "settings_tee_scroll") == 0)
+		return;
+	const SQmSettingsPerfWindowFrameResult Interrupted = m_SettingsPerfWindowTracker.StartScrollWindow(
+		"settings_tee_scroll",
+		pContext,
+		pPage,
+		pTab,
+		0.250f,
+		g_Config.m_GfxVsync != 0 || g_Config.m_GfxRefreshRate > 0);
+	if(Interrupted.m_ShouldFlush)
+		LogSettingsPerfWindowSummary(Interrupted.m_Summary);
+}
+
+void CMenus::RecordSettingsPerfWindowFrame(double MenuDurationMs)
+{
+	if(!PerfDebugEnabled())
+		return;
+	const SQmSettingsPerfWindowFrameResult Result = m_SettingsPerfWindowTracker.RecordFrame(Client()->RenderFrameTime(), MenuDurationMs, m_SettingsScrollActive);
+	if(Result.m_ShouldFlush)
+		LogSettingsPerfWindowSummary(Result.m_Summary);
+}
+
+void CMenus::LogSettingsPerfWindowSummary(const SQmSettingsPerfWindowSummary &Summary)
+{
+	if(!PerfDebugEnabled() || Summary.m_SampleFrames <= 0)
+		return;
+
+	char aPayload[512];
+	str_format(aPayload, sizeof(aPayload),
+		"event=fps_summary operation=%s context=%s page=%s tab=%s sample_frames=%d sample_seconds=%.3f fps_avg=%.3f fps_min=%.3f fps_max=%.3f frame_ms_avg=%.3f frame_ms_p95=%.3f frame_ms_p99=%.3f frame_ms_max=%.3f menu_ms_max=%.3f cap_limited=%d",
+		Summary.m_aOperation,
+		Summary.m_aContext,
+		Summary.m_aPage,
+		Summary.m_aTab,
+		Summary.m_SampleFrames,
+		Summary.m_SampleSeconds,
+		Summary.m_FpsAvg,
+		Summary.m_FpsMin,
+		Summary.m_FpsMax,
+		Summary.m_FrameMsAvg,
+		Summary.m_FrameMsP95,
+		Summary.m_FrameMsP99,
+		Summary.m_FrameMsMax,
+		Summary.m_MenuMsMax,
+		Summary.m_CapLimited ? 1 : 0);
+	QmPerfLogPayload("perf/fps", aPayload, Client());
+}
+
+const char *CMenus::SettingsPerfContextName() const
+{
+	return Client()->State() == IClient::STATE_ONLINE ? "online" : "offline";
+}
+
+const char *CMenus::SettingsPerfActiveOperation() const
+{
+	return m_SettingsPerfWindowTracker.ActiveOperation();
+}
+
 void CMenus::OnReset()
 {
 	ResetReportScan();
@@ -3987,6 +4074,8 @@ void CMenus::OnRender()
 	{
 		if(Ui()->ConsumeHotkey(CUi::HOTKEY_ESCAPE))
 		{
+			if(Client()->State() == IClient::STATE_ONLINE)
+				StartSettingsPerfFixedWindow("ingame_esc_open", "online", GamePageName(m_GamePage), "none", 30);
 			SetActive(true);
 		}
 		else if(Client()->State() != IClient::STATE_DEMOPLAYBACK)
@@ -4229,6 +4318,20 @@ void CMenus::SetMenuPage(int NewPage)
 			RefreshBrowserTab(ForceRefresh);
 		}
 	}
+	if(OldPage != NewPage && NewPage == PAGE_SETTINGS)
+	{
+		m_SettingsPerfLastPage = -1;
+		m_SettingsPerfLastTClientTab = -1;
+		m_SettingsPerfLastQmClientTab = -1;
+		const std::string PageName = SettingsPageCacheKey(g_Config.m_UiSettingsPage, -1);
+		StartSettingsPerfFixedWindow("settings_open", "offline", PageName.c_str(), "none", 30);
+	}
+	else if(OldPage == PAGE_SETTINGS && NewPage != PAGE_SETTINGS)
+	{
+		m_SettingsPerfLastPage = -1;
+		m_SettingsPerfLastTClientTab = -1;
+		m_SettingsPerfLastQmClientTab = -1;
+	}
 }
 
 void CMenus::SetGamePage(int NewPage)
@@ -4253,6 +4356,20 @@ void CMenus::SetGamePage(int NewPage)
 	else
 	{
 		m_GamePageTransitionDirection = 0.0f;
+	}
+	if(OldPage != NewPage && NewPage == PAGE_SETTINGS)
+	{
+		m_SettingsPerfLastPage = -1;
+		m_SettingsPerfLastTClientTab = -1;
+		m_SettingsPerfLastQmClientTab = -1;
+		const std::string PageName = SettingsPageCacheKey(g_Config.m_UiSettingsPage, -1);
+		StartSettingsPerfFixedWindow("settings_open", "online", PageName.c_str(), "none", 30);
+	}
+	else if(OldPage == PAGE_SETTINGS && NewPage != PAGE_SETTINGS)
+	{
+		m_SettingsPerfLastPage = -1;
+		m_SettingsPerfLastTClientTab = -1;
+		m_SettingsPerfLastQmClientTab = -1;
 	}
 }
 

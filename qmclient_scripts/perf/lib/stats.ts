@@ -93,6 +93,7 @@ export interface FrameTimeSeries {
 
 export const PERF_SYSTEM = {
   MENU: 'perf/menu',
+  FPS: 'perf/fps',
   GAMECLIENT: 'perf/gameclient',
   INTERACTION: 'perf/interaction',
   DEVICE: 'perf/device',
@@ -146,6 +147,129 @@ export interface SpikeInfo {
   stage: string;
   page: string;
   threshold: number;
+}
+
+export interface FpsSummary {
+  timestamp: string;
+  operation: string;
+  context: string;
+  page: string;
+  tab: string;
+  sampleFrames: number;
+  sampleSeconds: number;
+  fpsAvg: number;
+  fpsMin: number;
+  fpsMax: number;
+  frameMsAvg: number;
+  frameMsP95: number;
+  frameMsP99: number;
+  frameMsMax: number;
+  menuMsMax: number;
+  capLimited: boolean;
+}
+
+function numberField(e: PerfEntry, name: string, fallback = 0): number {
+  const Value = rawField(e, name);
+  const Parsed = Number(Value);
+  return Number.isFinite(Parsed) ? Parsed : fallback;
+}
+
+export function fpsSummaries(entries: PerfEntry[]): FpsSummary[] {
+  return entries
+    .filter(e => e.system === PERF_SYSTEM.FPS && field(e, 'event') === 'fps_summary')
+    .map(e => ({
+      timestamp: e.timestamp,
+      operation: field(e, 'operation'),
+      context: field(e, 'context'),
+      page: field(e, 'page'),
+      tab: field(e, 'tab', 'none'),
+      sampleFrames: numberField(e, 'sample_frames'),
+      sampleSeconds: numberField(e, 'sample_seconds'),
+      fpsAvg: numberField(e, 'fps_avg'),
+      fpsMin: numberField(e, 'fps_min'),
+      fpsMax: numberField(e, 'fps_max'),
+      frameMsAvg: numberField(e, 'frame_ms_avg'),
+      frameMsP95: numberField(e, 'frame_ms_p95'),
+      frameMsP99: numberField(e, 'frame_ms_p99'),
+      frameMsMax: numberField(e, 'frame_ms_max'),
+      menuMsMax: numberField(e, 'menu_ms_max'),
+      capLimited: numberField(e, 'cap_limited') !== 0,
+    }));
+}
+
+const TARGET_SETTINGS_FPS_OPERATIONS: ReadonlySet<string> = new Set([
+  'settings_open',
+  'settings_tab_switch',
+  'settings_subtab_switch',
+  'settings_tee_scroll',
+  'ingame_esc_open',
+]);
+
+export function isTargetSettingsFpsSummary(summary: FpsSummary): boolean {
+  return TARGET_SETTINGS_FPS_OPERATIONS.has(summary.operation);
+}
+
+export function hasOnlineTargetSettingsFpsSummary(entries: PerfEntry[]): boolean {
+  return fpsSummaries(entries).some(s => isTargetSettingsFpsSummary(s) && s.context === 'online');
+}
+
+function normalizedPage(e: PerfEntry): string {
+  return field(e, 'page', field(e, 'page_name')).toLowerCase();
+}
+
+function isSettingsTargetPage(Page: string): boolean {
+  if(Page.length === 0) {
+    return false;
+  }
+  if(Page.includes('internet') || Page.includes('server_browser') || Page === 'network') {
+    return false;
+  }
+  return Page.startsWith('settings') ||
+    ['general', 'tee', 'appearance', 'controls', 'graphics', 'sound', 'ddnet', 'assets', 'tclient', 'qmclient'].includes(Page);
+}
+
+export function selectTargetSettingsFrameEntries(entries: PerfEntry[]): PerfEntry[] {
+  return selectFrameTimeEntries(entries).filter(e => {
+    const Stage = e.stage.toLowerCase();
+    const Page = normalizedPage(e);
+    if(!isSettingsTargetPage(Page)) {
+      return false;
+    }
+    return Stage.startsWith('settings_') ||
+      (Stage === 'ingame_page_content' && (Page === 'settings' || Page.startsWith('settings')));
+  });
+}
+
+export interface TargetSettingsSnapshot {
+  percentiles: Percentiles;
+  spikeCount: number;
+  verdict: Verdict;
+  verdictAvailable: boolean;
+}
+
+export function targetSettingsSnapshot(entries: PerfEntry[]): TargetSettingsSnapshot {
+  const targetFps = fpsSummaries(entries).filter(isTargetSettingsFpsSummary);
+  if(targetFps.length > 0) {
+    const durations = targetFps.map(s => s.frameMsP99);
+    const percentiles = calcPercentiles(durations);
+    const spikeCount = targetFps.filter(s => s.frameMsMax > BUDGET.h60).length;
+    return {
+      percentiles,
+      spikeCount,
+      verdict: computeVerdict(percentiles, spikeCount),
+      verdictAvailable: true,
+    };
+  }
+  const targetEntries = selectTargetSettingsFrameEntries(entries);
+  const durations = targetEntries.map(e => entryDurationMs(e) ?? e.durationMs);
+  const percentiles = calcPercentiles(durations);
+  const spikes = detectSpikes(targetEntries, BUDGET.h60);
+  return {
+    percentiles,
+    spikeCount: spikes.length,
+    verdict: 'WARN',
+    verdictAvailable: false,
+  };
 }
 
 export function detectSpikes(entries: PerfEntry[], thresholdMs: number = BUDGET.h60): SpikeInfo[] {
