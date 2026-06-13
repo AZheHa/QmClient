@@ -3147,12 +3147,18 @@ void CChat::OpenChatLineMenu(const CLine &Line, vec2 ChatMousePos)
 	m_ChatLinePopupContext.m_PlayerLine = Line.m_ClientId >= 0 && Line.m_ClientId < MAX_CLIENTS;
 	m_ChatLinePopupContext.m_LocalPlayer = m_ChatLinePopupContext.m_PlayerLine && GameClient()->IsLocalClientId(Line.m_ClientId);
 	if(m_ChatLinePopupContext.m_PlayerLine)
+	{
+		str_copy(m_ChatLinePopupContext.m_aPlayerName, GameClient()->m_aClients[Line.m_ClientId].m_aName);
 		GameClient()->FormatStreamerName(Line.m_ClientId, m_ChatLinePopupContext.m_aName, sizeof(m_ChatLinePopupContext.m_aName));
+	}
 	else
+	{
+		m_ChatLinePopupContext.m_aPlayerName[0] = '\0';
 		str_copy(m_ChatLinePopupContext.m_aName, Line.m_aName);
+	}
 
 	constexpr float MenuWidth = 188.0f;
-	constexpr float MenuHeight = 238.0f;
+	constexpr float MenuHeight = 266.0f;
 	const float Height = 300.0f;
 	const float Width = Height * Graphics()->ScreenAspect();
 	const vec2 ChatToUiScale(Ui()->Screen()->w / Width, Ui()->Screen()->h / Height);
@@ -3216,6 +3222,22 @@ void CChat::RepeatChatLine(const CChatLinePopupContext &Context)
 	}
 
 	SendChat(Context.m_TeamNumber == 1 ? 1 : 0, Context.m_aText);
+}
+
+void CChat::SpectateChatLine(const CChatLinePopupContext &Context)
+{
+	if(!Context.m_PlayerLine || Context.m_ClientId < 0 || Context.m_ClientId >= MAX_CLIENTS || Context.m_aPlayerName[0] == '\0')
+		return;
+
+	if(GameClient()->m_Snap.m_SpecInfo.m_Active)
+	{
+		GameClient()->m_Spectator.Spectate(Context.m_ClientId);
+		return;
+	}
+
+	char aCommand[2 * MAX_NAME_LENGTH + 32];
+	if(BuildSpectateCommand(aCommand, sizeof(aCommand), Context.m_aPlayerName))
+		Console()->ExecuteLine(aCommand);
 }
 
 CUi::EPopupMenuFunctionResult CChat::PopupChatLineMenu(void *pContext, CUIRect View, bool Active)
@@ -3298,6 +3320,11 @@ CUi::EPopupMenuFunctionResult CChat::PopupChatLineMenu(void *pContext, CUIRect V
 	if(DoEntry(&pPopupContext->m_ReplyButton, FontIcons::FONT_ICON_COMMENT, Localize("Reply"), pPopupContext->m_PlayerLine && pPopupContext->m_aName[0] != '\0', ColorRGBA(0.88f, 0.78f, 1.0f, 1.0f)))
 	{
 		pChat->ReplyToChatLine(*pPopupContext);
+		return CUi::POPUP_CLOSE_CURRENT;
+	}
+	if(DoEntry(&pPopupContext->m_SpectateButton, FontIcons::FONT_ICON_EYE, Localize("Spectate"), pPopupContext->m_PlayerLine && pPopupContext->m_aPlayerName[0] != '\0', ColorRGBA(0.72f, 0.86f, 1.0f, 1.0f)))
+	{
+		pChat->SpectateChatLine(*pPopupContext);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
 

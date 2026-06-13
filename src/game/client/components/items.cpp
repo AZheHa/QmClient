@@ -379,6 +379,8 @@ void CItems::RenderLaser(vec2 From, vec2 Pos, ColorRGBA OuterColor, ColorRGBA In
 		{
 			vec2 Dir = normalize_pre_length(Pos - From, Len);
 			const vec2 Perp(Dir.y, -Dir.x);
+			const float SizeScale = std::clamp(g_Config.m_QmLaserSize / 100.0f, 0.5f, 2.0f);
+			const float AlphaScale = std::clamp(g_Config.m_QmLaserAlpha / 100.0f, 0.0f, 1.0f);
 
 			float Ms = TicksBody * 1000.0f / Client()->GameTickSpeed();
 			float a = Ms / GameClient()->GetTuning(TuneZone)->m_LaserBounceDelay;
@@ -398,19 +400,36 @@ void CItems::RenderLaser(vec2 From, vec2 Pos, ColorRGBA OuterColor, ColorRGBA In
 
 			for(int i = 0; i < NumLayers; ++i)
 			{
-				float Alpha = s_aAlphas[i] * GlowScale;
-				float Offset = s_aWidths[i] * Ia * GlowScale;
+				float Alpha = s_aAlphas[i] * GlowScale * AlphaScale;
+				float Offset = s_aWidths[i] * Ia * GlowScale * SizeScale;
+				float EndFade = std::min(std::max(Offset * 0.85f, 1.0f), Len);
+				vec2 EndFadeFrom = Pos - Dir * EndFade;
 				vec2 Out = Perp * Offset;
 
 				ColorRGBA Color = (i == NumLayers - 1) ? ColorRGBA(1.0f, 1.0f, 1.0f, Alpha) : (i >= NumLayers - 2 ? InnerColor.WithMultipliedAlpha(Alpha) : OuterColor.WithMultipliedAlpha(Alpha));
+				ColorRGBA TransparentColor = Color.WithAlpha(0.0f);
 
 				Graphics()->SetColor(Color);
 				IGraphics::CFreeformItem Freeform(
 					From.x - Out.x, From.y - Out.y,
 					From.x + Out.x, From.y + Out.y,
-					Pos.x - Out.x, Pos.y - Out.y,
-					Pos.x + Out.x, Pos.y + Out.y);
+					EndFadeFrom.x - Out.x, EndFadeFrom.y - Out.y,
+					EndFadeFrom.x + Out.x, EndFadeFrom.y + Out.y);
 				Graphics()->QuadsDrawFreeform(&Freeform, 1);
+
+				Graphics()->SetColor4(Color, Color, TransparentColor, TransparentColor);
+				Freeform = IGraphics::CFreeformItem(
+					EndFadeFrom.x - Out.x, EndFadeFrom.y - Out.y,
+					EndFadeFrom.x + Out.x, EndFadeFrom.y + Out.y,
+					Pos.x, Pos.y,
+					Pos.x, Pos.y);
+				Graphics()->QuadsDrawFreeform(&Freeform, 1);
+
+				if(g_Config.m_QmLaserRoundCaps)
+				{
+					Graphics()->SetColor(Color);
+					Graphics()->DrawCircle(From.x, From.y, Offset, 16);
+				}
 			}
 
 			Graphics()->QuadsEnd();
@@ -476,25 +495,27 @@ void CItems::RenderLaser(vec2 From, vec2 Pos, ColorRGBA OuterColor, ColorRGBA In
 
 			float ImpactDot = absolute(dot(Dir, vec2(1, 0)));
 			float AngleFactor = 1.0f - (ImpactDot * 0.3f);
+			const float AlphaScale = std::clamp(g_Config.m_QmLaserAlpha / 100.0f, 0.0f, 1.0f);
+			const float SizeScale = std::clamp(g_Config.m_QmLaserSize / 100.0f, 0.5f, 2.0f);
 
-			float BaseScale = 1.8f * AngleFactor;
-			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.15f * GlowScale));
+			float BaseScale = 1.8f * AngleFactor * SizeScale;
+			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.15f * GlowScale * AlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 
-			BaseScale = 1.5f * AngleFactor;
-			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.25f * GlowScale));
+			BaseScale = 1.5f * AngleFactor * SizeScale;
+			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.25f * GlowScale * AlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 
-			BaseScale = 1.2f * AngleFactor;
-			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.45f * GlowScale));
+			BaseScale = 1.2f * AngleFactor * SizeScale;
+			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.45f * GlowScale * AlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 
-			BaseScale = 0.9f * AngleFactor;
-			Graphics()->SetColor(InnerColor.WithMultipliedAlpha(0.65f * GlowScale));
+			BaseScale = 0.9f * AngleFactor * SizeScale;
+			Graphics()->SetColor(InnerColor.WithMultipliedAlpha(0.65f * GlowScale * AlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 
-			BaseScale = 0.6f * AngleFactor;
-			Graphics()->SetColor(ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f * GlowScale));
+			BaseScale = 0.6f * AngleFactor * SizeScale;
+			Graphics()->SetColor(ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f * GlowScale * AlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 		}
 		else

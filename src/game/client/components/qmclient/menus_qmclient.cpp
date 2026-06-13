@@ -657,6 +657,8 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		return pText;
 	};
 	auto MiniFeaturesNewFeatureId = [&]() {
+		if(!IsQmNewFeatureMarkRead("qm_2_70_0_chat_context_spectate"))
+			return "qm_2_70_0_chat_context_spectate";
 		if(!IsQmNewFeatureMarkRead("qm_2_69_0_chat_context_menu"))
 			return "qm_2_69_0_chat_context_menu";
 		if(!IsQmNewFeatureMarkRead("qm_2_66_0_editor_collab_4p"))
@@ -730,6 +732,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 						"qm_2_63_0_new_ime",
 						"qm_2_66_0_editor_collab_4p",
 						"qm_2_69_0_chat_context_menu",
+						"qm_2_70_0_chat_context_spectate",
 					};
 					if(AnyQmNewFeatureUnread(apFunctionFeatureIds, (int)std::size(apFunctionFeatureIds)))
 						DrawQmNewFeatureDot(Button);

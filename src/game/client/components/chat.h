@@ -281,6 +281,7 @@ class CChat : public CComponent
 		int m_ClientId = CLIENT_MSG;
 		int m_TeamNumber = 0;
 		char m_aName[64] = "";
+		char m_aPlayerName[MAX_NAME_LENGTH] = "";
 		char m_aText[MAX_LINE_LENGTH] = "";
 		bool m_PlayerLine = false;
 		bool m_LocalPlayer = false;
@@ -288,6 +289,7 @@ class CChat : public CComponent
 		CButtonContainer m_CopyButton;
 		CButtonContainer m_AddOneButton;
 		CButtonContainer m_ReplyButton;
+		CButtonContainer m_SpectateButton;
 		CButtonContainer m_MutePlayerButton;
 		CButtonContainer m_AddBlockedWordButton;
 		CButtonContainer m_CopyNameButton;
@@ -350,6 +352,17 @@ public:
 		str_append(pBuf, pMessage, BufSize);
 		return true;
 	}
+	static bool BuildSpectateCommand(char *pBuf, size_t BufSize, const char *pName)
+	{
+		if(pBuf == nullptr || pName == nullptr || pName[0] == '\0' || BufSize == 0)
+			return false;
+
+		str_copy(pBuf, "say /spec \"", BufSize);
+		char *pDst = pBuf + str_length(pBuf);
+		str_escape(&pDst, pName, pBuf + BufSize);
+		str_append(pBuf, "\"", BufSize);
+		return true;
+	}
 	static QmHudNotifications::EServerMessageClass ResolveLineServerMessageClass(int ClientId, const char *pLine, std::optional<QmHudNotifications::EServerMessageClass> KnownServerMessageClass = std::nullopt)
 	{
 		if(ClientId != SERVER_MSG)
@@ -409,6 +422,7 @@ public:
 	void AddTextToBlockWords(const char *pText);
 	void ReplyToChatLine(const CChatLinePopupContext &Context);
 	void RepeatChatLine(const CChatLinePopupContext &Context);
+	void SpectateChatLine(const CChatLinePopupContext &Context);
 
 	// 聊天行索引辅助方法（用于翻译任务的内存安全）
 	int GetLineIndex(const CLine *pLine) const;
