@@ -108,6 +108,7 @@ enum class EHudEditorElement
 	LocalTime,
 	LegacyMediaInfo,
 	MediaIsland,
+	Lyrics,
 	Voting,
 	Chat,
 	VoiceOverlay,
@@ -141,6 +142,7 @@ namespace QmHudEditor
 		case EHudEditorElement::LocalTime: return "local_time";
 		case EHudEditorElement::LegacyMediaInfo: return "legacy_media_info";
 		case EHudEditorElement::MediaIsland: return "media_island";
+		case EHudEditorElement::Lyrics: return "lyrics";
 		case EHudEditorElement::Voting: return "voting";
 		case EHudEditorElement::Chat: return "chat";
 		case EHudEditorElement::VoiceOverlay: return "voice_overlay";

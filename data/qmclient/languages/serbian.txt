@@ -526,6 +526,9 @@ Current aspect ratio:
 Current aspect ratio: Show default
 == Current aspect ratio: Show default
 
+Current line color
+== Current line color
+
 Current rescue mode: %s
 == Current rescue mode: %s
 
@@ -718,6 +721,9 @@ Enable dynamic FOV
 Enable keyword reply
 == Enable keyword reply
 
+Enable lyrics
+== Enable lyrics
+
 Enable mod weapon on %d: %s
 == Enable mod weapon on %d: %s
 
@@ -756,6 +762,9 @@ Endpoint
 
 Endpoint (optional)
 == Endpoint (optional)
+
+Enlarge first character
+== Enlarge first character
 
 Enter /practice mode or restart to avoid the entire team being killed in 60 seconds
 == Enter /practice mode or restart to avoid the entire team being killed in 60 seconds
@@ -813,6 +822,9 @@ Favorite maps
 
 Feature Search
 == Feature Search
+
+First character color
+== First character color
 
 Font size
 == Font size
@@ -982,6 +994,9 @@ Hide sponsor QR code
 Hide weapon muzzle flashes
 == Hide weapon muzzle flashes
 
+Hide without media state
+== Hide without media state
+
 Hitbox mode
 == Hitbox mode
 
@@ -1005,6 +1020,9 @@ I muted you
 
 Idiot word filter
 == Idiot word filter
+
+Indicator color
+== Indicator color
 
 Input device
 == Input device
@@ -1177,6 +1195,9 @@ Local test mode, no server needed
 Lock delay
 == Lock delay
 
+Lyrics
+== Lyrics
+
 Make sure the backend supports OpenAI-compatible thinking parameters
 == Make sure the backend supports OpenAI-compatible thinking parameters
 
@@ -1290,6 +1311,9 @@ New UI
 
 Next
 == Next
+
+Next line color
+== Next line color
 
 No animation
 == No animation
@@ -1434,6 +1458,9 @@ Opened
 
 Option color
 == Option color
+
+Outline color
+== Outline color
 
 Outline opacity
 == Outline opacity
@@ -1768,6 +1795,9 @@ Scores are private on this server
 Scores are public on this server
 == Scores are public on this server
 
+Scroll long lines
+== Scroll long lines
+
 Seconds
 == Seconds
 
@@ -1899,6 +1929,12 @@ Show coordinates above players
 
 Show coordinates of yourself and others
 == Show coordinates of yourself and others
+
+Show current and next lyric lines on HUD
+== Show current and next lyric lines on HUD
+
+Show current line indicator
+== Show current line indicator
 
 Show dotted map route debug
 == Show dotted map route debug

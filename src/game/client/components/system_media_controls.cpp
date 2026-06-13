@@ -41,6 +41,7 @@ struct SPlainState
 	bool m_CanPrev = false;
 	bool m_CanNext = false;
 	bool m_Playing = false;
+	char m_aSourceAppId[128] = {};
 	char m_aTitle[128] = {};
 	char m_aArtist[128] = {};
 	char m_aAlbum[128] = {};
@@ -457,6 +458,8 @@ void CSystemMediaControls::ThreadMain()
 				State.m_CanPrev = Controls.IsPreviousEnabled();
 				State.m_CanNext = Controls.IsNextEnabled();
 				State.m_Playing = PlaybackInfo.PlaybackStatus() == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
+				const std::string SourceAppId = winrt::to_string(Session.SourceAppUserModelId());
+				str_copy(State.m_aSourceAppId, SourceAppId.c_str(), sizeof(State.m_aSourceAppId));
 
 				const auto Timeline = Session.GetTimelineProperties();
 				if(!Timeline)
@@ -672,6 +675,7 @@ void CSystemMediaControls::OnUpdate()
 		m_pWinrt->m_State.m_CanPrev = SharedState.m_CanPrev;
 		m_pWinrt->m_State.m_CanNext = SharedState.m_CanNext;
 		m_pWinrt->m_State.m_Playing = SharedState.m_Playing;
+		str_copy(m_pWinrt->m_State.m_aSourceAppId, SharedState.m_aSourceAppId, sizeof(m_pWinrt->m_State.m_aSourceAppId));
 		str_copy(m_pWinrt->m_State.m_aTitle, SharedState.m_aTitle, sizeof(m_pWinrt->m_State.m_aTitle));
 		str_copy(m_pWinrt->m_State.m_aArtist, SharedState.m_aArtist, sizeof(m_pWinrt->m_State.m_aArtist));
 		str_copy(m_pWinrt->m_State.m_aAlbum, SharedState.m_aAlbum, sizeof(m_pWinrt->m_State.m_aAlbum));

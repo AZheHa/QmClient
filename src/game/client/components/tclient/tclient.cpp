@@ -1220,7 +1220,7 @@ void CTClient::TrySendAxiomLogin()
 
 	if(!m_AxiomAutoLoginAnnounced)
 	{
-		GameClient()->Echo(Localize("Trying Axiom auto login"));
+		GameClient()->Echo(Localize("正在尝试 Axiom 自动登录"));
 		m_AxiomAutoLoginAnnounced = true;
 	}
 }
@@ -1265,7 +1265,7 @@ void CTClient::HandleAxiomAutoLoginMessage(const char *pText)
 		m_AxiomAutoLoginSucceeded = true;
 		m_AxiomAutoLoginWaitingReply = false;
 		m_AxiomAutoLoginNextTryTick = 0;
-		GameClient()->Echo(Localize("Axiom auto login succeeded"));
+		GameClient()->Echo(Localize("Axiom 自动登录成功"));
 	}
 	else if(Failure)
 	{
@@ -1273,12 +1273,12 @@ void CTClient::HandleAxiomAutoLoginMessage(const char *pText)
 		if(m_AxiomAutoLoginAttempts < QMCLIENT_AXIOM_AUTO_LOGIN_MAX_ATTEMPTS)
 		{
 			m_AxiomAutoLoginNextTryTick = time_get() + (int64_t)QMCLIENT_AXIOM_AUTO_LOGIN_RETRY_DELAY_SECONDS * time_freq();
-			GameClient()->Echo(Localize("Axiom auto login failed, retrying"));
+			GameClient()->Echo(Localize("Axiom 自动登录失败，正在重试"));
 		}
 		else
 		{
 			m_AxiomAutoLoginNextTryTick = 0;
-			GameClient()->Echo(Localize("Axiom auto login failed"));
+			GameClient()->Echo(Localize("Axiom 自动登录失败"));
 		}
 	}
 }

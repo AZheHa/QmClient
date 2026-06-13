@@ -1,8 +1,12 @@
 #include "lyrics_component.h"
 
+#include "lyrics/lyric_parser.h"
+
 #include <base/log.h>
 #include <base/str.h>
+#include <base/system.h>
 
+#include <engine/shared/config.h>
 #include <engine/shared/http.h>
 #include <engine/shared/json.h>
 
@@ -10,9 +14,15 @@
 #include <game/client/gameclient.h>
 
 #include <algorithm>
+#include <cinttypes>
 #include <cctype>
 #include <cstring>
+#include <ctime>
+#include <string>
 #include <utility>
+
+namespace
+{
 
 static void TrimString(std::string &Str)
 {
@@ -25,61 +35,268 @@ static void TrimString(std::string &Str)
 		Str.erase(0, Start);
 }
 
-static bool ParseTimestampMs(const char *pStart, const char *pEnd, int64_t &OutMs)
+static bool JsonIsString(const json_value *pValue)
 {
-	if(pStart >= pEnd || !isdigit((unsigned char)*pStart))
-		return false;
-	int Minutes = 0;
-	const char *p = pStart;
-	while(p < pEnd && isdigit((unsigned char)*p))
-	{
-		Minutes = Minutes * 10 + (*p - '0');
-		p++;
-	}
-	if(p >= pEnd || *p != ':')
-		return false;
-	p++;
-	if(p >= pEnd || !isdigit((unsigned char)*p))
-		return false;
-	int Seconds = 0;
-	while(p < pEnd && isdigit((unsigned char)*p))
-	{
-		Seconds = Seconds * 10 + (*p - '0');
-		p++;
-	}
-	int Milli = 0;
-	if(p < pEnd && (*p == '.' || *p == ','))
-	{
-		p++;
-		int Fraction = 0;
-		int Digits = 0;
-		while(p < pEnd && isdigit((unsigned char)*p) && Digits < 3)
-		{
-			Fraction = Fraction * 10 + (*p - '0');
-			p++;
-			Digits++;
-		}
-		if(Digits == 1)
-			Milli = Fraction * 100;
-		else if(Digits == 2)
-			Milli = Fraction * 10;
-		else
-			Milli = Fraction;
-	}
-	OutMs = (int64_t)Minutes * 60000 + (int64_t)Seconds * 1000 + Milli;
-	return true;
+	return pValue != nullptr && pValue != &json_value_none && pValue->type == json_string;
 }
+
+static bool JsonIsObject(const json_value *pValue)
+{
+	return pValue != nullptr && pValue != &json_value_none && pValue->type == json_object;
+}
+
+static bool JsonIsArray(const json_value *pValue)
+{
+	return pValue != nullptr && pValue != &json_value_none && pValue->type == json_array;
+}
+
+static bool JsonIsInteger(const json_value *pValue)
+{
+	return pValue != nullptr && pValue != &json_value_none && pValue->type == json_integer;
+}
+
+static const char *JsonStringOrEmpty(const json_value *pObj, const char *pName)
+{
+	const json_value *pValue = json_object_get(pObj, pName);
+	return JsonIsString(pValue) ? json_string_get(pValue) : "";
+}
+
+static int JsonIntOrDefault(const json_value *pObj, const char *pName, int Default)
+{
+	const json_value *pValue = json_object_get(pObj, pName);
+	return JsonIsInteger(pValue) ? json_int_get(pValue) : Default;
+}
+
+static const json_value *JsonGetPath(const json_value *pObj, const char *pA, const char *pB = nullptr, const char *pC = nullptr, const char *pD = nullptr)
+{
+	const json_value *pValue = pObj;
+	const char *apPath[] = {pA, pB, pC, pD};
+	for(const char *pKey : apPath)
+	{
+		if(pKey == nullptr)
+			break;
+		if(!JsonIsObject(pValue))
+			return &json_value_none;
+		pValue = json_object_get(pValue, pKey);
+	}
+	return pValue;
+}
+
+static std::string ResponseText(CHttpRequest *pRequest)
+{
+	unsigned char *pResult = nullptr;
+	size_t ResultLength = 0;
+	pRequest->Result(&pResult, &ResultLength);
+	if(pResult == nullptr || ResultLength == 0)
+		return {};
+	return std::string(reinterpret_cast<const char *>(pResult), ResultLength);
+}
+
+static std::string ExtractJsonObjectText(const std::string &Text)
+{
+	const size_t Start = Text.find('{');
+	const size_t End = Text.rfind('}');
+	if(Start == std::string::npos || End == std::string::npos || End < Start)
+		return {};
+	return Text.substr(Start, End - Start + 1);
+}
+
+static std::string ExtractXmlElementText(const std::string &Text, const char *pName)
+{
+	std::string StartTag = "<";
+	StartTag += pName;
+	std::string EndTag = "</";
+	EndTag += pName;
+	EndTag += ">";
+	size_t Start = Text.find(StartTag);
+	while(Start != std::string::npos)
+	{
+		const size_t NameEnd = Start + StartTag.size();
+		if(NameEnd < Text.size() && (Text[NameEnd] == '>' || isspace((unsigned char)Text[NameEnd])))
+			break;
+		Start = Text.find(StartTag, NameEnd);
+	}
+	if(Start == std::string::npos)
+		return {};
+	const size_t TagEnd = Text.find('>', Start);
+	if(TagEnd == std::string::npos)
+		return {};
+	Start = TagEnd + 1;
+	const size_t End = Text.find(EndTag, Start);
+	if(End == std::string::npos)
+		return {};
+	std::string Value = Text.substr(Start, End - Start);
+	static constexpr const char *pCdataStart = "<![CDATA[";
+	static constexpr const char *pCdataEnd = "]]>";
+	if(Value.rfind(pCdataStart, 0) == 0 && Value.size() >= str_length(pCdataStart) + str_length(pCdataEnd) &&
+		Value.compare(Value.size() - str_length(pCdataEnd), str_length(pCdataEnd), pCdataEnd) == 0)
+	{
+		Value = Value.substr(str_length(pCdataStart), Value.size() - str_length(pCdataStart) - str_length(pCdataEnd));
+	}
+	return Value;
+}
+
+static std::string ExtractXmlAttributeValue(const std::string &Text, const char *pElementName, const char *pAttributeName)
+{
+	std::string ElementNeedle = "<";
+	ElementNeedle += pElementName;
+	size_t Element = Text.find(ElementNeedle);
+	while(Element != std::string::npos)
+	{
+		const size_t TagEnd = Text.find('>', Element);
+		if(TagEnd == std::string::npos)
+			return {};
+		std::string AttrNeedle = pAttributeName;
+		AttrNeedle += "=\"";
+		size_t Attr = Text.find(AttrNeedle, Element);
+		if(Attr != std::string::npos && Attr < TagEnd)
+		{
+			Attr += AttrNeedle.size();
+			const size_t End = Text.find('"', Attr);
+			if(End != std::string::npos && End <= TagEnd)
+				return Text.substr(Attr, End - Attr);
+		}
+		Element = Text.find(ElementNeedle, TagEnd);
+	}
+	return {};
+}
+
+static void AppendJsonField(char *pBuf, size_t BufSize, const char *pKey, const char *pValue)
+{
+	char aValue[512];
+	EscapeJson(aValue, sizeof(aValue), pValue ? pValue : "");
+	if(pBuf[0] != '\0')
+		str_append(pBuf, ",", BufSize);
+	str_append(pBuf, "\"", BufSize);
+	str_append(pBuf, pKey, BufSize);
+	str_append(pBuf, "\":\"", BufSize);
+	str_append(pBuf, aValue, BufSize);
+	str_append(pBuf, "\"", BufSize);
+}
+
+static void BuildNeteaseHeaderJson(char *pBuf, size_t BufSize)
+{
+	char aFields[1024];
+	aFields[0] = '\0';
+	char aBuildVer[32];
+	char aRequestId[64];
+	const int64_t NowSeconds = time_timestamp();
+	const int64_t NowMs = NowSeconds * 1000 + (time_get() % time_freq()) * 1000 / time_freq();
+	str_format(aBuildVer, sizeof(aBuildVer), "%" PRId64, NowSeconds);
+	str_format(aRequestId, sizeof(aRequestId), "%" PRId64 "_%04d", NowMs, (int)(NowMs % 1000));
+	AppendJsonField(aFields, sizeof(aFields), "__csrf", "");
+	AppendJsonField(aFields, sizeof(aFields), "appver", "8.0.0");
+	AppendJsonField(aFields, sizeof(aFields), "buildver", aBuildVer);
+	AppendJsonField(aFields, sizeof(aFields), "channel", "");
+	AppendJsonField(aFields, sizeof(aFields), "deviceId", "");
+	AppendJsonField(aFields, sizeof(aFields), "mobilename", "");
+	AppendJsonField(aFields, sizeof(aFields), "resolution", "1920x1080");
+	AppendJsonField(aFields, sizeof(aFields), "os", "android");
+	AppendJsonField(aFields, sizeof(aFields), "osver", "");
+	AppendJsonField(aFields, sizeof(aFields), "requestId", aRequestId);
+	AppendJsonField(aFields, sizeof(aFields), "versioncode", "140");
+	AppendJsonField(aFields, sizeof(aFields), "MUSIC_U", "");
+	str_format(pBuf, BufSize, "{%s}", aFields);
+}
+
+static void BuildNeteaseCookie(char *pBuf, size_t BufSize)
+{
+	char aBuildVer[32];
+	char aRequestId[64];
+	const int64_t NowSeconds = time_timestamp();
+	const int64_t NowMs = NowSeconds * 1000 + (time_get() % time_freq()) * 1000 / time_freq();
+	str_format(aBuildVer, sizeof(aBuildVer), "%" PRId64, NowSeconds);
+	str_format(aRequestId, sizeof(aRequestId), "%" PRId64 "_%04d", NowMs, (int)(NowMs % 1000));
+	str_format(pBuf, BufSize,
+		"__csrf=; appver=8.0.0; buildver=%s; channel=; deviceId=; mobilename=; resolution=1920x1080; os=android; osver=; requestId=%s; versioncode=140; MUSIC_U=",
+		aBuildVer, aRequestId);
+}
+
+static std::string BuildKeyword(const char *pTitle, const char *pArtist)
+{
+	std::string Keyword = pTitle ? pTitle : "";
+	if(pArtist != nullptr && pArtist[0] != '\0')
+	{
+		Keyword.push_back(' ');
+		Keyword.append(pArtist);
+	}
+	return Keyword;
+}
+
+static int CandidateScore(const char *pTitle, const char *pArtist, const char *pAlbum, int DurationMs, const char *pWantedTitle, const char *pWantedArtist, const char *pWantedAlbum, int WantedDurationSec)
+{
+	int Score = 0;
+	if(pTitle != nullptr && pTitle[0] != '\0' && pWantedTitle != nullptr && str_comp_nocase(pTitle, pWantedTitle) == 0)
+		Score += 1000;
+	if(pArtist != nullptr && pArtist[0] != '\0' && pWantedArtist != nullptr && str_utf8_find_nocase(pArtist, pWantedArtist) != nullptr)
+		Score += 700;
+	if(pWantedAlbum != nullptr && pWantedAlbum[0] != '\0' && pAlbum != nullptr && pAlbum[0] != '\0' && str_comp_nocase(pAlbum, pWantedAlbum) == 0)
+		Score += 200;
+	if(DurationMs > 0 && WantedDurationSec > 0)
+	{
+		const int DiffMs = std::abs(DurationMs - WantedDurationSec * 1000);
+		if(DiffMs <= 3000)
+			Score += 300;
+		else if(DiffMs <= 8000)
+			Score += 100;
+	}
+	return Score;
+}
+
+static void AppendUrlEncoded(char *pBuf, size_t BufSize, const char *pKey, const char *pValue)
+{
+	char aEscaped[512];
+	EscapeUrl(aEscaped, sizeof(aEscaped), pValue);
+	if(pBuf[0] != '\0')
+		str_append(pBuf, "&", BufSize);
+	str_append(pBuf, pKey, BufSize);
+	str_append(pBuf, "=", BufSize);
+	str_append(pBuf, aEscaped, BufSize);
+}
+
+static bool SourceAppContains(const char *pSourceAppId, const char *pNeedle)
+{
+	return pSourceAppId != nullptr && pSourceAppId[0] != '\0' && str_find_nocase(pSourceAppId, pNeedle) != nullptr;
+}
+
+} // namespace
 
 const char *CLyrics::EndpointName(EEndpoint Endpoint)
 {
 	switch(Endpoint)
 	{
-	case EEndpoint::CACHED:
-		return "get-cached";
-	case EEndpoint::FULL:
-		return "get";
-	case EEndpoint::SEARCH:
-		return "search";
+	case EEndpoint::QQ_SEARCH:
+		return "qq-search";
+	case EEndpoint::QQ_LYRIC:
+		return "qq-lyric";
+	case EEndpoint::QQ_LYRIC_OLD:
+		return "qq-lyric-old";
+	case EEndpoint::NETEASE_SEARCH:
+		return "netease-search";
+	case EEndpoint::NETEASE_SEARCH_LEGACY:
+		return "netease-search-legacy";
+	case EEndpoint::NETEASE_LYRIC:
+		return "netease-lyric";
+	case EEndpoint::LRCLIB_CACHED:
+		return "lrclib-get-cached";
+	case EEndpoint::LRCLIB_FULL:
+		return "lrclib-get";
+	case EEndpoint::LRCLIB_SEARCH:
+		return "lrclib-search";
+	}
+	return "unknown";
+}
+
+const char *CLyrics::SourceName(ESource Source)
+{
+	switch(Source)
+	{
+	case ESource::QQ:
+		return "qq";
+	case ESource::NETEASE:
+		return "netease";
+	case ESource::LRCLIB:
+		return "lrclib";
 	}
 	return "unknown";
 }
@@ -102,6 +319,9 @@ void CLyrics::ResetState()
 	ClearLyrics();
 	m_LastSignature.clear();
 	m_RequestSignature.clear();
+	m_QqSongId.clear();
+	m_QqSongMid.clear();
+	m_NeteaseSongId.clear();
 }
 
 void CLyrics::ClearLyrics()
@@ -111,6 +331,10 @@ void CLyrics::ClearLyrics()
 	m_Lines.clear();
 	m_PlainLine.clear();
 	m_aLastError[0] = '\0';
+	m_LastMediaPositionMs = -1;
+	m_DisplayPositionBaseMs = 0;
+	m_DisplayPositionBaseTick = 0;
+	m_DisplayPositionEstimating = false;
 }
 
 void CLyrics::CancelRequest()
@@ -131,6 +355,8 @@ std::string CLyrics::BuildSignature(const STrackInfo &Info) const
 {
 	std::string Key;
 	Key.reserve(512);
+	Key.append(Info.m_aSourceAppId);
+	Key.push_back('\n');
 	Key.append(Info.m_aTitle);
 	Key.push_back('\n');
 	Key.append(Info.m_aArtist);
@@ -139,45 +365,278 @@ std::string CLyrics::BuildSignature(const STrackInfo &Info) const
 	return Key;
 }
 
+int64_t CLyrics::GetDisplayPositionMs(int64_t PositionMs) const
+{
+	if(m_DisplayPositionEstimating && m_DisplayPositionBaseTick > 0)
+	{
+		const int64_t ElapsedMs = (time_get() - m_DisplayPositionBaseTick) * 1000 / time_freq();
+		return std::max<int64_t>(0, m_DisplayPositionBaseMs + ElapsedMs);
+	}
+	return PositionMs;
+}
+
+CLyrics::ESource CLyrics::PreferredSource() const
+{
+	const char *pSource = m_Track.m_aSourceAppId;
+	if(SourceAppContains(pSource, "netease") ||
+		SourceAppContains(pSource, "cloudmusic") ||
+		SourceAppContains(pSource, "orpheus") ||
+		SourceAppContains(pSource, "163music") ||
+		SourceAppContains(pSource, "music.163"))
+	{
+		return ESource::NETEASE;
+	}
+	if(SourceAppContains(pSource, "qqmusic") ||
+		SourceAppContains(pSource, "tencent.qqmusic") ||
+		SourceAppContains(pSource, "qq.music"))
+	{
+		return ESource::QQ;
+	}
+	return ESource::QQ;
+}
+
+void CLyrics::StartSource(ESource Source)
+{
+	switch(Source)
+	{
+	case ESource::QQ:
+		StartRequest(EEndpoint::QQ_SEARCH);
+		return;
+	case ESource::NETEASE:
+		StartRequest(EEndpoint::NETEASE_SEARCH);
+		return;
+	case ESource::LRCLIB:
+		StartRequest(EEndpoint::LRCLIB_SEARCH);
+		return;
+	}
+	m_State = EState::ERROR;
+}
+
+void CLyrics::StartNextSource(ESource FailedSource)
+{
+	ESource aOrder[3] = {ESource::QQ, ESource::NETEASE, ESource::LRCLIB};
+	if(PreferredSource() == ESource::NETEASE)
+	{
+		aOrder[0] = ESource::NETEASE;
+		aOrder[1] = ESource::QQ;
+	}
+
+	bool FoundFailedSource = false;
+	for(ESource Source : aOrder)
+	{
+		if(!FoundFailedSource)
+		{
+			FoundFailedSource = Source == FailedSource;
+			continue;
+		}
+		StartSource(Source);
+		return;
+	}
+	m_State = EState::ERROR;
+}
+
 void CLyrics::StartRequest(EEndpoint Endpoint)
 {
-	char aTitle[256];
-	char aArtist[256];
-	char aAlbum[256];
-	EscapeUrl(aTitle, sizeof(aTitle), m_Track.m_aTitle);
-	EscapeUrl(aArtist, sizeof(aArtist), m_Track.m_aArtist);
-	EscapeUrl(aAlbum, sizeof(aAlbum), m_Track.m_aAlbum);
-
+	std::shared_ptr<CHttpRequest> pRequest;
 	char aUrl[1024];
-	if(Endpoint == EEndpoint::SEARCH)
+	aUrl[0] = '\0';
+	m_RequestEndpoint = Endpoint;
+	m_RequestSignature = m_LastSignature;
+
+	if(Endpoint == EEndpoint::QQ_SEARCH)
 	{
+		str_copy(aUrl, "https://u.y.qq.com/cgi-bin/musicu.fcg", sizeof(aUrl));
+		pRequest = std::make_shared<CHttpRequest>(aUrl);
+		char aKeyword[512];
+		char aKeywordEscaped[1024];
+		str_copy(aKeyword, BuildKeyword(m_Track.m_aTitle, m_Track.m_aArtist).c_str(), sizeof(aKeyword));
+		EscapeJson(aKeywordEscaped, sizeof(aKeywordEscaped), aKeyword);
+		char aJson[1400];
+		str_format(aJson, sizeof(aJson),
+			"{\"req_1\":{\"method\":\"DoSearchForQQMusicDesktop\",\"module\":\"music.search.SearchCgiService\",\"param\":{\"num_per_page\":\"20\",\"page_num\":\"1\",\"query\":\"%s\",\"search_type\":0}}}",
+			aKeywordEscaped);
+		pRequest->PostJson(aJson);
+		pRequest->HeaderString("Referer", "https://y.qq.com/");
+	}
+	else if(Endpoint == EEndpoint::QQ_LYRIC || Endpoint == EEndpoint::QQ_LYRIC_OLD)
+	{
+		if(Endpoint == EEndpoint::QQ_LYRIC)
+		{
+			str_copy(aUrl, "https://c.y.qq.com/qqmusic/fcgi-bin/lyric_download.fcg", sizeof(aUrl));
+			pRequest = std::make_shared<CHttpRequest>(aUrl);
+			char aBody[256] = {};
+			AppendUrlEncoded(aBody, sizeof(aBody), "version", "15");
+			AppendUrlEncoded(aBody, sizeof(aBody), "miniversion", "82");
+			AppendUrlEncoded(aBody, sizeof(aBody), "lrctype", "4");
+			AppendUrlEncoded(aBody, sizeof(aBody), "musicid", m_QqSongId.c_str());
+			pRequest->Post(reinterpret_cast<const unsigned char *>(aBody), str_length(aBody));
+			pRequest->HeaderString("Content-Type", "application/x-www-form-urlencoded");
+		}
+		else
+		{
+			str_copy(aUrl, "https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg", sizeof(aUrl));
+			pRequest = std::make_shared<CHttpRequest>(aUrl);
+			char aPcacheTime[32];
+			str_format(aPcacheTime, sizeof(aPcacheTime), "%" PRId64, time_timestamp() * 1000);
+			char aBody[512] = {};
+			AppendUrlEncoded(aBody, sizeof(aBody), "callback", "MusicJsonCallback_lrc");
+			AppendUrlEncoded(aBody, sizeof(aBody), "pcachetime", aPcacheTime);
+			AppendUrlEncoded(aBody, sizeof(aBody), "songmid", m_QqSongMid.c_str());
+			AppendUrlEncoded(aBody, sizeof(aBody), "g_tk", "5381");
+			AppendUrlEncoded(aBody, sizeof(aBody), "jsonpCallback", "MusicJsonCallback_lrc");
+			AppendUrlEncoded(aBody, sizeof(aBody), "loginUin", "0");
+			AppendUrlEncoded(aBody, sizeof(aBody), "hostUin", "0");
+			AppendUrlEncoded(aBody, sizeof(aBody), "format", "jsonp");
+			AppendUrlEncoded(aBody, sizeof(aBody), "inCharset", "utf8");
+			AppendUrlEncoded(aBody, sizeof(aBody), "outCharset", "utf8");
+			AppendUrlEncoded(aBody, sizeof(aBody), "notice", "0");
+			AppendUrlEncoded(aBody, sizeof(aBody), "platform", "yqq");
+			AppendUrlEncoded(aBody, sizeof(aBody), "needNewCode", "0");
+			pRequest->Post(reinterpret_cast<const unsigned char *>(aBody), str_length(aBody));
+			pRequest->HeaderString("Content-Type", "application/x-www-form-urlencoded");
+		}
+		pRequest->HeaderString("Referer", "https://c.y.qq.com/");
+	}
+	else if(Endpoint == EEndpoint::NETEASE_SEARCH)
+	{
+		str_copy(aUrl, "https://interface.music.163.com/eapi/cloudsearch/pc", sizeof(aUrl));
+		pRequest = std::make_shared<CHttpRequest>(aUrl);
+		char aKeyword[512];
+		char aKeywordEscaped[1024];
+		str_copy(aKeyword, BuildKeyword(m_Track.m_aTitle, m_Track.m_aArtist).c_str(), sizeof(aKeyword));
+		EscapeJson(aKeywordEscaped, sizeof(aKeywordEscaped), aKeyword);
+		char aHeader[1024];
+		char aHeaderEscaped[1600];
+		BuildNeteaseHeaderJson(aHeader, sizeof(aHeader));
+		EscapeJson(aHeaderEscaped, sizeof(aHeaderEscaped), aHeader);
+		char aJson[2400];
+		str_format(aJson, sizeof(aJson), "{\"s\":\"%s\",\"type\":\"1\",\"limit\":\"30\",\"offset\":\"0\",\"total\":\"true\",\"header\":\"%s\"}", aKeywordEscaped, aHeaderEscaped);
+		char aErr[128];
+		const std::string Body = QmLyrics::BuildNeteaseEapiBody(aUrl, aJson, aErr, sizeof(aErr));
+		if(Body.empty())
+		{
+			str_copy(m_aLastError, aErr, sizeof(m_aLastError));
+			StartNextFallback(m_aLastError);
+			return;
+		}
+		pRequest->Post(reinterpret_cast<const unsigned char *>(Body.data()), Body.size());
+		pRequest->HeaderString("Content-Type", "application/x-www-form-urlencoded");
+		pRequest->HeaderString("Referer", "https://music.163.com/");
+		char aCookie[1024];
+		BuildNeteaseCookie(aCookie, sizeof(aCookie));
+		pRequest->HeaderString("Cookie", aCookie);
+		pRequest->HeaderString("User-Agent", "Mozilla/5.0 (Linux; Android 9; PCT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.64 HuaweiBrowser/10.0.3.311 Mobile Safari/537.36");
+	}
+	else if(Endpoint == EEndpoint::NETEASE_SEARCH_LEGACY)
+	{
+		char aKeyword[512];
+		EscapeUrl(aKeyword, sizeof(aKeyword), BuildKeyword(m_Track.m_aTitle, m_Track.m_aArtist).c_str());
 		str_format(aUrl, sizeof(aUrl),
-			"https://lrclib.net/api/search?track_name=%s&artist_name=%s",
-			aTitle, aArtist);
+			"http://music.163.com/api/search/get/web?csrf_token=&hlpretag=&hlposttag=&s=%s&type=1&offset=0&total=true&limit=20",
+			aKeyword);
+		pRequest = std::make_shared<CHttpRequest>(aUrl);
+		pRequest->AllowInsecureProtocol();
+		pRequest->HeaderString("Referer", "https://music.163.com/");
+	}
+	else if(Endpoint == EEndpoint::NETEASE_LYRIC)
+	{
+		str_copy(aUrl, "https://interface3.music.163.com/eapi/song/lyric/v1", sizeof(aUrl));
+		pRequest = std::make_shared<CHttpRequest>(aUrl);
+		char aHeader[1024];
+		char aHeaderEscaped[1600];
+		BuildNeteaseHeaderJson(aHeader, sizeof(aHeader));
+		EscapeJson(aHeaderEscaped, sizeof(aHeaderEscaped), aHeader);
+		char aJson[2200];
+		str_format(aJson, sizeof(aJson), "{\"id\":\"%s\",\"cp\":\"false\",\"lv\":\"0\",\"kv\":\"0\",\"tv\":\"0\",\"rv\":\"0\",\"yv\":\"0\",\"ytv\":\"0\",\"yrv\":\"0\",\"csrf_token\":\"\",\"header\":\"%s\"}", m_NeteaseSongId.c_str(), aHeaderEscaped);
+		char aErr[128];
+		const std::string Body = QmLyrics::BuildNeteaseEapiBody(aUrl, aJson, aErr, sizeof(aErr));
+		if(Body.empty())
+		{
+			str_copy(m_aLastError, aErr, sizeof(m_aLastError));
+			StartNextFallback(m_aLastError);
+			return;
+		}
+		pRequest->Post(reinterpret_cast<const unsigned char *>(Body.data()), Body.size());
+		pRequest->HeaderString("Content-Type", "application/x-www-form-urlencoded");
+		pRequest->HeaderString("Referer", "https://music.163.com/");
+		char aCookie[1024];
+		BuildNeteaseCookie(aCookie, sizeof(aCookie));
+		pRequest->HeaderString("Cookie", aCookie);
+		pRequest->HeaderString("User-Agent", "Mozilla/5.0 (Linux; Android 9; PCT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.64 HuaweiBrowser/10.0.3.311 Mobile Safari/537.36");
 	}
 	else
 	{
-		const char *pEndpoint = Endpoint == EEndpoint::CACHED ? "get-cached" : "get";
-		str_format(aUrl, sizeof(aUrl),
-			"https://lrclib.net/api/%s?track_name=%s&artist_name=%s&album_name=%s&duration=%d",
-			pEndpoint, aTitle, aArtist, aAlbum, m_Track.m_DurationSec);
+		char aTitle[256];
+		char aArtist[256];
+		char aAlbum[256];
+		EscapeUrl(aTitle, sizeof(aTitle), m_Track.m_aTitle);
+		EscapeUrl(aArtist, sizeof(aArtist), m_Track.m_aArtist);
+		EscapeUrl(aAlbum, sizeof(aAlbum), m_Track.m_aAlbum);
+
+		if(Endpoint == EEndpoint::LRCLIB_SEARCH)
+		{
+			str_format(aUrl, sizeof(aUrl),
+				"https://lrclib.net/api/search?track_name=%s&artist_name=%s",
+				aTitle, aArtist);
+		}
+		else
+		{
+			const char *pEndpoint = Endpoint == EEndpoint::LRCLIB_CACHED ? "get-cached" : "get";
+			str_format(aUrl, sizeof(aUrl),
+				"https://lrclib.net/api/%s?track_name=%s&artist_name=%s&album_name=%s&duration=%d",
+				pEndpoint, aTitle, aArtist, aAlbum, m_Track.m_DurationSec);
+		}
+		pRequest = std::make_shared<CHttpRequest>(aUrl);
+		pRequest->HeaderString("Accept", "application/json");
 	}
 
-	auto pRequest = std::make_shared<CHttpRequest>(aUrl);
 	pRequest->LogProgress(HTTPLOG::FAILURE);
 	pRequest->FailOnErrorStatus(false);
 	pRequest->Timeout(CTimeout{10000, 0, 500, 10});
-	pRequest->HeaderString("User-Agent", "QimenGClient");
-	pRequest->HeaderString("Accept", "application/json");
+	if(Endpoint != EEndpoint::NETEASE_SEARCH && Endpoint != EEndpoint::NETEASE_LYRIC)
+		pRequest->HeaderString("User-Agent", "QimenGClient");
 
-	m_RequestEndpoint = Endpoint;
-	m_RequestSignature = m_LastSignature;
 	m_pRequest = pRequest;
 	m_State = EState::REQUESTING;
 
 	Http()->Run(pRequest);
-	log_info("lyrics", "request start endpoint=%s title='%s' artist='%s' album='%s' duration=%d",
-		EndpointName(Endpoint), m_Track.m_aTitle, m_Track.m_aArtist, m_Track.m_aAlbum, m_Track.m_DurationSec);
+	log_info("lyrics", "request start endpoint=%s url='%s' source='%s' title='%s' artist='%s' album='%s' duration=%d",
+		EndpointName(Endpoint), aUrl, m_Track.m_aSourceAppId, m_Track.m_aTitle, m_Track.m_aArtist, m_Track.m_aAlbum, m_Track.m_DurationSec);
+}
+
+void CLyrics::StartNextFallback(const char *pReason)
+{
+	log_info("lyrics", "fallback from endpoint=%s reason='%s'", EndpointName(m_RequestEndpoint), pReason ? pReason : "");
+	switch(m_RequestEndpoint)
+	{
+	case EEndpoint::QQ_SEARCH:
+		StartNextSource(ESource::QQ);
+		return;
+	case EEndpoint::QQ_LYRIC:
+		if(!m_QqSongMid.empty())
+		{
+			StartRequest(EEndpoint::QQ_LYRIC_OLD);
+			return;
+		}
+		StartNextSource(ESource::QQ);
+		return;
+	case EEndpoint::QQ_LYRIC_OLD:
+		StartNextSource(ESource::QQ);
+		return;
+	case EEndpoint::NETEASE_SEARCH:
+		StartRequest(EEndpoint::NETEASE_SEARCH_LEGACY);
+		return;
+	case EEndpoint::NETEASE_SEARCH_LEGACY:
+	case EEndpoint::NETEASE_LYRIC:
+		StartNextSource(ESource::NETEASE);
+		return;
+	case EEndpoint::LRCLIB_SEARCH:
+	case EEndpoint::LRCLIB_FULL:
+	case EEndpoint::LRCLIB_CACHED:
+		m_State = EState::ERROR;
+		return;
+	}
+	m_State = EState::ERROR;
 }
 
 void CLyrics::HandleRequestDone()
@@ -197,34 +656,70 @@ void CLyrics::HandleRequestDone()
 	if(pRequest->State() != EHttpState::DONE)
 	{
 		str_copy(m_aLastError, "Curl error", sizeof(m_aLastError));
-		m_State = EState::ERROR;
+		StartNextFallback(m_aLastError);
 		return;
 	}
 
 	const int StatusCode = pRequest->StatusCode();
-	if(StatusCode == 404 && m_RequestEndpoint == EEndpoint::CACHED)
+	if(StatusCode == 404 && m_RequestEndpoint == EEndpoint::LRCLIB_CACHED)
 	{
-		StartRequest(EEndpoint::FULL);
+		StartRequest(EEndpoint::LRCLIB_FULL);
 		return;
 	}
 	if(StatusCode != 200)
 	{
 		str_format(m_aLastError, sizeof(m_aLastError), "HTTP %d", StatusCode);
-		m_State = EState::ERROR;
 		log_error("lyrics", "request fail endpoint=%s http=%d", EndpointName(m_RequestEndpoint), StatusCode);
+		StartNextFallback(m_aLastError);
 		return;
 	}
 
-	json_value *pObj = pRequest->ResultJson();
-	const bool Ok = m_RequestEndpoint == EEndpoint::SEARCH ?
-		ParseSearchResponse(pObj, m_aLastError, sizeof(m_aLastError)) :
-		ParseLyricsResponse(pObj, m_aLastError, sizeof(m_aLastError));
+	bool Ok = false;
+	const bool RawResponse = m_RequestEndpoint == EEndpoint::QQ_LYRIC || m_RequestEndpoint == EEndpoint::QQ_LYRIC_OLD;
+	json_value *pObj = RawResponse ? nullptr : pRequest->ResultJson();
+	switch(m_RequestEndpoint)
+	{
+	case EEndpoint::QQ_SEARCH:
+		Ok = ParseQqSearchResponse(pObj, m_aLastError, sizeof(m_aLastError));
+		break;
+	case EEndpoint::QQ_LYRIC:
+		Ok = ParseQqLyricResponse(pRequest.get(), false, m_aLastError, sizeof(m_aLastError));
+		break;
+	case EEndpoint::QQ_LYRIC_OLD:
+		Ok = ParseQqLyricResponse(pRequest.get(), true, m_aLastError, sizeof(m_aLastError));
+		break;
+	case EEndpoint::NETEASE_SEARCH:
+	case EEndpoint::NETEASE_SEARCH_LEGACY:
+		Ok = ParseNeteaseSearchResponse(pObj, m_aLastError, sizeof(m_aLastError));
+		break;
+	case EEndpoint::NETEASE_LYRIC:
+		Ok = ParseNeteaseLyricResponse(pObj, m_aLastError, sizeof(m_aLastError));
+		break;
+	case EEndpoint::LRCLIB_SEARCH:
+		Ok = ParseSearchResponse(pObj, m_aLastError, sizeof(m_aLastError));
+		break;
+	case EEndpoint::LRCLIB_CACHED:
+	case EEndpoint::LRCLIB_FULL:
+		Ok = ParseLyricsResponse(pObj, m_aLastError, sizeof(m_aLastError));
+		break;
+	}
 	if(pObj)
 		json_value_free(pObj);
 	if(!Ok)
 	{
-		m_State = EState::ERROR;
 		log_error("lyrics", "request fail endpoint=%s error='%s'", EndpointName(m_RequestEndpoint), m_aLastError);
+		StartNextFallback(m_aLastError);
+		return;
+	}
+
+	if(m_RequestEndpoint == EEndpoint::QQ_SEARCH)
+	{
+		StartRequest(EEndpoint::QQ_LYRIC);
+		return;
+	}
+	if(m_RequestEndpoint == EEndpoint::NETEASE_SEARCH || m_RequestEndpoint == EEndpoint::NETEASE_SEARCH_LEGACY)
+	{
+		StartRequest(EEndpoint::NETEASE_LYRIC);
 		return;
 	}
 
@@ -233,62 +728,16 @@ void CLyrics::HandleRequestDone()
 		EndpointName(m_RequestEndpoint), m_Lines.size(), m_IsSynced ? 1 : 0);
 }
 
-bool CLyrics::ParseSyncedLyrics(const std::string &Text, std::vector<CLyricLine> &OutLines, char *pErr, size_t ErrSize) const
+bool CLyrics::ApplyLines(std::vector<CLyricLine> &&vLines, char *pErr, size_t ErrSize)
 {
-	OutLines.clear();
-	const char *p = Text.c_str();
-	const char *pEnd = p + Text.size();
-	while(p < pEnd)
+	if(vLines.empty())
 	{
-		const char *pLineEnd = (const char *)memchr(p, '\n', pEnd - p);
-		if(!pLineEnd)
-			pLineEnd = pEnd;
-
-		std::string Line(p, pLineEnd);
-		if(!Line.empty() && Line.back() == '\r')
-			Line.pop_back();
-
-		std::vector<int64_t> Times;
-		size_t Pos = 0;
-		while(Pos < Line.size() && Line[Pos] == '[')
-		{
-			const size_t Close = Line.find(']', Pos);
-			if(Close == std::string::npos)
-				break;
-			int64_t TimeMs = 0;
-			if(ParseTimestampMs(Line.c_str() + Pos + 1, Line.c_str() + Close, TimeMs))
-				Times.push_back(TimeMs);
-			Pos = Close + 1;
-		}
-
-		std::string TextPart = Line.substr(Pos);
-		TrimString(TextPart);
-		if(!Times.empty() && !TextPart.empty())
-		{
-			for(int64_t TimeMs : Times)
-			{
-				CLyricLine LineEntry;
-				LineEntry.m_TimeMs = TimeMs;
-				LineEntry.m_Text = TextPart;
-				OutLines.push_back(std::move(LineEntry));
-			}
-		}
-
-		p = pLineEnd + (pLineEnd < pEnd ? 1 : 0);
-	}
-
-	if(OutLines.empty())
-	{
-		str_copy(pErr, "No synced lyrics", ErrSize);
+		str_copy(pErr, "No parsed lyrics", ErrSize);
 		return false;
 	}
-
-	std::sort(OutLines.begin(), OutLines.end(), [](const CLyricLine &A, const CLyricLine &B) {
-		if(A.m_TimeMs != B.m_TimeMs)
-			return A.m_TimeMs < B.m_TimeMs;
-		return A.m_Text < B.m_Text;
-	});
-
+	m_Lines = std::move(vLines);
+	QmLyrics::SortAndFillDurations(m_Lines);
+	m_IsSynced = true;
 	return true;
 }
 
@@ -302,12 +751,10 @@ bool CLyrics::ApplyLyrics(const std::string &Plain, const std::string &Synced, b
 
 	if(!Synced.empty())
 	{
+		std::vector<CLyricLine> vLines;
 		char aParseErr[128];
-		if(ParseSyncedLyrics(Synced, m_Lines, aParseErr, sizeof(aParseErr)))
-		{
-			m_IsSynced = true;
-			return true;
-		}
+		if(QmLyrics::ParseLrcLyrics(Synced, vLines, aParseErr, sizeof(aParseErr)))
+			return ApplyLines(std::move(vLines), pErr, ErrSize);
 	}
 
 	if(!Plain.empty())
@@ -325,6 +772,7 @@ bool CLyrics::ApplyLyrics(const std::string &Plain, const std::string &Synced, b
 			if(!Line.empty())
 			{
 				m_PlainLine = Line;
+				m_IsSynced = false;
 				return true;
 			}
 			pLineStart = *pLineEnd ? pLineEnd + 1 : pLineEnd;
@@ -335,10 +783,247 @@ bool CLyrics::ApplyLyrics(const std::string &Plain, const std::string &Synced, b
 	return false;
 }
 
+bool CLyrics::ParseQqSearchResponse(const json_value *pObj, char *pErr, size_t ErrSize)
+{
+	if(!JsonIsObject(pObj))
+	{
+		str_copy(pErr, "QQ search is not object", ErrSize);
+		return false;
+	}
+	const json_value *pList = JsonGetPath(pObj, "req_1", "data", "body", "song");
+	if(!JsonIsObject(pList))
+		pList = JsonGetPath(pObj, "music.search.SearchCgiService", "data", "body", "song");
+	if(JsonIsObject(pList))
+		pList = json_object_get(pList, "list");
+	if(!JsonIsArray(pList))
+	{
+		str_copy(pErr, "No QQ songs", ErrSize);
+		return false;
+	}
+
+	std::string BestId;
+	std::string BestMid;
+	int BestScore = -1000000;
+	const int Count = json_array_length(pList);
+	for(int i = 0; i < Count; ++i)
+	{
+		const json_value *pSong = json_array_get(pList, i);
+		if(!JsonIsObject(pSong))
+			continue;
+		const char *pTitle = JsonStringOrEmpty(pSong, "title");
+		if(pTitle[0] == '\0')
+			pTitle = JsonStringOrEmpty(pSong, "name");
+		const char *pMid = JsonStringOrEmpty(pSong, "mid");
+		if(pMid[0] == '\0')
+			pMid = JsonStringOrEmpty(pSong, "songmid");
+		const int SongId = JsonIntOrDefault(pSong, "id", JsonIntOrDefault(pSong, "songid", 0));
+		const int DurationMs = JsonIntOrDefault(pSong, "interval", 0) * 1000;
+		std::string Artist;
+		const json_value *pSingerArray = json_object_get(pSong, "singer");
+		if(JsonIsArray(pSingerArray))
+		{
+			const int SingerCount = json_array_length(pSingerArray);
+			for(int SingerIndex = 0; SingerIndex < SingerCount; ++SingerIndex)
+			{
+				const json_value *pSinger = json_array_get(pSingerArray, SingerIndex);
+				if(!JsonIsObject(pSinger))
+					continue;
+				if(!Artist.empty())
+					Artist.append("/");
+				Artist.append(JsonStringOrEmpty(pSinger, "name"));
+			}
+		}
+		const json_value *pAlbum = json_object_get(pSong, "album");
+		const char *pAlbumName = JsonIsObject(pAlbum) ? JsonStringOrEmpty(pAlbum, "title") : "";
+		if(pAlbumName[0] == '\0' && JsonIsObject(pAlbum))
+			pAlbumName = JsonStringOrEmpty(pAlbum, "name");
+		const int Score = CandidateScore(pTitle, Artist.c_str(), pAlbumName, DurationMs, m_Track.m_aTitle, m_Track.m_aArtist, m_Track.m_aAlbum, m_Track.m_DurationSec);
+		if(Score > BestScore && (SongId > 0 || pMid[0] != '\0'))
+		{
+			char aSongId[32];
+			str_format(aSongId, sizeof(aSongId), "%d", SongId);
+			BestId = SongId > 0 ? aSongId : pMid;
+			BestMid = pMid;
+			BestScore = Score;
+		}
+	}
+	if(BestId.empty())
+	{
+		str_copy(pErr, "No QQ match", ErrSize);
+		return false;
+	}
+	m_QqSongId = std::move(BestId);
+	m_QqSongMid = std::move(BestMid);
+	return true;
+}
+
+bool CLyrics::ParseQqLyricResponse(CHttpRequest *pRequest, bool OldEndpoint, char *pErr, size_t ErrSize)
+{
+	std::string Body = ResponseText(pRequest);
+	if(Body.empty())
+	{
+		str_copy(pErr, "QQ lyric empty", ErrSize);
+		return false;
+	}
+	std::string Payload;
+	std::string Translation;
+	std::string Romanized;
+	if(OldEndpoint)
+	{
+		const std::string JsonText = ExtractJsonObjectText(Body);
+		json_value *pObj = JsonParse(reinterpret_cast<const json_char *>(JsonText.data()), JsonText.size());
+		if(!JsonIsObject(pObj))
+		{
+			if(pObj)
+				json_value_free(pObj);
+			str_copy(pErr, "QQ old lyric invalid", ErrSize);
+			return false;
+		}
+		Payload = JsonStringOrEmpty(pObj, "lyric");
+		Translation = JsonStringOrEmpty(pObj, "trans");
+		json_value_free(pObj);
+	}
+	else
+	{
+		Payload = ExtractXmlElementText(Body, "content");
+		Translation = ExtractXmlElementText(Body, "contentts");
+		Romanized = ExtractXmlElementText(Body, "contentroma");
+		if(Payload.empty())
+			Payload = ExtractXmlElementText(Body, "Lyric_1");
+	}
+
+	std::string LyricText;
+	if(!QmLyrics::DecryptQqQrcPayload(Payload, LyricText, pErr, ErrSize))
+		return false;
+	if(LyricText.find("<?xml") != std::string::npos)
+	{
+		const std::string InnerLyric = ExtractXmlAttributeValue(LyricText, "Lyric_1", "LyricContent");
+		if(!InnerLyric.empty())
+			LyricText = InnerLyric;
+	}
+
+	std::vector<CLyricLine> vLines;
+	if(!QmLyrics::ParseQrcLyrics(LyricText, vLines, pErr, ErrSize) &&
+		!QmLyrics::ParseLrcLyrics(LyricText, vLines, pErr, ErrSize))
+	{
+		return false;
+	}
+	if(!Translation.empty())
+	{
+		std::string TranslationText;
+		if(QmLyrics::DecryptQqQrcPayload(Translation, TranslationText, nullptr, 0))
+			QmLyrics::MergeLineTextByTimestamp(vLines, TranslationText, true, nullptr, 0);
+	}
+	if(!Romanized.empty())
+	{
+		std::string RomanizedText;
+		if(QmLyrics::DecryptQqQrcPayload(Romanized, RomanizedText, nullptr, 0))
+			QmLyrics::MergeLineTextByTimestamp(vLines, RomanizedText, false, nullptr, 0);
+	}
+	return ApplyLines(std::move(vLines), pErr, ErrSize);
+}
+
+bool CLyrics::ParseNeteaseSearchResponse(const json_value *pObj, char *pErr, size_t ErrSize)
+{
+	if(!JsonIsObject(pObj))
+	{
+		str_copy(pErr, "Netease search is not object", ErrSize);
+		return false;
+	}
+	const json_value *pSongs = JsonGetPath(pObj, "result", "songs");
+	if(!JsonIsArray(pSongs))
+	{
+		str_copy(pErr, "No Netease songs", ErrSize);
+		return false;
+	}
+	int BestScore = -1000000;
+	std::string BestId;
+	const int Count = json_array_length(pSongs);
+	for(int i = 0; i < Count; ++i)
+	{
+		const json_value *pSong = json_array_get(pSongs, i);
+		if(!JsonIsObject(pSong))
+			continue;
+		const int SongId = JsonIntOrDefault(pSong, "id", 0);
+		if(SongId <= 0)
+			continue;
+		const char *pTitle = JsonStringOrEmpty(pSong, "name");
+		const int DurationMs = JsonIntOrDefault(pSong, "duration", JsonIntOrDefault(pSong, "dt", 0));
+		std::string Artist;
+		const json_value *pArtists = json_object_get(pSong, "artists");
+		if(!JsonIsArray(pArtists))
+			pArtists = json_object_get(pSong, "ar");
+		if(JsonIsArray(pArtists))
+		{
+			const int ArtistCount = json_array_length(pArtists);
+			for(int ArtistIndex = 0; ArtistIndex < ArtistCount; ++ArtistIndex)
+			{
+				const json_value *pArtist = json_array_get(pArtists, ArtistIndex);
+				if(!JsonIsObject(pArtist))
+					continue;
+				if(!Artist.empty())
+					Artist.append("/");
+				Artist.append(JsonStringOrEmpty(pArtist, "name"));
+			}
+		}
+		const json_value *pAlbum = json_object_get(pSong, "album");
+		if(!JsonIsObject(pAlbum))
+			pAlbum = json_object_get(pSong, "al");
+		const char *pAlbumName = JsonIsObject(pAlbum) ? JsonStringOrEmpty(pAlbum, "name") : "";
+		const int Score = CandidateScore(pTitle, Artist.c_str(), pAlbumName, DurationMs, m_Track.m_aTitle, m_Track.m_aArtist, m_Track.m_aAlbum, m_Track.m_DurationSec);
+		if(Score > BestScore)
+		{
+			char aSongId[32];
+			str_format(aSongId, sizeof(aSongId), "%d", SongId);
+			BestId = aSongId;
+			BestScore = Score;
+		}
+	}
+	if(BestId.empty())
+	{
+		str_copy(pErr, "No Netease match", ErrSize);
+		return false;
+	}
+	m_NeteaseSongId = std::move(BestId);
+	return true;
+}
+
+bool CLyrics::ParseNeteaseLyricResponse(const json_value *pObj, char *pErr, size_t ErrSize)
+{
+	if(!JsonIsObject(pObj))
+	{
+		str_copy(pErr, "Netease lyric is not object", ErrSize);
+		return false;
+	}
+	std::string Yrc = JsonStringOrEmpty(JsonGetPath(pObj, "yrc"), "lyric");
+	std::string Lrc = JsonStringOrEmpty(JsonGetPath(pObj, "lrc"), "lyric");
+	std::string Translation = JsonStringOrEmpty(JsonGetPath(pObj, "tlyric"), "lyric");
+	std::string Romanized = JsonStringOrEmpty(JsonGetPath(pObj, "romalrc"), "lyric");
+
+	std::vector<CLyricLine> vLines;
+	if(!Yrc.empty() && QmLyrics::ParseYrcLyrics(Yrc, vLines, pErr, ErrSize))
+	{
+		if(!Translation.empty())
+			QmLyrics::MergeLineTextByTimestamp(vLines, Translation, true, nullptr, 0);
+		if(!Romanized.empty())
+			QmLyrics::MergeLineTextByTimestamp(vLines, Romanized, false, nullptr, 0);
+		return ApplyLines(std::move(vLines), pErr, ErrSize);
+	}
+	if(!Lrc.empty() && QmLyrics::ParseLrcLyrics(Lrc, vLines, pErr, ErrSize))
+	{
+		if(!Translation.empty())
+			QmLyrics::MergeLineTextByTimestamp(vLines, Translation, true, nullptr, 0);
+		return ApplyLines(std::move(vLines), pErr, ErrSize);
+	}
+
+	str_copy(pErr, "No Netease lyric", ErrSize);
+	return false;
+}
+
 bool CLyrics::ParseLyricsResponse(const json_value *pObj, char *pErr, size_t ErrSize)
 {
 	ClearLyrics();
-	if(!pObj || pObj->type != json_object)
+	if(!JsonIsObject(pObj))
 	{
 		str_copy(pErr, "Response is not object", ErrSize);
 		return false;
@@ -349,10 +1034,10 @@ bool CLyrics::ParseLyricsResponse(const json_value *pObj, char *pErr, size_t Err
 	std::string Plain;
 	std::string Synced;
 	const json_value *pPlain = json_object_get(pObj, "plainLyrics");
-	if(pPlain != &json_value_none && pPlain->type == json_string)
+	if(JsonIsString(pPlain))
 		Plain = json_string_get(pPlain);
 	const json_value *pSynced = json_object_get(pObj, "syncedLyrics");
-	if(pSynced != &json_value_none && pSynced->type == json_string)
+	if(JsonIsString(pSynced))
 		Synced = json_string_get(pSynced);
 
 	return ApplyLyrics(Plain, Synced, Instrumental, pErr, ErrSize);
@@ -361,7 +1046,7 @@ bool CLyrics::ParseLyricsResponse(const json_value *pObj, char *pErr, size_t Err
 bool CLyrics::ParseSearchResponse(const json_value *pObj, char *pErr, size_t ErrSize)
 {
 	ClearLyrics();
-	if(!pObj || pObj->type != json_array)
+	if(!JsonIsArray(pObj))
 	{
 		str_copy(pErr, "Response is not array", ErrSize);
 		return false;
@@ -391,41 +1076,33 @@ bool CLyrics::ParseSearchResponse(const json_value *pObj, char *pErr, size_t Err
 	for(int i = 0; i < Count; ++i)
 	{
 		const json_value *pItem = json_array_get(pObj, i);
-		if(!pItem || pItem->type != json_object)
+		if(!JsonIsObject(pItem))
 			continue;
 
 		SCandidate Candidate;
 		const json_value *pTrack = json_object_get(pItem, "trackName");
-		if(pTrack != &json_value_none && pTrack->type == json_string)
+		if(JsonIsString(pTrack))
 			Candidate.m_Track = json_string_get(pTrack);
 		const json_value *pArtist = json_object_get(pItem, "artistName");
-		if(pArtist != &json_value_none && pArtist->type == json_string)
+		if(JsonIsString(pArtist))
 			Candidate.m_Artist = json_string_get(pArtist);
 		const json_value *pAlbum = json_object_get(pItem, "albumName");
-		if(pAlbum != &json_value_none && pAlbum->type == json_string)
+		if(JsonIsString(pAlbum))
 			Candidate.m_Album = json_string_get(pAlbum);
 		const json_value *pInstr = json_object_get(pItem, "instrumental");
 		if(pInstr != &json_value_none && pInstr->type == json_boolean)
 			Candidate.m_Instrumental = json_boolean_get(pInstr) != 0;
 		const json_value *pPlain = json_object_get(pItem, "plainLyrics");
-		if(pPlain != &json_value_none && pPlain->type == json_string)
+		if(JsonIsString(pPlain))
 			Candidate.m_Plain = json_string_get(pPlain);
 		const json_value *pSynced = json_object_get(pItem, "syncedLyrics");
-		if(pSynced != &json_value_none && pSynced->type == json_string)
+		if(JsonIsString(pSynced))
 			Candidate.m_Synced = json_string_get(pSynced);
 
 		if(Candidate.m_Instrumental || (Candidate.m_Plain.empty() && Candidate.m_Synced.empty()))
 			continue;
 
-		int Score = 0;
-		if(!Candidate.m_Track.empty() && str_comp_nocase(Candidate.m_Track.c_str(), m_Track.m_aTitle) == 0)
-			Score += 1000;
-		if(!Candidate.m_Artist.empty() && str_comp_nocase(Candidate.m_Artist.c_str(), m_Track.m_aArtist) == 0)
-			Score += 800;
-		if(m_Track.m_aAlbum[0] != '\0' && !Candidate.m_Album.empty() &&
-			str_comp_nocase(Candidate.m_Album.c_str(), m_Track.m_aAlbum) == 0)
-			Score += 200;
-
+		int Score = CandidateScore(Candidate.m_Track.c_str(), Candidate.m_Artist.c_str(), Candidate.m_Album.c_str(), 0, m_Track.m_aTitle, m_Track.m_aArtist, m_Track.m_aAlbum, m_Track.m_DurationSec);
 		if(!Candidate.m_Synced.empty())
 			Score += 50;
 		else if(!Candidate.m_Plain.empty())
@@ -450,15 +1127,23 @@ bool CLyrics::ParseSearchResponse(const json_value *pObj, char *pErr, size_t Err
 
 void CLyrics::OnUpdate()
 {
-	CSystemMediaControls::SState MediaState;
-	if(!GameClient()->m_SystemMediaControls.GetStateSnapshot(MediaState))
+	if(!g_Config.m_QmSmtcLyricsEnable)
 	{
 		if(!m_LastSignature.empty())
 			ResetState();
 		return;
 	}
 
+	CSystemMediaControls::SState MediaState;
+	if(!GameClient()->m_SystemMediaControls.GetStateSnapshot(MediaState))
+	{
+		if(g_Config.m_QmLyricsAutoHideNoSmtc && !m_LastSignature.empty())
+			ResetState();
+		return;
+	}
+
 	STrackInfo CurrentTrack;
+	str_copy(CurrentTrack.m_aSourceAppId, MediaState.m_aSourceAppId, sizeof(CurrentTrack.m_aSourceAppId));
 	str_copy(CurrentTrack.m_aTitle, MediaState.m_aTitle, sizeof(CurrentTrack.m_aTitle));
 	str_copy(CurrentTrack.m_aArtist, MediaState.m_aArtist, sizeof(CurrentTrack.m_aArtist));
 	str_copy(CurrentTrack.m_aAlbum, MediaState.m_aAlbum, sizeof(CurrentTrack.m_aAlbum));
@@ -476,10 +1161,38 @@ void CLyrics::OnUpdate()
 	{
 		CancelRequest();
 		ClearLyrics();
+		m_QqSongId.clear();
+		m_QqSongMid.clear();
+		m_NeteaseSongId.clear();
 		m_Track = CurrentTrack;
 		m_LastSignature = Signature;
-		StartRequest(EEndpoint::SEARCH);
+		m_LastMediaPositionMs = MediaState.m_PositionMs;
+		m_DisplayPositionBaseMs = MediaState.m_PositionMs;
+		m_DisplayPositionBaseTick = time_get();
+		m_DisplayPositionEstimating = false;
+		const ESource Source = PreferredSource();
+		log_info("lyrics", "track source='%s' preferred=%s title='%s' artist='%s'",
+			m_Track.m_aSourceAppId, SourceName(Source), m_Track.m_aTitle, m_Track.m_aArtist);
+		StartSource(Source);
 		return;
+	}
+
+	const bool PositionAdvanced = m_LastMediaPositionMs < 0 || MediaState.m_PositionMs > m_LastMediaPositionMs + 250;
+	if(PositionAdvanced || !MediaState.m_Playing)
+	{
+		if(m_DisplayPositionEstimating && PositionAdvanced)
+			log_info("lyrics", "smtc timeline resumed position=%" PRId64 "ms", MediaState.m_PositionMs);
+		m_LastMediaPositionMs = MediaState.m_PositionMs;
+		m_DisplayPositionBaseMs = MediaState.m_PositionMs;
+		m_DisplayPositionBaseTick = time_get();
+		m_DisplayPositionEstimating = false;
+	}
+	else if(MediaState.m_Playing && !m_DisplayPositionEstimating)
+	{
+		m_DisplayPositionBaseMs = MediaState.m_PositionMs;
+		m_DisplayPositionBaseTick = time_get();
+		m_DisplayPositionEstimating = true;
+		log_info("lyrics", "smtc timeline static, estimating lyric position from %" PRId64 "ms", m_DisplayPositionBaseMs);
 	}
 
 	if(!m_pRequest)
@@ -495,6 +1208,8 @@ bool CLyrics::GetCurrentLine(char *pBuf, size_t BufSize, int64_t PositionMs) con
 {
 	if(m_State != EState::READY || BufSize == 0)
 		return false;
+
+	PositionMs = GetDisplayPositionMs(PositionMs) + g_Config.m_QmSmtcLyricsOffsetMs;
 
 	if(m_IsSynced && !m_Lines.empty())
 	{
@@ -517,4 +1232,28 @@ bool CLyrics::GetCurrentLine(char *pBuf, size_t BufSize, int64_t PositionMs) con
 	}
 
 	return false;
+}
+
+bool CLyrics::GetNextLine(char *pBuf, size_t BufSize, int64_t PositionMs) const
+{
+	if(m_State != EState::READY || BufSize == 0 || !m_IsSynced || m_Lines.empty())
+		return false;
+
+	PositionMs = GetDisplayPositionMs(PositionMs) + g_Config.m_QmSmtcLyricsOffsetMs;
+	auto It = std::upper_bound(m_Lines.begin(), m_Lines.end(), PositionMs, [](int64_t Time, const CLyricLine &Line) {
+		return Time < Line.m_TimeMs;
+	});
+	if(It == m_Lines.begin())
+	{
+		if(It->m_Text.empty())
+			return false;
+		str_copy(pBuf, It->m_Text.c_str(), BufSize);
+		return true;
+	}
+	if(It == m_Lines.end())
+		return false;
+	if(It->m_Text.empty())
+		return false;
+	str_copy(pBuf, It->m_Text.c_str(), BufSize);
+	return true;
 }

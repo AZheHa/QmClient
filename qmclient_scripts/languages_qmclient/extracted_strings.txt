@@ -124,6 +124,9 @@ Axiom auto login failed, retrying
 Axiom auto login succeeded
 Axiom dummy password
 Axiom main account password
+Axiom 自动登录失败
+Axiom 自动登录失败，正在重试
+Axiom 自动登录成功
 Background Draw
 Background color
 Based on a pile of Windows... stuff
@@ -219,6 +222,7 @@ Crescent
 Cube
 Current aspect ratio:
 Current aspect ratio: Show default
+Current line color
 Current rescue mode: %s
 Current status
 Custom
@@ -295,6 +299,7 @@ Enable camera drift
 Enable dummy window
 Enable dynamic FOV
 Enable keyword reply
+Enable lyrics
 Enable mod weapon on %d: %s
 Enable pie menu
 Enable repeat
@@ -310,6 +315,7 @@ Endless hook has been activated
 Endless hook has been deactivated
 Endpoint
 Endpoint (optional)
+Enlarge first character
 Enter /practice mode or restart to avoid the entire team being killed in 60 seconds
 Entity Layer Colors
 Event
@@ -334,6 +340,7 @@ Favorite maps
 Feature Search
 Finish Name
 Finish Name:
+First character color
 Flip:
 Font size
 Found %d modules
@@ -399,6 +406,7 @@ Hide scoreboard
 Hide server prompt notifications
 Hide sponsor QR code
 Hide weapon muzzle flashes
+Hide without media state
 Hitbox mode
 Hold left click for free camera
 Horizontal position
@@ -408,6 +416,7 @@ I am away from the game window
 I muted you
 Idiot word filter
 Indicator alive color
+Indicator color
 Indicator in freeze color
 Indicator max distance
 Indicator max offset
@@ -491,6 +500,7 @@ Local particle effects
 Local test mode
 Local test mode, no server needed
 Lock delay
+Lyrics
 Make sure the backend supports OpenAI-compatible thinking parameters
 Manual concurrency: %d
 Map danger border
@@ -535,6 +545,7 @@ Negative stability buffer (for Gores)
 New IME
 New UI
 Next
+Next line color
 No
 No animation
 No audio issues detected
@@ -594,6 +605,7 @@ Opened
 Optimistic prediction along stable direction
 Option color
 Other
+Outline color
 Outline opacity
 Output device
 Output device not found
@@ -758,6 +770,7 @@ Scores are private on this server
 Scores are public on this server
 Screen center line color
 Screen center line width
+Scroll long lines
 Search
 Seconds
 SecretId
@@ -809,6 +822,8 @@ Show compact vote HUD
 Show coordinates above players
 Show coordinates of yourself and others
 Show country flags in nameplates
+Show current and next lyric lines on HUD
+Show current line indicator
 Show dotted map route debug
 Show grenade and laser trajectory preview
 Show hitbox mode
@@ -1200,3 +1215,4 @@ x = DDNet CPU% / total CPU%
 y = DDNet memory usage
 z = Zoom
 ⚠️ FTAPI is a free service. Excessive use may cause service suspension.
+正在尝试 Axiom 自动登录

@@ -352,6 +352,9 @@ Current aspect ratio:
 Current aspect ratio: Show default
 == 当前宽高比: 显示默认
 
+Current line color
+== 当前行颜色
+
 Current rescue mode: %s
 == 当前救援模式：%s
 
@@ -469,6 +472,9 @@ Enable Zen mode
 Enable dummy window
 == 启用分身小窗
 
+Enable lyrics
+== 启用歌词
+
 Enable repeat
 == 启用复读
 
@@ -487,6 +493,9 @@ Endless hook has been deactivated
 Endpoint (optional)
 == 端点 (可选)
 
+Enlarge first character
+== 放大首字
+
 Enter /practice mode or restart to avoid the entire team being killed in 60 seconds
 == 请输入 /practice 或重新开始，否则整队将在 60 秒后被处死
 
@@ -504,6 +513,9 @@ Fallback simple noise reduction strength
 
 Feature Search
 == 功能搜索
+
+First character color
+== 首字颜色
 
 Found %d modules
 == 匹配到 %d 个模块
@@ -616,6 +628,9 @@ Hide sponsor QR code
 Hide weapon muzzle flashes
 == 隐藏武器火焰
 
+Hide without media state
+== 无媒体状态时隐藏
+
 Hitbox mode
 == 碰撞箱模式
 
@@ -627,6 +642,9 @@ I am a robot
 
 Idiot word filter
 == 傻逼词过滤器
+
+Indicator color
+== 指示器颜色
 
 Input device not found
 == 输入设备不存在
@@ -748,6 +766,9 @@ Local test mode
 Local test mode, no server needed
 == 本地测试模式，无需服务器
 
+Lyrics
+== 歌词
+
 Make sure the backend supports OpenAI-compatible thinking parameters
 == 确保后端支持 OpenAI 兼容的思考参数
 
@@ -813,6 +834,9 @@ New IME
 
 New UI
 == 新版UI
+
+Next line color
+== 下一行颜色
 
 No audio issues detected
 == 未发现音频异常
@@ -912,6 +936,9 @@ Opened
 
 Option color
 == 选项颜色
+
+Outline color
+== 描边颜色
 
 Output device
 == 输出设备
@@ -1108,6 +1135,9 @@ Scores are private on this server
 Scores are public on this server
 == 本服务器的成绩是公开的
 
+Scroll long lines
+== 滚动长歌词
+
 SecretId
 == SecretId
 
@@ -1203,6 +1233,12 @@ Show coordinates above players
 
 Show coordinates of yourself and others
 == 显示自己和他人的坐标
+
+Show current and next lyric lines on HUD
+== 在 HUD 显示当前和下一行歌词
+
+Show current line indicator
+== 显示当前行指示器
 
 Show grenade and laser trajectory preview
 == 显示枪榴弹和激光轨迹预览
