@@ -1,5 +1,7 @@
 #include "test.h"
 
+#include <engine/client.h>
+
 #include <game/client/qm_command_router.h>
 
 #include <gtest/gtest.h>
@@ -47,4 +49,10 @@ TEST(QmDummyCommand, HeldInputIgnoresOneShotWeaponSwitch)
 	Input.m_Fire = 2;
 	Input.m_NextWeapon = 1;
 	EXPECT_TRUE(qm_dummy_command::HasHeldInput(Input));
+}
+
+TEST(QmDummyCommand, InactiveConnIsRelativeToActiveConn)
+{
+	EXPECT_EQ(qm_dummy_command::InactiveConn(IClient::CONN_MAIN), IClient::CONN_DUMMY);
+	EXPECT_EQ(qm_dummy_command::InactiveConn(IClient::CONN_DUMMY), IClient::CONN_MAIN);
 }

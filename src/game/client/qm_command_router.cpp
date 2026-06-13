@@ -30,28 +30,51 @@ void CQmCommandRouter::OnConsoleInit()
 	if(pConsole == nullptr)
 		return;
 
-	pConsole->Register("+dummy_left", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyLeftCommand, "Move dummy left");
-	pConsole->Register("+dummy_right", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyRightCommand, "Move dummy right");
-	pConsole->Register("+dummy_jump", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyJumpCommand, "Make dummy jump");
-	pConsole->Register("+dummy_hook", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyHookCommand, "Make dummy hook");
-	pConsole->Register("+dummy_fire", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyFireCommand, "Make dummy fire");
-	pConsole->Register("+dummy_weapon1", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon1Command, "Switch dummy to hammer");
-	pConsole->Register("+dummy_weapon2", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon2Command, "Switch dummy to gun");
-	pConsole->Register("+dummy_weapon3", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon3Command, "Switch dummy to shotgun");
-	pConsole->Register("+dummy_weapon4", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon4Command, "Switch dummy to grenade");
-	pConsole->Register("+dummy_weapon5", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon5Command, "Switch dummy to laser");
-	pConsole->Register("+dummy_nextweapon", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyNextWeaponCommand, "Switch dummy to next weapon");
-	pConsole->Register("+dummy_prevweapon", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyPrevWeaponCommand, "Switch dummy to previous weapon");
+	pConsole->Register("+dummy_left", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyLeftCommand, "Move inactive tee left");
+	pConsole->Register("+dummy_right", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyRightCommand, "Move inactive tee right");
+	pConsole->Register("+dummy_jump", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyJumpCommand, "Make inactive tee jump");
+	pConsole->Register("+dummy_hook", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyHookCommand, "Make inactive tee hook");
+	pConsole->Register("+dummy_fire", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyFireCommand, "Make inactive tee fire");
+	pConsole->Register("+dummy_weapon1", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon1Command, "Switch inactive tee to hammer");
+	pConsole->Register("+dummy_weapon2", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon2Command, "Switch inactive tee to gun");
+	pConsole->Register("+dummy_weapon3", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon3Command, "Switch inactive tee to shotgun");
+	pConsole->Register("+dummy_weapon4", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon4Command, "Switch inactive tee to grenade");
+	pConsole->Register("+dummy_weapon5", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyWeapon5Command, "Switch inactive tee to laser");
+	pConsole->Register("+dummy_nextweapon", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyNextWeaponCommand, "Switch inactive tee to next weapon");
+	pConsole->Register("+dummy_prevweapon", "", CFGFLAG_CLIENT, ConDummyInput, &m_DummyPrevWeaponCommand, "Switch inactive tee to previous weapon");
 
-	pConsole->Register("dummy_say", "r[message]", CFGFLAG_CLIENT, ConDummySay, this, "Say in chat as dummy");
-	pConsole->Register("dummy_say_team", "r[message]", CFGFLAG_CLIENT, ConDummySayTeam, this, "Say in team chat as dummy");
-	pConsole->Register("dummy_pause", "?r[player name]", CFGFLAG_CLIENT, ConDummyPause, this, "Send /pause as dummy");
-	pConsole->Register("dummy_spec", "?r[player name]", CFGFLAG_CLIENT, ConDummySpec, this, "Send /spec as dummy");
-	pConsole->Register("dummy_team", "?i[team-id]", CFGFLAG_CLIENT, ConDummyTeam, this, "Send /team as dummy");
-	pConsole->Register("dummy_lock", "?i['0'|'1']", CFGFLAG_CLIENT, ConDummyLock, this, "Send /lock as dummy");
-	pConsole->Register("dummy_save", "?r[code]", CFGFLAG_CLIENT, ConDummySave, this, "Send /save as dummy");
-	pConsole->Register("dummy_load", "?r[code]", CFGFLAG_CLIENT, ConDummyLoad, this, "Send /load as dummy");
-	pConsole->Register("dummy_rescue", "", CFGFLAG_CLIENT, ConDummyRescue, this, "Send /rescue as dummy");
+	pConsole->Register("dummy_say", "r[message]", CFGFLAG_CLIENT, ConDummySay, this, "Say in chat as inactive tee");
+	pConsole->Register("dummy_say_team", "r[message]", CFGFLAG_CLIENT, ConDummySayTeam, this, "Say in team chat as inactive tee");
+	pConsole->Register("dummy_pause", "?r[player name]", CFGFLAG_CLIENT, ConDummyPause, this, "Send /pause as inactive tee");
+	pConsole->Register("dummy_spec", "?r[player name]", CFGFLAG_CLIENT, ConDummySpec, this, "Send /spec as inactive tee");
+	pConsole->Register("dummy_team", "?i[team-id]", CFGFLAG_CLIENT, ConDummyTeam, this, "Send /team as inactive tee");
+	pConsole->Register("dummy_lock", "?i['0'|'1']", CFGFLAG_CLIENT, ConDummyLock, this, "Send /lock as inactive tee");
+	pConsole->Register("dummy_save", "?r[code]", CFGFLAG_CLIENT, ConDummySave, this, "Send /save as inactive tee");
+	pConsole->Register("dummy_load", "?r[code]", CFGFLAG_CLIENT, ConDummyLoad, this, "Send /load as inactive tee");
+	pConsole->Register("dummy_rescue", "", CFGFLAG_CLIENT, ConDummyRescue, this, "Send /rescue as inactive tee");
+}
+
+void CQmCommandRouter::OnDummySwap()
+{
+	if(m_pGameClient == nullptr || !HasHeldDummyInputState())
+		return;
+
+	const int ActiveConn = g_Config.m_ClDummy;
+	const int TargetConn = qm_dummy_command::InactiveConn(ActiveConn);
+	const int PrevTargetConn = ActiveConn;
+
+	ReleaseDummyInput(m_pGameClient->m_Controls.m_aInputData[PrevTargetConn]);
+	m_pGameClient->m_Controls.m_aInputDirectionLeft[PrevTargetConn] = 0;
+	m_pGameClient->m_Controls.m_aInputDirectionRight[PrevTargetConn] = 0;
+
+	CNetObj_PlayerInput &TargetInput = m_pGameClient->m_DummyInput;
+	PrepareDummyInput(TargetInput, TargetConn);
+	ApplyHeldDummyInput(TargetInput);
+
+	m_pGameClient->m_Controls.m_aInputData[TargetConn] = TargetInput;
+	m_pGameClient->m_Controls.m_aInputDirectionLeft[TargetConn] = m_DummyLeft;
+	m_pGameClient->m_Controls.m_aInputDirectionRight[TargetConn] = m_DummyRight;
+	m_pGameClient->m_QmDummyInputForceSend = true;
 }
 
 void CQmCommandRouter::ResetDummyInputState()
@@ -69,28 +92,19 @@ void CQmCommandRouter::ResetDummyInputState()
 
 	IClient *pClient = m_pGameClient->Client();
 	const bool DummyConnected = pClient != nullptr && pClient->DummyConnected();
-	CNetObj_PlayerInput *pTargetInput = g_Config.m_ClDummy == IClient::CONN_DUMMY ?
-						   &m_pGameClient->m_Controls.m_aInputData[IClient::CONN_DUMMY] :
-						   &m_pGameClient->m_DummyInput;
+	const int TargetConn = qm_dummy_command::InactiveConn(g_Config.m_ClDummy);
+	CNetObj_PlayerInput *pTargetInput = &m_pGameClient->m_DummyInput;
 	pTargetInput->m_Direction = 0;
 	pTargetInput->m_Jump = 0;
 	pTargetInput->m_Hook = 0;
 	pTargetInput->m_WantedWeapon = 0;
-	if((pTargetInput->m_Fire & 1) != 0)
-		pTargetInput->m_Fire++;
-	if((pTargetInput->m_NextWeapon & 1) != 0)
-		pTargetInput->m_NextWeapon++;
-	if((pTargetInput->m_PrevWeapon & 1) != 0)
-		pTargetInput->m_PrevWeapon++;
-	pTargetInput->m_Fire &= INPUT_STATE_MASK;
-	pTargetInput->m_NextWeapon &= INPUT_STATE_MASK;
-	pTargetInput->m_PrevWeapon &= INPUT_STATE_MASK;
-	PrepareDummyInput(*pTargetInput);
+	ReleaseDummyInput(*pTargetInput);
+	PrepareDummyInput(*pTargetInput, TargetConn);
 
-	m_pGameClient->m_Controls.m_aInputDirectionLeft[IClient::CONN_DUMMY] = 0;
-	m_pGameClient->m_Controls.m_aInputDirectionRight[IClient::CONN_DUMMY] = 0;
-	m_pGameClient->m_Controls.m_aInputData[IClient::CONN_DUMMY] = *pTargetInput;
-	m_pGameClient->m_QmDummyInputForceSend = g_Config.m_ClDummy != IClient::CONN_DUMMY && DummyConnected;
+	m_pGameClient->m_Controls.m_aInputDirectionLeft[TargetConn] = 0;
+	m_pGameClient->m_Controls.m_aInputDirectionRight[TargetConn] = 0;
+	m_pGameClient->m_Controls.m_aInputData[TargetConn] = *pTargetInput;
+	m_pGameClient->m_QmDummyInputForceSend = TargetConn != g_Config.m_ClDummy && DummyConnected;
 }
 
 bool CQmCommandRouter::HasManualDummyInput() const
@@ -115,7 +129,7 @@ int CQmCommandRouter::ConnForTarget(EQmCommandTarget Target) const
 	case EQmCommandTarget::MAIN:
 		return IClient::CONN_MAIN;
 	case EQmCommandTarget::DUMMY:
-		return IClient::CONN_DUMMY;
+		return qm_dummy_command::InactiveConn(g_Config.m_ClDummy);
 	}
 	return IClient::CONN_MAIN;
 }
@@ -146,7 +160,35 @@ void CQmCommandRouter::ReportDummyUnavailable()
 		m_pGameClient->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "qm_dummy", "Dummy command ignored: dummy is not connected.");
 }
 
-void CQmCommandRouter::PrepareDummyInput(CNetObj_PlayerInput &Input) const
+bool CQmCommandRouter::HasHeldDummyInputState() const
+{
+	return m_DummyLeft != 0 ||
+	       m_DummyRight != 0 ||
+	       m_DummyJump != 0 ||
+	       m_DummyHook != 0 ||
+	       m_DummyFire != 0 ||
+	       m_DummyNextWeapon != 0 ||
+	       m_DummyPrevWeapon != 0;
+}
+
+void CQmCommandRouter::ReleaseDummyInput(CNetObj_PlayerInput &Input) const
+{
+	Input.m_Direction = 0;
+	Input.m_Jump = 0;
+	Input.m_Hook = 0;
+	Input.m_WantedWeapon = 0;
+	if((Input.m_Fire & 1) != 0)
+		Input.m_Fire++;
+	if((Input.m_NextWeapon & 1) != 0)
+		Input.m_NextWeapon++;
+	if((Input.m_PrevWeapon & 1) != 0)
+		Input.m_PrevWeapon++;
+	Input.m_Fire &= INPUT_STATE_MASK;
+	Input.m_NextWeapon &= INPUT_STATE_MASK;
+	Input.m_PrevWeapon &= INPUT_STATE_MASK;
+}
+
+void CQmCommandRouter::PrepareDummyInput(CNetObj_PlayerInput &Input, int TargetConn) const
 {
 	if(m_pGameClient == nullptr)
 		return;
@@ -154,7 +196,7 @@ void CQmCommandRouter::PrepareDummyInput(CNetObj_PlayerInput &Input) const
 	Input.m_PlayerFlags &= ~(PLAYERFLAG_CHATTING | PLAYERFLAG_IN_MENU | PLAYERFLAG_INPUT_ABSOLUTE | PLAYERFLAG_INPUT_MANUAL);
 	Input.m_PlayerFlags |= PLAYERFLAG_PLAYING;
 
-	switch(m_pGameClient->m_Controls.m_aMouseInputType[IClient::CONN_DUMMY])
+	switch(m_pGameClient->m_Controls.m_aMouseInputType[TargetConn])
 	{
 	case CControls::EMouseInputType::AUTOMATED:
 		Input.m_PlayerFlags |= PLAYERFLAG_INPUT_ABSOLUTE;
@@ -167,7 +209,7 @@ void CQmCommandRouter::PrepareDummyInput(CNetObj_PlayerInput &Input) const
 		break;
 	}
 
-	vec2 Pos = m_pGameClient->m_Controls.m_aMousePos[IClient::CONN_DUMMY];
+	vec2 Pos = m_pGameClient->m_Controls.m_aMousePos[TargetConn];
 	if(g_Config.m_TcScaleMouseDistance && !m_pGameClient->m_Snap.m_SpecInfo.m_Active)
 	{
 		const int MaxDistance = g_Config.m_ClDyncam ? g_Config.m_ClDyncamMaxDistance : g_Config.m_ClMouseMaxDistance;
@@ -181,18 +223,36 @@ void CQmCommandRouter::PrepareDummyInput(CNetObj_PlayerInput &Input) const
 		Input.m_TargetX = 1;
 }
 
+void CQmCommandRouter::ApplyHeldDummyInput(CNetObj_PlayerInput &Input) const
+{
+	Input.m_Direction = m_DummyRight - m_DummyLeft;
+	Input.m_Jump = m_DummyJump;
+	Input.m_Hook = m_DummyHook;
+	if(m_DummyFire != 0)
+		qm_dummy_command::UpdateInputCounter(Input.m_Fire, 1);
+	if(m_DummyNextWeapon != 0)
+	{
+		qm_dummy_command::UpdateInputCounter(Input.m_NextWeapon, 1);
+		Input.m_WantedWeapon = 0;
+	}
+	if(m_DummyPrevWeapon != 0)
+	{
+		qm_dummy_command::UpdateInputCounter(Input.m_PrevWeapon, 1);
+		Input.m_WantedWeapon = 0;
+	}
+}
+
 void CQmCommandRouter::ApplyDummyInput(EQmDummyInputCommand Command, int State)
 {
-	constexpr int DummyConn = IClient::CONN_DUMMY;
-	if(!EnsureConnAvailable(DummyConn, State != 0))
+	const int TargetConn = qm_dummy_command::InactiveConn(g_Config.m_ClDummy);
+	if(!EnsureConnAvailable(TargetConn, State != 0))
 	{
 		ResetDummyInputState();
 		return;
 	}
 
-	const bool DummyIsActive = g_Config.m_ClDummy == DummyConn;
-	CNetObj_PlayerInput &TargetInput = DummyIsActive ? m_pGameClient->m_Controls.m_aInputData[DummyConn] : m_pGameClient->m_DummyInput;
-	PrepareDummyInput(TargetInput);
+	CNetObj_PlayerInput &TargetInput = m_pGameClient->m_DummyInput;
+	PrepareDummyInput(TargetInput, TargetConn);
 	bool ForceSend = true;
 
 	switch(Command)
@@ -239,10 +299,10 @@ void CQmCommandRouter::ApplyDummyInput(EQmDummyInputCommand Command, int State)
 		break;
 	}
 
-	m_pGameClient->m_Controls.m_aInputData[DummyConn] = TargetInput;
-	m_pGameClient->m_Controls.m_aInputDirectionLeft[DummyConn] = m_DummyLeft;
-	m_pGameClient->m_Controls.m_aInputDirectionRight[DummyConn] = m_DummyRight;
-	if(!DummyIsActive && ForceSend)
+	m_pGameClient->m_Controls.m_aInputData[TargetConn] = TargetInput;
+	m_pGameClient->m_Controls.m_aInputDirectionLeft[TargetConn] = m_DummyLeft;
+	m_pGameClient->m_Controls.m_aInputDirectionRight[TargetConn] = m_DummyRight;
+	if(ForceSend)
 		m_pGameClient->m_QmDummyInputForceSend = true;
 }
 

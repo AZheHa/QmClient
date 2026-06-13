@@ -20,7 +20,7 @@ extern const char *GIT_SHORTREV_HASH;
 
 // QmClient
 #ifndef QMCLIENT_VERSION
-#define QMCLIENT_VERSION "2.70.1"
+#define QMCLIENT_VERSION "2.70.2"
 #endif
 
 // custom
