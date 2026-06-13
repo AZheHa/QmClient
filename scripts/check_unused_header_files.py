@@ -1,6 +1,37 @@
 #!/usr/bin/env python3
 import os
+import re
 import sys
+
+
+INCLUDE_RE = re.compile(r'^\s*#\s*include\s*[<"]([^">]+)[">]')
+SOURCE_EXTENSIONS = {
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cxx",
+    ".h",
+    ".hh",
+    ".hpp",
+    ".ipp",
+    ".m",
+    ".mm",
+}
+
+
+def iter_source_files(directory):
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if os.path.splitext(file)[1].lower() in SOURCE_EXTENSIONS:
+                yield os.path.join(root, file)
+
+
+def included_headers(path):
+    with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            match = INCLUDE_RE.match(line)
+            if match:
+                yield os.path.basename(match.group(1))
 
 
 def find_unused_header_files(directory):
@@ -12,13 +43,10 @@ def find_unused_header_files(directory):
             if file.endswith(".h"):
                 header_files.add(file)
 
-    for root, _, files in os.walk(directory):
-        for file in files:
-            with open(os.path.join(root, file), "r", encoding="utf-8") as f:
-                content = f.read()
-                for header in header_files:
-                    if header in content:
-                        used_files.add(header)
+    for path in iter_source_files(directory):
+        for header in included_headers(path):
+            if header in header_files:
+                used_files.add(header)
 
     return header_files - used_files
 

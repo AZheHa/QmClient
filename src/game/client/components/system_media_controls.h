@@ -20,6 +20,7 @@ public:
 		bool m_CanPrev = false;
 		bool m_CanNext = false;
 		bool m_Playing = false;
+		char m_aSourceAppId[128] = {};
 		char m_aTitle[128] = {};
 		char m_aArtist[128] = {};
 		char m_aAlbum[128] = {};

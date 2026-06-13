@@ -1,6 +1,9 @@
 #include <game/client/components/chat.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
+
+#include <string>
 
 TEST(QmChatInteractions, ClampBacklogLine)
 {
@@ -60,6 +63,26 @@ TEST(QmChatInteractions, BuildsEscapedWhisperCommand)
 
 	EXPECT_TRUE(CChat::BuildWhisperCommand(aCommand, sizeof(aCommand), "Name \"A\"", "hello"));
 	EXPECT_STREQ(aCommand, "/w \"Name \\\"A\\\"\" hello");
+}
+
+TEST(QmChatInteractions, BuildsEscapedSpectateCommand)
+{
+	char aCommand[128];
+
+	EXPECT_TRUE(CChat::BuildSpectateCommand(aCommand, sizeof(aCommand), "Name \"A\""));
+	EXPECT_STREQ(aCommand, "say /spec \"Name \\\"A\\\"\"");
+}
+
+TEST(QmChatInteractions, ChatLineMenuKeepsSpectateAction)
+{
+	const std::string Header = ReadTestSourceFile("src/game/client/components/chat.h");
+	const std::string Source = ReadTestSourceFile("src/game/client/components/chat.cpp");
+
+	EXPECT_NE(Header.find("CButtonContainer m_SpectateButton;"), std::string::npos);
+	EXPECT_NE(Header.find("void SpectateChatLine(const CChatLinePopupContext &Context);"), std::string::npos);
+	EXPECT_NE(Source.find("DoEntry(&pPopupContext->m_SpectateButton, FontIcons::FONT_ICON_EYE, Localize(\"Spectate\")"), std::string::npos);
+	EXPECT_NE(Source.find("GameClient()->m_Spectator.Spectate(Context.m_ClientId);"), std::string::npos);
+	EXPECT_NE(Source.find("Console()->ExecuteLine(aCommand);"), std::string::npos);
 }
 
 TEST(QmChatInteractions, ReusesKnownServerMessageClassWithoutReanalysis)

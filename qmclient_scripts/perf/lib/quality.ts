@@ -1,6 +1,6 @@
 import { basename } from 'node:path';
 
-import type { PerfEntry } from './parse.ts';
+import type { PerfEntry, ParseDiagnostics } from './parse.ts';
 import { operationSignature, type OperationSignature } from './quality_core.ts';
 import {
   BUDGET,
@@ -21,10 +21,7 @@ import {
   entryDurationMs,
 } from './stats.ts';
 
-export interface ParseDiagnostics {
-  totalLines: number;
-  invalidLines: number;
-}
+export type { ParseDiagnostics } from './parse.ts';
 
 export interface ReportQuality {
   sampleCount: number;

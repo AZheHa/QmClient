@@ -61,6 +61,11 @@ inline bool HasHeldInput(const CNetObj_PlayerInput &Input)
 	       (Input.m_PrevWeapon & 1) != 0;
 }
 
+inline int InactiveConn(int ActiveConn)
+{
+	return ActiveConn ^ 1;
+}
+
 inline void BuildSlashCommand(char *pBuf, int BufSize, const char *pCommand, const char *pArgs)
 {
 	if(pBuf == nullptr || BufSize <= 0)
@@ -84,6 +89,7 @@ class CQmCommandRouter
 public:
 	void Init(CGameClient *pGameClient);
 	void OnConsoleInit();
+	void OnDummySwap();
 	void ResetDummyInputState();
 	bool HasManualDummyInput() const;
 
@@ -102,7 +108,10 @@ private:
 	int ConnForTarget(EQmCommandTarget Target) const;
 	bool EnsureConnAvailable(int Conn, bool Verbose);
 	void ReportDummyUnavailable();
-	void PrepareDummyInput(CNetObj_PlayerInput &Input) const;
+	bool HasHeldDummyInputState() const;
+	void ReleaseDummyInput(CNetObj_PlayerInput &Input) const;
+	void PrepareDummyInput(CNetObj_PlayerInput &Input, int TargetConn) const;
+	void ApplyHeldDummyInput(CNetObj_PlayerInput &Input) const;
 	void ApplyDummyInput(EQmDummyInputCommand Command, int State);
 	void SendDummyChat(int Team, const char *pLine);
 	void SendDummySlashCommand(const char *pCommand, const char *pArgs);

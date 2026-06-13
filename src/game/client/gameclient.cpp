@@ -460,6 +460,8 @@ static void GenerateTimeoutCode(char *pTimeoutCode)
 static void LoadQmClientLanguageOverlay(CLocalizationDatabase &Localization, const char *pLanguageFile, IStorage *pStorage, IConsole *pConsole)
 {
 	const char *pQmLanguageFile = pLanguageFile[0] != '\0' ? pLanguageFile : "languages/english.txt";
+	if(str_comp(pLanguageFile, "languages/simplified_chinese.txt") == 0)
+		pQmLanguageFile = "languages/simplified_chinese.txt";
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "qmclient/%s", pQmLanguageFile);
 	Localization.Load(aBuf, pStorage, pConsole, false);
@@ -875,6 +877,7 @@ void CGameClient::OnDummySwap()
 	const int PrevDummyFire = m_DummyInput.m_Fire;
 	m_DummyInput = m_Controls.m_aInputData[!g_Config.m_ClDummy];
 	m_Controls.m_aInputData[g_Config.m_ClDummy].m_Fire = PrevDummyFire;
+	m_QmCommandRouter.OnDummySwap();
 	m_IsDummySwapping = 1;
 }
 

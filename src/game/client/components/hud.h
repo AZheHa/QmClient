@@ -12,6 +12,7 @@
 
 #include <game/client/component.h>
 #include <game/client/QmUi/QmLayout.h>
+#include <game/client/ui_rect.h>
 
 #include <cstdint>
 #include <vector>
@@ -270,6 +271,7 @@ class CHud : public CComponent
 	bool HasVisibleMediaIsland() const;
 	float GetTopIslandAvoidanceRight() const;
 	void RenderMediaIsland();
+	void RenderLyricHud();
 
 	int m_LastSpectatorCountTick;
 	void RenderSpectatorCount();
@@ -381,6 +383,13 @@ private:
 	float m_MovementInfoBoxY = 0.0f;
 	float m_MovementInfoBoxW = 0.0f;
 	float m_MovementInfoBoxH = 0.0f;
+	CUIRect m_MediaIslandLastVisibleRect{};
+	bool m_MediaIslandLastVisibleRectValid = false;
+	CUIRect m_LyricHudDockedDragRect{};
+	CUIRect m_LyricHudDockedVisibleRect{};
+	bool m_LyricHudDockedToMediaIsland = false;
+	char m_aLastLyricHudLine[256] = {};
+	int64_t m_LyricHudLineChangeTick = 0;
 	bool m_LegacyMediaInfoRendered = false;
 	float m_aMapProgressDisplayed[NUM_DUMMIES] = {0.0f, 0.0f};
 	bool m_aMapProgressInitialized[NUM_DUMMIES] = {false, false};
