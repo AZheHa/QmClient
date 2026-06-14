@@ -1967,7 +1967,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		vec2 m_GrabOffset;
 		float m_DraggedWidth;
 		float m_DraggedHeight;
-		bool m_HasDragRect;
+		bool m_HasDragAnchor;
 	};
 
 	static SQmModuleDragState s_DragState = {nullptr, nullptr, 0.0f, vec2(0.0f, 0.0f), 0.0f, 0.0f, false};
@@ -2025,7 +2025,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		s_DragState.m_GrabOffset = vec2(0.0f, 0.0f);
 		s_DragState.m_DraggedWidth = 0.0f;
 		s_DragState.m_DraggedHeight = 0.0f;
-		s_DragState.m_HasDragRect = false;
+		s_DragState.m_HasDragAnchor = false;
 		s_DropPreview.m_Active = false;
 		s_DropPreview.m_Valid = false;
 		s_DropPreview.m_pDragged = nullptr;
@@ -2073,6 +2073,10 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			s_DragState.m_pPressed = pModule;
 			s_DragState.m_pDragging = nullptr;
 			s_DragState.m_PressStartTime = Client()->GlobalTime();
+			s_DragState.m_GrabOffset = vec2(Ui()->MouseX() - CardRect.x, Ui()->MouseY() - CardRect.y);
+			s_DragState.m_DraggedWidth = CardRect.w;
+			s_DragState.m_DraggedHeight = CardRect.h;
+			s_DragState.m_HasDragAnchor = true;
 		}
 
 		if(!InteractionBlocked && s_DragState.m_pPressed == pModule && Ui()->MouseButton(0) && s_DragState.m_pDragging == nullptr)
@@ -2080,10 +2084,6 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			if(Client()->GlobalTime() - s_DragState.m_PressStartTime >= DragHoldSeconds)
 			{
 				s_DragState.m_pDragging = pModule;
-				s_DragState.m_GrabOffset = vec2(Ui()->MouseX() - CardRect.x, Ui()->MouseY() - CardRect.y);
-				s_DragState.m_DraggedWidth = CardRect.w;
-				s_DragState.m_DraggedHeight = CardRect.h;
-				s_DragState.m_HasDragRect = true;
 			}
 		}
 
@@ -7220,7 +7220,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 	};
 
 	auto RenderDragGhost = [&]() {
-		if(s_DragState.m_pDragging == nullptr || !s_DragState.m_HasDragRect)
+		if(s_DragState.m_pDragging == nullptr || !s_DragState.m_HasDragAnchor)
 			return;
 		CUIRect Ghost;
 		Ghost.x = Ui()->MouseX() - s_DragState.m_GrabOffset.x;

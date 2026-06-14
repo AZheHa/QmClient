@@ -666,6 +666,33 @@ TEST(QmMonitoringHelpers, RuntimePerfCallsitesUseSharedLoggingHelpers)
 	}
 }
 
+TEST(QmMonitoringHelpers, QmClientModuleDragGhostUsesPressAnchor)
+{
+	std::ifstream File(TestSourcePath("src/game/client/components/qmclient/menus_qmclient.cpp"));
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+
+	const size_t PressBlockPos = Source.find("if(!InteractionBlocked && Ui()->MouseButtonClicked(0) && OverHeader)");
+	ASSERT_NE(PressBlockPos, std::string::npos);
+	const size_t HoldBlockPos = Source.find("if(!InteractionBlocked && s_DragState.m_pPressed == pModule && Ui()->MouseButton(0) && s_DragState.m_pDragging == nullptr)", PressBlockPos);
+	ASSERT_NE(HoldBlockPos, std::string::npos);
+	const std::string PressBlock = Source.substr(PressBlockPos, HoldBlockPos - PressBlockPos);
+
+	const size_t AfterHoldPos = Source.find("if(s_DragState.m_pDragging != pModule)", HoldBlockPos);
+	ASSERT_NE(AfterHoldPos, std::string::npos);
+	const std::string HoldBlock = Source.substr(HoldBlockPos, AfterHoldPos - HoldBlockPos);
+
+	EXPECT_NE(PressBlock.find("s_DragState.m_GrabOffset = vec2(Ui()->MouseX() - CardRect.x, Ui()->MouseY() - CardRect.y);"), std::string::npos);
+	EXPECT_NE(PressBlock.find("s_DragState.m_DraggedWidth = CardRect.w;"), std::string::npos);
+	EXPECT_NE(PressBlock.find("s_DragState.m_DraggedHeight = CardRect.h;"), std::string::npos);
+	EXPECT_NE(PressBlock.find("s_DragState.m_HasDragAnchor = true;"), std::string::npos);
+	EXPECT_NE(HoldBlock.find("s_DragState.m_pDragging = pModule;"), std::string::npos);
+	EXPECT_EQ(HoldBlock.find("s_DragState.m_GrabOffset = vec2(Ui()->MouseX() - CardRect.x, Ui()->MouseY() - CardRect.y);"), std::string::npos);
+	EXPECT_NE(Source.find("if(s_DragState.m_pDragging == nullptr || !s_DragState.m_HasDragAnchor)"), std::string::npos);
+}
+
 TEST(QmMonitoringHelpers, SettingsStaticLabelsUseTextElementCache)
 {
 	{
