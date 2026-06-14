@@ -1235,6 +1235,23 @@ TEST(SettingsResourceJobs, RuntimeWarmupOnlyRunsOnSettingsPageWhenIdle)
 	EXPECT_FALSE(SettingsRuntimeWarmupShouldRun(false, true, false, false, false, false, false));
 }
 
+TEST(SettingsResourceJobs, QmClientIdlePrewarmSkipsImmediateModeRenderPass)
+{
+	std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+
+	const size_t PrewarmPos = Source.find("void CMenus::PrewarmVisibleSettingsResources(CUIRect MainView)");
+	ASSERT_NE(PrewarmPos, std::string::npos);
+	const size_t PrewarmEnd = Source.find("bool CMenus::OnCursorMove", PrewarmPos);
+	ASSERT_NE(PrewarmEnd, std::string::npos);
+	const std::string PrewarmBody = Source.substr(PrewarmPos, PrewarmEnd - PrewarmPos);
+
+	EXPECT_EQ(PrewarmBody.find("RenderSettingsQmClient(ContentView, false, true)"), std::string::npos);
+}
+
 TEST(SettingsResourceJobs, SkinListWarmupCountsCoverVisibleAndPrefetchRows)
 {
 	EXPECT_EQ(SettingsSkinListFirstPageWarmupEntries(180.0f, 50.0f, 1, 2), 6);
