@@ -2404,11 +2404,7 @@ void CMenus::Render()
 		else if(m_ShowStart)
 		{
 			CPerfTimer StageTimer;
-			const bool UseNewUi = g_Config.m_QmNewUi != 0;
-			if(UseNewUi)
-				m_MenusStart.RenderStartMenuV2(Screen);
-			else
-				m_MenusStart.RenderStartMenu(Screen);
+			m_MenusStart.RenderStartMenu(Screen);
 			LogPerfStage(Client(), "start_menu", StageTimer.ElapsedMs());
 		}
 		else

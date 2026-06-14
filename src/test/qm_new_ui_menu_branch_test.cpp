@@ -335,12 +335,21 @@ TEST(QmNewUiMenuBranches, StartMenuKeepsExplicitUseV2AndLegacyButtonPaths)
 	EXPECT_NE(RenderStartMenuImpl.find("GameClient()->m_Menus.DoButton_Menu(&s_PlayButton"), std::string::npos);
 }
 
-TEST(QmNewUiMenuBranches, StartMenuEntryUsesQmNewUiBranchAtRuntime)
+TEST(QmNewUiMenuBranches, StartMenuEntryKeepsLegacyStartPageWithQmNewUi)
 {
 	const std::string Source = ReadTextFile("src/game/client/components/menus.cpp");
 	EXPECT_NE(Source.find("else if(m_ShowStart)"), std::string::npos);
-	EXPECT_NE(Source.find("const bool UseNewUi = g_Config.m_QmNewUi != 0;"), std::string::npos);
-	EXPECT_NE(Source.find("if(UseNewUi)\n\t\t\t\tm_MenusStart.RenderStartMenuV2(Screen);\n\t\t\telse\n\t\t\t\tm_MenusStart.RenderStartMenu(Screen);"), std::string::npos);
+	const std::string Render = FunctionBody(Source, "void CMenus::Render()");
+	const size_t StartMenuPos = Render.find("else if(m_ShowStart)");
+	ASSERT_NE(StartMenuPos, std::string::npos);
+	const size_t StartMenuBodyStart = Render.find("{", StartMenuPos);
+	ASSERT_NE(StartMenuBodyStart, std::string::npos);
+	const size_t StartMenuBodyEnd = MatchingBrace(Render, StartMenuBodyStart);
+	ASSERT_NE(StartMenuBodyEnd, std::string::npos);
+	const std::string StartMenuBlock = Render.substr(StartMenuBodyStart, StartMenuBodyEnd - StartMenuBodyStart);
+	EXPECT_NE(StartMenuBlock.find("m_MenusStart.RenderStartMenu(Screen);"), std::string::npos);
+	EXPECT_EQ(StartMenuBlock.find("m_MenusStart.RenderStartMenuV2(Screen);"), std::string::npos);
+	EXPECT_EQ(StartMenuBlock.find("g_Config.m_QmNewUi"), std::string::npos);
 }
 
 TEST(QmNewUiMenuBranches, SettingsShellKeepsExplicitQmNewUiContainerBranch)
