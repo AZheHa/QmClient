@@ -43,9 +43,10 @@ function findPreviousLog(currentLogPath: string): string | null {
 }
 
 async function main() {
-  const { parseLog } = await import('./lib/parse.ts');
+  const { parseLogWithDiagnostics } = await import('./lib/parse.ts');
   const { generateReport } = await import('./lib/report.ts');
   const { snapshot, compareSessions } = await import('./lib/stats.ts');
+  const { summarizeForBundle } = await import('./lib/quality.ts');
 
   const logPath = process.argv[2] ?? findLatestLog();
   console.log(`读取: ${logPath}`);
@@ -53,8 +54,12 @@ async function main() {
   const content = readFileSync(logPath, 'utf-8');
   console.log(`解析中... ${content.split('\n').length} 行`);
 
-  const entries = parseLog(content);
+  const parsed = parseLogWithDiagnostics(content);
+  const entries = parsed.entries;
   console.log(`有效条目: ${entries.length}`);
+  if (parsed.diagnostics.invalidLines > 0) {
+    console.log(`忽略无效行: ${parsed.diagnostics.invalidLines}`);
+  }
 
   // 当前会话快照
   const currentSnapshot = snapshot(entries, logPath);
@@ -65,7 +70,8 @@ async function main() {
   if (prevLogPath) {
     try {
       const prevContent = readFileSync(prevLogPath, 'utf-8');
-      const prevEntries = parseLog(prevContent);
+      const prevParsed = parseLogWithDiagnostics(prevContent);
+      const prevEntries = prevParsed.entries;
       if (prevEntries.length > 0) {
         const prevSnapshot = snapshot(prevEntries, prevLogPath);
         comparison = compareSessions(prevSnapshot, currentSnapshot);
@@ -84,7 +90,8 @@ async function main() {
     console.log('无历史日志可对比（首次分析）');
   }
 
-  const reportHtml = generateReport(entries, logPath, comparison);
+  const reportHtml = generateReport(entries, logPath, comparison, parsed.diagnostics);
+  const summaryJson = summarizeForBundle(entries, logPath, parsed.diagnostics);
 
   // 输出到 Perf_Report/ 子目录
   const reportDir = REPORT_DIR();
@@ -95,7 +102,14 @@ async function main() {
   const logName = basename(logPath).replace('.log', '');
   const outPath = join(reportDir, `${logName}_report.html`);
   writeFileSync(outPath, reportHtml, 'utf-8');
+  const summaryText = JSON.stringify(summaryJson, null, 2);
+  const archiveSummaryPath = join(reportDir, `${logName}_summary.json`);
+  const bundleSummaryPath = join(reportDir, 'perf_summary.json');
+  writeFileSync(archiveSummaryPath, summaryText, 'utf-8');
+  writeFileSync(bundleSummaryPath, summaryText, 'utf-8');
   console.log(`报表已生成: ${outPath}`);
+  console.log(`摘要已生成: ${archiveSummaryPath}`);
+  console.log(`Debug bundle 摘要已生成: ${bundleSummaryPath}`);
 }
 
 main();

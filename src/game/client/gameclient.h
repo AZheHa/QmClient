@@ -69,16 +69,17 @@
 #include "components/pie_menu.h"
 #include "components/player_points.h"
 #include "components/players.h"
+#include "components/qmclient/axiom_auto_login.h"
 #include "components/qmclient/collision_hitbox.h"
 #include "components/qmclient/data_version.h"
-#include "components/qmclient/hud_notifications.h"
+#include "components/qmclient/hud_notifications/hud_notifications.h"
 #include "components/qmclient/input_overlay.h"
 #include "components/qmclient/lyrics_component.h"
-#include "components/qmclient/monitoring.h"
+#include "components/qmclient/monitoring/monitoring.h"
 #include "components/qmclient/qmclient.h"
 #include "components/qmclient/scripting.h"
-#include "components/qmclient/translate.h"
-#include "components/qmclient/voice_component.h"
+#include "components/qmclient/translate/translate.h"
+#include "components/qmclient/voice/voice_component.h"
 #include "components/qmclient/weapon_trajectory.h"
 #include "components/race_demo.h"
 #include "components/scoreboard.h"
@@ -278,6 +279,7 @@ public:
 	CBindWheel m_BindWheel;
 	CBgDraw m_BgDraw;
 	CQmClient m_QmClient;
+	CQmAxiomAutoLogin m_QmAxiomAutoLogin;
 	CQmMonitoring m_QmMonitoring;
 	CQmHudNotifications m_QmHudNotifications;
 	CQmWeaponTrajectory m_QmWeaponTrajectory;

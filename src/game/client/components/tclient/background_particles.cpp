@@ -13,264 +13,264 @@
 
 namespace
 {
-constexpr int MAX_BACKGROUND_PARTICLES = 200;
-constexpr float MIN_VIEW_SIZE = 1.0f;
-constexpr float MAX_EFFECTIVE_SIZE = 24.0f;
-constexpr float PROJ_DIST = 600.0f;
-constexpr int SHAPE_CUBE = 1;
-constexpr int SHAPE_HEART = 2;
-constexpr int SHAPE_MIXED = 3;
-constexpr int SHAPE_SPHERE = 4;
-constexpr int SHAPE_PYRAMID = 5;
-constexpr int SHAPE_DIAMOND = 6;
-constexpr int SHAPE_RING = 7;
-constexpr int SHAPE_STAR = 8;
-constexpr int SHAPE_CRESCENT = 9;
-constexpr int SHAPE_FIRST = SHAPE_CUBE;
-constexpr int SHAPE_LAST = SHAPE_CRESCENT;
-constexpr int REAL_SHAPE_COUNT = 8;
-constexpr int SPHERE_SEGMENTS = 24;
-constexpr int RING_SEGMENTS = 32;
-constexpr int RING_RADIALS = 8;
-constexpr int CRESCENT_SEGMENTS = 28;
-constexpr int STAR_POINTS = 10;
-constexpr int STAR_VERTICES = STAR_POINTS * 2;
-constexpr int STAR_EDGES = STAR_POINTS * 3;
-constexpr int HEART_POINTS = 96;
-constexpr int HEART_LOW_POINTS = 24;
-constexpr int HEART_LAYERS = 5;
-constexpr float HEART_THICKNESS = 0.35f;
+	constexpr int MAX_BACKGROUND_PARTICLES = 200;
+	constexpr float MIN_VIEW_SIZE = 1.0f;
+	constexpr float MAX_EFFECTIVE_SIZE = 24.0f;
+	constexpr float PROJ_DIST = 600.0f;
+	constexpr int SHAPE_CUBE = 1;
+	constexpr int SHAPE_HEART = 2;
+	constexpr int SHAPE_MIXED = 3;
+	constexpr int SHAPE_SPHERE = 4;
+	constexpr int SHAPE_PYRAMID = 5;
+	constexpr int SHAPE_DIAMOND = 6;
+	constexpr int SHAPE_RING = 7;
+	constexpr int SHAPE_STAR = 8;
+	constexpr int SHAPE_CRESCENT = 9;
+	constexpr int SHAPE_FIRST = SHAPE_CUBE;
+	constexpr int SHAPE_LAST = SHAPE_CRESCENT;
+	constexpr int REAL_SHAPE_COUNT = 8;
+	constexpr int SPHERE_SEGMENTS = 24;
+	constexpr int RING_SEGMENTS = 32;
+	constexpr int RING_RADIALS = 8;
+	constexpr int CRESCENT_SEGMENTS = 28;
+	constexpr int STAR_POINTS = 10;
+	constexpr int STAR_VERTICES = STAR_POINTS * 2;
+	constexpr int STAR_EDGES = STAR_POINTS * 3;
+	constexpr int HEART_POINTS = 96;
+	constexpr int HEART_LOW_POINTS = 24;
+	constexpr int HEART_LAYERS = 5;
+	constexpr float HEART_THICKNESS = 0.35f;
 
-const std::array<vec3, 8> s_aCubeVertices = { {
-	vec3(-1.0f, -1.0f, -1.0f),
-	vec3(1.0f, -1.0f, -1.0f),
-	vec3(1.0f, 1.0f, -1.0f),
-	vec3(-1.0f, 1.0f, -1.0f),
-	vec3(-1.0f, -1.0f, 1.0f),
-	vec3(1.0f, -1.0f, 1.0f),
-	vec3(1.0f, 1.0f, 1.0f),
-	vec3(-1.0f, 1.0f, 1.0f),
-} };
+	const std::array<vec3, 8> s_aCubeVertices = {{
+		vec3(-1.0f, -1.0f, -1.0f),
+		vec3(1.0f, -1.0f, -1.0f),
+		vec3(1.0f, 1.0f, -1.0f),
+		vec3(-1.0f, 1.0f, -1.0f),
+		vec3(-1.0f, -1.0f, 1.0f),
+		vec3(1.0f, -1.0f, 1.0f),
+		vec3(1.0f, 1.0f, 1.0f),
+		vec3(-1.0f, 1.0f, 1.0f),
+	}};
 
-const std::array<std::array<int, 2>, 12> s_aCubeEdges = { {
-	{ {0, 1} },
-	{ {1, 2} },
-	{ {2, 3} },
-	{ {3, 0} },
-	{ {4, 5} },
-	{ {5, 6} },
-	{ {6, 7} },
-	{ {7, 4} },
-	{ {0, 4} },
-	{ {1, 5} },
-	{ {2, 6} },
-	{ {3, 7} },
-} };
+	const std::array<std::array<int, 2>, 12> s_aCubeEdges = {{
+		{{0, 1}},
+		{{1, 2}},
+		{{2, 3}},
+		{{3, 0}},
+		{{4, 5}},
+		{{5, 6}},
+		{{6, 7}},
+		{{7, 4}},
+		{{0, 4}},
+		{{1, 5}},
+		{{2, 6}},
+		{{3, 7}},
+	}};
 
-const std::array<vec3, 5> s_aPyramidVertices = { {
-	vec3(-1.0f, -1.0f, -0.65f),
-	vec3(1.0f, -1.0f, -0.65f),
-	vec3(1.0f, 1.0f, -0.65f),
-	vec3(-1.0f, 1.0f, -0.65f),
-	vec3(0.0f, 0.0f, 1.15f),
-} };
+	const std::array<vec3, 5> s_aPyramidVertices = {{
+		vec3(-1.0f, -1.0f, -0.65f),
+		vec3(1.0f, -1.0f, -0.65f),
+		vec3(1.0f, 1.0f, -0.65f),
+		vec3(-1.0f, 1.0f, -0.65f),
+		vec3(0.0f, 0.0f, 1.15f),
+	}};
 
-const std::array<std::array<int, 2>, 8> s_aPyramidEdges = { {
-	{ {0, 1} },
-	{ {1, 2} },
-	{ {2, 3} },
-	{ {3, 0} },
-	{ {0, 4} },
-	{ {1, 4} },
-	{ {2, 4} },
-	{ {3, 4} },
-} };
+	const std::array<std::array<int, 2>, 8> s_aPyramidEdges = {{
+		{{0, 1}},
+		{{1, 2}},
+		{{2, 3}},
+		{{3, 0}},
+		{{0, 4}},
+		{{1, 4}},
+		{{2, 4}},
+		{{3, 4}},
+	}};
 
-const std::array<vec3, 6> s_aDiamondVertices = { {
-	vec3(0.0f, -1.25f, 0.0f),
-	vec3(1.0f, 0.0f, 0.0f),
-	vec3(0.0f, 0.0f, 1.0f),
-	vec3(-1.0f, 0.0f, 0.0f),
-	vec3(0.0f, 0.0f, -1.0f),
-	vec3(0.0f, 1.25f, 0.0f),
-} };
+	const std::array<vec3, 6> s_aDiamondVertices = {{
+		vec3(0.0f, -1.25f, 0.0f),
+		vec3(1.0f, 0.0f, 0.0f),
+		vec3(0.0f, 0.0f, 1.0f),
+		vec3(-1.0f, 0.0f, 0.0f),
+		vec3(0.0f, 0.0f, -1.0f),
+		vec3(0.0f, 1.25f, 0.0f),
+	}};
 
-const std::array<std::array<int, 2>, 12> s_aDiamondEdges = { {
-	{ {0, 1} },
-	{ {0, 2} },
-	{ {0, 3} },
-	{ {0, 4} },
-	{ {5, 1} },
-	{ {5, 2} },
-	{ {5, 3} },
-	{ {5, 4} },
-	{ {1, 2} },
-	{ {2, 3} },
-	{ {3, 4} },
-	{ {4, 1} },
-} };
+	const std::array<std::array<int, 2>, 12> s_aDiamondEdges = {{
+		{{0, 1}},
+		{{0, 2}},
+		{{0, 3}},
+		{{0, 4}},
+		{{5, 1}},
+		{{5, 2}},
+		{{5, 3}},
+		{{5, 4}},
+		{{1, 2}},
+		{{2, 3}},
+		{{3, 4}},
+		{{4, 1}},
+	}};
 
-float ClampDelta(float Delta)
-{
-	return std::clamp(Delta, 0.0f, 0.05f);
-}
-
-float ConfigAlpha()
-{
-	return std::clamp(g_Config.m_Qm3DParticlesAlpha, 1, 100) / 100.0f;
-}
-
-float ClampedSizeMin()
-{
-	return (float)std::clamp(g_Config.m_Qm3DParticlesSizeMin, 2, 64);
-}
-
-float ClampedSizeMax()
-{
-	const int SizeMin = std::clamp(g_Config.m_Qm3DParticlesSizeMin, 2, 64);
-	const int SizeMax = std::clamp(g_Config.m_Qm3DParticlesSizeMax, SizeMin, 64);
-	return (float)SizeMax;
-}
-
-vec3 RotateVec3(const vec3 &V, const vec3 &Rot)
-{
-	vec3 Result = V;
-
-	const float Cz = std::cos(Rot.z);
-	const float Sz = std::sin(Rot.z);
-	Result = vec3(Result.x * Cz - Result.y * Sz, Result.x * Sz + Result.y * Cz, Result.z);
-
-	const float Cx = std::cos(Rot.x);
-	const float Sx = std::sin(Rot.x);
-	Result = vec3(Result.x, Result.y * Cx - Result.z * Sx, Result.y * Sx + Result.z * Cx);
-
-	const float Cy = std::cos(Rot.y);
-	const float Sy = std::sin(Rot.y);
-	Result = vec3(Result.x * Cy + Result.z * Sy, Result.y, -Result.x * Sy + Result.z * Cy);
-
-	return Result;
-}
-
-vec2 ProjectPoint(const vec3 &Pos, const vec2 &Center)
-{
-	const float Scale = std::clamp(PROJ_DIST / (PROJ_DIST + Pos.z), 0.5f, 1.6f);
-	const vec2 Rel = vec2(Pos.x - Center.x, Pos.y - Center.y);
-	return Center + Rel * Scale;
-}
-
-const std::array<vec3, HEART_POINTS> &HeartVertices()
-{
-	static std::array<vec3, HEART_POINTS> s_aVerts;
-	static bool s_Initialized = false;
-	if(!s_Initialized)
+	float ClampDelta(float Delta)
 	{
-		for(int i = 0; i < HEART_POINTS; i++)
+		return std::clamp(Delta, 0.0f, 0.05f);
+	}
+
+	float ConfigAlpha()
+	{
+		return std::clamp(g_Config.m_Qm3DParticlesAlpha, 1, 100) / 100.0f;
+	}
+
+	float ClampedSizeMin()
+	{
+		return (float)std::clamp(g_Config.m_Qm3DParticlesSizeMin, 2, 64);
+	}
+
+	float ClampedSizeMax()
+	{
+		const int SizeMin = std::clamp(g_Config.m_Qm3DParticlesSizeMin, 2, 64);
+		const int SizeMax = std::clamp(g_Config.m_Qm3DParticlesSizeMax, SizeMin, 64);
+		return (float)SizeMax;
+	}
+
+	vec3 RotateVec3(const vec3 &V, const vec3 &Rot)
+	{
+		vec3 Result = V;
+
+		const float Cz = std::cos(Rot.z);
+		const float Sz = std::sin(Rot.z);
+		Result = vec3(Result.x * Cz - Result.y * Sz, Result.x * Sz + Result.y * Cz, Result.z);
+
+		const float Cx = std::cos(Rot.x);
+		const float Sx = std::sin(Rot.x);
+		Result = vec3(Result.x, Result.y * Cx - Result.z * Sx, Result.y * Sx + Result.z * Cx);
+
+		const float Cy = std::cos(Rot.y);
+		const float Sy = std::sin(Rot.y);
+		Result = vec3(Result.x * Cy + Result.z * Sy, Result.y, -Result.x * Sy + Result.z * Cy);
+
+		return Result;
+	}
+
+	vec2 ProjectPoint(const vec3 &Pos, const vec2 &Center)
+	{
+		const float Scale = std::clamp(PROJ_DIST / (PROJ_DIST + Pos.z), 0.5f, 1.6f);
+		const vec2 Rel = vec2(Pos.x - Center.x, Pos.y - Center.y);
+		return Center + Rel * Scale;
+	}
+
+	const std::array<vec3, HEART_POINTS> &HeartVertices()
+	{
+		static std::array<vec3, HEART_POINTS> s_aVerts;
+		static bool s_Initialized = false;
+		if(!s_Initialized)
 		{
-			const float T = 2.0f * pi * (float)i / (float)HEART_POINTS;
-			const float X = 16.0f * std::pow(std::sin(T), 3.0f);
-			const float Y = 13.0f * std::cos(T) - 5.0f * std::cos(2.0f * T) - 2.0f * std::cos(3.0f * T) - std::cos(4.0f * T);
-			s_aVerts[i] = vec3(X, -Y, 0.0f);
+			for(int i = 0; i < HEART_POINTS; i++)
+			{
+				const float T = 2.0f * pi * (float)i / (float)HEART_POINTS;
+				const float X = 16.0f * std::pow(std::sin(T), 3.0f);
+				const float Y = 13.0f * std::cos(T) - 5.0f * std::cos(2.0f * T) - 2.0f * std::cos(3.0f * T) - std::cos(4.0f * T);
+				s_aVerts[i] = vec3(X, -Y, 0.0f);
+			}
+			s_Initialized = true;
 		}
-		s_Initialized = true;
+		return s_aVerts;
 	}
-	return s_aVerts;
-}
 
-const std::array<vec3, HEART_LOW_POINTS> &HeartLowVertices()
-{
-	static std::array<vec3, HEART_LOW_POINTS> s_aVerts;
-	static bool s_Initialized = false;
-	if(!s_Initialized)
+	const std::array<vec3, HEART_LOW_POINTS> &HeartLowVertices()
 	{
-		const auto &HighRes = HeartVertices();
-		for(int i = 0; i < HEART_LOW_POINTS; i++)
+		static std::array<vec3, HEART_LOW_POINTS> s_aVerts;
+		static bool s_Initialized = false;
+		if(!s_Initialized)
 		{
-			const int Src = std::clamp((i * HEART_POINTS) / HEART_LOW_POINTS, 0, HEART_POINTS - 1);
-			s_aVerts[i] = HighRes[Src];
+			const auto &HighRes = HeartVertices();
+			for(int i = 0; i < HEART_LOW_POINTS; i++)
+			{
+				const int Src = std::clamp((i * HEART_POINTS) / HEART_LOW_POINTS, 0, HEART_POINTS - 1);
+				s_aVerts[i] = HighRes[Src];
+			}
+			s_Initialized = true;
 		}
-		s_Initialized = true;
+		return s_aVerts;
 	}
-	return s_aVerts;
-}
 
-const std::array<vec3, STAR_VERTICES> &StarVertices()
-{
-	static std::array<vec3, STAR_VERTICES> s_aVerts;
-	static bool s_Initialized = false;
-	if(!s_Initialized)
+	const std::array<vec3, STAR_VERTICES> &StarVertices()
 	{
-		for(int i = 0; i < STAR_POINTS; i++)
+		static std::array<vec3, STAR_VERTICES> s_aVerts;
+		static bool s_Initialized = false;
+		if(!s_Initialized)
 		{
-			const float T = -0.5f * pi + 2.0f * pi * (float)i / (float)STAR_POINTS;
-			const float Radius = (i % 2) == 0 ? 1.18f : 0.48f;
-			const vec3 Front(std::cos(T) * Radius, std::sin(T) * Radius, -0.26f);
-			const vec3 Back(Front.x, Front.y, 0.26f);
-			s_aVerts[i] = Front;
-			s_aVerts[i + STAR_POINTS] = Back;
+			for(int i = 0; i < STAR_POINTS; i++)
+			{
+				const float T = -0.5f * pi + 2.0f * pi * (float)i / (float)STAR_POINTS;
+				const float Radius = (i % 2) == 0 ? 1.18f : 0.48f;
+				const vec3 Front(std::cos(T) * Radius, std::sin(T) * Radius, -0.26f);
+				const vec3 Back(Front.x, Front.y, 0.26f);
+				s_aVerts[i] = Front;
+				s_aVerts[i + STAR_POINTS] = Back;
+			}
+			s_Initialized = true;
 		}
-		s_Initialized = true;
+		return s_aVerts;
 	}
-	return s_aVerts;
-}
 
-const std::array<std::array<int, 2>, STAR_EDGES> &StarEdges()
-{
-	static std::array<std::array<int, 2>, STAR_EDGES> s_aEdges;
-	static bool s_Initialized = false;
-	if(!s_Initialized)
+	const std::array<std::array<int, 2>, STAR_EDGES> &StarEdges()
 	{
-		for(int i = 0; i < STAR_POINTS; i++)
+		static std::array<std::array<int, 2>, STAR_EDGES> s_aEdges;
+		static bool s_Initialized = false;
+		if(!s_Initialized)
 		{
-			const int Next = (i + 1) % STAR_POINTS;
-			s_aEdges[i] = { {i, Next} };
-			s_aEdges[i + STAR_POINTS] = { {i + STAR_POINTS, Next + STAR_POINTS} };
-			s_aEdges[i + STAR_POINTS * 2] = { {i, i + STAR_POINTS} };
+			for(int i = 0; i < STAR_POINTS; i++)
+			{
+				const int Next = (i + 1) % STAR_POINTS;
+				s_aEdges[i] = {{i, Next}};
+				s_aEdges[i + STAR_POINTS] = {{i + STAR_POINTS, Next + STAR_POINTS}};
+				s_aEdges[i + STAR_POINTS * 2] = {{i, i + STAR_POINTS}};
+			}
+			s_Initialized = true;
 		}
-		s_Initialized = true;
+		return s_aEdges;
 	}
-	return s_aEdges;
-}
 
-template<size_t NumVertices, size_t NumEdges>
-void RenderWireShape(IGraphics *pGraphics, vec2 CameraCenter, const std::array<vec3, NumVertices> &aVertices, const std::array<std::array<int, 2>, NumEdges> &aEdges, vec2 Pos, float Size, const vec3 &Rotation, ColorRGBA Color)
-{
-	pGraphics->SetColor(Color);
-
-	const vec3 RenderPos(Pos.x, Pos.y, 0.0f);
-	std::array<vec2, NumVertices> aProjected;
-	for(size_t i = 0; i < NumVertices; i++)
+	template<size_t NumVertices, size_t NumEdges>
+	void RenderWireShape(IGraphics *pGraphics, vec2 CameraCenter, const std::array<vec3, NumVertices> &aVertices, const std::array<std::array<int, 2>, NumEdges> &aEdges, vec2 Pos, float Size, const vec3 &Rotation, ColorRGBA Color)
 	{
-		const vec3 Vertex = RotateVec3(aVertices[i] * Size, Rotation) + RenderPos;
-		aProjected[i] = ProjectPoint(Vertex, CameraCenter);
+		pGraphics->SetColor(Color);
+
+		const vec3 RenderPos(Pos.x, Pos.y, 0.0f);
+		std::array<vec2, NumVertices> aProjected;
+		for(size_t i = 0; i < NumVertices; i++)
+		{
+			const vec3 Vertex = RotateVec3(aVertices[i] * Size, Rotation) + RenderPos;
+			aProjected[i] = ProjectPoint(Vertex, CameraCenter);
+		}
+
+		std::array<IGraphics::CLineItem, NumEdges> aLines;
+		for(size_t i = 0; i < NumEdges; i++)
+		{
+			const auto &Edge = aEdges[i];
+			aLines[i] = IGraphics::CLineItem(aProjected[Edge[0]], aProjected[Edge[1]]);
+		}
+		pGraphics->LinesDraw(aLines.data(), aLines.size());
 	}
 
-	std::array<IGraphics::CLineItem, NumEdges> aLines;
-	for(size_t i = 0; i < NumEdges; i++)
+	template<size_t NumVertices>
+	void RenderWireLoop(IGraphics *pGraphics, vec2 CameraCenter, const std::array<vec3, NumVertices> &aVertices, vec2 Pos, float Size, const vec3 &Rotation, ColorRGBA Color)
 	{
-		const auto &Edge = aEdges[i];
-		aLines[i] = IGraphics::CLineItem(aProjected[Edge[0]], aProjected[Edge[1]]);
+		pGraphics->SetColor(Color);
+
+		const vec3 RenderPos(Pos.x, Pos.y, 0.0f);
+		std::array<vec2, NumVertices> aProjected;
+		for(size_t i = 0; i < NumVertices; i++)
+		{
+			const vec3 Vertex = RotateVec3(aVertices[i] * Size, Rotation) + RenderPos;
+			aProjected[i] = ProjectPoint(Vertex, CameraCenter);
+		}
+
+		std::array<IGraphics::CLineItem, NumVertices> aLines;
+		for(size_t i = 0; i < NumVertices; i++)
+			aLines[i] = IGraphics::CLineItem(aProjected[i], aProjected[(i + 1) % NumVertices]);
+		pGraphics->LinesDraw(aLines.data(), aLines.size());
 	}
-	pGraphics->LinesDraw(aLines.data(), aLines.size());
-}
-
-template<size_t NumVertices>
-void RenderWireLoop(IGraphics *pGraphics, vec2 CameraCenter, const std::array<vec3, NumVertices> &aVertices, vec2 Pos, float Size, const vec3 &Rotation, ColorRGBA Color)
-{
-	pGraphics->SetColor(Color);
-
-	const vec3 RenderPos(Pos.x, Pos.y, 0.0f);
-	std::array<vec2, NumVertices> aProjected;
-	for(size_t i = 0; i < NumVertices; i++)
-	{
-		const vec3 Vertex = RotateVec3(aVertices[i] * Size, Rotation) + RenderPos;
-		aProjected[i] = ProjectPoint(Vertex, CameraCenter);
-	}
-
-	std::array<IGraphics::CLineItem, NumVertices> aLines;
-	for(size_t i = 0; i < NumVertices; i++)
-		aLines[i] = IGraphics::CLineItem(aProjected[i], aProjected[(i + 1) % NumVertices]);
-	pGraphics->LinesDraw(aLines.data(), aLines.size());
-}
 }
 
 void CBackgroundParticles::OnReset()
@@ -418,9 +418,9 @@ void CBackgroundParticles::UpdateParticleTrail(SParticle &Particle, float Delta)
 	}
 
 	const int TrailLength = std::clamp(g_Config.m_Qm3DParticlesTrailLength, 2, MAX_TRAIL_POINTS);
-	constexpr float SAMPLE_INTERVAL = 0.045f;
+	constexpr float SampleInterval = 0.045f;
 	Particle.m_TrailSample += Delta;
-	if(Particle.m_TrailCount > 0 && Particle.m_TrailSample < SAMPLE_INTERVAL)
+	if(Particle.m_TrailCount > 0 && Particle.m_TrailSample < SampleInterval)
 		return;
 
 	Particle.m_TrailSample = 0.0f;
@@ -617,10 +617,10 @@ void CBackgroundParticles::RenderDiamond(vec2 Pos, float Size, const vec3 &Rotat
 
 void CBackgroundParticles::RenderRing(vec2 Pos, float Size, const vec3 &Rotation, ColorRGBA Color) const
 {
-	constexpr int RING_VERTICES = RING_SEGMENTS * 2;
-	constexpr int RING_EDGES = RING_SEGMENTS * 2 + RING_RADIALS;
-	std::array<vec3, RING_VERTICES> aVertices;
-	std::array<std::array<int, 2>, RING_EDGES> aEdges;
+	constexpr int RingVertices = RING_SEGMENTS * 2;
+	constexpr int RingEdges = RING_SEGMENTS * 2 + RING_RADIALS;
+	std::array<vec3, RingVertices> aVertices;
+	std::array<std::array<int, 2>, RingEdges> aEdges;
 
 	for(int i = 0; i < RING_SEGMENTS; i++)
 	{
@@ -629,14 +629,14 @@ void CBackgroundParticles::RenderRing(vec2 Pos, float Size, const vec3 &Rotation
 		const float S = std::sin(T);
 		aVertices[i] = vec3(C * 1.15f, S * 1.15f, 0.0f);
 		aVertices[i + RING_SEGMENTS] = vec3(C * 0.64f, S * 0.64f, 0.0f);
-		aEdges[i] = { {i, (i + 1) % RING_SEGMENTS} };
-		aEdges[i + RING_SEGMENTS] = { {i + RING_SEGMENTS, ((i + 1) % RING_SEGMENTS) + RING_SEGMENTS} };
+		aEdges[i] = {{i, (i + 1) % RING_SEGMENTS}};
+		aEdges[i + RING_SEGMENTS] = {{i + RING_SEGMENTS, ((i + 1) % RING_SEGMENTS) + RING_SEGMENTS}};
 	}
 
 	for(int i = 0; i < RING_RADIALS; i++)
 	{
 		const int VertexIndex = (i * RING_SEGMENTS) / RING_RADIALS;
-		aEdges[RING_SEGMENTS * 2 + i] = { {VertexIndex, VertexIndex + RING_SEGMENTS} };
+		aEdges[RING_SEGMENTS * 2 + i] = {{VertexIndex, VertexIndex + RING_SEGMENTS}};
 	}
 
 	RenderWireShape(Graphics(), GameClient()->m_Camera.m_Center, aVertices, aEdges, Pos, Size, Rotation, Color);
@@ -649,8 +649,8 @@ void CBackgroundParticles::RenderStar(vec2 Pos, float Size, const vec3 &Rotation
 
 void CBackgroundParticles::RenderCrescent(vec2 Pos, float Size, const vec3 &Rotation, ColorRGBA Color) const
 {
-	constexpr int CRESCENT_VERTICES = CRESCENT_SEGMENTS * 2;
-	std::array<vec3, CRESCENT_VERTICES> aVertices;
+	constexpr int CrescentVertices = CRESCENT_SEGMENTS * 2;
+	std::array<vec3, CrescentVertices> aVertices;
 	constexpr float Start = -0.78f * pi;
 	constexpr float End = 0.78f * pi;
 

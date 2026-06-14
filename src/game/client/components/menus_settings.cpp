@@ -102,6 +102,18 @@ namespace
 		return g_Config.m_QmPerfDebugThresholdMs > 0 ? g_Config.m_QmPerfDebugThresholdMs : 1.0;
 	}
 
+	int64_t PerfDebugStartTime()
+	{
+		return PerfDebugEnabled() ? time_get() : 0;
+	}
+
+	double PerfDebugElapsedMs(int64_t StartTime)
+	{
+		if(StartTime == 0)
+			return 0.0;
+		return (time_get() - StartTime) * 1000.0 / time_freq();
+	}
+
 	void LogPerfStage(IClient *pClient, const char *pStage, const double DurationMs, const bool Force = false, const char *pExtra = nullptr)
 	{
 		QmPerfLogStage("perf/menu", pStage, DurationMs, Force, pClient, nullptr, nullptr, pExtra);
@@ -393,9 +405,12 @@ namespace
 		const double UploadsPerSec = DurationSec > 0.0 ? UploadsDoneTotal / DurationSec : 0.0;
 		const double LoadedPerSec = DurationSec > 0.0 ? LoadedTotal / DurationSec : 0.0;
 		const auto &Telemetry = Skins.SettingsSourceAdmissionTelemetry();
-		char aPayload[768];
-		str_format(aPayload, sizeof(aPayload), "event=list_drain_summary dur_ms=%.3f uploads_done_total=%llu loaded_total=%llu uploads_per_sec=%.3f loaded_per_sec=%.3f requested=%d pending=%d loading=%d loaded=%d max_requested=%d max_pending=%d max_loading=%d max_real_inflight=%d count_fuse_limit=%d total_requested=%llu total_admitted=%llu total_started=%llu num_loading_window_waits=%d num_gpu_budget_waits=%d num_queue_fuse_waits=%d full_list_ready=%d final_real_inflight=%d last_wait_reason=%s last_dynamic_decision=%s last_request_budget_block_reason=%s",
+		char aPayload[1024];
+		str_format(aPayload, sizeof(aPayload), "event=work_drain page=settings:tee kind=merge count=%llu bytes=%d dur_ms=%.3f stop=%s source=list_drain_summary scope=session uploads_done_total=%llu loaded_total=%llu uploads_per_sec=%.3f loaded_per_sec=%.3f requested=%d pending=%d loading=%d loaded=%d max_requested=%d max_pending=%d max_loading=%d max_real_inflight=%d count_fuse_limit=%d total_requested=%llu total_admitted=%llu total_started=%llu num_loading_window_waits=%d num_gpu_budget_waits=%d num_queue_fuse_waits=%d full_list_ready=%d final_real_inflight=%d last_wait_reason=%s last_dynamic_decision=%s last_request_budget_block_reason=%s",
+			(unsigned long long)LoadedTotal,
+			0,
 			DurationMs,
+			FullListReady ? "complete" : "pending",
 			(unsigned long long)UploadsDoneTotal,
 			(unsigned long long)LoadedTotal,
 			UploadsPerSec,
@@ -627,6 +642,22 @@ namespace
 		}
 	}
 
+	void LogSettingsSectionPerf(IClient *pClient, int Page, int Tab, const char *pSectionId, double DurationMs, const char *pDirtyReason, int TextNew, int TextReused)
+	{
+		char aPayload[256];
+		char aTab[16];
+		const char *pTab = nullptr;
+		if(Tab >= 0)
+		{
+			str_format(aTab, sizeof(aTab), "%d", Tab);
+			pTab = aTab;
+		}
+		const char *pPageName = SettingsPageName(Page);
+		str_format(aPayload, sizeof(aPayload), "event=section page=%s section=%s dur_ms=%.3f visible=%d dirty=%s text_new=%d text_reused=%d",
+			pPageName, pSectionId != nullptr ? pSectionId : "unknown", DurationMs, 1, pDirtyReason != nullptr ? pDirtyReason : "unknown", TextNew, TextReused);
+		QmPerfLogPayload("perf/section", aPayload, pClient, pPageName, pTab);
+	}
+
 	static bool ApplyBackgroundEntitiesInputValue(CLineInput &Input)
 	{
 		char aNormalized[IO_MAX_PATH_LENGTH];
@@ -676,6 +707,7 @@ namespace
 void CMenus::RenderSettingsGeneral(CUIRect MainView)
 {
 	CPerfTimer RenderTimer;
+	CScopedSettingsTextPerfStats TextStats(this);
 	char aBuf[128 + IO_MAX_PATH_LENGTH];
 	CUIRect Label, Button, Left, Right, Game, ClientSettings;
 	MainView.HSplitTop(190.0f, &Game, &ClientSettings);
@@ -687,9 +719,9 @@ void CMenus::RenderSettingsGeneral(CUIRect MainView)
 		CUIRect GameLabel, LanguageLabel;
 		Label.VSplitMid(&GameLabel, &LanguageLabel, 20.0f);
 		CUIElement &GameTitleElement = SettingsTextElement(SETTINGS_GENERAL, -1, "game-title");
-		Ui()->DoLabelStreamed(*GameTitleElement.Rect(0), &GameLabel, Localize("Game"), 20.0f, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(GameTitleElement, &GameLabel, Localize("Game"), 20.0f, TEXTALIGN_ML);
 		CUIElement &LanguageTitleElement = SettingsTextElement(SETTINGS_GENERAL, -1, "language-title");
-		Ui()->DoLabelStreamed(*LanguageTitleElement.Rect(0), &LanguageLabel, Localize("Language"), 20.0f, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(LanguageTitleElement, &LanguageLabel, Localize("Language"), 20.0f, TEXTALIGN_ML);
 		Game.HSplitTop(5.0f, nullptr, &Game);
 		Game.VSplitMid(&Left, &Right, 20.0f);
 
@@ -749,7 +781,7 @@ void CMenus::RenderSettingsGeneral(CUIRect MainView)
 		// headline
 		ClientSettings.HSplitTop(30.0f, &Label, &ClientSettings);
 		CUIElement &ClientTitleElement = SettingsTextElement(SETTINGS_GENERAL, -1, "client-title");
-		Ui()->DoLabelStreamed(*ClientTitleElement.Rect(0), &Label, Localize("Client"), 20.0f, TEXTALIGN_ML);
+		DoSettingsLabelStreamed(ClientTitleElement, &Label, Localize("Client"), 20.0f, TEXTALIGN_ML);
 		ClientSettings.HSplitTop(5.0f, nullptr, &ClientSettings);
 		ClientSettings.VSplitMid(&Left, &Right, 20.0f);
 
@@ -874,6 +906,7 @@ void CMenus::RenderSettingsGeneral(CUIRect MainView)
 			}
 		}
 	}
+	LogSettingsSectionPerf(Client(), SETTINGS_GENERAL, -1, "general_page", RenderTimer.ElapsedMs(), "static_text", TextStats.Stats().m_New, TextStats.Stats().m_Reused);
 	LogPerfStage(Client(), "general_page_total", RenderTimer.ElapsedMs(), false, "page=general");
 }
 
@@ -978,8 +1011,10 @@ void CMenus::RenderSettingsTeeIdentity(CUIRect MainView, CUIRect *pFlagButton)
 	ClanInput.VSplitRight(40.0f, &ClanInput, &FlagButton);
 	ClanInput.VSplitRight(6.0f, &ClanInput, nullptr);
 
-	Ui()->DoLabel(&NameLabel, Localize("Name"), 14.0f, TEXTALIGN_ML);
-	Ui()->DoLabel(&ClanLabel, Localize("Clan"), 14.0f, TEXTALIGN_ML);
+	CUIElement &NameLabelElement = SettingsTextElement(SETTINGS_TEE, -1, "tee-name-label");
+	DoSettingsLabelStreamed(NameLabelElement, &NameLabel, Localize("Name"), 14.0f, TEXTALIGN_ML);
+	CUIElement &ClanLabelElement = SettingsTextElement(SETTINGS_TEE, -1, "tee-clan-label");
+	DoSettingsLabelStreamed(ClanLabelElement, &ClanLabel, Localize("Clan"), 14.0f, TEXTALIGN_ML);
 	if(Ui()->DoEditBox(&NameInputLine, &NameInputRect, 14.0f))
 		gs_TeeIdentityNameInputState.MarkDirty(Dummy);
 	if(gs_TeeIdentityNameInputState.IsDirty(Dummy) && !NameInputLine.IsActive())
@@ -1524,7 +1559,7 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 			pSkinContainer == nullptr ?
 				CSkins::CSkinContainer::EStatusIndicator::ERROR :
 				CSkins::CSkinContainer::StatusIndicator(pSkinContainer->State());
-		Ui()->DoButtonLogic(pStatusTooltipId, 0, &StatusIcon, BUTTONFLAG_NONE);
+		Ui()->RegisterPassiveHotItem(pStatusTooltipId, &StatusIcon);
 		if(Indicator == CSkins::CSkinContainer::EStatusIndicator::LOADING)
 		{
 			Ui()->RenderProgressSpinner(StatusIcon.Center(), 5.0f);
@@ -2078,8 +2113,45 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	int VisibleNonTerminalWaitingCount = 0;
 	int TotalReadyCount = 0;
 	int OldSelected = -1;
+	for(size_t i = 0; i < vSkinList.size(); ++i)
+	{
+		CSkins::CSkinListEntry &SkinListEntry = vSkinList[i];
+		if(!m_Dummy ? SkinListEntry.IsSelectedMain() : SkinListEntry.IsSelectedDummy())
+			OldSelected = (int)i;
+
+		const CSkins::CSkinContainer *pSkinContainer = SkinListEntry.SkinContainer();
+		if(pSkinContainer == nullptr)
+			continue;
+
+		const auto State = pSkinContainer->State();
+		const auto &EntryColorKey = SkinListEntry.ColorKey();
+		const bool EntryUseCustomColor = EntryColorKey.has_value() ? EntryColorKey->m_UseCustomColor : *pUseCustomColor != 0;
+		const int EntryColorBody = EntryColorKey.has_value() ? EntryColorKey->m_ColorBody : (int)*pColorBody;
+		const int EntryColorFeet = EntryColorKey.has_value() ? EntryColorKey->m_ColorFeet : (int)*pColorFeet;
+		const std::string PreviewCacheKey = SSettingsTeeListPreviewCache::Key(pSkinContainer->Name(), m_Dummy, EntryUseCustomColor, EntryColorBody, EntryColorFeet, *pEmote);
+		const CManagedTeeRenderInfo *pCachedPreview = gs_TeeListPreviewCache.Find(PreviewCacheKey);
+		const bool SourceReady = State == CSkins::CSkinContainer::EState::LOADED;
+		const bool TerminalFailure = State == CSkins::CSkinContainer::EState::ERROR || State == CSkins::CSkinContainer::EState::NOT_FOUND;
+		if(SettingsSkinListEntryReady(SourceReady, TerminalFailure, pCachedPreview != nullptr))
+			++TotalReadyCount;
+	}
 	s_vQueueButtonIds.resize(vSkinList.size());
+	const auto ListFrameStartTime = time_get_nanoseconds();
 	s_ListBox.DoStart(50.0f, vSkinList.size(), 4, 2, OldSelected, &MainView);
+	if(m_SkinListScrollToSelected && OldSelected >= 0)
+	{
+		s_ListBox.ScrollToSelected();
+		m_SkinListScrollToSelected = false;
+	}
+	const SSettingsSkinListVisibleRange VisibleRange = SettingsSkinListVisibleRangeForScroll(
+		s_ListBox.ScrollOffsetY(),
+		s_ListBox.ViewHeight(),
+		50.0f,
+		4,
+		(int)vSkinList.size(),
+		1);
+	int RowsIterated = 0;
+	int RowsRendered = 0;
 	auto DoButtonSkinQueue = [&](const void *pButtonId, const void *pParentId, bool InQueue, bool Disabled, const CUIRect *pRect) {
 		if(InQueue || (pParentId != nullptr && Ui()->HotItem() == pParentId) || Ui()->HotItem() == pButtonId)
 		{
@@ -2102,10 +2174,22 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 		const bool Clicked = Ui()->DoButtonLogic(pButtonId, 0, pRect, BUTTONFLAG_LEFT);
 		return Clicked && !Disabled;
 	};
-	for(size_t i = 0; i < vSkinList.size(); ++i)
+	if(VisibleRange.m_FirstItem > 0)
+		s_ListBox.SkipItems(VisibleRange.m_FirstItem);
+	for(size_t i = (size_t)VisibleRange.m_FirstItem; i < (size_t)VisibleRange.m_EndItem; ++i)
 	{
 		CSkins::CSkinListEntry &SkinListEntry = vSkinList[i];
+		const bool RowStart = s_ListBox.ItemIndex() % s_ListBox.ItemsPerRow() == 0;
+		if(RowStart)
+			++RowsIterated;
+
 		const CSkins::CSkinContainer *pSkinContainer = vSkinList[i].SkinContainer();
+		if(pSkinContainer == nullptr)
+		{
+			s_ListBox.SkipItems(1);
+			continue;
+		}
+
 		const auto State = pSkinContainer->State();
 		const auto &EntryColorKey = SkinListEntry.ColorKey();
 		const bool EntryUseCustomColor = EntryColorKey.has_value() ? EntryColorKey->m_UseCustomColor : *pUseCustomColor != 0;
@@ -2117,24 +2201,14 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 		const bool TerminalFailure = State == CSkins::CSkinContainer::EState::ERROR || State == CSkins::CSkinContainer::EState::NOT_FOUND;
 		const bool PreviewCacheReady = pCachedPreview != nullptr;
 		const bool EntryReady = SettingsSkinListEntryReady(SourceReady, TerminalFailure, PreviewCacheReady);
-		if(EntryReady)
-			++TotalReadyCount;
-
-		if(!m_Dummy ? SkinListEntry.IsSelectedMain() : SkinListEntry.IsSelectedDummy())
-		{
-			OldSelected = i;
-			if(m_SkinListScrollToSelected)
-			{
-				s_ListBox.ScrollToSelected();
-				m_SkinListScrollToSelected = false;
-			}
-		}
 
 		const CListboxItem Item = s_ListBox.DoNextItem(SkinListEntry.ListItemId(), OldSelected >= 0 && (size_t)OldSelected == i);
 		if(!Item.m_Visible)
 		{
 			continue;
 		}
+		if(RowStart)
+			++RowsRendered;
 
 		vVisibleSkinIndices.push_back(i);
 		const bool EntryNonTerminalWaiting =
@@ -2257,6 +2331,9 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 
 		RenderSkinStatus(Item.m_Rect, pSkinContainer, SkinListEntry.ErrorTooltipId(), PreviewCacheReady);
 	}
+	const int TailItems = (int)vSkinList.size() - VisibleRange.m_EndItem;
+	if(TailItems > 0)
+		s_ListBox.SkipItems(TailItems);
 	for(auto It = vVisibleSkinIndices.rbegin(); It != vVisibleSkinIndices.rend(); ++It)
 	{
 		vSkinList[*It].RequestLoad(ESettingsResourcePriority::VISIBLE);
@@ -2556,6 +2633,19 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 		}
 	}
 	const int NewSelected = s_ListBox.DoEnd();
+	if(PerfDebugEnabled())
+	{
+		const double ListFrameDurationMs = std::chrono::duration<double, std::milli>(time_get_nanoseconds() - ListFrameStartTime).count();
+		if(QmPerfShouldLogDuration(ListFrameDurationMs, false))
+		{
+			const int RowsSkipped = maximum(0, VisibleRange.m_TotalRows - RowsRendered);
+			char aPayload[256];
+			str_format(aPayload, sizeof(aPayload),
+				"event=list_frame page=settings:tee rows_total=%d rows_visible=%d rows_rendered=%d rows_iterated=%d rows_skipped=%d first_visible_index=%d last_visible_index=%d dur_ms=%.3f source=settings_tee",
+				VisibleRange.m_TotalRows, VisibleRange.m_VisibleRows, RowsRendered, RowsIterated, RowsSkipped, FirstVisibleIndex, LastVisibleIndex, ListFrameDurationMs);
+			QmPerfLogPayload("perf/interaction", aPayload, Client(), "settings:tee");
+		}
+	}
 
 	const bool SkinListScrollActive = s_ListBox.ScrollbarActive() || s_ListBox.ScrollbarAnimating();
 	m_SettingsScrollActive = m_SettingsScrollActive || SkinListScrollActive;
@@ -4204,7 +4294,7 @@ void CMenus::PrepareLanguagePageCache(float MainViewWidth)
 		CUIRect FlagRect, Label;
 		ItemRect.VSplitLeft(ItemRect.h * 2.0f, &FlagRect, &Label);
 		CUIElement &LabelElement = SettingsTextElement(SETTINGS_LANGUAGE, -1, Language.m_Filename.c_str());
-		Ui()->DoLabelStreamed(*LabelElement.Rect(0), &Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML, {}, -1, nullptr, false);
+		DoSettingsLabelStreamed(LabelElement, &Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML, {}, -1, nullptr, false);
 	}
 
 	gs_LanguageLabelWidth = LabelWidth;
@@ -4307,7 +4397,7 @@ bool CMenus::RenderLanguageSelection(CUIRect MainView)
 		if(UseCache)
 		{
 			CUIElement &LabelElement = SettingsTextElement(SETTINGS_LANGUAGE, -1, Language.m_Filename.c_str());
-			Ui()->DoLabelStreamed(*LabelElement.Rect(0), &Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML);
+			DoSettingsLabelStreamed(LabelElement, &Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML);
 		}
 		else
 			Ui()->DoLabel(&Label, Language.m_Name.c_str(), LANGUAGE_FONT_SIZE, TEXTALIGN_ML);
@@ -4332,6 +4422,8 @@ bool CMenus::RenderLanguageSelection(CUIRect MainView)
 
 void CMenus::RenderSettings(CUIRect MainView)
 {
+	const bool SettingsPerfEnabled = PerfDebugEnabled();
+	const int64_t SettingsRenderStartTime = PerfDebugStartTime();
 	// This handles cases where old config files have an invalid page index
 	m_SettingsScrollActive = Input()->KeyPress(KEY_MOUSE_WHEEL_UP) ||
 				 Input()->KeyPress(KEY_MOUSE_WHEEL_DOWN) ||
@@ -4353,6 +4445,8 @@ void CMenus::RenderSettings(CUIRect MainView)
 	{
 		g_Config.m_UiSettingsPage = SettingsCanonicalPage(g_Config.m_UiSettingsPage);
 	}
+	if(g_Config.m_UiSettingsPage == SETTINGS_TEE && m_SettingsScrollActive)
+		StartSettingsPerfScrollWindow(SettingsPerfContextName(), CurrentQmUiPerfPage(), "none");
 
 	if(g_Config.m_UiSettingsPage != SETTINGS_ASSETS && (m_AssetsEditorState.m_Open || m_AssetsEditorState.m_Initialized))
 		AssetsEditorCloseNow();
@@ -4365,6 +4459,7 @@ void CMenus::RenderSettings(CUIRect MainView)
 	const uint64_t SettingsPageSwitchNode = UiAnimNodeKey("settings_main_page_switch");
 
 	// render background
+	const int64_t ShellLayoutStartTime = PerfDebugStartTime();
 	CUIRect Button, TabBar, RestartBar;
 	const bool UseNewSettingsUi = g_Config.m_QmNewUi != 0;
 	if(UseNewSettingsUi)
@@ -4401,6 +4496,25 @@ void CMenus::RenderSettings(CUIRect MainView)
 	{
 		TabBar.HSplitTop(50.0f, &Button, &TabBar);
 		Button.Draw(ms_ColorTabbarActive, IGraphics::CORNER_BR, 10.0f);
+	}
+	if(SettingsPerfEnabled)
+	{
+		char aSettingsPerfTab[16];
+		const char *pSettingsPerfTab = "none";
+		if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+		{
+			str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+			pSettingsPerfTab = aSettingsPerfTab;
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+		{
+			str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+			pSettingsPerfTab = aSettingsPerfTab;
+		}
+		char aShellExtra[192];
+		str_format(aShellExtra, sizeof(aShellExtra), "context=%s page=%s tab=%s operation=%s restart=%d",
+			SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation(), NeedRestart ? 1 : 0);
+		LogPerfStage(Client(), "settings_shell_layout", PerfDebugElapsedMs(ShellLayoutStartTime), false, aShellExtra);
 	}
 
 	PrepareSettingsTabLabelCache(MainView.w);
@@ -4448,9 +4562,24 @@ void CMenus::RenderSettings(CUIRect MainView)
 			}
 		}
 
-		char aTabBarExtra[96];
-		str_format(aTabBarExtra, sizeof(aTabBarExtra), "page=%s", SettingsPageName(g_Config.m_UiSettingsPage));
-		LogPerfStage(Client(), "settings_tabbar", StageTimer.ElapsedMs(), false, aTabBarExtra);
+		if(SettingsPerfEnabled)
+		{
+			char aSettingsPerfTab[16];
+			const char *pSettingsPerfTab = "none";
+			if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			char aTabBarExtra[128];
+			str_format(aTabBarExtra, sizeof(aTabBarExtra), "context=%s page=%s tab=%s operation=%s", SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation());
+			LogPerfStage(Client(), "settings_tabbar", StageTimer.ElapsedMs(), false, aTabBarExtra);
+		}
 	}
 
 	if(!s_SettingsTransitionInitialized)
@@ -4464,11 +4593,25 @@ void CMenus::RenderSettings(CUIRect MainView)
 			FinalizeTeeListDrainPerfSession();
 		if(PerfDebugEnabled())
 		{
-			char aPayload[128];
-			str_format(aPayload, sizeof(aPayload), "event=settings_page_switch from=%s to=%s",
-				SettingsPageName(s_PrevSettingsPage), SettingsPageName(g_Config.m_UiSettingsPage));
+			char aPayload[160];
+			str_format(aPayload, sizeof(aPayload), "event=page_switch from=%s to=%s dur_ms=%.3f source=settings_page_switch",
+				SettingsPageName(s_PrevSettingsPage), SettingsPageName(g_Config.m_UiSettingsPage), 0.0);
 			QmPerfLogPayload("perf/interaction", aPayload, Client(), "settings");
 		}
+		char aWindowTab[16];
+		const char *pWindowTab = "none";
+		if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+		{
+			str_format(aWindowTab, sizeof(aWindowTab), "%d", m_QmClientSettingsTab);
+			pWindowTab = aWindowTab;
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+		{
+			str_format(aWindowTab, sizeof(aWindowTab), "%d", m_TClientSettingsTab);
+			pWindowTab = aWindowTab;
+		}
+		if(m_SettingsPerfLastPage != -1)
+			StartSettingsPerfFixedWindow("settings_tab_switch", SettingsPerfContextName(), CurrentQmUiPerfPage(), pWindowTab, 30);
 		s_SettingsTransitionDirection = UseNewSettingsUi ? (g_Config.m_UiSettingsPage > s_PrevSettingsPage ? 1.0f : -1.0f) : 0.0f;
 		if(UseNewSettingsUi)
 			TriggerUiSwitchAnimation(SettingsPageSwitchNode, 0.18f);
@@ -4489,107 +4632,61 @@ void CMenus::RenderSettings(CUIRect MainView)
 
 	{
 		CPerfTimer StageTimer;
-		auto DrawOrPrewarmSection = [&](int Page, int Tab, const char *pSectionId) {
-			CPerfTimer SectionTimer;
-			if(!DrawSettingsSectionRuntimeCache(ContentView, Page, Tab, pSectionId))
-				(void)PrewarmSettingsSectionRuntimeCache(ContentView, Page, Tab, pSectionId);
-			char aPayload[192];
-			char aTab[16];
-			const char *pTab = nullptr;
-			if(Tab >= 0)
-			{
-				str_format(aTab, sizeof(aTab), "%d", Tab);
-				pTab = aTab;
-			}
-			str_format(aPayload, sizeof(aPayload), "event=section_render section=%s dur_ms=%.3f",
-				pSectionId != nullptr ? pSectionId : "unknown", SectionTimer.ElapsedMs());
-			QmPerfLogPayload("perf/section", aPayload, Client(), SettingsPageName(Page), pTab);
-		};
+		int NumSections = 0;
+		int NumSectionsVisible = 0;
 		if(g_Config.m_UiSettingsPage == SETTINGS_GENERAL)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_GENERAL);
-			DrawOrPrewarmSection(SETTINGS_GENERAL, -1, "language-list");
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_GENERAL, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsGeneral(ContentView);
+			RenderSettingsGeneral(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_TEE)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_TEE);
-			DrawOrPrewarmSection(SETTINGS_TEE, -1, "identity");
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_TEE, -1);
-			if(!RuntimeCacheHit)
-			{
-				if(Client()->IsSixup())
-					RenderSettingsTee7(ContentView);
-				else
-					RenderSettingsTee(ContentView);
-			}
+			if(Client()->IsSixup())
+				RenderSettingsTee7(ContentView);
+			else
+				RenderSettingsTee(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_APPEARANCE)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_APPEARANCE);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_APPEARANCE, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsAppearance(ContentView);
+			RenderSettingsAppearance(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_CONTROLS)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_CONTROLS);
-			DrawOrPrewarmSection(SETTINGS_CONTROLS, -1, "movement");
-			DrawOrPrewarmSection(SETTINGS_CONTROLS, -1, "weapons");
-			DrawOrPrewarmSection(SETTINGS_CONTROLS, -1, "voting");
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_CONTROLS, -1);
-			if(!RuntimeCacheHit)
-				m_MenusSettingsControls.Render(ContentView);
+			m_MenusSettingsControls.Render(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_GRAPHICS)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_GRAPHICS);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_GRAPHICS, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsGraphics(ContentView);
+			RenderSettingsGraphics(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_SOUND)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_SOUND);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_SOUND, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsSound(ContentView);
+			RenderSettingsSound(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_DDNET)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_DDNET);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_DDNET, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsDDNet(ContentView);
+			RenderSettingsDDNet(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_ASSETS)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_ASSETS);
-			DrawOrPrewarmSection(SETTINGS_ASSETS, -1, "resource-list");
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_ASSETS, -1);
-			if(!RuntimeCacheHit)
-				RenderSettingsCustom(ContentView);
+			RenderSettingsCustom(ContentView);
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(13);
-			const float TClientCacheScrollY = m_SettingsTClientScrollRestorePending ? m_SettingsRuntimeMetadata.m_LastScrollY : m_SettingsTClientCurrentScrollY;
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_TCLIENT, m_TClientSettingsTab, TClientCacheScrollY);
-			if(!RuntimeCacheHit)
-				RenderSettingsTClient(ContentView);
+			RenderSettingsTClient(ContentView);
 			m_SettingsRuntimeMetadata.m_LastTClientTab = m_TClientSettingsTab;
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
 		{
 			GameClient()->m_MenuBackground.ChangePosition(15);
-			const char *pQmSection = m_QmClientSettingsTab == QMCLIENT_SETTINGS_TAB_CONFIG ? "config" :
-													 (m_QmClientSettingsTab == QMCLIENT_SETTINGS_TAB_CONTRIBUTORS ? "contributors" : "general");
-			DrawOrPrewarmSection(SETTINGS_QMCLIENT, m_QmClientSettingsTab, pQmSection);
-			const bool RuntimeCacheHit = DrawSettingsPageRuntimeCache(ContentView, SETTINGS_QMCLIENT, m_QmClientSettingsTab);
-			if(!RuntimeCacheHit)
-				RenderSettingsQmClient(ContentView);
+			RenderSettingsQmClient(ContentView);
 			m_SettingsRuntimeMetadata.m_LastQmTab = m_QmClientSettingsTab;
 		}
 		else if(g_Config.m_UiSettingsPage == SETTINGS_PROFILES)
@@ -4601,24 +4698,81 @@ void CMenus::RenderSettings(CUIRect MainView)
 		{
 			dbg_assert_failed("ui_settings_page invalid");
 		}
-		char aContentExtra[128];
-		str_format(aContentExtra, sizeof(aContentExtra), "page=%s transition=%d", SettingsPageName(g_Config.m_UiSettingsPage), TransitionActive ? 1 : 0);
-		LogPerfStage(Client(), "settings_page_content", StageTimer.ElapsedMs(), TransitionActive, aContentExtra);
+		char aContentTab[16];
+		const char *pTab = "none";
+		if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+		{
+			str_format(aContentTab, sizeof(aContentTab), "%d", m_QmClientSettingsTab);
+			pTab = aContentTab;
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+		{
+			str_format(aContentTab, sizeof(aContentTab), "%d", m_TClientSettingsTab);
+			pTab = aContentTab;
+		}
+		if(SettingsPerfEnabled)
+		{
+			char aContentExtra[192];
+			str_format(aContentExtra, sizeof(aContentExtra), "context=%s page=%s transition=%d sections=%d sections_visible=%d tab=%s operation=%s", SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), TransitionActive ? 1 : 0, NumSections, NumSectionsVisible, pTab, SettingsPerfActiveOperation());
+			LogPerfStage(Client(), "settings_page_content", StageTimer.ElapsedMs(), TransitionActive, aContentExtra);
+		}
 	}
+
+	if(m_SettingsPerfLastPage == g_Config.m_UiSettingsPage)
+	{
+		if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT && m_SettingsPerfLastTClientTab != -1 && m_SettingsPerfLastTClientTab != m_TClientSettingsTab)
+		{
+			char aTab[16];
+			str_format(aTab, sizeof(aTab), "%d", m_TClientSettingsTab);
+			StartSettingsPerfFixedWindow("settings_subtab_switch", SettingsPerfContextName(), CurrentQmUiPerfPage(), aTab, 30);
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT && m_SettingsPerfLastQmClientTab != -1 && m_SettingsPerfLastQmClientTab != m_QmClientSettingsTab)
+		{
+			char aTab[16];
+			str_format(aTab, sizeof(aTab), "%d", m_QmClientSettingsTab);
+			StartSettingsPerfFixedWindow("settings_subtab_switch", SettingsPerfContextName(), CurrentQmUiPerfPage(), aTab, 30);
+		}
+	}
+	m_SettingsPerfLastPage = g_Config.m_UiSettingsPage;
+	m_SettingsPerfLastTClientTab = m_TClientSettingsTab;
+	m_SettingsPerfLastQmClientTab = m_QmClientSettingsTab;
 
 	m_SettingsRuntimeMetadata.m_LastPage = g_Config.m_UiSettingsPage;
 	m_SettingsRuntimeMetadata.m_Valid = true;
 
-	if(TransitionActive && TransitionAlpha > 0.0f)
 	{
-		ContentClip.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha), IGraphics::CORNER_NONE, 0.0f);
-	}
-	if(TransitionActive)
-	{
-		Ui()->ClipDisable();
+		const int64_t StageStartTime = PerfDebugStartTime();
+		if(TransitionActive && TransitionAlpha > 0.0f)
+		{
+			ContentClip.Draw(ColorRGBA(0.0f, 0.0f, 0.0f, TransitionAlpha), IGraphics::CORNER_NONE, 0.0f);
+		}
+		if(TransitionActive)
+		{
+			Ui()->ClipDisable();
+		}
+		if(SettingsPerfEnabled)
+		{
+			char aSettingsPerfTab[16];
+			const char *pSettingsPerfTab = "none";
+			if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			char aOverlayExtra[160];
+			str_format(aOverlayExtra, sizeof(aOverlayExtra), "context=%s page=%s tab=%s operation=%s active=%d",
+				SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation(), TransitionActive ? 1 : 0);
+			LogPerfStage(Client(), "settings_transition_overlay", PerfDebugElapsedMs(StageStartTime), TransitionActive, aOverlayExtra);
+		}
 	}
 	if(NeedRestart)
 	{
+		const int64_t StageStartTime = PerfDebugStartTime();
 		CUIRect RestartWarning, RestartButton;
 		RestartBar.VSplitRight(125.0f, &RestartWarning, &RestartButton);
 		RestartWarning.VSplitRight(10.0f, &RestartWarning, nullptr);
@@ -4645,6 +4799,44 @@ void CMenus::RenderSettings(CUIRect MainView)
 				Client()->Restart();
 			}
 		}
+		if(SettingsPerfEnabled)
+		{
+			char aSettingsPerfTab[16];
+			const char *pSettingsPerfTab = "none";
+			if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+			{
+				str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+				pSettingsPerfTab = aSettingsPerfTab;
+			}
+			char aRestartExtra[160];
+			str_format(aRestartExtra, sizeof(aRestartExtra), "context=%s page=%s tab=%s operation=%s",
+				SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation());
+			LogPerfStage(Client(), "settings_restart_bar", PerfDebugElapsedMs(StageStartTime), false, aRestartExtra);
+		}
+	}
+	if(SettingsPerfEnabled)
+	{
+		char aSettingsPerfTab[16];
+		const char *pSettingsPerfTab = "none";
+		if(g_Config.m_UiSettingsPage == SETTINGS_QMCLIENT)
+		{
+			str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_QmClientSettingsTab);
+			pSettingsPerfTab = aSettingsPerfTab;
+		}
+		else if(g_Config.m_UiSettingsPage == SETTINGS_TCLIENT)
+		{
+			str_format(aSettingsPerfTab, sizeof(aSettingsPerfTab), "%d", m_TClientSettingsTab);
+			pSettingsPerfTab = aSettingsPerfTab;
+		}
+		char aRenderTotalExtra[160];
+		str_format(aRenderTotalExtra, sizeof(aRenderTotalExtra), "context=%s page=%s tab=%s operation=%s",
+			SettingsPerfContextName(), SettingsPageName(g_Config.m_UiSettingsPage), pSettingsPerfTab, SettingsPerfActiveOperation());
+		LogPerfStage(Client(), "settings_render_total", PerfDebugElapsedMs(SettingsRenderStartTime), false, aRenderTotalExtra);
 	}
 }
 
@@ -5639,7 +5831,7 @@ void CMenus::RenderSettingsAppearance(CUIRect MainView)
 		Ui()->DoLabel_AutoLineSize(Localize("Colors of the hook collision line, in case of a possible collision with:"), 13.0f,
 			TEXTALIGN_ML, &LeftView, HeadlineHeight);
 
-		Ui()->DoButtonLogic(&s_HookCollToolTip, 0, &LeftView, BUTTONFLAG_NONE); // Just for the tooltip, result ignored
+		Ui()->RegisterPassiveHotItem(&s_HookCollToolTip, &LeftView);
 		GameClient()->m_Tooltips.DoToolTip(&s_HookCollToolTip, &LeftView, Localize("Your movements are not taken into account when calculating the line colors"));
 		DoLine_ColorPicker(&s_HookCollNoCollResetId, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &LeftView, Localize("Nothing hookable"), &g_Config.m_ClHookCollColorNoColl, ColorRGBA(1.0f, 0.0f, 0.0f, 1.0f), false);
 		DoLine_ColorPicker(&s_HookCollHookableCollResetId, ColorPickerLineSize, ColorPickerLabelSize, ColorPickerLineSpacing, &LeftView, Localize("Something hookable"), &g_Config.m_ClHookCollColorHookableColl, ColorRGBA(130.0f / 255.0f, 232.0f / 255.0f, 160.0f / 255.0f, 1.0f), false);
@@ -5919,9 +6111,11 @@ void CMenus::RenderSettingsDDNet(CUIRect MainView)
 	CUIRect Demo;
 	MainView.HSplitTop(130.0f, &Demo, &MainView);
 	Demo.HSplitTop(30.0f, &Label, &Demo);
-	Ui()->DoLabel(&Label, Localize("Demo"), 20.0f, TEXTALIGN_ML);
+	CUIElement &DemoTitleElement = SettingsTextElement(SETTINGS_DDNET, -1, "ddnet-demo-title");
+	DoSettingsLabelStreamed(DemoTitleElement, &Label, Localize("Demo"), 20.0f, TEXTALIGN_ML);
 	Label.VSplitMid(nullptr, &Label, 20.0f);
-	Ui()->DoLabel(&Label, Localize("Ghost"), 20.0f, TEXTALIGN_ML);
+	CUIElement &GhostTitleElement = SettingsTextElement(SETTINGS_DDNET, -1, "ddnet-ghost-title");
+	DoSettingsLabelStreamed(GhostTitleElement, &Label, Localize("Ghost"), 20.0f, TEXTALIGN_ML);
 
 	Demo.HSplitTop(5.0f, nullptr, &Demo);
 	Demo.VSplitMid(&Left, &Right, 20.0f);
@@ -5985,7 +6179,8 @@ void CMenus::RenderSettingsDDNet(CUIRect MainView)
 	const float GameplayHeight = 150.0f + (g_Config.m_ClAntiPing ? 3.0f * 20.0f : 0.0f);
 	MainView.HSplitTop(GameplayHeight, &Gameplay, &MainView);
 	Gameplay.HSplitTop(30.0f, &Label, &Gameplay);
-	Ui()->DoLabel(&Label, Localize("Gameplay"), 20.0f, TEXTALIGN_ML);
+	CUIElement &GameplayTitleElement = SettingsTextElement(SETTINGS_DDNET, -1, "ddnet-gameplay-title");
+	DoSettingsLabelStreamed(GameplayTitleElement, &Label, Localize("Gameplay"), 20.0f, TEXTALIGN_ML);
 	Gameplay.HSplitTop(5.0f, nullptr, &Gameplay);
 	Gameplay.VSplitMid(&Left, &Right, 20.0f);
 
@@ -6076,7 +6271,8 @@ void CMenus::RenderSettingsDDNet(CUIRect MainView)
 		// background
 		Background.HSplitTop(30.0f, &Label, &Background);
 		Background.HSplitTop(5.0f, nullptr, &Background);
-		Ui()->DoLabel(&Label, Localize("Background"), 20.0f, TEXTALIGN_ML);
+		CUIElement &BackgroundTitleElement = SettingsTextElement(SETTINGS_DDNET, -1, "ddnet-background-title");
+		DoSettingsLabelStreamed(BackgroundTitleElement, &Label, Localize("Background"), 20.0f, TEXTALIGN_ML);
 
 		ColorRGBA GreyDefault(0.5f, 0.5f, 0.5f, 1);
 

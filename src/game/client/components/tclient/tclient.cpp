@@ -1,4 +1,5 @@
 #include "tclient.h"
+
 #include "swap_countdown_message.h"
 
 #include <base/hash.h>
@@ -66,22 +67,8 @@ static constexpr int64_t MAP_CATEGORY_CACHE_SAVE_DELAY_SEC = 5;
 static constexpr const char *MAP_NOTES_FILE = "qmclient/map_notes.json";
 static constexpr int64_t MAP_NOTES_SAVE_DELAY_SEC = 5;
 static constexpr const char *QMCLIENT_FREEZE_WAKEUP_TEXT = "快醒醒!";
-static constexpr int QMCLIENT_AXIOM_AUTO_LOGIN_MAX_ATTEMPTS = 3;
-static constexpr int QMCLIENT_AXIOM_AUTO_LOGIN_RETRY_DELAY_SECONDS = 2;
 static constexpr int LOCAL_SAVE_JOIN_HINT_MAX_ITEMS = 12;
 
-static bool TextContainsAny(const char *pText, const std::initializer_list<const char *> &Tokens)
-{
-	if(!pText || pText[0] == '\0')
-		return false;
-
-	for(const char *pToken : Tokens)
-	{
-		if(pToken && pToken[0] != '\0' && str_find_nocase(pText, pToken))
-			return true;
-	}
-	return false;
-}
 static constexpr float QMCLIENT_FREEZE_WAKEUP_POPUP_DURATION = 2.0f;
 static constexpr float QMCLIENT_TEXT_POPUP_FONT_SIZE = 30.0f;
 static constexpr vec2 QMCLIENT_FREEZE_WAKEUP_POPUP_OFFSET = vec2(34.0f, -78.0f);
@@ -330,65 +317,6 @@ static char *ParseAutoReplyRulePrefixes(char *pLine, bool &OutAutoRename, bool &
 		str_append(pOutRules, "=>", OutRulesSize);
 		str_append(pOutRules, Rule.m_Reply.c_str(), OutRulesSize);
 	}
-}
-
-static bool MigrateKeywordReplyRulesAutoRenamePreservingLines(const char *pRules, char *pOutRules, size_t OutRulesSize)
-{
-	if(!pOutRules || OutRulesSize == 0)
-		return false;
-
-	pOutRules[0] = '\0';
-	if(!pRules || pRules[0] == '\0')
-		return true;
-
-	bool FirstLine = true;
-	const char *pCursor = pRules;
-	while(*pCursor)
-	{
-		char aLine[sizeof(g_Config.m_QmKeywordReplyRules)];
-		int LineLen = 0;
-		while(*pCursor && *pCursor != '\n' && *pCursor != '\r')
-		{
-			if(LineLen < (int)sizeof(aLine) - 1)
-				aLine[LineLen++] = *pCursor;
-			++pCursor;
-		}
-		aLine[LineLen] = '\0';
-
-		while(*pCursor == '\n' || *pCursor == '\r')
-			++pCursor;
-
-		char aMigratedLine[sizeof(aLine)];
-		str_copy(aMigratedLine, aLine, sizeof(aMigratedLine));
-
-		char aRuleLine[sizeof(aLine)];
-		str_copy(aRuleLine, aLine, sizeof(aRuleLine));
-		char *pTrimmedLine = (char *)str_utf8_skip_whitespaces(aRuleLine);
-		str_utf8_trim_right(pTrimmedLine);
-		if(pTrimmedLine[0] != '\0' && pTrimmedLine[0] != '#')
-		{
-			bool AutoRename = false;
-			bool RegexRule = false;
-			bool HasExplicitRenameFlag = false;
-			bool HasExplicitRegexFlag = false;
-			char *pRuleText = ParseAutoReplyRulePrefixes(pTrimmedLine, AutoRename, RegexRule, HasExplicitRenameFlag, HasExplicitRegexFlag);
-			if(!HasExplicitRenameFlag && str_find(pRuleText, "=>") != nullptr)
-				str_format(aMigratedLine, sizeof(aMigratedLine), "[rename] %s", pTrimmedLine);
-		}
-
-		const size_t CurrentLen = str_length(pOutRules);
-		const size_t LineLenOut = str_length(aMigratedLine);
-		const size_t SeparatorLen = FirstLine ? 0 : 1;
-		if(CurrentLen + SeparatorLen + LineLenOut >= OutRulesSize)
-			return false;
-
-		if(!FirstLine)
-			str_append(pOutRules, "\n", OutRulesSize);
-		str_append(pOutRules, aMigratedLine, OutRulesSize);
-		FirstLine = false;
-	}
-
-	return true;
 }
 
 static std::string BuildFriendEnterBroadcastText(const char *pTemplate, std::string_view FriendNames)
@@ -1164,181 +1092,6 @@ const char *CTClient::CurrentCommunityIdForFinishCheck() const
 	return pCommunityId;
 }
 
-bool CTClient::IsAxiomCommunity() const
-{
-	const char *pCommunityId = CurrentCommunityIdForFinishCheck();
-	if(!pCommunityId)
-		return false;
-
-	if(str_find_nocase(pCommunityId, "axiom"))
-		return true;
-
-	IServerBrowser *pServerBrowser = ServerBrowser();
-	if(!pServerBrowser)
-		return false;
-
-	const CCommunity *pCommunity = pServerBrowser->Community(pCommunityId);
-	return pCommunity && pCommunity->Name() && str_find_nocase(pCommunity->Name(), "axiom");
-}
-
-void CTClient::ResetAxiomAutoLoginState()
-{
-	m_AxiomAutoLoginAnnounced = false;
-	m_AxiomAutoLoginSucceeded = false;
-	m_AxiomAutoLoginWaitingReply = false;
-	m_AxiomAutoLoginAttempts = 0;
-	m_AxiomAutoLoginNextTryTick = 0;
-	m_aAxiomAutoLoginServer[0] = '\0';
-	m_AxiomDummyAutoLoginSent = false;
-	m_AxiomDummyWasConnected = false;
-	m_aAxiomDummyAutoLoginServer[0] = '\0';
-}
-
-void CTClient::TrySendAxiomLogin()
-{
-	if(g_Config.m_QmAxiomAutoLogin == 0 || g_Config.m_QmAxiomLoginPassword[0] == '\0')
-		return;
-	if(Client()->State() != IClient::STATE_ONLINE || !IsAxiomCommunity())
-		return;
-	if(m_AxiomAutoLoginSucceeded || m_AxiomAutoLoginAttempts >= QMCLIENT_AXIOM_AUTO_LOGIN_MAX_ATTEMPTS)
-		return;
-
-	char aServerAddress[NETADDR_MAXSTRSIZE] = "";
-	const NETADDR *pServerAddr = Client()->ServerAddress();
-	if(pServerAddr)
-		net_addr_str(pServerAddr, aServerAddress, sizeof(aServerAddress), true);
-	if(aServerAddress[0] != '\0')
-		str_copy(m_aAxiomAutoLoginServer, aServerAddress, sizeof(m_aAxiomAutoLoginServer));
-
-	char aLoginCommand[192];
-	str_format(aLoginCommand, sizeof(aLoginCommand), "/login %s", g_Config.m_QmAxiomLoginPassword);
-	GameClient()->m_Chat.SendChat(0, aLoginCommand);
-
-	m_AxiomAutoLoginAttempts++;
-	m_AxiomAutoLoginWaitingReply = true;
-	m_AxiomAutoLoginNextTryTick = 0;
-
-	if(!m_AxiomAutoLoginAnnounced)
-	{
-		GameClient()->Echo(Localize("正在尝试 Axiom 自动登录"));
-		m_AxiomAutoLoginAnnounced = true;
-	}
-}
-
-void CTClient::TrySendAxiomDummyLogin()
-{
-	if(g_Config.m_QmAxiomAutoLogin == 0 || g_Config.m_QmAxiomDummyLoginPassword[0] == '\0')
-		return;
-	if(Client()->State() != IClient::STATE_ONLINE || !Client()->DummyConnected() || !IsAxiomCommunity())
-		return;
-	if(m_AxiomDummyAutoLoginSent)
-		return;
-
-	char aServerAddress[NETADDR_MAXSTRSIZE] = "";
-	const NETADDR *pServerAddr = Client()->ServerAddress();
-	if(pServerAddr)
-		net_addr_str(pServerAddr, aServerAddress, sizeof(aServerAddress), true);
-	if(aServerAddress[0] != '\0')
-		str_copy(m_aAxiomDummyAutoLoginServer, aServerAddress, sizeof(m_aAxiomDummyAutoLoginServer));
-
-	char aLoginCommand[192];
-	str_format(aLoginCommand, sizeof(aLoginCommand), "/login %s", g_Config.m_QmAxiomDummyLoginPassword);
-	GameClient()->m_Chat.SendChatOnConn(IClient::CONN_DUMMY, 0, aLoginCommand);
-	m_AxiomDummyAutoLoginSent = true;
-	GameClient()->Echo(Localize("Trying Axiom dummy auto login"));
-}
-
-void CTClient::HandleAxiomAutoLoginMessage(const char *pText)
-{
-	if(!m_AxiomAutoLoginWaitingReply || !IsAxiomCommunity() || !pText || pText[0] == '\0')
-		return;
-
-	const bool IsLoginMessage = TextContainsAny(pText, {"login", "logged in", "登入", "登录"});
-	if(!IsLoginMessage)
-		return;
-
-	const bool Success = TextContainsAny(pText, {"success", "successful", "logged in", "welcome", "succeeded", "登入成功", "登录成功", "欢迎"});
-	const bool Failure = TextContainsAny(pText, {"fail", "failed", "incorrect", "invalid", "wrong", "denied", "error", "password incorrect", "登入失败", "登录失败", "密码错误"});
-
-	if(Success)
-	{
-		m_AxiomAutoLoginSucceeded = true;
-		m_AxiomAutoLoginWaitingReply = false;
-		m_AxiomAutoLoginNextTryTick = 0;
-		GameClient()->Echo(Localize("Axiom 自动登录成功"));
-	}
-	else if(Failure)
-	{
-		m_AxiomAutoLoginWaitingReply = false;
-		if(m_AxiomAutoLoginAttempts < QMCLIENT_AXIOM_AUTO_LOGIN_MAX_ATTEMPTS)
-		{
-			m_AxiomAutoLoginNextTryTick = time_get() + (int64_t)QMCLIENT_AXIOM_AUTO_LOGIN_RETRY_DELAY_SECONDS * time_freq();
-			GameClient()->Echo(Localize("Axiom 自动登录失败，正在重试"));
-		}
-		else
-		{
-			m_AxiomAutoLoginNextTryTick = 0;
-			GameClient()->Echo(Localize("Axiom 自动登录失败"));
-		}
-	}
-}
-
-void CTClient::UpdateAxiomAutoLogin()
-{
-	if(Client()->State() != IClient::STATE_ONLINE || g_Config.m_QmAxiomAutoLogin == 0)
-	{
-		ResetAxiomAutoLoginState();
-		return;
-	}
-	if(!IsAxiomCommunity())
-	{
-		ResetAxiomAutoLoginState();
-		return;
-	}
-
-	char aServerAddress[NETADDR_MAXSTRSIZE] = "";
-	const NETADDR *pServerAddr = Client()->ServerAddress();
-	if(pServerAddr)
-		net_addr_str(pServerAddr, aServerAddress, sizeof(aServerAddress), true);
-	if(m_aAxiomAutoLoginServer[0] != '\0' && aServerAddress[0] != '\0' && str_comp(m_aAxiomAutoLoginServer, aServerAddress) != 0)
-		ResetAxiomAutoLoginState();
-
-	if(g_Config.m_QmAxiomLoginPassword[0] == '\0')
-	{
-		m_AxiomAutoLoginAnnounced = false;
-		m_AxiomAutoLoginSucceeded = false;
-		m_AxiomAutoLoginWaitingReply = false;
-		m_AxiomAutoLoginAttempts = 0;
-		m_AxiomAutoLoginNextTryTick = 0;
-		m_aAxiomAutoLoginServer[0] = '\0';
-	}
-	else if(!m_AxiomAutoLoginSucceeded && !m_AxiomAutoLoginWaitingReply)
-	{
-		const int64_t Now = time_get();
-		if(m_AxiomAutoLoginAttempts == 0 || (m_AxiomAutoLoginNextTryTick > 0 && Now >= m_AxiomAutoLoginNextTryTick))
-			TrySendAxiomLogin();
-	}
-
-	const bool DummyConnected = Client()->DummyConnected();
-	if(!DummyConnected || g_Config.m_QmAxiomDummyLoginPassword[0] == '\0')
-	{
-		m_AxiomDummyAutoLoginSent = false;
-		m_aAxiomDummyAutoLoginServer[0] = '\0';
-	}
-	else
-	{
-		if(m_aAxiomDummyAutoLoginServer[0] != '\0' && aServerAddress[0] != '\0' && str_comp(m_aAxiomDummyAutoLoginServer, aServerAddress) != 0)
-		{
-			m_AxiomDummyAutoLoginSent = false;
-			m_aAxiomDummyAutoLoginServer[0] = '\0';
-		}
-
-		if(!m_AxiomDummyWasConnected || !m_AxiomDummyAutoLoginSent)
-			TrySendAxiomDummyLogin();
-	}
-	m_AxiomDummyWasConnected = DummyConnected;
-}
-
 void CTClient::OnMessage(int MsgType, void *pRawMsg)
 {
 	if(Client()->State() == IClient::STATE_DEMOPLAYBACK)
@@ -1351,11 +1104,6 @@ void CTClient::OnMessage(int MsgType, void *pRawMsg)
 
 		if(ClientId < 0)
 		{
-			if(pMsg->m_pMessage)
-			{
-				const char *pText = pMsg->m_pMessage;
-				HandleAxiomAutoLoginMessage(pText);
-			}
 			return;
 		}
 
@@ -2060,7 +1808,6 @@ void CTClient::OnUpdate()
 	MaybeSaveMapNotes();
 	ApplyFocusModeEffects();
 	ApplyGoresFastInputLink();
-	UpdateAxiomAutoLogin();
 }
 
 void CTClient::OnRender()
@@ -3204,7 +2951,6 @@ void CTClient::OnStateChange(int NewState, int OldState)
 
 	if(NewState != IClient::STATE_ONLINE)
 	{
-		ResetAxiomAutoLoginState();
 		m_GoresModeStateKnown = false;
 		m_PrevGoresModeActive = false;
 		m_GoresAutoMapKnown = false;
@@ -3241,7 +2987,6 @@ void CTClient::OnStateChange(int NewState, int OldState)
 
 	if(NewState == IClient::STATE_ONLINE)
 	{
-		ResetAxiomAutoLoginState();
 		m_GoresModeStateKnown = false;
 		m_PrevGoresModeActive = IsGoresModuleEnabled();
 		m_GoresAutoMapKnown = false;

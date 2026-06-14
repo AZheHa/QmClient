@@ -45,12 +45,11 @@ wsl env HOME=/home/<user> bash -lc 'set -e; . "$HOME/.cargo/env"; cd /mnt/<drive
 Windows:
 
 ```pwsh
-qmclient_scripts/cmake-windows.cmd --build cmake-build-release --target testrunner -j 14
-cmake-build-release/testrunner.exe
+qmclient_scripts/cmake-windows.cmd --build cmake-build-release --target run_cxx_tests -j 14
 qmclient_scripts/cmake-windows.cmd --build cmake-build-release --target run_rust_tests
 ```
 
-说明：常规运行/测试目录默认是 `cmake-build-release`；C++ 测试主路径是先构建 `testrunner`，再直接执行测试二进制。`default/full` gate 里的严格构建与静态分析会另外使用 `cmake-build-debug` 和 `cmake-build-analyze`。
+说明：常规运行/测试目录默认是 `cmake-build-release`；C++ 测试主路径是 `run_cxx_tests`，该目标会构建 `testrunner` 并在 build 目录下执行测试二进制，测试产物会留在 build 目录的 `tmp/tests/` 下。源码结构测试需要通过测试源码根解析 `src/...` / `data/...` 文件，不能依赖当前工作目录。单测过滤或快速复现时，可以从 build 目录运行 `./testrunner.exe --gtest_filter=<suite.test>`，或在其他目录运行 `cmake-build-release/testrunner.exe --gtest_filter=<suite.test>`。`default/full` gate 里的严格构建与静态分析会另外使用 `cmake-build-debug` 和 `cmake-build-analyze`。
 
 重要：同一 build 目录中的 `game-client`、`testrunner`、`run_cxx_tests`、`run_rust_tests`、`package_default` 不要并行发起。它们会共享生成产物与中间文件，代理或脚本必须串行执行；如果确实要并行，只能拆到不同的 build 目录。
 
@@ -70,17 +69,17 @@ wsl env HOME=/home/<user> bash -lc 'set -e; . "$HOME/.cargo/env"; cd /mnt/<drive
 ## Gate 模式
 
 ```bash
-python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main
-python qmclient_scripts/gate/check_gate.py --mode default --base-ref main
-python qmclient_scripts/gate/check_gate.py --mode full --base-ref main
+python qmclient_scripts/gate/check_gate.py --mode quick
+python qmclient_scripts/gate/check_gate.py --mode default
+python qmclient_scripts/gate/check_gate.py --mode full
 ```
 
 说明：除非用户明确把任务限制为纯调查、纯文档同步或只要求某个单项命令，否则不要只用 build/test 代替 gate。至少选择一条与本轮范围匹配的 gate 作为验收证据：
 
 - 纯文档 / harness 变更：`python qmclient_scripts/gate/check_docs.py`
-- 常规代码改动：至少 `python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main`
-- 提交前日常严格门：优先 `python qmclient_scripts/gate/check_gate.py --mode default --base-ref main`
-- 集中收口 / 准发布：`python qmclient_scripts/gate/check_gate.py --mode full --base-ref main`
+- 常规代码改动：至少 `python qmclient_scripts/gate/check_gate.py --mode quick`
+- 提交前日常严格门：优先 `python qmclient_scripts/gate/check_gate.py --mode default`
+- 集中收口 / 准发布：`python qmclient_scripts/gate/check_gate.py --mode full`
 
 版本 / release 相关修改后，至少额外验证：
 

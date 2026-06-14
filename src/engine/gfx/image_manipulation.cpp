@@ -330,12 +330,12 @@ static void ResizeImage(const uint8_t *pSourceImage, uint32_t SW, uint32_t SH, u
 {
 	for(int y = 0; y < (int)H; ++y)
 	{
-		const float v = H > 1 ? (float)y / (float)(H - 1) : 0.0f;
+		const float V = H > 1 ? (float)y / (float)(H - 1) : 0.0f;
 		for(int x = 0; x < (int)W; ++x)
 		{
-			const float u = W > 1 ? (float)x / (float)(W - 1) : 0.0f;
+			const float U = W > 1 ? (float)x / (float)(W - 1) : 0.0f;
 			uint8_t aSample[4];
-			SampleBicubic(pSourceImage, u, v, SW, SH, BPP, aSample);
+			SampleBicubic(pSourceImage, U, V, SW, SH, BPP, aSample);
 			mem_copy(&pDestinationImage[x * BPP + ((W * BPP) * y)], aSample, BPP);
 		}
 	}

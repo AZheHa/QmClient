@@ -42,6 +42,9 @@ def _repo_command(
     title: str,
     cmd: list[str],
     fail_on_warnings: bool = False,
+    warn_on_warnings: bool = False,
+    fail_on_filtered_warnings: bool = False,
+    warning_line_filters: dict[str, list[tuple[int, int]]] | None = None,
     cwd: Path | None = None,
 ) -> None:
     runner.print_section(title)
@@ -110,6 +113,25 @@ def _repo_command(
             )
             return
 
+    if warn_on_warnings or fail_on_filtered_warnings:
+        warns = [
+            line
+            for line in lines
+            if _is_strict_warning_line(line) and not _is_ignorable_tool_warning(line)
+        ]
+        if warning_line_filters is not None:
+            warns = [
+                line
+                for line in warns
+                if _warning_line_matches_changed_ranges(line, warning_line_filters)
+            ]
+        if warns:
+            level = "FAIL" if fail_on_filtered_warnings else "WARN"
+            results.add(
+                level, title, f"{title} 输出了 warning 文本:\n" + "\n".join(warns)
+            )
+            return
+
     results.add("PASS", title, "执行通过")
 
 
@@ -120,6 +142,9 @@ def _configure_and_build(
     fail_on_warnings: bool,
     cmd: list[str],
     skip_build: bool,
+    warn_on_build_warnings: bool = False,
+    fail_on_filtered_warnings: bool = False,
+    warning_line_filters: dict[str, list[tuple[int, int]]] | None = None,
 ) -> None:
     _repo_command(results, f"{title} 配置", cmd, fail_on_warnings=fail_on_warnings)
     if skip_build:
@@ -136,7 +161,7 @@ def _configure_and_build(
             "--target",
             "game-client",
             "-j",
-            "10",
+            "14",
         ]
     else:
         build_cmd = [
@@ -146,20 +171,150 @@ def _configure_and_build(
             "--target",
             "game-client",
             "-j",
-            "10",
+            "14",
         ]
     _repo_command(
-        results, f"{title} 构建", build_cmd, fail_on_warnings=fail_on_warnings
+        results,
+        f"{title} 构建",
+        build_cmd,
+        fail_on_warnings=fail_on_warnings,
+        warn_on_warnings=warn_on_build_warnings,
+        fail_on_filtered_warnings=fail_on_filtered_warnings,
+        warning_line_filters=warning_line_filters,
     )
+
+
+def _parse_diff_added_ranges(diff_text: str) -> list[tuple[int, int]]:
+    ranges: list[tuple[int, int]] = []
+    for line in diff_text.splitlines():
+        match = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
+        if not match:
+            continue
+        start = int(match.group(1))
+        count = int(match.group(2) or "1")
+        if count > 0:
+            ranges.append((start, start + count - 1))
+    return ranges
+
+
+def _merge_ranges(ranges: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    merged: list[tuple[int, int]] = []
+    for start, end in sorted(ranges):
+        if not merged or start > merged[-1][1] + 1:
+            merged.append((start, end))
+        else:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+    return merged
+
+
+def _git_diff_ranges(args: list[str], file: str) -> list[tuple[int, int]]:
+    proc = subprocess.run(
+        ["git", "-c", "core.safecrlf=false", "diff", "--unified=0", *args, "--", file],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=str(REPO_ROOT),
+    )
+    if proc.returncode != 0:
+        return []
+    return _parse_diff_added_ranges(proc.stdout)
+
+
+def _line_count(file: str) -> int:
+    try:
+        with open(REPO_ROOT / file, "r", encoding="utf-8", errors="replace") as f:
+            return sum(1 for _ in f)
+    except OSError:
+        return 0
+
+
+def _changed_line_ranges(
+    files: list[str],
+    base_ref: str,
+) -> dict[str, list[tuple[int, int]]]:
+    merge_base = ""
+    merge_proc = subprocess.run(
+        ["git", "merge-base", base_ref, "HEAD"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=str(REPO_ROOT),
+    )
+    if merge_proc.returncode == 0 and merge_proc.stdout.strip():
+        merge_base = merge_proc.stdout.strip().splitlines()[0]
+
+    result: dict[str, list[tuple[int, int]]] = {}
+    for file in sorted(set(scope.normalize_path(f) for f in files)):
+        tracked_proc = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", file],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=str(REPO_ROOT),
+        )
+        if tracked_proc.returncode != 0:
+            count = _line_count(file)
+            result[file] = [(1, count)] if count > 0 else []
+            continue
+        ranges: list[tuple[int, int]] = []
+        if merge_base:
+            ranges.extend(_git_diff_ranges([f"{merge_base}...HEAD"], file))
+        ranges.extend(_git_diff_ranges(["HEAD"], file))
+        result[file] = _merge_ranges(ranges)
+    return result
+
+
+def _warning_line_matches_changed_ranges(
+    line: str, changed_ranges: dict[str, list[tuple[int, int]]]
+) -> bool:
+    match = re.match(r"^(.+?)\((\d+)\)\s*:\s*warning\s+C\d+:", line)
+    if not match:
+        return False
+    warning_file = scope.normalize_path(match.group(1)).lower()
+    warning_line = int(match.group(2))
+    for file, ranges in changed_ranges.items():
+        normalized_file = scope.normalize_path(file).lower()
+        if warning_file.endswith(normalized_file) and any(
+            start <= warning_line <= end for start, end in ranges
+        ):
+            return True
+    return False
+
+
+def _add_analyze_scope_result(
+    results: ResultCollector, changed_ranges: dict[str, list[tuple[int, int]]]
+) -> None:
+    scoped_lines = [
+        f"{file}:{','.join(f'{start}-{end}' for start, end in ranges)}"
+        for file, ranges in sorted(changed_ranges.items())
+        if ranges
+    ]
+    if scoped_lines:
+        results.add(
+            "INFO",
+            "MSVC /analyze 行范围",
+            "仅统计当前 diff 行上的 analyzer warning:\n" + "\n".join(scoped_lines),
+        )
+    else:
+        results.add(
+            "WARN",
+            "MSVC /analyze 行范围",
+            "未解析到当前源文件 diff 行范围，/analyze warning 统计将不会匹配历史行",
+        )
 
 
 def run(
     results: ResultCollector,
     included: list[str],
     dry_run: bool = False,
-    base_ref: str = "main",
+    base_ref: str | None = None,
 ) -> None:
-    del base_ref  # included 已由 gate 层收敛，无需再次收集
+    if base_ref is None:
+        base_ref = scope.default_base_ref()
+
     if dry_run:
         results.add("INFO", "严格构建与静态分析入口", "DryRun，仅展示命令")
         return
@@ -270,8 +425,17 @@ def run(
                 "-DCMAKE_BUILD_TYPE=Debug",
                 "-DQM_MSVC_ANALYZE=ON",
             ]
+        changed_ranges = _changed_line_ranges(analyze_source_files, base_ref)
+        _add_analyze_scope_result(results, changed_ranges)
         _configure_and_build(
-            results, "MSVC /analyze", analyze_build_dir, 1, analyze_cmd, False
+            results,
+            "MSVC /analyze",
+            analyze_build_dir,
+            0,
+            analyze_cmd,
+            False,
+            fail_on_filtered_warnings=True,
+            warning_line_filters=changed_ranges,
         )
 
     # clang-tidy

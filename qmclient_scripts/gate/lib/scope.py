@@ -91,11 +91,40 @@ class ScopeResult:
         self.base_ref_failure_reason = base_ref_failure_reason
 
 
+def _ref_exists(ref: str) -> bool:
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", ref],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def default_base_ref() -> str:
+    origin_head = _git(
+        "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"
+    ).strip()
+    if origin_head and _ref_exists(origin_head):
+        return origin_head
+    if _ref_exists("origin/master"):
+        return "origin/master"
+    if _ref_exists("origin/main"):
+        return "origin/main"
+    if _ref_exists("master"):
+        return "master"
+    return "main"
+
+
 def collect_scope(
-    base_ref: str = "main",
+    base_ref: str | None = None,
     branch_scope_only: bool = False,
     explicit_files: list[str] | None = None,
 ) -> ScopeResult:
+    if base_ref is None:
+        base_ref = default_base_ref()
+
     if explicit_files:
         included = []
         excluded = []

@@ -1,6 +1,7 @@
 // stats.ts — 统计算子（R-style 完整版）
 
 import type { PerfEntry } from './parse.ts';
+import { compareOperationSignatures, operationSignature, type OperationComparison, type OperationSignature } from './quality_core.ts';
 
 export interface Percentiles {
   p10: number;
@@ -65,24 +66,24 @@ export const BUDGET = {
   h120: 8.33,
   /** 60Hz → 16.67ms */
   h60: 16.67,
+  /** 默认性能日志采样阈值 qm_perf_debug_threshold_ms */
+  samplingDefault: 4,
+  /** 2x 60Hz 帧预算，作为严重尖峰阈值 */
+  h60Double: 33,
 } as const;
 
-/** 从日志数据推断采样阈值（取最小 duration 的下界） */
+/** 从日志数据推断采样阈值（取 p5，避开强制记录的极小样本） */
 export function inferSamplingThreshold(durations: number[]): number {
   if (durations.length === 0) return 0;
-  const minDur = Math.min(...durations);
-  // 如果最小帧都 > 4ms，说明阈值较高，数据有偏
-  return minDur;
+  const sorted = [...durations].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.05))];
 }
 
 /** 判断数据是否受采样偏差影响 */
-export function isSamplingBiased(durations: number[]): boolean {
+export function isSamplingBiased(durations: number[], thresholdMs: number = BUDGET.samplingDefault): boolean {
   if (durations.length === 0) return false;
-  // 排除 Force 记录的极小值，取 p5 作为阈值推断依据
-  const sorted = [...durations].sort((a, b) => a - b);
-  const p5 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.05))];
-  // 如果 p5 > 240Hz 预算，说明大量正常帧被采样阈值过滤了
-  return p5 > BUDGET.h240;
+  // 如果 p5 高于日志采样阈值，说明大量正常帧可能被过滤了。
+  return inferSamplingThreshold(durations) > thresholdMs;
 }
 
 export interface FrameTimeSeries {
@@ -90,11 +91,52 @@ export interface FrameTimeSeries {
   durations: number[];
 }
 
+export const PERF_SYSTEM = {
+  MENU: 'perf/menu',
+  FPS: 'perf/fps',
+  GAMECLIENT: 'perf/gameclient',
+  INTERACTION: 'perf/interaction',
+  DEVICE: 'perf/device',
+  SKIN_UX: 'perf/skin-ux',
+  SECTION: 'perf/section',
+  UI_RUNTIME: 'perf/ui_runtime',
+} as const;
+
+export const PERF_EVENT = {
+  PAGE_SWITCH: 'page_switch',
+  LIST_FRAME: 'list_frame',
+  WORK_DRAIN: 'work_drain',
+  LIST_DRAIN_SUMMARY: 'list_drain_summary',
+} as const;
+
+const FRAME_TIME_SYSTEMS: ReadonlySet<string> = new Set([PERF_SYSTEM.MENU, PERF_SYSTEM.GAMECLIENT]);
+
+function rawField(e: PerfEntry, name: string): unknown {
+  return (e.fields as Record<string, unknown>)[name];
+}
+
+export function entryDurationMs(e: PerfEntry): number | null {
+  const Raw = rawField(e, 'duration_ms') ?? rawField(e, 'dur_ms') ?? rawField(e, 'dur');
+  if (Raw === undefined || Raw === null || Raw === '') {
+    return null;
+  }
+  const Parsed = Number(Raw);
+  return Number.isFinite(Parsed) ? Parsed : null;
+}
+
+export function isFrameTimeEntry(e: PerfEntry): boolean {
+  return FRAME_TIME_SYSTEMS.has(e.system) && entryDurationMs(e) !== null;
+}
+
+export function selectFrameTimeEntries(entries: PerfEntry[]): PerfEntry[] {
+  return entries.filter(isFrameTimeEntry);
+}
+
 export function toTimeSeries(entries: PerfEntry[]): FrameTimeSeries {
   const sorted = [...entries].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   return {
     times: sorted.map(e => e.timestamp),
-    durations: sorted.map(e => e.durationMs),
+    durations: sorted.map(e => entryDurationMs(e) ?? e.durationMs),
   };
 }
 
@@ -107,12 +149,135 @@ export interface SpikeInfo {
   threshold: number;
 }
 
-export function detectSpikes(entries: PerfEntry[], thresholdMs: number = 16.67): SpikeInfo[] {
+export interface FpsSummary {
+  timestamp: string;
+  operation: string;
+  context: string;
+  page: string;
+  tab: string;
+  sampleFrames: number;
+  sampleSeconds: number;
+  fpsAvg: number;
+  fpsMin: number;
+  fpsMax: number;
+  frameMsAvg: number;
+  frameMsP95: number;
+  frameMsP99: number;
+  frameMsMax: number;
+  menuMsMax: number;
+  capLimited: boolean;
+}
+
+function numberField(e: PerfEntry, name: string, fallback = 0): number {
+  const Value = rawField(e, name);
+  const Parsed = Number(Value);
+  return Number.isFinite(Parsed) ? Parsed : fallback;
+}
+
+export function fpsSummaries(entries: PerfEntry[]): FpsSummary[] {
+  return entries
+    .filter(e => e.system === PERF_SYSTEM.FPS && field(e, 'event') === 'fps_summary')
+    .map(e => ({
+      timestamp: e.timestamp,
+      operation: field(e, 'operation'),
+      context: field(e, 'context'),
+      page: field(e, 'page'),
+      tab: field(e, 'tab', 'none'),
+      sampleFrames: numberField(e, 'sample_frames'),
+      sampleSeconds: numberField(e, 'sample_seconds'),
+      fpsAvg: numberField(e, 'fps_avg'),
+      fpsMin: numberField(e, 'fps_min'),
+      fpsMax: numberField(e, 'fps_max'),
+      frameMsAvg: numberField(e, 'frame_ms_avg'),
+      frameMsP95: numberField(e, 'frame_ms_p95'),
+      frameMsP99: numberField(e, 'frame_ms_p99'),
+      frameMsMax: numberField(e, 'frame_ms_max'),
+      menuMsMax: numberField(e, 'menu_ms_max'),
+      capLimited: numberField(e, 'cap_limited') !== 0,
+    }));
+}
+
+const TARGET_SETTINGS_FPS_OPERATIONS: ReadonlySet<string> = new Set([
+  'settings_open',
+  'settings_tab_switch',
+  'settings_subtab_switch',
+  'settings_tee_scroll',
+  'ingame_esc_open',
+]);
+
+export function isTargetSettingsFpsSummary(summary: FpsSummary): boolean {
+  return TARGET_SETTINGS_FPS_OPERATIONS.has(summary.operation);
+}
+
+export function hasOnlineTargetSettingsFpsSummary(entries: PerfEntry[]): boolean {
+  return fpsSummaries(entries).some(s => isTargetSettingsFpsSummary(s) && s.context === 'online');
+}
+
+function normalizedPage(e: PerfEntry): string {
+  return field(e, 'page', field(e, 'page_name')).toLowerCase();
+}
+
+function isSettingsTargetPage(Page: string): boolean {
+  if(Page.length === 0) {
+    return false;
+  }
+  if(Page.includes('internet') || Page.includes('server_browser') || Page === 'network') {
+    return false;
+  }
+  return Page.startsWith('settings') ||
+    ['general', 'tee', 'appearance', 'controls', 'graphics', 'sound', 'ddnet', 'assets', 'tclient', 'qmclient'].includes(Page);
+}
+
+export function selectTargetSettingsFrameEntries(entries: PerfEntry[]): PerfEntry[] {
+  return selectFrameTimeEntries(entries).filter(e => {
+    const Stage = e.stage.toLowerCase();
+    const Page = normalizedPage(e);
+    if(!isSettingsTargetPage(Page)) {
+      return false;
+    }
+    return Stage.startsWith('settings_') ||
+      (Stage === 'ingame_page_content' && (Page === 'settings' || Page.startsWith('settings')));
+  });
+}
+
+export interface TargetSettingsSnapshot {
+  percentiles: Percentiles;
+  spikeCount: number;
+  verdict: Verdict;
+  verdictAvailable: boolean;
+}
+
+export function targetSettingsSnapshot(entries: PerfEntry[]): TargetSettingsSnapshot {
+  const targetFps = fpsSummaries(entries).filter(isTargetSettingsFpsSummary);
+  if(targetFps.length > 0) {
+    const durations = targetFps.map(s => s.frameMsP99);
+    const percentiles = calcPercentiles(durations);
+    const spikeCount = targetFps.filter(s => s.frameMsMax > BUDGET.h60).length;
+    return {
+      percentiles,
+      spikeCount,
+      verdict: computeVerdict(percentiles, spikeCount),
+      verdictAvailable: true,
+    };
+  }
+  const targetEntries = selectTargetSettingsFrameEntries(entries);
+  const durations = targetEntries.map(e => entryDurationMs(e) ?? e.durationMs);
+  const percentiles = calcPercentiles(durations);
+  const spikes = detectSpikes(targetEntries, BUDGET.h60);
+  return {
+    percentiles,
+    spikeCount: spikes.length,
+    verdict: 'WARN',
+    verdictAvailable: false,
+  };
+}
+
+export function detectSpikes(entries: PerfEntry[], thresholdMs: number = BUDGET.h60): SpikeInfo[] {
   return entries
     .map((e, i) => ({
       index: i,
       timestamp: e.timestamp,
-      durationMs: e.durationMs,
+      durationMs: entryDurationMs(e) ?? e.durationMs,
       stage: e.stage,
       page: e.fields.page ?? '',
       threshold: thresholdMs,
@@ -151,7 +316,189 @@ export interface PageStats {
   outliers: number[];
 }
 
-export function pageBreakdown(entries: PerfEntry[], spikeThreshold: number = 16.67): PageStats[] {
+export type AttributionKind = 'List Interaction' | 'UI Rebuild' | 'Work Drain' | 'UI Runtime' | 'Session Summary';
+
+export interface AttributionEntry {
+  kind: AttributionKind;
+  timestamp: string;
+  page: string;
+  durationMs: number;
+  summary: string;
+  details: string;
+}
+
+export interface SectionPerfStats {
+  page: string;
+  section: string;
+  count: number;
+  avg: number;
+  p95: number;
+  max: number;
+}
+
+function fieldDuration(e: PerfEntry): number {
+  const Raw = e.fields.dur_ms ?? e.fields.duration_ms ?? e.fields.dur ?? String(e.durationMs);
+  const Parsed = Number(Raw);
+  return Number.isFinite(Parsed) ? Parsed : 0;
+}
+
+function field(e: PerfEntry, name: string, fallback = ''): string {
+  const Value = e.fields[name];
+  return Value === undefined || Value === null ? fallback : String(Value);
+}
+
+function eventName(e: PerfEntry): string {
+  return field(e, 'event');
+}
+
+export function isPageSwitchEvent(e: PerfEntry): boolean {
+  const event = eventName(e);
+  return event === PERF_EVENT.PAGE_SWITCH || event.endsWith('_page_switch');
+}
+
+export function isListFrameEvent(e: PerfEntry): boolean {
+  return eventName(e) === PERF_EVENT.LIST_FRAME;
+}
+
+export function isUiRebuildEvent(e: PerfEntry): boolean {
+  return e.system === PERF_SYSTEM.SECTION;
+}
+
+export function isWorkDrainEvent(e: PerfEntry): boolean {
+  const event = eventName(e);
+  return event === PERF_EVENT.WORK_DRAIN || event === PERF_EVENT.LIST_DRAIN_SUMMARY;
+}
+
+function summaryKv(...pairs: [string, string][]): string {
+  return pairs
+    .filter(([, value]) => value.length > 0)
+    .map(([key, value]) => `${key}=${value}`)
+    .join(' ');
+}
+
+function makeEntry(
+  e: PerfEntry,
+  kind: AttributionKind,
+  summary: string,
+  details = '',
+): AttributionEntry {
+  return {
+    kind,
+    timestamp: e.timestamp,
+    page: field(e, 'page', 'unknown'),
+    durationMs: fieldDuration(e),
+    summary,
+    details,
+  };
+}
+
+export function pagePerformanceAttribution(entries: PerfEntry[]): AttributionEntry[] {
+  const attribution: AttributionEntry[] = [];
+  for (const e of entries) {
+    const event = eventName(e);
+    if (isPageSwitchEvent(e)) {
+      continue;
+    } else if (e.system === PERF_SYSTEM.UI_RUNTIME) {
+      attribution.push({
+        kind: 'UI Runtime',
+        timestamp: e.timestamp,
+        page: field(e, 'page', 'unknown'),
+        durationMs: entryDurationMs(e) ?? e.durationMs,
+        summary: summaryKv(
+          ['operation', field(e, 'operation')],
+          ['nodes', field(e, 'nodes')],
+          ['active_anims', field(e, 'active_anims')],
+        ),
+        details: summaryKv(
+          ['anim_ms', field(e, 'anim_ms')],
+          ['render_bridge_ms', field(e, 'render_bridge_ms')],
+          ['queued_anims', field(e, 'queued_anims')],
+        ),
+      });
+    } else if (isListFrameEvent(e)) {
+      attribution.push(makeEntry(
+        e,
+        'List Interaction',
+        summaryKv(
+          ['items_total', field(e, 'items_total')],
+          ['rows_visible', field(e, 'rows_visible')],
+        ),
+        summaryKv(
+          ['rows_rendered', field(e, 'rows_rendered')],
+          ['rows_iterated', field(e, 'rows_iterated')],
+          ['rows_processed', field(e, 'rows_processed')],
+          ['rows_skipped', field(e, 'rows_skipped')],
+        ),
+      ));
+    } else if (isUiRebuildEvent(e)) {
+      attribution.push(makeEntry(
+        e,
+        'UI Rebuild',
+        summaryKv(
+          ['section', field(e, 'section')],
+          ['visible', field(e, 'visible')],
+        ),
+        summaryKv(
+          ['dirty', field(e, 'dirty')],
+          ['text_new', field(e, 'text_new')],
+          ['text_reused', field(e, 'text_reused')],
+        ),
+      ));
+    } else if (isWorkDrainEvent(e)) {
+      const SessionScoped = field(e, 'scope') === 'session';
+      attribution.push(makeEntry(
+        e,
+        SessionScoped ? 'Session Summary' : 'Work Drain',
+        summaryKv(
+          ['kind', field(e, 'kind', event === PERF_EVENT.LIST_DRAIN_SUMMARY ? 'merge' : '')],
+          ['count', field(e, 'count')],
+          ['bytes', field(e, 'bytes')],
+          ['stop', field(e, 'stop')],
+        ),
+        summaryKv(
+          ['source', field(e, 'source', event === PERF_EVENT.LIST_DRAIN_SUMMARY ? PERF_EVENT.LIST_DRAIN_SUMMARY : '')],
+          ['requested', field(e, 'requested')],
+          ['pending', field(e, 'pending')],
+          ['loading', field(e, 'loading')],
+          ['loaded', field(e, 'loaded')],
+        ),
+      ));
+    }
+  }
+  return attribution.sort((a, b) => b.durationMs - a.durationMs);
+}
+
+export function sectionPerformanceTop(entries: PerfEntry[], limit: number = 10): SectionPerfStats[] {
+  const bySection = new Map<string, { page: string; section: string; durations: number[] }>();
+  for (const e of entries) {
+    if (!isUiRebuildEvent(e)) {
+      continue;
+    }
+    const page = field(e, 'page', 'unknown');
+    const section = field(e, 'section', 'unknown');
+    const key = `${page}\u0000${section}`;
+    const bucket = bySection.get(key) ?? { page, section, durations: [] };
+    bucket.durations.push(fieldDuration(e));
+    bySection.set(key, bucket);
+  }
+
+  return [...bySection.values()]
+    .map(({ page, section, durations }) => {
+      const p = calcPercentiles(durations);
+      return {
+        page,
+        section,
+        count: p.count,
+        avg: p.avg,
+        p95: p.p95,
+        max: p.max,
+      };
+    })
+    .sort((a, b) => b.p95 - a.p95 || b.max - a.max || b.avg - a.avg)
+    .slice(0, limit);
+}
+
+export function pageBreakdown(entries: PerfEntry[], spikeThreshold: number = BUDGET.h60): PageStats[] {
   const byPage = new Map<string, PerfEntry[]>();
   for (const e of entries) {
     const page = e.fields.page ?? e.fields.page_name ?? 'unknown';
@@ -162,7 +509,7 @@ export function pageBreakdown(entries: PerfEntry[], spikeThreshold: number = 16.
 
   const stats: PageStats[] = [];
   for (const [page, list] of byPage) {
-    const durations = list.map(e => e.durationMs);
+    const durations = list.map(e => entryDurationMs(e) ?? e.durationMs);
     const p = calcPercentiles(durations);
     const bp = boxPlotStats(durations);
     stats.push({
@@ -294,13 +641,17 @@ function normInv(p: number): number {
 export type Verdict = 'PASS' | 'WARN' | 'FAIL';
 
 export function computeVerdict(p: Percentiles, spikeCount: number): Verdict {
-  if (p.p99 >= 33 || spikeCount >= 5) return 'FAIL';
-  if (p.p99 >= 16.67 || spikeCount >= 1) return 'WARN';
+  if (p.p99 >= BUDGET.h60Double || spikeCount >= 5) return 'FAIL';
+  if (p.p99 >= BUDGET.h60 || spikeCount >= 1) return 'WARN';
   return 'PASS';
 }
 
 /** 生成自动叙事文本 */
-export function generateNarrative(p: Percentiles, spikes: SpikeInfo[], compliance240: number, compliance120: number, compliance60: number, biased: boolean): string {
+export function generateNarrative(p: Percentiles, spikes: SpikeInfo[], compliance240: number, compliance120: number, compliance60: number, biased: boolean, samplingThresholdMs: number = p.min): string {
+  if (p.count === 0) {
+    return '本次 session 没有可用的 frame-time 样本，无法判断渲染性能。请确认日志包含 perf/menu 或 perf/gameclient 的 duration_ms 数据后重新生成报告。';
+  }
+
   const verdict = computeVerdict(p, spikes.length);
   const verdictText = verdict === 'PASS' ? '性能表现良好' : verdict === 'WARN' ? '存在轻微性能问题' : '存在显著性能问题';
 
@@ -308,8 +659,7 @@ export function generateNarrative(p: Percentiles, spikes: SpikeInfo[], complianc
   lines.push(`本次 session 共采集 ${p.count} 帧渲染数据，整体 ${verdictText}。`);
 
   if (biased) {
-    const inferredMin = p.min;
-    lines.push(`注意：当前采样阈值为 ${inferredMin.toFixed(1)}ms（默认 20ms），仅记录超过阈值的帧。实际合规率远高于日志所示。建议将 qm_perf_debug_threshold_ms 降至 4 以获取完整帧分布。`);
+    lines.push(`注意：当前采样阈值估计 p5=${samplingThresholdMs.toFixed(1)}ms（当前默认 4ms），日志可能仅包含超过阈值的帧。实际合规率可能高于日志所示。建议确认 qm_perf_debug_threshold_ms 4 后重新采集完整帧分布。`);
   } else {
     lines.push(`帧预算合规率：240Hz (4.17ms) 为 ${compliance240.toFixed(1)}%，120Hz (8.33ms) 为 ${compliance120.toFixed(1)}%，60Hz (16.67ms) 为 ${compliance60.toFixed(1)}%。`);
   }
@@ -343,13 +693,16 @@ export interface SessionSnapshot {
   verdict: Verdict;
   /** 总帧数 */
   totalFrames: number;
+  /** 操作路径签名，用于判断两个日志是否可严格对比 */
+  operation: OperationSignature;
 }
 
 /** 从 entries 生成会话快照 */
 export function snapshot(entries: PerfEntry[], sourceFile: string): SessionSnapshot {
-  const durations = entries.map(e => e.durationMs);
+  const frameEntries = selectFrameTimeEntries(entries);
+  const durations = frameEntries.map(e => entryDurationMs(e) ?? e.durationMs);
   const p = calcPercentiles(durations);
-  const spikes = detectSpikes(entries, BUDGET.h60);
+  const spikes = detectSpikes(frameEntries, BUDGET.h60);
   return {
     file: sourceFile,
     percentiles: p,
@@ -360,8 +713,9 @@ export function snapshot(entries: PerfEntry[], sourceFile: string): SessionSnaps
       h120: complianceRate(durations, BUDGET.h120),
       h60: complianceRate(durations, BUDGET.h60),
     },
-    verdict: computeVerdict(p, spikes.length),
-    totalFrames: entries.length,
+    verdict: frameEntries.length === 0 ? 'WARN' : computeVerdict(p, spikes.length),
+    totalFrames: frameEntries.length,
+    operation: operationSignature(entries),
   };
 }
 
@@ -391,6 +745,8 @@ export interface ComparisonResult {
   verdictChanged: boolean;
   /** 自动生成的对比叙事 */
   narrative: string;
+  /** 对比是否来自同一类操作路径 */
+  operation: OperationComparison;
 }
 
 function calcDelta(name: string, before: number, after: number, lowerIsBetter: boolean): MetricDelta {
@@ -424,6 +780,7 @@ export function compareSessions(previous: SessionSnapshot, current: SessionSnaps
   ];
 
   const verdictChanged = previous.verdict !== current.verdict;
+  const operation = compareOperationSignatures(previous.operation, current.operation);
   const improvements = metrics.filter(m => m.direction === 'better').length;
   const regressions = metrics.filter(m => m.direction === 'worse').length;
 
@@ -447,5 +804,5 @@ export function compareSessions(previous: SessionSnapshot, current: SessionSnaps
 
   const narrative = lines.join(' ');
 
-  return { previous, current, metrics, compliance, verdictChanged, narrative };
+  return { previous, current, metrics, compliance, verdictChanged, operation, narrative };
 }

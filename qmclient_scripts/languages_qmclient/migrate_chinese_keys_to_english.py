@@ -301,7 +301,11 @@ def contains_han(text: str) -> bool:
 
 
 def detect_newline(data: bytes) -> str:
-    return "\r\n" if data.count(b"\r\n") > data.count(b"\n") - data.count(b"\r\n") else "\n"
+    return (
+        "\r\n"
+        if data.count(b"\r\n") > data.count(b"\n") - data.count(b"\r\n")
+        else "\n"
+    )
 
 
 def read_text_preserve(path: Path) -> tuple[str, str, bool]:
@@ -370,7 +374,12 @@ def read_language_pairs(path: Path) -> list[tuple[str, str]]:
     while i < len(lines):
         key = lines[i]
         i += 1
-        if not key or key.startswith("#") or key.startswith("[") or key.startswith("== "):
+        if (
+            not key
+            or key.startswith("#")
+            or key.startswith("[")
+            or key.startswith("== ")
+        ):
             continue
         if i >= len(lines) or not lines[i].startswith("== "):
             continue
@@ -418,7 +427,9 @@ def merge_translation(
         collisions[english].append(chinese)
 
 
-def build_maps(pairs: list[tuple[str, str]]) -> tuple[OrderedDict[str, str], OrderedDict[str, str], dict[str, list[str]]]:
+def build_maps(
+    pairs: list[tuple[str, str]],
+) -> tuple[OrderedDict[str, str], OrderedDict[str, str], dict[str, list[str]]]:
     cn_to_en: OrderedDict[str, str] = OrderedDict()
     en_to_cn: OrderedDict[str, str] = OrderedDict()
     collisions: dict[str, list[str]] = defaultdict(list)
@@ -482,7 +493,11 @@ def migrate_source_file(
             unknown.append((line_number(text, match.start(1)), key))
             return match.group(0)
         replacements += 1
-        return match.group(0)[: match.start(1) - match.start(0)] + cpp_escape_key(english) + match.group(0)[match.end(1) - match.start(0) :]
+        return (
+            match.group(0)[: match.start(1) - match.start(0)]
+            + cpp_escape_key(english)
+            + match.group(0)[match.end(1) - match.start(0) :]
+        )
 
     updated = LOCALIZE_LITERAL_RE.sub(replace, text)
     remaining: list[tuple[int, str]] = []
@@ -511,7 +526,11 @@ def write_simplified_chinese(
     en_to_cn: OrderedDict[str, str],
     dry_run: bool,
 ) -> tuple[int, int]:
-    base_keys = {key for key, _ in read_language_pairs(BASE_SIMPLIFIED_CHINESE)} if BASE_SIMPLIFIED_CHINESE.exists() else set()
+    base_keys = (
+        {key for key, _ in read_language_pairs(BASE_SIMPLIFIED_CHINESE)}
+        if BASE_SIMPLIFIED_CHINESE.exists()
+        else set()
+    )
     merged: OrderedDict[str, str] = OrderedDict()
     skipped_base = 0
     for english, chinese in en_to_cn.items():
@@ -525,7 +544,11 @@ def write_simplified_chinese(
             merged[english] = chinese
 
     if not dry_run:
-        _, newline, has_bom = read_text_preserve(SIMPLIFIED_CHINESE) if SIMPLIFIED_CHINESE.exists() else ("", "\n", False)
+        _, newline, has_bom = (
+            read_text_preserve(SIMPLIFIED_CHINESE)
+            if SIMPLIFIED_CHINESE.exists()
+            else ("", "\n", False)
+        )
         lines: list[str] = []
         for english, chinese in merged.items():
             lines.append(english)
@@ -607,7 +630,9 @@ def main() -> None:
     remaining: dict[Path, list[tuple[int, str]]] = OrderedDict()
 
     for path in iter_source_files():
-        count, file_unknown, file_remaining = migrate_source_file(path, cn_to_en, args.dry_run)
+        count, file_unknown, file_remaining = migrate_source_file(
+            path, cn_to_en, args.dry_run
+        )
         file_replacements[path] = count
         if file_unknown:
             unknown[path] = file_unknown
@@ -616,9 +641,13 @@ def main() -> None:
 
     static_replacements = migrate_static_rules(STATIC_RULES_HEADER, args.dry_run)
     if static_replacements:
-        file_replacements[STATIC_RULES_HEADER] = file_replacements.get(STATIC_RULES_HEADER, 0) + static_replacements
+        file_replacements[STATIC_RULES_HEADER] = (
+            file_replacements.get(STATIC_RULES_HEADER, 0) + static_replacements
+        )
 
-    simplified_count, skipped_base_count = write_simplified_chinese(existing_simplified, en_to_cn, args.dry_run)
+    simplified_count, skipped_base_count = write_simplified_chinese(
+        existing_simplified, en_to_cn, args.dry_run
+    )
 
     bare: dict[Path, list[tuple[int, str]]] = OrderedDict()
     for path in iter_source_files():

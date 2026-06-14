@@ -13,6 +13,16 @@ export interface PerfEntry {
   fields: Record<string, string>;
 }
 
+export interface ParseDiagnostics {
+  totalLines: number;
+  invalidLines: number;
+}
+
+export interface ParseResult {
+  entries: PerfEntry[];
+  diagnostics: ParseDiagnostics;
+}
+
 const LOG_LINE_RE = /^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s+\w\s+(perf\/\S+):\s+(.+)$/;
 const KV_RE = /(\w+)=(\S+)/g;
 
@@ -68,12 +78,32 @@ export function parseLine(line: string): PerfEntry | null {
 }
 
 export function parseLog(content: string): PerfEntry[] {
-  return content
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-    .map(parseLine)
-    .filter((e): e is PerfEntry => e !== null);
+  return parseLogWithDiagnostics(content).entries;
+}
+
+export function parseLogWithDiagnostics(content: string): ParseResult {
+  const entries: PerfEntry[] = [];
+  let totalLines = 0;
+  let invalidLines = 0;
+
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim();
+    if (line.length === 0) {
+      continue;
+    }
+    totalLines++;
+    const entry = parseLine(line);
+    if (entry === null) {
+      invalidLines++;
+      continue;
+    }
+    entries.push(entry);
+  }
+
+  return {
+    entries,
+    diagnostics: { totalLines, invalidLines },
+  };
 }
 
 export function groupBySystem(entries: PerfEntry[]): Map<string, PerfEntry[]> {

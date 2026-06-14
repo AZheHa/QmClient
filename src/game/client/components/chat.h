@@ -10,7 +10,7 @@
 #include <generated/protocol7.h>
 
 #include <game/client/component.h>
-#include <game/client/components/qmclient/hud_notifications.h>
+#include <game/client/components/qmclient/hud_notifications/hud_notifications.h>
 #include <game/client/lineinput.h>
 #include <game/client/render.h>
 #include <game/client/ui.h>

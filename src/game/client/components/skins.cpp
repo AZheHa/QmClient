@@ -170,7 +170,6 @@ static ESettingsWarmupMissReason SettingsResourceMissReason(ESettingsWarmupStopR
 	case ESettingsWarmupStopReason::MERGE_BUDGET: return ESettingsWarmupMissReason::JOB_RESULT_PENDING;
 	case ESettingsWarmupStopReason::TEXT_BUDGET: return ESettingsWarmupMissReason::TEXT_BUDGET;
 	case ESettingsWarmupStopReason::ACTIVE_ITEM: return ESettingsWarmupMissReason::ACTIVE_ITEM;
-	case ESettingsWarmupStopReason::FBO_BUDGET:
 	case ESettingsWarmupStopReason::NONE: return ESettingsWarmupMissReason::NONE;
 	}
 	return ESettingsWarmupMissReason::NONE;

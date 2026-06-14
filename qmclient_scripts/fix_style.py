@@ -79,8 +79,12 @@ def filter_cpp(filenames):
     return [
         filename
         for filename in filenames
-        if any(filename.endswith(ext) for ext in ".c .cpp .h".split())
+        if any(filename.endswith(ext) for ext in ".c .cc .cpp .h .hpp".split())
     ]
+
+
+def normalize_input_filenames(filenames):
+    return [os.path.normpath(filename) for filename in filenames]
 
 
 def chunked_for_command(base_args, filenames, max_chars=28000):
@@ -99,10 +103,12 @@ def chunked_for_command(base_args, filenames, max_chars=28000):
 
 
 def find_clang_format(version):
+    versioned_binaries = [f"clang-format-{major}" for major in range(version, 31)]
     for binary in (
         "clang-format",
         f"clang-format-{version}",
         f"/opt/clang-format-static/clang-format-{version}",
+        *versioned_binaries,
     ):
         try:
             out = subprocess.check_output([binary, "--version"])
@@ -167,8 +173,17 @@ def main():
     p.add_argument(
         "--qm-only", action="store_true", help="Only check QmClient-specific files"
     )
+    p.add_argument(
+        "files",
+        nargs="*",
+        help="Optional explicit file list to check instead of scanning src/",
+    )
     args = p.parse_args()
-    filenames = filter_ignored(filter_cpp(recursive_file_list("src")))
+    if args.files:
+        filenames = normalize_input_filenames(args.files)
+    else:
+        filenames = recursive_file_list("src")
+    filenames = filter_ignored(filter_cpp(filenames))
     if args.qm_only:
         filenames = filter_qmclient(filenames)
     if not args.dry_run:

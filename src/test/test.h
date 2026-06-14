@@ -5,8 +5,12 @@
 
 #include <cstddef>
 #include <memory>
+#include <string>
 
 class IStorage;
+
+std::string TestSourcePath(const char *pRelativePath);
+std::string ReadTestSourceFile(const char *pRelativePath);
 
 class CTestInfo
 {

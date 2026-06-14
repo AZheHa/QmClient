@@ -4,6 +4,7 @@
 #include <game/client/components/settings_warmup.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <fstream>
 #include <limits>
@@ -125,56 +126,6 @@ TEST(SettingsWarmup, SectionCacheMetadataRequiresMatchingRuntimeKey)
 	EXPECT_FALSE(Metadata.Matches(RuntimeKey));
 }
 
-TEST(SettingsWarmup, PageRuntimeCacheShortCircuitsOnlyFirstMatchingDraw)
-{
-	SSettingsSectionCacheRuntimeKey RuntimeKey;
-	RuntimeKey.m_ViewportWidth = 900;
-	RuntimeKey.m_ViewportHeight = 620;
-	RuntimeKey.m_UiScale = 100;
-	RuntimeKey.m_ConfigHash = 1234;
-
-	SSettingsPageRuntimeCacheState Cache;
-	Cache.m_Page = 8;
-	Cache.m_Tab = 2;
-	Cache.m_Width = 900;
-	Cache.m_Height = 620;
-	Cache.m_RuntimeKey = RuntimeKey;
-	Cache.m_Valid = true;
-
-	EXPECT_TRUE(SettingsPageRuntimeCacheShouldShortCircuit(Cache, 8, 2, 900, 620, RuntimeKey));
-	EXPECT_FALSE(Cache.m_DrawnOnce);
-	EXPECT_TRUE(SettingsPageRuntimeCacheShouldShortCircuit(Cache, 8, 2, 900, 620, RuntimeKey));
-}
-
-TEST(SettingsWarmup, PageRuntimeCacheRejectsMismatchedRuntimeKey)
-{
-	SSettingsSectionCacheRuntimeKey RuntimeKey;
-	RuntimeKey.m_ViewportWidth = 900;
-	RuntimeKey.m_ViewportHeight = 620;
-	RuntimeKey.m_ConfigHash = 1234;
-
-	SSettingsPageRuntimeCacheState Cache;
-	Cache.m_Page = 9;
-	Cache.m_Tab = 1;
-	Cache.m_Width = 900;
-	Cache.m_Height = 620;
-	Cache.m_RuntimeKey = RuntimeKey;
-	Cache.m_Valid = true;
-
-	RuntimeKey.m_ConfigHash = 5678;
-	EXPECT_FALSE(SettingsPageRuntimeCacheShouldShortCircuit(Cache, 9, 1, 900, 620, RuntimeKey));
-	EXPECT_FALSE(Cache.m_DrawnOnce);
-}
-
-TEST(SettingsWarmup, PageRuntimeCacheTracksWhetherResourcesWereReadyAtRecord)
-{
-	SSettingsPageRuntimeCacheState Cache;
-	EXPECT_TRUE(Cache.m_ResourcesReadyAtRecord);
-
-	Cache.m_ResourcesReadyAtRecord = false;
-	EXPECT_FALSE(Cache.m_ResourcesReadyAtRecord);
-}
-
 TEST(SettingsWarmup, RuntimeCacheNumericKeysRejectNonFiniteValues)
 {
 	EXPECT_EQ(SettingsRuntimeCacheDimensionKey(-std::numeric_limits<float>::infinity()), 1);
@@ -192,57 +143,41 @@ TEST(SettingsWarmup, RuntimeCacheNumericKeysClampBeforeIntConversion)
 	EXPECT_EQ(SettingsRuntimeCacheRoundedKey(-std::numeric_limits<float>::max()), std::numeric_limits<int>::min());
 }
 
-TEST(SettingsWarmup, RuntimeFboWarmupRunsBeforeTextOnlyFallback)
+TEST(SettingsResourceJobs, SkinListVisibleRangeKeepsTotalLengthStable)
 {
-	CSettingsWarmupScheduler Scheduler;
-	std::vector<const char *> vOrder;
+	const SSettingsSkinListVisibleRange Range = SettingsSkinListVisibleRangeForScroll(125.0f, 300.0f, 50.0f, 4, 101, 1);
 
-	Scheduler.RegisterSection({EClassicSettingsPage::TCLIENT, "TClient:Title", 1, [&]() {
-					   vOrder.push_back("text");
-					   return 0.1;
-				   }});
-	Scheduler.RegisterSection({EClassicSettingsPage::TCLIENT, "TClient:FboFirstScreen", 0, [&]() {
-					   vOrder.push_back("fbo");
-					   return 1.0;
-				   },
-		false, ESettingsWarmupKind::RUNTIME_FBO});
-	Scheduler.SetLastSessionPage(EClassicSettingsPage::TCLIENT);
-
-	EXPECT_FALSE(Scheduler.WarmupFrame(1.1));
-	ASSERT_EQ(vOrder.size(), 1);
-	EXPECT_STREQ(vOrder[0], "fbo");
+	EXPECT_EQ(Range.m_TotalItems, 101);
+	EXPECT_EQ(Range.m_TotalRows, 26);
+	EXPECT_EQ(Range.m_FirstVisibleRow, 1);
+	EXPECT_EQ(Range.m_LastVisibleRow, 9);
+	EXPECT_EQ(Range.m_FirstItem, 4);
+	EXPECT_EQ(Range.m_EndItem, 40);
+	EXPECT_EQ(Range.m_VisibleRows, 9);
+	EXPECT_EQ(Range.m_RenderedItems, 36);
+	EXPECT_EQ(Range.m_SkippedItems, 65);
 }
 
-TEST(SettingsWarmup, LoadingRuntimeCacheWarmupIncludesRegisteredPagesAndTClientTabs)
+TEST(SettingsResourceJobs, SkinListVisibleRangeHandlesShortAndEmptyLists)
 {
-	EXPECT_EQ(CMenus::SettingsRuntimeCacheWarmupSteps(), (int)BuildSettingsPageRuntimeRegistry().m_vPages.size() +
-								     6 + (CMenus::NUMBER_OF_QMCLIENT_SETTINGS_TABS - 1));
-}
+	const SSettingsSkinListVisibleRange Empty = SettingsSkinListVisibleRangeForScroll(0.0f, 300.0f, 50.0f, 4, 0, 1);
+	EXPECT_EQ(Empty.m_TotalItems, 0);
+	EXPECT_EQ(Empty.m_TotalRows, 0);
+	EXPECT_EQ(Empty.m_FirstItem, 0);
+	EXPECT_EQ(Empty.m_EndItem, 0);
+	EXPECT_EQ(Empty.m_SkippedItems, 0);
 
-TEST(SettingsRuntimeCache, RegistersAllSettingsPages)
-{
-	const SSettingsPageRuntimeRegistry Registry = BuildSettingsPageRuntimeRegistry();
-
-	EXPECT_FALSE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_LANGUAGE));
-	EXPECT_FALSE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_PLAYER));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_TEE));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_GENERAL));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_CONTROLS));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_GRAPHICS));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_SOUND));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_DDNET));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_TCLIENT));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_QMCLIENT));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_APPEARANCE));
-	EXPECT_TRUE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_ASSETS));
-	EXPECT_FALSE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_PROFILES));
-	EXPECT_FALSE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_CONFIGS));
-	EXPECT_FALSE(SettingsPageRuntimeRegistryContains(Registry, CMenus::SETTINGS_CONTRIBUTORS));
+	const SSettingsSkinListVisibleRange Short = SettingsSkinListVisibleRangeForScroll(500.0f, 300.0f, 50.0f, 4, 7, 1);
+	EXPECT_EQ(Short.m_TotalItems, 7);
+	EXPECT_EQ(Short.m_TotalRows, 2);
+	EXPECT_EQ(Short.m_FirstItem, 0);
+	EXPECT_EQ(Short.m_EndItem, 7);
+	EXPECT_EQ(Short.m_SkippedItems, 0);
 }
 
 TEST(SettingsWarmup, TeePageWarmupStartsSkinSourcePrewarm)
 {
-	std::ifstream File("src/game/client/components/menus.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -250,7 +185,7 @@ TEST(SettingsWarmup, TeePageWarmupStartsSkinSourcePrewarm)
 
 	const size_t PrewarmPos = Source.find("bool CMenus::PrewarmSettingsPageResources(int Page, int Tab, const CUIRect &ContentView)");
 	ASSERT_NE(PrewarmPos, std::string::npos);
-	const size_t PrewarmEnd = Source.find("bool CMenus::DrawSettingsPageRuntimeCache", PrewarmPos);
+	const size_t PrewarmEnd = Source.find("bool CMenus::OnCursorMove", PrewarmPos);
 	ASSERT_NE(PrewarmEnd, std::string::npos);
 	const std::string PrewarmBody = Source.substr(PrewarmPos, PrewarmEnd - PrewarmPos);
 
@@ -267,7 +202,7 @@ TEST(SettingsWarmup, TeePageWarmupStartsSkinSourcePrewarm)
 
 TEST(SettingsWarmup, SettingsFrameBudgetResetsBeforeUpdatePhaseConsumers)
 {
-	std::ifstream GameClientFile("src/game/client/gameclient.cpp");
+	std::ifstream GameClientFile(TestSourcePath("src/game/client/gameclient.cpp"));
 	ASSERT_TRUE(GameClientFile.good());
 	std::stringstream GameClientBuffer;
 	GameClientBuffer << GameClientFile.rdbuf();
@@ -282,7 +217,7 @@ TEST(SettingsWarmup, SettingsFrameBudgetResetsBeforeUpdatePhaseConsumers)
 	EXPECT_NE(OnUpdateBody.find("m_Skins.PrepareSettingsThroughputForFrame();"), std::string::npos);
 	EXPECT_NE(OnUpdateBody.find("m_Menus.ResetSettingsFrameBudgetForFrame(TeeSettingsActive, FrameSkinUploadBudget);"), std::string::npos);
 
-	std::ifstream MenusFile("src/game/client/components/menus.cpp");
+	std::ifstream MenusFile(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(MenusFile.good());
 	std::stringstream MenusBuffer;
 	MenusBuffer << MenusFile.rdbuf();
@@ -294,7 +229,7 @@ TEST(SettingsWarmup, SettingsFrameBudgetResetsBeforeUpdatePhaseConsumers)
 	const std::string MenusOnRenderPreamble = MenusSource.substr(MenusOnRenderPos, MenusOnRenderEnd - MenusOnRenderPos);
 	EXPECT_EQ(MenusOnRenderPreamble.find("m_SettingsFrameBudget = {};"), std::string::npos);
 
-	std::ifstream MenusHeaderFile("src/game/client/components/menus.h");
+	std::ifstream MenusHeaderFile(TestSourcePath("src/game/client/components/menus.h"));
 	ASSERT_TRUE(MenusHeaderFile.good());
 	std::stringstream MenusHeaderBuffer;
 	MenusHeaderBuffer << MenusHeaderFile.rdbuf();
@@ -305,7 +240,7 @@ TEST(SettingsWarmup, SettingsFrameBudgetResetsBeforeUpdatePhaseConsumers)
 
 TEST(SettingsWarmup, LoadingPrewarmDoesNotPumpResourceWork)
 {
-	std::ifstream GameClientFile("src/game/client/gameclient.cpp");
+	std::ifstream GameClientFile(TestSourcePath("src/game/client/gameclient.cpp"));
 	ASSERT_TRUE(GameClientFile.good());
 	std::stringstream GameClientBuffer;
 	GameClientBuffer << GameClientFile.rdbuf();
@@ -328,80 +263,74 @@ TEST(SettingsWarmup, LoadingPrewarmDoesNotPumpResourceWork)
 	EXPECT_EQ(PrewarmBody.find("m_Skins.OnUpdate();"), std::string::npos);
 }
 
-TEST(SettingsWarmup, RuntimePrewarmCallsitesRequireVisibleIdleSettingsPage)
+TEST(SettingsWarmup, TClientPrewarmOnlyPathStillAdvancesVisibleSectionLoaders)
 {
-	std::ifstream MenusFile("src/game/client/components/menus.cpp");
-	ASSERT_TRUE(MenusFile.good());
-	std::stringstream MenusBuffer;
-	MenusBuffer << MenusFile.rdbuf();
-	const std::string MenusSource = MenusBuffer.str();
+	std::ifstream TClientFile(TestSourcePath("src/game/client/components/tclient/menus_tclient.cpp"));
+	ASSERT_TRUE(TClientFile.good());
+	std::stringstream TClientBuffer;
+	TClientBuffer << TClientFile.rdbuf();
+	const std::string TClientSource = TClientBuffer.str();
 
-	EXPECT_EQ(MenusSource.find("const bool CanPrewarmSettings = SettingsRuntimeWarmupShouldRun(\n\t\t\t\tSettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi),\n\t\t\t\ttrue,"), std::string::npos);
-	EXPECT_NE(MenusSource.find("SettingsRuntimeWarmupShouldRun(\n\t\t\t\tSettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi),\n\t\t\t\tm_MenuPage == PAGE_SETTINGS,"), std::string::npos);
-	EXPECT_NE(MenusSource.find("SettingsRuntimeWarmupShouldRun(\n\t\t\t\tSettingsRuntimeCachingEnabled(g_Config.m_QmSettingsPrewarm, g_Config.m_QmSettingsFboCache, g_Config.m_QmNewUi),\n\t\t\t\tm_GamePage == PAGE_SETTINGS,"), std::string::npos);
-	EXPECT_NE(MenusSource.find("m_SettingsPageSwitchActive || TransitionActive"), std::string::npos);
+	const size_t RenderPos = TClientSource.find("void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)");
+	ASSERT_NE(RenderPos, std::string::npos);
+	const size_t RenderEnd = TClientSource.find("void CMenus::LoadSettingsRuntimeCacheMetadata()", RenderPos);
+	ASSERT_NE(RenderEnd, std::string::npos);
+	const std::string RenderBody = TClientSource.substr(RenderPos, RenderEnd - RenderPos);
+
+	const size_t LeftPrewarmPos = RenderBody.find("if(PrewarmOnly)\n\t\t{", RenderBody.find("s_VisualFontLoader.Register"));
+	ASSERT_NE(LeftPrewarmPos, std::string::npos);
+	const size_t LeftReturnPos = RenderBody.find("return;", LeftPrewarmPos);
+	ASSERT_NE(LeftReturnPos, std::string::npos);
+	const std::string LeftPrewarmBody = RenderBody.substr(LeftPrewarmPos, LeftReturnPos - LeftPrewarmPos);
+	EXPECT_NE(LeftPrewarmBody.find("s_VisualFontLoader.Process();"), std::string::npos);
+
+	const size_t RightPrewarmPos = RenderBody.find("if(PrewarmOnly)\n\t\t{", RenderBody.find("s_RightSectionLoader.Register"));
+	ASSERT_NE(RightPrewarmPos, std::string::npos);
+	const size_t RightReturnPos = RenderBody.find("return;", RightPrewarmPos);
+	ASSERT_NE(RightReturnPos, std::string::npos);
+	const std::string RightPrewarmBody = RenderBody.substr(RightPrewarmPos, RightReturnPos - RightPrewarmPos);
+	EXPECT_NE(RightPrewarmBody.find("s_RightSectionLoader.Process();"), std::string::npos);
 }
 
-TEST(SettingsWarmup, QmClientRuntimePrewarmDoesNotTriggerTabSwitchAnimation)
+TEST(SettingsWarmup, TClientSectionLoadersEnableDeferredFarMeasurement)
 {
-	std::ifstream MenusFile("src/game/client/components/menus.cpp");
-	ASSERT_TRUE(MenusFile.good());
-	std::stringstream MenusBuffer;
-	MenusBuffer << MenusFile.rdbuf();
-	const std::string MenusSource = MenusBuffer.str();
+	std::ifstream TClientFile(TestSourcePath("src/game/client/components/tclient/menus_tclient.cpp"));
+	ASSERT_TRUE(TClientFile.good());
+	std::stringstream TClientBuffer;
+	TClientBuffer << TClientFile.rdbuf();
+	const std::string TClientSource = TClientBuffer.str();
 
-	std::ifstream QmMenusFile("src/game/client/components/qmclient/menus_qmclient.cpp");
-	ASSERT_TRUE(QmMenusFile.good());
-	std::stringstream QmMenusBuffer;
-	QmMenusBuffer << QmMenusFile.rdbuf();
-	const std::string QmMenusSource = QmMenusBuffer.str();
+	const size_t RenderPos = TClientSource.find("void CMenus::RenderSettingsTClientSettings(CUIRect MainView, bool PrewarmOnly)");
+	ASSERT_NE(RenderPos, std::string::npos);
+	const size_t RenderEnd = TClientSource.find("void CMenus::LoadSettingsRuntimeCacheMetadata()", RenderPos);
+	ASSERT_NE(RenderEnd, std::string::npos);
+	const std::string RenderBody = TClientSource.substr(RenderPos, RenderEnd - RenderPos);
 
-	EXPECT_NE(MenusSource.find("RenderSettingsQmClient(CacheView, false, true);"), std::string::npos);
-	EXPECT_NE(QmMenusSource.find("else if(!PrewarmOnly && m_QmClientSettingsTab != s_PrevQmTab)"), std::string::npos);
-	EXPECT_NE(QmMenusSource.find("const float TransitionStrength = PrewarmOnly ? 0.0f : ReadUiSwitchAnimation(QmClientTabSwitchNode);"), std::string::npos);
-	EXPECT_NE(QmMenusSource.find("if(!PrewarmOnly)\n\t\t\t\tRenderSettingsTClientConfigs(ContentView);"), std::string::npos);
-}
+	const size_t LeftProgressivePos = RenderBody.find("s_VisualFontLoader.SetProgressiveEnabled(false);");
+	ASSERT_NE(LeftProgressivePos, std::string::npos);
+	const size_t LeftDeferredPos = RenderBody.find("s_VisualFontLoader.SetDeferredFarMeasurementEnabled(true);", LeftProgressivePos);
+	ASSERT_NE(LeftDeferredPos, std::string::npos);
+	const size_t LeftBeginPos = RenderBody.find("s_VisualFontLoader.Begin(LeftView, 5.0f);", LeftDeferredPos);
+	ASSERT_NE(LeftBeginPos, std::string::npos);
 
-TEST(SettingsRuntimeCache, CanonicalizesMergedSettingsPages)
-{
-	EXPECT_EQ(SettingsCanonicalPage(CMenus::SETTINGS_LANGUAGE), CMenus::SETTINGS_GENERAL);
-	EXPECT_EQ(SettingsCanonicalPage(CMenus::SETTINGS_PLAYER), CMenus::SETTINGS_TEE);
-	EXPECT_EQ(SettingsCanonicalPage(CMenus::SETTINGS_CONFIGS), CMenus::SETTINGS_QMCLIENT);
-	EXPECT_EQ(SettingsCanonicalPage(CMenus::SETTINGS_CONTRIBUTORS), CMenus::SETTINGS_QMCLIENT);
-	EXPECT_EQ(SettingsCanonicalPage(CMenus::SETTINGS_ASSETS), CMenus::SETTINGS_ASSETS);
-
-	EXPECT_FALSE(SettingsPageVisibleInRightTabBar(CMenus::SETTINGS_LANGUAGE));
-	EXPECT_FALSE(SettingsPageVisibleInRightTabBar(CMenus::SETTINGS_PLAYER));
-	EXPECT_FALSE(SettingsPageVisibleInRightTabBar(CMenus::SETTINGS_PROFILES));
-	EXPECT_TRUE(SettingsPageVisibleInRightTabBar(CMenus::SETTINGS_GENERAL));
-	EXPECT_TRUE(SettingsPageVisibleInRightTabBar(CMenus::SETTINGS_ASSETS));
-}
-
-TEST(SettingsRuntimeCache, BuildsStableKeysForPageSectionTextAndResource)
-{
-	EXPECT_EQ(SettingsPageCacheKey(CMenus::SETTINGS_TCLIENT, 2), "settings:tclient:tab:2");
-	EXPECT_EQ(SettingsSectionCacheKey(CMenus::SETTINGS_TCLIENT, 2, "binds"), "settings:tclient:tab:2:section:binds");
-	EXPECT_EQ(SettingsTextCacheKey(CMenus::SETTINGS_LANGUAGE, -1, "simplified_chinese.txt"), "settings:language:text:simplified_chinese.txt");
-	EXPECT_NE(SettingsTextCacheKey(CMenus::SETTINGS_LANGUAGE, -1, "simplified_chinese.txt"), SettingsTextCacheKey(CMenus::SETTINGS_GENERAL, -1, "language-title"));
-	EXPECT_EQ(SettingsResourceCacheKey(CMenus::SETTINGS_ASSETS, "entity_bg"), "settings:assets:resource:entity_bg");
+	const size_t RightProgressivePos = RenderBody.find("s_RightSectionLoader.SetProgressiveEnabled(false);");
+	ASSERT_NE(RightProgressivePos, std::string::npos);
+	const size_t RightDeferredPos = RenderBody.find("s_RightSectionLoader.SetDeferredFarMeasurementEnabled(true);", RightProgressivePos);
+	ASSERT_NE(RightDeferredPos, std::string::npos);
+	const size_t RightBeginPos = RenderBody.find("s_RightSectionLoader.Begin(RightView, 5.0f);", RightDeferredPos);
+	ASSERT_NE(RightBeginPos, std::string::npos);
 }
 
 TEST(SettingsRuntimeCache, BudgetStopsEveryMainThreadCost)
 {
 	SSettingsWarmupFrameBudget Budget;
 	Budget.m_MaxTextContainers = 1;
-	Budget.m_MaxRenderTargetRecords = 1;
 	Budget.m_MaxGpuUploads = 1;
 	Budget.m_MaxJobResultMerges = 1;
 
 	EXPECT_TRUE(SettingsWarmupConsumeBudget(Budget, ESettingsWarmupCost::TEXT_CONTAINER));
 	EXPECT_FALSE(SettingsWarmupConsumeBudget(Budget, ESettingsWarmupCost::TEXT_CONTAINER));
 	EXPECT_EQ(Budget.m_StopReason, ESettingsWarmupStopReason::TEXT_BUDGET);
-
-	Budget.m_StopReason = ESettingsWarmupStopReason::NONE;
-	EXPECT_TRUE(SettingsWarmupConsumeBudget(Budget, ESettingsWarmupCost::RENDER_TARGET_RECORD));
-	EXPECT_FALSE(SettingsWarmupConsumeBudget(Budget, ESettingsWarmupCost::RENDER_TARGET_RECORD));
-	EXPECT_EQ(Budget.m_StopReason, ESettingsWarmupStopReason::FBO_BUDGET);
 
 	Budget.m_StopReason = ESettingsWarmupStopReason::NONE;
 	EXPECT_TRUE(SettingsWarmupConsumeBudget(Budget, ESettingsWarmupCost::GPU_UPLOAD));
@@ -426,20 +355,7 @@ TEST(SettingsRuntimeCache, DefaultGpuBudgetAllowsOneSkinUploadBatch)
 TEST(SettingsRuntimeCache, BudgetStopReasonsMapToProductionMissReasons)
 {
 	EXPECT_STREQ(SettingsWarmupBudgetStopMissReasonName(ESettingsWarmupStopReason::TEXT_BUDGET), "text_budget");
-	EXPECT_STREQ(SettingsWarmupBudgetStopMissReasonName(ESettingsWarmupStopReason::FBO_BUDGET), "fbo_budget");
 	EXPECT_STREQ(SettingsWarmupBudgetStopMissReasonName(ESettingsWarmupStopReason::NONE), "none");
-}
-
-TEST(SettingsRuntimeCache, PageCacheSlotsExistForEveryRegisteredPage)
-{
-	const SSettingsPageRuntimeRegistry Registry = BuildSettingsPageRuntimeRegistry();
-	for(int Page : Registry.m_vPages)
-	{
-		const int Tab = Page == CMenus::SETTINGS_QMCLIENT ? 0 : -1;
-		EXPECT_GE(SettingsPageRuntimeCacheSlot(Page, Tab), 0) << Page;
-	}
-	EXPECT_NE(SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_TCLIENT, 0), SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_TCLIENT, 1));
-	EXPECT_NE(SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_ASSETS, ASSETS_TAB_ENTITIES), SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_ASSETS, ASSETS_TAB_ENTITY_BG));
 }
 
 TEST(SettingsRuntimeCache, TClientPerfStageNamesAreStable)
@@ -455,9 +371,6 @@ TEST(SettingsRuntimeCache, TClientPerfStageNamesAreStable)
 TEST(SettingsRuntimeCache, PerfReasonNamesAreStable)
 {
 	EXPECT_STREQ(SettingsWarmupMissReasonName(ESettingsWarmupMissReason::NONE), "none");
-	EXPECT_STREQ(SettingsWarmupMissReasonName(ESettingsWarmupMissReason::PAGE_FBO_UNSUPPORTED), "page_fbo_unsupported");
-	EXPECT_STREQ(SettingsWarmupMissReasonName(ESettingsWarmupMissReason::PAGE_FBO_NOT_READY), "page_fbo_not_ready");
-	EXPECT_STREQ(SettingsWarmupMissReasonName(ESettingsWarmupMissReason::SECTION_FBO_NOT_READY), "section_fbo_not_ready");
 	EXPECT_STREQ(SettingsWarmupMissReasonName(ESettingsWarmupMissReason::DEPENDENCY_NOT_READY), "dependency_not_ready");
 	EXPECT_STREQ(SettingsWarmupMissReasonName(ESettingsWarmupMissReason::RESOURCE_PLAN_PENDING), "resource_plan_pending");
 	EXPECT_STREQ(SettingsWarmupMissReasonName(ESettingsWarmupMissReason::JOB_RESULT_PENDING), "job_result_pending");
@@ -481,6 +394,43 @@ TEST(SettingsRuntimeCache, InvalidationReasonNamesAreStable)
 	EXPECT_STREQ(SettingsInvalidationReasonName(ESettingsInvalidationReason::RESOURCE_DIRECTORY_CHANGED), "resource_directory_changed");
 }
 
+TEST(SettingsRuntimeCache, RuntimeKeyMismatchNamesDirtyReason)
+{
+	SSettingsSectionCacheRuntimeKey Base;
+	Base.m_ViewportWidth = 900;
+	Base.m_ViewportHeight = 620;
+	Base.m_UiScale = 100;
+	Base.m_ConfigHash = 10;
+	Base.m_LanguageHash = 11;
+	Base.m_FontHash = 12;
+	Base.m_BackendHash = 13;
+	Base.m_WindowHash = 14;
+
+	SSettingsSectionCacheRuntimeKey Language = Base;
+	Language.m_LanguageHash++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Language), ESettingsCacheDirtyReason::LANGUAGE);
+
+	SSettingsSectionCacheRuntimeKey Font = Base;
+	Font.m_FontHash++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Font), ESettingsCacheDirtyReason::FONT);
+
+	SSettingsSectionCacheRuntimeKey Backend = Base;
+	Backend.m_BackendHash++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Backend), ESettingsCacheDirtyReason::GRAPHICS_RESET);
+
+	SSettingsSectionCacheRuntimeKey UiScale = Base;
+	UiScale.m_UiScale++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, UiScale), ESettingsCacheDirtyReason::UI_SCALE);
+
+	SSettingsSectionCacheRuntimeKey Viewport = Base;
+	Viewport.m_ViewportHeight++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Viewport), ESettingsCacheDirtyReason::WINDOW_SIZE);
+
+	SSettingsSectionCacheRuntimeKey Config = Base;
+	Config.m_ConfigHash++;
+	EXPECT_EQ(SettingsRuntimeKeyMismatchDirtyReason(Base, Config), ESettingsCacheDirtyReason::CONFIG);
+}
+
 TEST(SettingsRuntimeCache, CompactVisibleTextIsRejected)
 {
 	EXPECT_FALSE(SettingsRuntimeCacheAllowsVisibleCompactText("TClientPetSection"));
@@ -489,227 +439,6 @@ TEST(SettingsRuntimeCache, CompactVisibleTextIsRejected)
 	EXPECT_FALSE(SettingsRuntimeCacheAllowsVisibleCompactText("TClientDeferredSummary"));
 	EXPECT_FALSE(SettingsRuntimeCacheAllowsVisibleCompactText("TClientCompactSummary"));
 	EXPECT_FALSE(SettingsRuntimeCacheAllowsVisibleCompactText("TClientSummaryBlock"));
-}
-
-TEST(SettingsRuntimeCache, RuntimeKeyInvalidatesOnLanguageFontBackendWindowScaleAndConfig)
-{
-	SSettingsRuntimeCacheKey A;
-	A.m_LanguageHash = 1;
-	A.m_FontGeneration = 2;
-	A.m_BackendGeneration = 3;
-	A.m_WindowWidth = 1280;
-	A.m_WindowHeight = 720;
-	A.m_UiScale = 100;
-	A.m_ConfigHash = 4;
-
-	SSettingsRuntimeCacheKey B = A;
-	EXPECT_TRUE(SettingsRuntimeCacheKeyMatches(A, B));
-
-	B.m_LanguageHash = 9;
-	EXPECT_FALSE(SettingsRuntimeCacheKeyMatches(A, B));
-	B = A;
-	B.m_FontGeneration = 9;
-	EXPECT_FALSE(SettingsRuntimeCacheKeyMatches(A, B));
-	B = A;
-	B.m_BackendGeneration = 9;
-	EXPECT_FALSE(SettingsRuntimeCacheKeyMatches(A, B));
-	B = A;
-	B.m_WindowWidth = 1920;
-	EXPECT_FALSE(SettingsRuntimeCacheKeyMatches(A, B));
-	B = A;
-	B.m_UiScale = 125;
-	EXPECT_FALSE(SettingsRuntimeCacheKeyMatches(A, B));
-	B = A;
-	B.m_ConfigHash = 9;
-	EXPECT_FALSE(SettingsRuntimeCacheKeyMatches(A, B));
-}
-
-TEST(SettingsRuntimeCache, ScrollWarmupOnlyUsesMatchingScrollPage)
-{
-	SSettingsRuntimeCacheMetadata Metadata;
-	Metadata.m_LastPage = CMenus::SETTINGS_QMCLIENT;
-	Metadata.m_LastQmTab = CMenus::QMCLIENT_SETTINGS_TAB_CONFIG;
-	Metadata.m_LastScrollPage = CMenus::SETTINGS_TCLIENT;
-	Metadata.m_LastScrollY = 128.0f;
-	Metadata.m_Valid = true;
-
-	const SSettingsPageRuntimeRegistry Registry = BuildSettingsPageRuntimeRegistry();
-	const SSettingsWarmupStartupPlan Plan = BuildSettingsWarmupStartupPlan(Metadata, Registry);
-
-	ASSERT_FALSE(Plan.m_vPageJobs.empty());
-	EXPECT_EQ(Plan.m_vPageJobs.front().m_Page, CMenus::SETTINGS_QMCLIENT);
-	EXPECT_FLOAT_EQ(Plan.m_vPageJobs.front().m_ScrollY, 0.0f);
-
-	auto It = std::find_if(Plan.m_vPageJobs.begin(), Plan.m_vPageJobs.end(), [](const SSettingsWarmupPageJob &Job) {
-		return Job.m_Page == CMenus::SETTINGS_TCLIENT;
-	});
-	ASSERT_NE(It, Plan.m_vPageJobs.end());
-	EXPECT_FLOAT_EQ(It->m_ScrollY, 0.0f);
-
-	Metadata.m_LastPage = CMenus::SETTINGS_TCLIENT;
-	const SSettingsWarmupStartupPlan TClientPlan = BuildSettingsWarmupStartupPlan(Metadata, Registry);
-	ASSERT_FALSE(TClientPlan.m_vPageJobs.empty());
-	EXPECT_EQ(TClientPlan.m_vPageJobs.front().m_Page, CMenus::SETTINGS_TCLIENT);
-	EXPECT_FLOAT_EQ(TClientPlan.m_vPageJobs.front().m_ScrollY, 128.0f);
-}
-
-TEST(SettingsRuntimeCache, StartupPlanCoversLastPageAndAllRegisteredPages)
-{
-	SSettingsRuntimeCacheMetadata Metadata;
-	Metadata.m_LastPage = CMenus::SETTINGS_ASSETS;
-	Metadata.m_LastTClientTab = 2;
-	Metadata.m_LastQmTab = 1;
-	Metadata.m_LastScrollPage = CMenus::SETTINGS_TCLIENT;
-	Metadata.m_LastScrollY = 128.0f;
-
-	const SSettingsWarmupStartupPlan Plan = BuildSettingsWarmupStartupPlan(Metadata, BuildSettingsPageRuntimeRegistry());
-
-	ASSERT_FALSE(Plan.m_vPageJobs.empty());
-	EXPECT_EQ(Plan.m_vPageJobs[0].m_Page, CMenus::SETTINGS_ASSETS);
-	for(int Page : BuildSettingsPageRuntimeRegistry().m_vPages)
-		EXPECT_TRUE(SettingsWarmupPlanContainsPage(Plan, Page));
-}
-
-TEST(SettingsRuntimeCache, StartupPlanIncludesTeeWarmupPage)
-{
-	SSettingsRuntimeCacheMetadata Metadata;
-	Metadata.m_LastPage = CMenus::SETTINGS_PLAYER;
-
-	const SSettingsWarmupStartupPlan Plan = BuildSettingsWarmupStartupPlan(Metadata, BuildSettingsPageRuntimeRegistry());
-
-	EXPECT_TRUE(SettingsWarmupPlanContainsPage(Plan, CMenus::SETTINGS_TEE));
-	EXPECT_FALSE(SettingsWarmupPlanContainsPage(Plan, CMenus::SETTINGS_PLAYER));
-}
-
-TEST(SettingsRuntimeCache, RuntimeMetadataCarriesRuntimeKeyAlongsideWarmupContext)
-{
-	SSettingsRuntimeCacheMetadata Metadata;
-	Metadata.m_LastPage = CMenus::SETTINGS_TCLIENT;
-	Metadata.m_LastTClientTab = 2;
-	Metadata.m_LastScrollPage = CMenus::SETTINGS_TCLIENT;
-	Metadata.m_LastScrollY = 64.0f;
-	Metadata.m_RuntimeKey.m_LanguageHash = 11;
-	Metadata.m_RuntimeKey.m_FontGeneration = 22;
-	Metadata.m_RuntimeKey.m_BackendGeneration = 33;
-	Metadata.m_RuntimeKey.m_WindowWidth = 1600;
-	Metadata.m_RuntimeKey.m_WindowHeight = 900;
-	Metadata.m_RuntimeKey.m_UiScale = 100;
-	Metadata.m_RuntimeKey.m_ConfigHash = 44;
-	Metadata.m_Valid = true;
-
-	const SSettingsWarmupStartupPlan Plan = BuildSettingsWarmupStartupPlan(Metadata, BuildSettingsPageRuntimeRegistry());
-
-	ASSERT_FALSE(Plan.m_vPageJobs.empty());
-	EXPECT_EQ(Plan.m_vPageJobs.front().m_Page, CMenus::SETTINGS_TCLIENT);
-	EXPECT_EQ(Plan.m_vPageJobs.front().m_Tab, 2);
-	EXPECT_FLOAT_EQ(Plan.m_vPageJobs.front().m_ScrollY, 64.0f);
-	EXPECT_EQ(Metadata.m_RuntimeKey.m_WindowWidth, 1600);
-	EXPECT_EQ(Metadata.m_RuntimeKey.m_ConfigHash, 44u);
-}
-
-TEST(SettingsRuntimeCache, PageCacheSlotsRejectInvalidPersistedTabs)
-{
-	EXPECT_EQ(SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_TCLIENT, -1), 10);
-	EXPECT_EQ(SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_TCLIENT, 99), -1);
-	EXPECT_EQ(SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_QMCLIENT, -1), 16);
-	EXPECT_EQ(SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_QMCLIENT, CMenus::NUMBER_OF_QMCLIENT_SETTINGS_TABS), -1);
-	EXPECT_EQ(SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_ASSETS, -1), 9);
-	EXPECT_EQ(SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_ASSETS, NUMBER_OF_ASSETS_TABS), -1);
-}
-
-TEST(SettingsRuntimeCache, MergedPageRuntimeCacheSlotsAreCanonical)
-{
-	EXPECT_EQ(SettingsPageRuntimeCacheSlot(SettingsCanonicalPage(CMenus::SETTINGS_LANGUAGE), -1), SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_GENERAL, -1));
-	EXPECT_EQ(SettingsPageRuntimeCacheSlot(SettingsCanonicalPage(CMenus::SETTINGS_PLAYER), -1), SettingsPageRuntimeCacheSlot(CMenus::SETTINGS_TEE, -1));
-}
-
-TEST(SettingsRuntimeCache, SectionRegistryCoversComplexPages)
-{
-	SSettingsSectionRegistry Registry = BuildSettingsSectionRegistry();
-
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_TCLIENT, "binds"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_QMCLIENT, "general"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_CONTROLS, "movement"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_ASSETS, "resource-list"));
-	EXPECT_FALSE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_LANGUAGE, "language-list"));
-	EXPECT_FALSE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_PLAYER, "skin-list"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_GENERAL, "language-list"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_TEE, "country-list"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_TEE, "skin-list"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_GENERAL, "body"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_APPEARANCE, "body"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_GRAPHICS, "body"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_SOUND, "body"));
-	EXPECT_TRUE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_DDNET, "body"));
-	EXPECT_FALSE(SettingsSectionRegistryContains(Registry, CMenus::SETTINGS_GENERAL, "missing"));
-}
-
-TEST(SettingsRuntimeCache, TextCacheKeysAreStableAcrossFrames)
-{
-	EXPECT_EQ(SettingsTextCacheKey(CMenus::SETTINGS_TCLIENT, 1, "auto-reply-title"), SettingsTextCacheKey(CMenus::SETTINGS_TCLIENT, 1, "auto-reply-title"));
-	EXPECT_NE(SettingsTextCacheKey(CMenus::SETTINGS_TCLIENT, 1, "auto-reply-title"), SettingsTextCacheKey(CMenus::SETTINGS_TCLIENT, 2, "auto-reply-title"));
-}
-
-TEST(SettingsRuntimeCache, SectionRegistryRequiresBothLayersForStaticFbo)
-{
-	const SSettingsSectionRegistry Registry = BuildSettingsSectionRegistry();
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TCLIENT, 3, "binds"));
-	EXPECT_TRUE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TCLIENT, 0, "auto-reply"));
-	EXPECT_TRUE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TCLIENT, 0, "pet"));
-	EXPECT_TRUE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TCLIENT, 0, "theme"));
-	EXPECT_TRUE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TCLIENT, 0, "misc"));
-	EXPECT_TRUE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TCLIENT, 0, "hud"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TCLIENT, 1, "auto-reply"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_QMCLIENT, CMenus::QMCLIENT_SETTINGS_TAB_VISUAL, "general"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_QMCLIENT, CMenus::QMCLIENT_SETTINGS_TAB_CONFIG, "config"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_QMCLIENT, CMenus::QMCLIENT_SETTINGS_TAB_CONTRIBUTORS, "contributors"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_CONTROLS, -1, "movement"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_CONTROLS, -1, "weapons"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_CONTROLS, -1, "voting"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_ASSETS, -1, "resource-list"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_ASSETS, -1, "preview"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_GENERAL, -1, "language-list"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TEE, -1, "country-list"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TEE, -1, "skin-list"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TEE, -1, "identity"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_GENERAL, -1, "body"));
-	EXPECT_FALSE(SettingsSectionCanRecordStaticFbo(Registry, CMenus::SETTINGS_TCLIENT, 0, "missing"));
-}
-
-TEST(SettingsRuntimeCache, InvalidationReasonTargetsExpectedCaches)
-{
-	EXPECT_TRUE(SettingsInvalidationClearsTextPool(ESettingsInvalidationReason::LANGUAGE_CHANGED));
-	EXPECT_TRUE(SettingsInvalidationClearsSectionFbo(ESettingsInvalidationReason::LANGUAGE_CHANGED));
-	EXPECT_TRUE(SettingsInvalidationClearsPageFbo(ESettingsInvalidationReason::LANGUAGE_CHANGED));
-
-	EXPECT_FALSE(SettingsInvalidationClearsTextPool(ESettingsInvalidationReason::RESOURCE_DIRECTORY_CHANGED));
-	EXPECT_TRUE(SettingsInvalidationClearsResourcePlan(ESettingsInvalidationReason::RESOURCE_DIRECTORY_CHANGED));
-	EXPECT_TRUE(SettingsInvalidationClearsSectionFbo(ESettingsInvalidationReason::RESOURCE_DIRECTORY_CHANGED));
-	EXPECT_FALSE(SettingsInvalidationClearsPageFbo(ESettingsInvalidationReason::RESOURCE_DIRECTORY_CHANGED));
-	EXPECT_TRUE(SettingsInvalidationClearsPageFbo(ESettingsInvalidationReason::RESOURCE_DIRECTORY_CHANGED, CMenus::SETTINGS_ASSETS, CMenus::SETTINGS_ASSETS));
-	EXPECT_FALSE(SettingsInvalidationClearsPageFbo(ESettingsInvalidationReason::RESOURCE_DIRECTORY_CHANGED, CMenus::SETTINGS_TCLIENT, CMenus::SETTINGS_ASSETS));
-
-	EXPECT_TRUE(SettingsInvalidationClearsTextPool(ESettingsInvalidationReason::FONT_CHANGED));
-	EXPECT_FALSE(SettingsInvalidationClearsResourcePlan(ESettingsInvalidationReason::FONT_CHANGED));
-	EXPECT_TRUE(SettingsInvalidationClearsPageFbo(ESettingsInvalidationReason::WINDOW_OR_SCALE_CHANGED));
-	EXPECT_FALSE(SettingsInvalidationClearsTextPool(ESettingsInvalidationReason::SECTION_SIZE_CHANGED));
-	EXPECT_TRUE(SettingsInvalidationClearsSectionFbo(ESettingsInvalidationReason::SECTION_SIZE_CHANGED));
-}
-
-TEST(SettingsRuntimeCache, DisabledConfigBypassesWarmupAndFbo)
-{
-	EXPECT_FALSE(SettingsWarmupEnabled(0, 1));
-	EXPECT_FALSE(SettingsWarmupEnabled(1, 0));
-	EXPECT_FALSE(SettingsWarmupEnabled(0, 0));
-	EXPECT_TRUE(SettingsWarmupEnabled(1, 1));
-}
-
-TEST(SettingsRuntimeCache, LegacySettingsUiBypassesRuntimeFboCaching)
-{
-	EXPECT_FALSE(SettingsRuntimeCachingEnabled(1, 1, 0));
-	EXPECT_FALSE(SettingsRuntimeCachingEnabled(0, 1, 1));
-	EXPECT_FALSE(SettingsRuntimeCachingEnabled(1, 0, 1));
-	EXPECT_TRUE(SettingsRuntimeCachingEnabled(1, 1, 1));
 }
 
 TEST(SettingsResourceJobs, SkinPlanKeepsSelectedFavoritesThenSorted)
@@ -999,7 +728,7 @@ TEST(SettingsResourceJobs, PostListRecoveryStateClampsStaleIdleHeavyBudgetForWor
 
 TEST(SettingsResourceJobs, AssetsLocalListFinalizesHeavyPreviewWorkOnlyAfterListEnd)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1034,7 +763,7 @@ TEST(SettingsResourceJobs, AssetsLocalListFinalizesHeavyPreviewWorkOnlyAfterList
 
 TEST(SettingsResourceJobs, AssetsWorkshopListFinalizesPreviewAndThumbWorkOnlyAfterListEnd)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1075,7 +804,7 @@ TEST(SettingsResourceJobs, AssetsWorkshopListFinalizesPreviewAndThumbWorkOnlyAft
 
 TEST(SettingsResourceJobs, AssetsListsBuildFrameContextFromJumpScrollStateBeforeHeavyStages)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1099,7 +828,7 @@ TEST(SettingsResourceJobs, VisibleReadyPreviewKeepsUploadPriority)
 
 TEST(SettingsResourceJobs, AssetsFocusHandlingDoesNotUseWindowRecoveryFrames)
 {
-	std::ifstream MenusHeaderFile("src/game/client/components/menus.h");
+	std::ifstream MenusHeaderFile(TestSourcePath("src/game/client/components/menus.h"));
 	ASSERT_TRUE(MenusHeaderFile.good());
 	std::stringstream MenusHeaderBuffer;
 	MenusHeaderBuffer << MenusHeaderFile.rdbuf();
@@ -1108,7 +837,7 @@ TEST(SettingsResourceJobs, AssetsFocusHandlingDoesNotUseWindowRecoveryFrames)
 	EXPECT_EQ(MenusHeaderSource.find("m_LastWindowActive"), std::string::npos);
 	EXPECT_EQ(MenusHeaderSource.find("m_WindowRecoveryFrames"), std::string::npos);
 
-	std::ifstream MenusSourceFile("src/game/client/components/menus.cpp");
+	std::ifstream MenusSourceFile(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(MenusSourceFile.good());
 	std::stringstream MenusBuffer;
 	MenusBuffer << MenusSourceFile.rdbuf();
@@ -1120,7 +849,7 @@ TEST(SettingsResourceJobs, AssetsFocusHandlingDoesNotUseWindowRecoveryFrames)
 
 TEST(SettingsResourceJobs, AssetsInactiveWindowBehaviorSkipsRecoveryPurgeAndUsesDirectWindowGate)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1146,7 +875,7 @@ TEST(SettingsResourceJobs, InactiveWindowBlocksAllNewAssetWorkStarts)
 
 TEST(SettingsResourceJobs, AssetsFocusLogsIncludeTextureMemoryAndResidentPreviewBytes)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1159,7 +888,7 @@ TEST(SettingsResourceJobs, AssetsFocusLogsIncludeTextureMemoryAndResidentPreview
 
 TEST(SettingsResourceJobs, EntityBgCorruptInstallProbeReadsOnlyFileHeader)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1173,7 +902,7 @@ TEST(SettingsResourceJobs, EntityBgCorruptInstallProbeReadsOnlyFileHeader)
 
 TEST(SettingsResourceJobs, AssetsFocusObservationUsesResumeFrameContextAndSwapTelemetry)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1186,7 +915,7 @@ TEST(SettingsResourceJobs, AssetsFocusObservationUsesResumeFrameContextAndSwapTe
 
 TEST(SettingsResourceJobs, WorkshopThumbStartAvoidsDuplicateQueuePushForMatchingState)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1199,7 +928,7 @@ TEST(SettingsResourceJobs, WorkshopThumbStartAvoidsDuplicateQueuePushForMatching
 
 TEST(SettingsResourceJobs, PreviewTierUpgradeReplacesExistingTexturesInsteadOfLeakingOrDropping)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1215,7 +944,7 @@ TEST(SettingsResourceJobs, PreviewTierUpgradeReplacesExistingTexturesInsteadOfLe
 
 TEST(SettingsResourceJobs, WorkshopRefreshPreservesPreviewRuntimeMetadata)
 {
-	std::ifstream File("src/game/client/components/menus_settings_assets.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -1238,102 +967,99 @@ TEST(SettingsResourceJobs, BudgetedPreviewCanUpgradeTierWhenHigherBudgetReturns)
 	EXPECT_FALSE(SettingsAssetPreviewDecodeStartNeeded(false, false, 0, 1024, true));
 }
 
-TEST(SettingsResourceJobs, PageCacheRejectsRecordedFrameWithoutReadyResources)
+TEST(SettingsWarmupCleanup, SourceNoLongerReferencesSettingsPageFboPaths)
 {
-	EXPECT_FALSE(SettingsPageCacheCanUseRecordedResources(true, true, false));
-	EXPECT_FALSE(SettingsPageCacheCanUseRecordedResources(true, false, true));
-	EXPECT_FALSE(SettingsPageCacheCanUseRecordedResources(false, true, true));
-	EXPECT_TRUE(SettingsPageCacheCanUseRecordedResources(true, true, true));
-}
-
-TEST(SettingsResourceJobs, PageCacheRejectsRecordedFrameWithoutReadyDependentSubcaches)
-{
-	EXPECT_FALSE(SettingsPageCacheCanUseRecordedResources(true, true, true, false));
-	EXPECT_EQ(SettingsPageRecordedCacheMissReason(true, true, true, false), ESettingsWarmupMissReason::DEPENDENCY_NOT_READY);
-}
-
-TEST(SettingsResourceJobs, TClientSectionInvalidationAlsoInvalidatesPageCache)
-{
-	std::ifstream File("src/game/client/components/tclient/menus_tclient.cpp");
-	ASSERT_TRUE(File.good());
-	std::stringstream Buffer;
-	Buffer << File.rdbuf();
-	const std::string Source = Buffer.str();
-	EXPECT_NE(Source.find("InvalidateSettingsPageRuntimeCache(SETTINGS_TCLIENT"), std::string::npos);
-}
-
-TEST(SettingsResourceJobs, DrawSettingsPageRuntimeCacheUsesRecordedDependencyFlag)
-{
-	std::ifstream File("src/game/client/components/menus.cpp");
-	ASSERT_TRUE(File.good());
-	std::stringstream Buffer;
-	Buffer << File.rdbuf();
-	const std::string Source = Buffer.str();
-	EXPECT_NE(Source.find("pCache->m_State.m_DependentSubcachesReadyAtRecord"), std::string::npos);
-	EXPECT_NE(Source.find("SettingsPageRecordedCacheMissReason("), std::string::npos);
-}
-
-TEST(SettingsResourceJobs, PrewarmSettingsPageRuntimeCacheLogsSuccessfulRecord)
-{
-	std::ifstream File("src/game/client/components/menus.cpp");
-	ASSERT_TRUE(File.good());
-	std::stringstream Buffer;
-	Buffer << File.rdbuf();
-	const std::string Source = Buffer.str();
-
-	const size_t RecordPos = Source.find("pCache->m_State.m_DependentSubcachesReadyAtRecord = DependentSubcachesReady;");
-	ASSERT_NE(RecordPos, std::string::npos);
-	const size_t LogPos = Source.find("LogSettingsWarmupPerf(Page, Tab, \"miss\", \"n/a\", SettingsPageRecordedCacheMissReason(true, true, ResourcesReady, DependentSubcachesReady), PerfDebugElapsedMs(PerfStartTime));", RecordPos);
-	ASSERT_NE(LogPos, std::string::npos);
-}
-
-TEST(SettingsResourceJobs, AssetsPageRejectsWholePageFbo)
-{
-	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_ASSETS, CMenus::SETTINGS_ASSETS));
-	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_TEE, CMenus::SETTINGS_ASSETS));
-	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_PLAYER, CMenus::SETTINGS_ASSETS));
-	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_GRAPHICS, CMenus::SETTINGS_ASSETS));
-	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_QMCLIENT, CMenus::SETTINGS_ASSETS));
-	EXPECT_TRUE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_TCLIENT, CMenus::SETTINGS_ASSETS));
-	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_TCLIENT, CMenus::SETTINGS_ASSETS, -1, 0));
-	EXPECT_TRUE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_TCLIENT, CMenus::SETTINGS_ASSETS, -1, 1));
-	EXPECT_TRUE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_LANGUAGE, CMenus::SETTINGS_ASSETS));
-}
-
-TEST(SettingsWarmup, GraphicsPageRuntimeWarmupDoesNotRenderSystemControls)
-{
-	std::ifstream MenusSourceFile("src/game/client/components/menus.cpp");
-	ASSERT_TRUE(MenusSourceFile.good());
+	std::ifstream MenusFile(TestSourcePath("src/game/client/components/menus.cpp"));
+	ASSERT_TRUE(MenusFile.good());
 	std::stringstream MenusBuffer;
-	MenusBuffer << MenusSourceFile.rdbuf();
+	MenusBuffer << MenusFile.rdbuf();
 	const std::string MenusSource = MenusBuffer.str();
 
-	const size_t WarmupPos = MenusSource.find("bool CMenus::PrewarmSettingsPageRuntimeCache(CUIRect ContentView, int Page, int Tab, float ScrollY, bool ResourcesReady)");
-	ASSERT_NE(WarmupPos, std::string::npos);
-	const size_t DrawPos = MenusSource.find("bool CMenus::DrawSettingsPageRuntimeCache", WarmupPos);
-	ASSERT_NE(DrawPos, std::string::npos);
-	const std::string WarmupBody = MenusSource.substr(WarmupPos, DrawPos - WarmupPos);
-
-	const size_t TClientTabCanonicalizePos = WarmupBody.find("Tab = CanonicalizeTClientCacheTab(Tab);");
-	const size_t FboCheckPos = WarmupBody.find("if(!SettingsPageCanUsePageFbo(Page, SETTINGS_ASSETS, -1, Tab))");
-	ASSERT_NE(TClientTabCanonicalizePos, std::string::npos);
-	ASSERT_NE(FboCheckPos, std::string::npos);
-	EXPECT_LT(TClientTabCanonicalizePos, FboCheckPos);
-	EXPECT_NE(WarmupBody.find("RenderSettingsGraphics(CacheView);"), std::string::npos);
-	EXPECT_FALSE(SettingsPageCanUsePageFbo(CMenus::SETTINGS_GRAPHICS, CMenus::SETTINGS_ASSETS));
+	EXPECT_EQ(MenusSource.find("PrewarmSettingsPageRuntimeCache"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("DrawSettingsPageRuntimeCache"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("InvalidateSettingsPageRuntimeCache"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("PrewarmSettingsSectionRuntimeCache"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("DrawSettingsSectionRuntimeCache"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("InvalidateSettingsSectionRuntimeCache"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("DestroySettingsPageRuntimeCaches"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("PrepareGenericSettingsRuntimeCacheSection"), std::string::npos);
+	EXPECT_EQ(MenusSource.find("MakeSettingsPageRuntimeKey"), std::string::npos);
 }
 
-TEST(SettingsWarmup, RuntimeWarmupSkipsUnsupportedSiblingPageFbos)
+TEST(SettingsWarmupCleanup, SourceNoLongerReferencesSettingsRuntimeFboContracts)
 {
-	std::ifstream MenusSourceFile("src/game/client/components/tclient/menus_tclient.cpp");
-	ASSERT_TRUE(MenusSourceFile.good());
-	std::stringstream MenusBuffer;
-	MenusBuffer << MenusSourceFile.rdbuf();
-	const std::string MenusSource = MenusBuffer.str();
+	std::ifstream RuntimeHeaderFile(TestSourcePath("src/game/client/components/settings_runtime_cache.h"));
+	ASSERT_TRUE(RuntimeHeaderFile.good());
+	std::stringstream RuntimeHeaderBuffer;
+	RuntimeHeaderBuffer << RuntimeHeaderFile.rdbuf();
+	const std::string RuntimeHeaderSource = RuntimeHeaderBuffer.str();
 
-	EXPECT_NE(MenusSource.find("if(!SettingsPageCanUsePageFbo(SETTINGS_TCLIENT, SETTINGS_ASSETS, -1, Tab))"), std::string::npos);
-	EXPECT_NE(MenusSource.find("if(!SettingsPageCanUsePageFbo(SETTINGS_QMCLIENT, SETTINGS_ASSETS, -1, Tab))"), std::string::npos);
-	EXPECT_NE(MenusSource.find("const bool PageFboSupported = SettingsPageCanUsePageFbo(SETTINGS_TCLIENT, SETTINGS_ASSETS, -1, TClientTab);"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("RENDER_TARGET_RECORD"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("FBO_BUDGET"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("GPU_READBACK_BUDGET"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("PREVIEW_CACHE_IO_BUDGET"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("PAGE_FBO_UNSUPPORTED"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("PAGE_FBO_NOT_READY"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SECTION_FBO_NOT_READY"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("m_MaxRenderTargetRecords"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("m_MaxGpuReadbacks"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("m_MaxPreviewCacheIo"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SSettingsPageRuntimeRegistry"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SSettingsRuntimeCacheMetadata"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SSettingsWarmupPageJob"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SETTINGS_PAGE_RUNTIME_CACHE_SLOTS"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SettingsPageRuntimeCacheSlot"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SettingsSectionCanRecordStaticFbo"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SettingsWarmupEnabled"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SettingsRuntimeCachingEnabled"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SettingsInvalidationClearsSectionFbo"), std::string::npos);
+	EXPECT_EQ(RuntimeHeaderSource.find("SettingsInvalidationClearsPageFbo"), std::string::npos);
+
+	std::ifstream WarmupHeaderFile(TestSourcePath("src/game/client/components/settings_warmup.h"));
+	ASSERT_TRUE(WarmupHeaderFile.good());
+	std::stringstream WarmupHeaderBuffer;
+	WarmupHeaderBuffer << WarmupHeaderFile.rdbuf();
+	const std::string WarmupHeaderSource = WarmupHeaderBuffer.str();
+	EXPECT_EQ(WarmupHeaderSource.find("RUNTIME_FBO"), std::string::npos);
+	EXPECT_EQ(WarmupHeaderSource.find("SSettingsPageRuntimeCacheState"), std::string::npos);
+	EXPECT_EQ(WarmupHeaderSource.find("SettingsPageRuntimeCacheShouldShortCircuit"), std::string::npos);
+
+	std::ifstream ResourceFile(TestSourcePath("src/game/client/components/settings_resource_jobs.cpp"));
+	ASSERT_TRUE(ResourceFile.good());
+	std::stringstream ResourceBuffer;
+	ResourceBuffer << ResourceFile.rdbuf();
+	const std::string ResourceSource = ResourceBuffer.str();
+	EXPECT_EQ(ResourceSource.find("SettingsPageCacheCanUseRecordedResources"), std::string::npos);
+	EXPECT_EQ(ResourceSource.find("SettingsPageRecordedCacheMissReason"), std::string::npos);
+	EXPECT_EQ(ResourceSource.find("SettingsPageCanUsePageFbo"), std::string::npos);
+
+	std::ifstream SkinsFile(TestSourcePath("src/game/client/components/skins.cpp"));
+	ASSERT_TRUE(SkinsFile.good());
+	std::stringstream SkinsBuffer;
+	SkinsBuffer << SkinsFile.rdbuf();
+	const std::string SkinsSource = SkinsBuffer.str();
+	EXPECT_EQ(SkinsSource.find("FBO_BUDGET"), std::string::npos);
+}
+
+TEST(SettingsWarmupCleanup, SourceKeepsTeeMemoryPreviewCacheAndWorkshopThumbCache)
+{
+	std::ifstream MenusSettingsFile(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+	ASSERT_TRUE(MenusSettingsFile.good());
+	std::stringstream MenusSettingsBuffer;
+	MenusSettingsBuffer << MenusSettingsFile.rdbuf();
+	const std::string MenusSettingsSource = MenusSettingsBuffer.str();
+
+	EXPECT_NE(MenusSettingsSource.find("SSettingsTeeListPreviewCache"), std::string::npos);
+	EXPECT_NE(MenusSettingsSource.find("gs_TeeListPreviewCache"), std::string::npos);
+	EXPECT_EQ(MenusSettingsSource.find("settings_skin_preview_cache"), std::string::npos);
+
+	std::ifstream AssetsFile(TestSourcePath("src/game/client/components/menus_settings_assets.cpp"));
+	ASSERT_TRUE(AssetsFile.good());
+	std::stringstream AssetsBuffer;
+	AssetsBuffer << AssetsFile.rdbuf();
+	const std::string AssetsSource = AssetsBuffer.str();
+	EXPECT_NE(AssetsSource.find("qmclient/workshop/thumbs/%s.webp"), std::string::npos);
+	EXPECT_NE(AssetsSource.find("m_ThumbCachePath"), std::string::npos);
 }
 
 TEST(SettingsResourceJobs, AssetWarmupTracksAllTabsAndCycles)
@@ -1592,6 +1318,46 @@ TEST(SettingsResourceJobs, TeeSkinFinalizeBudgetDefersDuringScrollAndRecovery)
 	EXPECT_EQ(SettingsSkinGpuUploadFrameUnits(Recovering, true), 8);
 }
 
+TEST(SettingsResourceJobs, TeeSkinFinalizeIdleDrainUsesBoundedMergeBudget)
+{
+	SSettingsSkinThroughputControllerState State;
+	const auto Settled = SettingsSkinThroughputControllerStep({
+									  {false, false, 0, true},
+									  true,
+									  6.5f,
+									  6.0f,
+									  512,
+									  28,
+									  28,
+									  0,
+									  0,
+									  0,
+									  0,
+									  0,
+									  20,
+									  40,
+									  20,
+									  12,
+									  12,
+									  0,
+									  0,
+									  288,
+									  false,
+									  "none",
+									  "none",
+								  },
+		State);
+
+	EXPECT_EQ(Settled.m_Mode, ESettingsSkinThroughputControllerMode::IDLE_DRAIN);
+	EXPECT_TRUE(Settled.m_BackgroundDrainActive);
+	EXPECT_EQ(Settled.m_FinalizeBudgetLimit, 32);
+
+	const SSettingsResourceFrameContext Scrolling = SettingsBuildFrameContext(true, false, 0);
+	EXPECT_EQ(SettingsSkinFinalizeFrameBudget(Scrolling, true), 16);
+	const SSettingsResourceFrameContext Recovering = SettingsBuildFrameContext(false, false, 2);
+	EXPECT_EQ(SettingsSkinFinalizeFrameBudget(Recovering, true), 48);
+}
+
 TEST(SettingsResourceJobs, ActiveTeeSkinFrameBudgetAllowsEightSourceUploadsPerFrame)
 {
 	SSettingsWarmupFrameBudget Budget;
@@ -1686,7 +1452,7 @@ TEST(SettingsResourceJobs, ThroughputControllerKeepsVisibleBacklogOutOfIdleDrain
 		State);
 	EXPECT_EQ(Settled.m_Mode, ESettingsSkinThroughputControllerMode::IDLE_DRAIN);
 	EXPECT_TRUE(Settled.m_BackgroundDrainActive);
-	EXPECT_EQ(Settled.m_BackgroundRequestBudget, 24);
+	EXPECT_EQ(Settled.m_BackgroundRequestBudget, 8);
 }
 
 TEST(SettingsResourceJobs, ThroughputControllerRelaxesReserveAndExpandsWindowsWhenAdmissionUnderfed)
@@ -1894,7 +1660,7 @@ TEST(SettingsResourceJobs, TeeSkinBackgroundDrainRaisesIdleThroughputBudgets)
 	EXPECT_FALSE(SettingsSkinBackgroundDrainActive(ScrollingSettled, true));
 	EXPECT_FALSE(SettingsSkinBackgroundDrainActive(IdleSettled, false));
 
-	EXPECT_EQ(SettingsSkinBackgroundRequestFrameBudget(IdleSettled, true), 24);
+	EXPECT_EQ(SettingsSkinBackgroundRequestFrameBudget(IdleSettled, true), 8);
 	EXPECT_EQ(SettingsSkinSourceLoadNormalWindow(IdleSettled, true, 64), 256);
 	EXPECT_EQ(SettingsSkinSourceLoadVisibleWindow(IdleSettled, true, 64), 256);
 	EXPECT_EQ(SettingsSkinSourceCountFuseLimit(IdleSettled, true, 64), 128);
@@ -1979,11 +1745,47 @@ TEST(SettingsResourceJobs, TeeBackgroundRequestBudgetSlowsStalledProducerWithLar
 	Input.m_DefaultBudget = 24;
 	Input.m_Pending = 4;
 	Input.m_Loading = 4;
-	Input.m_BackgroundRequested = 300;
-	Input.m_CountFuseLimit = 128;
+	Input.m_BackgroundRequested = 160;
+	Input.m_CountFuseLimit = 64;
+	Input.m_VisibleReserve = 8;
+	Input.m_RecentLoadedDelta = 0;
+	Input.m_RecentAdmittedDelta = 0;
+	Input.m_DrainActive = true;
+
+	const auto Decision = SettingsSkinBackgroundRequestBudgetDecision(Input);
+	EXPECT_EQ(Decision.m_RequestBudget, 0);
+	EXPECT_EQ(Decision.m_BlockReason, ESettingsSkinBackgroundRequestBlockReason::STALL_BACKPRESSURE);
+}
+
+TEST(SettingsResourceJobs, TeeBackgroundRequestBudgetAllowsAdmittedProgressBelowHardCap)
+{
+	SSettingsSkinBackgroundRequestBudgetInput Input;
+	Input.m_DefaultBudget = 24;
+	Input.m_Pending = 4;
+	Input.m_Loading = 4;
+	Input.m_BackgroundRequested = 160;
+	Input.m_CountFuseLimit = 64;
 	Input.m_VisibleReserve = 8;
 	Input.m_RecentLoadedDelta = 0;
 	Input.m_RecentAdmittedDelta = 3;
+	Input.m_DrainActive = true;
+
+	const auto Decision = SettingsSkinBackgroundRequestBudgetDecision(Input);
+	EXPECT_EQ(Decision.m_RequestBudget, 24);
+	EXPECT_EQ(Decision.m_BlockReason, ESettingsSkinBackgroundRequestBlockReason::NONE);
+}
+
+TEST(SettingsResourceJobs, TeeBackgroundRequestBudgetCapsHealthyBacklogBeforeQueueInflates)
+{
+	SSettingsSkinBackgroundRequestBudgetInput Input;
+	Input.m_DefaultBudget = 24;
+	Input.m_Pending = 8;
+	Input.m_Loading = 8;
+	Input.m_BackgroundRequested = 256;
+	Input.m_CountFuseLimit = 128;
+	Input.m_VisibleReserve = 0;
+	Input.m_RecentLoadedDelta = 4;
+	Input.m_RecentAdmittedDelta = 4;
 	Input.m_DrainActive = true;
 
 	const auto Decision = SettingsSkinBackgroundRequestBudgetDecision(Input);
@@ -2107,4 +1909,31 @@ TEST(SettingsResourceJobs, CountryFlagPlanHandlesEmptyInput)
 {
 	const std::vector<int> vPlan = BuildSettingsCountryFlagWarmupPlan({});
 	EXPECT_TRUE(vPlan.empty());
+}
+
+TEST(SettingsWarmup, PassiveTooltipOnlyUiHelpersStayOutOfButtonLogic)
+{
+	const std::string Header = ReadTestSourceFile("src/game/client/ui.h");
+	EXPECT_NE(Header.find("void RegisterPassiveHotItem(const void *pId, const CUIRect *pRect);"), std::string::npos);
+
+	const std::string UiSource = ReadTestSourceFile("src/game/client/ui.cpp");
+	const size_t HelperPos = UiSource.find("void CUi::RegisterPassiveHotItem(const void *pId, const CUIRect *pRect)");
+	ASSERT_NE(HelperPos, std::string::npos);
+	const size_t NextFunctionPos = UiSource.find("int CUi::DoButtonLogic", HelperPos);
+	ASSERT_NE(NextFunctionPos, std::string::npos);
+	const std::string HelperBody = UiSource.substr(HelperPos, NextFunctionPos - HelperPos);
+
+	EXPECT_NE(HelperBody.find("MouseHovered(pRect)"), std::string::npos);
+	EXPECT_NE(HelperBody.find("SetHotItem(pId);"), std::string::npos);
+	EXPECT_EQ(HelperBody.find("SetActiveItem"), std::string::npos);
+	EXPECT_EQ(HelperBody.find("MouseButton("), std::string::npos);
+
+	const std::string MenusSettingsSource = ReadTestSourceFile("src/game/client/components/menus_settings.cpp");
+	EXPECT_NE(MenusSettingsSource.find("Ui()->RegisterPassiveHotItem(pStatusTooltipId, &StatusIcon);"), std::string::npos);
+	EXPECT_NE(MenusSettingsSource.find("Ui()->RegisterPassiveHotItem(&s_HookCollToolTip, &LeftView);"), std::string::npos);
+	EXPECT_EQ(MenusSettingsSource.find("Ui()->DoButtonLogic(pStatusTooltipId, 0, &StatusIcon, BUTTONFLAG_NONE);"), std::string::npos);
+	EXPECT_EQ(MenusSettingsSource.find("Ui()->DoButtonLogic(&s_HookCollToolTip, 0, &LeftView, BUTTONFLAG_NONE);"), std::string::npos);
+
+	const std::string MenusQmClientSource = ReadTestSourceFile("src/game/client/components/qmclient/menus_qmclient.cpp");
+	EXPECT_EQ(MenusQmClientSource.find("RegisterPassiveHotItem("), std::string::npos);
 }

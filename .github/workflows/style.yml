@@ -51,7 +51,7 @@ jobs:
           --output "$GITHUB_STEP_SUMMARY"
       shell: bash
     - name: Check dilated images
-      run: scripts/check_dilate.py release data
+      run: python3 qmclient_scripts/check_dilate.py release data
 
     - name: Upload gate report
       if: always()

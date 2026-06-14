@@ -34,6 +34,19 @@ struct SSettingsSkinListPlanResult
 	SSettingsSkinListPlan m_Plan;
 };
 
+struct SSettingsSkinListVisibleRange
+{
+	int m_TotalItems = 0;
+	int m_TotalRows = 0;
+	int m_FirstVisibleRow = 0;
+	int m_LastVisibleRow = -1;
+	int m_FirstItem = 0;
+	int m_EndItem = 0;
+	int m_VisibleRows = 0;
+	int m_RenderedItems = 0;
+	int m_SkippedItems = 0;
+};
+
 struct SSkinListPlanState
 {
 	bool m_DirectoryScanPending = true;
@@ -258,6 +271,7 @@ struct SSettingsAssetPreviewHandle
 float SettingsSkinPreviewSize(float RowHeight, float PreviewWidth, float RequestedSize);
 float SettingsSkinPreviewSize(float RowHeight, float PreviewWidth, float RequestedSize, float PreviewBoundsWidth, float PreviewBoundsHeight);
 float SettingsSkinPreviewCenterOffset(float PreviewMinX, float PreviewMaxX);
+SSettingsSkinListVisibleRange SettingsSkinListVisibleRangeForScroll(float ScrollY, float ViewHeight, float RowHeight, int ItemsPerRow, int TotalItems, int ExtraRows);
 bool SettingsSkinListEntryReady(bool SourceReady, bool TerminalFailure, bool PreviewCacheReady);
 SSettingsSkinListPlan BuildSettingsSkinListPlan(std::vector<SSettingsSkinListEntry> vEntries);
 std::vector<int> BuildSettingsCountryFlagWarmupPlan(const std::vector<int> &vCountryCodes);
@@ -338,9 +352,6 @@ size_t SettingsAssetPreviewResidentBudgetBytes(size_t OverrideMb, int Percent, f
 int SettingsAssetPreviewBudgetedTextureSize(int MaxTextureSize, int MinTextureSize, size_t TextureBudgetBytes, size_t CurrentTextureMemoryBytes, size_t ResidentPreviewBytes);
 std::string SettingsAssetPreviewHandleKey(const SSettingsAssetPreviewHandle &Handle);
 bool SettingsAssetPreviewHandleMatches(const SSettingsAssetPreviewHandle &Handle, int CurrentTab, unsigned CurrentEpoch, size_t CurrentIndex, const char *pName);
-bool SettingsPageCacheCanUseRecordedResources(bool CacheMatches, bool RenderTargetValid, bool ResourcesReadyAtRecord, bool DependenciesReadyAtRecord = true);
-ESettingsWarmupMissReason SettingsPageRecordedCacheMissReason(bool CacheMatches, bool RenderTargetValid, bool ResourcesReadyAtRecord, bool DependenciesReadyAtRecord = true);
-bool SettingsPageCanUsePageFbo(int Page, int AssetsPage, int DynamicPreviewPage = -1, int Tab = -1);
 const char *SettingsWarmupBudgetStopMissReasonName(ESettingsWarmupStopReason StopReason);
 bool SettingsAssetWarmupAllTabsReady(const bool *pReadyTabs, int TabCount);
 int SettingsAssetWarmupNextTab(int CurrentTab, int TabCount);

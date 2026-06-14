@@ -21,6 +21,7 @@
 - 文档、测试、脚本、构建相关改动都应放进对应分组，不要全部挤进 `fix`。
 - 如果某类改动这轮不存在，就省略该分组，不写占位。
 - 已经人工确认的内容，不要继续写成风险或 gap。
+- 如果仓库开启了受保护分支，而当前操作者不是仓库主或没有受保护分支直推权限，默认走：本地提交 -> 推到新分支 -> 开 PR -> 合并 PR -> 删分支。只有仓库主或被明确授予直推权限的人，才可以跳过这条默认路径。
 
 ## 分组类型
 
@@ -274,7 +275,7 @@ Release-EN: English release note
 
 ## Verification
 - [x] 文档检查：`python qmclient_scripts/gate/check_docs.py`
-- [x] gate 门禁：`python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main`
+- [x] gate 门禁：`python qmclient_scripts/gate/check_gate.py --mode quick`
 - [x] 客户端构建：`cmd /c qmclient_scripts/cmake-windows.cmd --build cmake-build-release --target game-client -j 14`
 
 ## Risks / Gaps

@@ -124,9 +124,6 @@ Axiom auto login failed, retrying
 Axiom auto login succeeded
 Axiom dummy password
 Axiom main account password
-Axiom 自动登录失败
-Axiom 自动登录失败，正在重试
-Axiom 自动登录成功
 Background Draw
 Background color
 Based on a pile of Windows... stuff
@@ -1215,4 +1212,3 @@ x = DDNet CPU% / total CPU%
 y = DDNet memory usage
 z = Zoom
 ⚠️ FTAPI is a free service. Excessive use may cause service suspension.
-正在尝试 Axiom 自动登录

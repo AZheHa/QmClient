@@ -23,117 +23,117 @@
 
 namespace
 {
-constexpr int MAX_VISIBLE_CANDIDATES = 16;
-constexpr float POPUP_IN_DURATION = 0.12f;
-constexpr float POPUP_OUT_DURATION = 0.08f;
-constexpr float SELECTED_DURATION = 0.08f;
+	constexpr int MAX_VISIBLE_CANDIDATES = 16;
+	constexpr float POPUP_IN_DURATION = 0.12f;
+	constexpr float POPUP_OUT_DURATION = 0.08f;
+	constexpr float SELECTED_DURATION = 0.08f;
 
-struct SImeCandidateCell
-{
-	int m_Index = -1;
-	CUIRect m_Rect = {};
-};
+	struct SImeCandidateCell
+	{
+		int m_Index = -1;
+		CUIRect m_Rect = {};
+	};
 
-struct SImeTextMetrics
-{
-	float m_Width = 0.0f;
-	float m_Height = 0.0f;
-	float m_VisualTop = 0.0f;
-	float m_VisualHeight = 0.0f;
-	float m_DrawOffsetX = 0.0f;
-};
+	struct SImeTextMetrics
+	{
+		float m_Width = 0.0f;
+		float m_Height = 0.0f;
+		float m_VisualTop = 0.0f;
+		float m_VisualHeight = 0.0f;
+		float m_DrawOffsetX = 0.0f;
+	};
 
-struct SImeCandidateMetrics
-{
-	SImeTextMetrics m_Num;
-	SImeTextMetrics m_Text;
-};
+	struct SImeCandidateMetrics
+	{
+		SImeTextMetrics m_Num;
+		SImeTextMetrics m_Text;
+	};
 
-bool HasPopupContent(const SQmImePopupState &State)
-{
-	return State.m_Visible && !State.m_Disabled && !State.m_Composition.empty() && !State.m_vCandidates.empty();
-}
+	bool HasPopupContent(const SQmImePopupState &State)
+	{
+		return State.m_Visible && !State.m_Disabled && !State.m_Composition.empty() && !State.m_vCandidates.empty();
+	}
 
-ColorRGBA WithAlpha(ColorRGBA Color, float Alpha)
-{
-	Color.a *= Alpha;
-	return Color;
-}
+	ColorRGBA WithAlpha(ColorRGBA Color, float Alpha)
+	{
+		Color.a *= Alpha;
+		return Color;
+	}
 
-float ResolveMotionValue(CUiV2AnimationRuntime &AnimRuntime, uint64_t NodeKey, EUiAnimProperty Property, float Target, float DurationSec)
-{
-	SUiAnimTransition Transition;
-	Transition.m_DurationSec = DurationSec;
-	Transition.m_Easing = EEasing::EASE_OUT;
-	Transition = qm_motion::ApplyMotionLevel(Transition, g_Config.m_QmUiMotionLevel);
-	return ResolveUiAnimValue(AnimRuntime, NodeKey, Property, Target, Transition.m_DurationSec, Transition.m_Easing);
-}
+	float ResolveMotionValue(CUiV2AnimationRuntime &AnimRuntime, uint64_t NodeKey, EUiAnimProperty Property, float Target, float DurationSec)
+	{
+		SUiAnimTransition Transition;
+		Transition.m_DurationSec = DurationSec;
+		Transition.m_Easing = EEasing::EASE_OUT;
+		Transition = qm_motion::ApplyMotionLevel(Transition, g_Config.m_QmUiMotionLevel);
+		return ResolveUiAnimValue(AnimRuntime, NodeKey, Property, Target, Transition.m_DurationSec, Transition.m_Easing);
+	}
 
-CUIRect ResolveMotionRect(CUiV2AnimationRuntime &AnimRuntime, uint64_t NodeKey, const CUIRect &Target, float DurationSec)
-{
-	SUiAnimTransition Transition;
-	Transition.m_DurationSec = DurationSec;
-	Transition.m_Easing = EEasing::EASE_OUT;
-	Transition = qm_motion::ApplyMotionLevel(Transition, g_Config.m_QmUiMotionLevel);
-	return ResolveUiAnimValueRect(AnimRuntime, NodeKey, Target, Transition.m_DurationSec, Transition.m_Easing);
-}
+	CUIRect ResolveMotionRect(CUiV2AnimationRuntime &AnimRuntime, uint64_t NodeKey, const CUIRect &Target, float DurationSec)
+	{
+		SUiAnimTransition Transition;
+		Transition.m_DurationSec = DurationSec;
+		Transition.m_Easing = EEasing::EASE_OUT;
+		Transition = qm_motion::ApplyMotionLevel(Transition, g_Config.m_QmUiMotionLevel);
+		return ResolveUiAnimValueRect(AnimRuntime, NodeKey, Target, Transition.m_DurationSec, Transition.m_Easing);
+	}
 
-SImeTextMetrics MeasureImeText(ITextRender *pTextRender, float FontSize, const char *pText, const qm_theme::SImeTheme &Ime)
-{
-	SImeTextMetrics Metrics;
-	if(pTextRender == nullptr || pText == nullptr || pText[0] == '\0')
+	SImeTextMetrics MeasureImeText(ITextRender *pTextRender, float FontSize, const char *pText, const qm_theme::SImeTheme &Ime)
+	{
+		SImeTextMetrics Metrics;
+		if(pTextRender == nullptr || pText == nullptr || pText[0] == '\0')
+			return Metrics;
+
+		float TextHeight = 0.0f;
+		float VisualTop = 0.0f;
+		float VisualBottom = 0.0f;
+		STextSizeProperties TextSizeProps{};
+		TextSizeProps.m_pHeight = &TextHeight;
+		TextSizeProps.m_pVisualTop = &VisualTop;
+		TextSizeProps.m_pVisualBottom = &VisualBottom;
+		const float AdvanceWidth = pTextRender->TextWidth(FontSize, pText, -1, -1.0f, TEXTFLAG_DISALLOW_NEWLINE, TextSizeProps);
+		Metrics.m_Width = maximum(0.0f, AdvanceWidth) + 2.0f * Ime.m_TextSafePaddingX;
+		Metrics.m_Height = maximum(0.0f, TextHeight);
+		Metrics.m_VisualTop = VisualTop;
+		Metrics.m_VisualHeight = maximum(0.0f, VisualBottom - VisualTop);
+		Metrics.m_DrawOffsetX = Ime.m_TextSafePaddingX;
 		return Metrics;
+	}
 
-	float TextHeight = 0.0f;
-	float VisualTop = 0.0f;
-	float VisualBottom = 0.0f;
-	STextSizeProperties TextSizeProps{};
-	TextSizeProps.m_pHeight = &TextHeight;
-	TextSizeProps.m_pVisualTop = &VisualTop;
-	TextSizeProps.m_pVisualBottom = &VisualBottom;
-	const float AdvanceWidth = pTextRender->TextWidth(FontSize, pText, -1, -1.0f, TEXTFLAG_DISALLOW_NEWLINE, TextSizeProps);
-	Metrics.m_Width = maximum(0.0f, AdvanceWidth) + 2.0f * Ime.m_TextSafePaddingX;
-	Metrics.m_Height = maximum(0.0f, TextHeight);
-	Metrics.m_VisualTop = VisualTop;
-	Metrics.m_VisualHeight = maximum(0.0f, VisualBottom - VisualTop);
-	Metrics.m_DrawOffsetX = Ime.m_TextSafePaddingX;
-	return Metrics;
-}
+	void DrawImeText(ITextRender *pTextRender, float VisualX, float RectY, float RectH, float FontSize, const char *pText, const SImeTextMetrics &Metrics, ColorRGBA Color, float Alpha)
+	{
+		if(pTextRender == nullptr || pText == nullptr || pText[0] == '\0')
+			return;
 
-void DrawImeText(ITextRender *pTextRender, float VisualX, float RectY, float RectH, float FontSize, const char *pText, const SImeTextMetrics &Metrics, ColorRGBA Color, float Alpha)
-{
-	if(pTextRender == nullptr || pText == nullptr || pText[0] == '\0')
-		return;
+		pTextRender->TextColor(WithAlpha(Color, Alpha));
+		CTextCursor Cursor;
+		const float VisualHeight = Metrics.m_VisualHeight > 0.0f ? Metrics.m_VisualHeight : Metrics.m_Height;
+		const float TextY = RectY + (RectH - VisualHeight) * 0.5f - Metrics.m_VisualTop;
+		Cursor.SetPosition(vec2(VisualX + Metrics.m_DrawOffsetX, TextY));
+		Cursor.m_FontSize = FontSize;
+		Cursor.m_Flags = TEXTFLAG_RENDER | TEXTFLAG_DISALLOW_NEWLINE;
+		pTextRender->TextEx(&Cursor, pText);
+	}
 
-	pTextRender->TextColor(WithAlpha(Color, Alpha));
-	CTextCursor Cursor;
-	const float VisualHeight = Metrics.m_VisualHeight > 0.0f ? Metrics.m_VisualHeight : Metrics.m_Height;
-	const float TextY = RectY + (RectH - VisualHeight) * 0.5f - Metrics.m_VisualTop;
-	Cursor.SetPosition(vec2(VisualX + Metrics.m_DrawOffsetX, TextY));
-	Cursor.m_FontSize = FontSize;
-	Cursor.m_Flags = TEXTFLAG_RENDER | TEXTFLAG_DISALLOW_NEWLINE;
-	pTextRender->TextEx(&Cursor, pText);
-}
+	float CandidateCellWidth(const qm_theme::SImeTheme &Ime, const SImeCandidateMetrics &Metrics, bool Selected)
+	{
+		const float PaddingX = Selected ? Ime.m_SelectedPaddingX : Ime.m_CandidatePaddingX;
+		return 2.0f * PaddingX + Metrics.m_Num.m_Width + Ime.m_CandidateNumPaddingX + Metrics.m_Text.m_Width;
+	}
 
-float CandidateCellWidth(const qm_theme::SImeTheme &Ime, const SImeCandidateMetrics &Metrics, bool Selected)
-{
-	const float PaddingX = Selected ? Ime.m_SelectedPaddingX : Ime.m_CandidatePaddingX;
-	return 2.0f * PaddingX + Metrics.m_Num.m_Width + Ime.m_CandidateNumPaddingX + Metrics.m_Text.m_Width;
-}
+	int CandidatePageCount(const SQmImePopupState &State)
+	{
+		if(State.m_PageCount > 1)
+			return State.m_PageCount;
+		return 0;
+	}
 
-int CandidatePageCount(const SQmImePopupState &State)
-{
-	if(State.m_PageCount > 1)
-		return State.m_PageCount;
-	return 0;
-}
-
-int CandidatePageIndex(const SQmImePopupState &State)
-{
-	if(State.m_PageCount <= 0)
-		return -1;
-	return std::clamp(State.m_PageIndex, 0, State.m_PageCount - 1);
-}
+	int CandidatePageIndex(const SQmImePopupState &State)
+	{
+		if(State.m_PageCount <= 0)
+			return -1;
+		return std::clamp(State.m_PageIndex, 0, State.m_PageCount - 1);
+	}
 } // namespace
 
 void CQmImeCandidatePopup::Reset()
@@ -340,19 +340,19 @@ void CQmImeCandidatePopup::Render(CGameClient *pGameClient, const SQmImePopupSta
 		const float Right = Candidates.x + Candidates.w;
 		for(int Offset = 0; Offset < CandidateDisplayCount; ++Offset)
 		{
-			const int i = CandidateStart + Offset;
+			const int CandidateIndex = CandidateStart + Offset;
 			if(Offset > 0)
 				CursorX += Ime.m_CandidateGap;
 			if(CursorX >= Right)
 				break;
 
-			const bool Selected = i == SelectedIndex;
-			const float CellWidth = CandidateCellWidth(Ime, aCandidateMetrics[i], Selected);
+			const bool Selected = CandidateIndex == SelectedIndex;
+			const float CellWidth = CandidateCellWidth(Ime, aCandidateMetrics[CandidateIndex], Selected);
 			if(CursorX + CellWidth > Right && Offset > 0)
 				break;
 
 			SImeCandidateCell &Cell = aCells[CellCount++];
-			Cell.m_Index = i;
+			Cell.m_Index = CandidateIndex;
 			Cell.m_Rect = {CursorX, CandidateRow.y, CellWidth, CandidateRow.h};
 			CursorX += CellWidth;
 		}

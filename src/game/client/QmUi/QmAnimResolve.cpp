@@ -10,18 +10,18 @@
 
 namespace
 {
-constexpr float ANIM_EPSILON = 0.0001f;
+	constexpr float ANIM_EPSILON = 0.0001f;
 
-uint64_t HashAnimNode(uint64_t Value)
-{
-	// Mix bits to keep generated animation keys stable and well distributed.
-	Value ^= Value >> 33;
-	Value *= 0xff51afd7ed558ccdULL;
-	Value ^= Value >> 33;
-	Value *= 0xc4ceb9fe1a85ec53ULL;
-	Value ^= Value >> 33;
-	return Value;
-}
+	uint64_t HashAnimNode(uint64_t Value)
+	{
+		// Mix bits to keep generated animation keys stable and well distributed.
+		Value ^= Value >> 33;
+		Value *= 0xff51afd7ed558ccdULL;
+		Value ^= Value >> 33;
+		Value *= 0xc4ceb9fe1a85ec53ULL;
+		Value ^= Value >> 33;
+		return Value;
+	}
 } // namespace
 
 uint64_t BuildUiAnimNodeKey(const uint64_t ScopeHash, const uint64_t Id)
@@ -39,26 +39,26 @@ float ResolveUiAnimValue(CUiV2AnimationRuntime &AnimRuntime, uint64_t NodeKey, E
 
 	static std::unordered_map<uint64_t, SAnimTargetState> s_aLastTargets;
 	static uint64_t s_UseCounter = 0;
-	constexpr size_t TARGET_CACHE_SOFT_LIMIT = 4096;
-	constexpr uint64_t TARGET_CACHE_PRUNE_INTERVAL = 1024;
-	constexpr uint64_t TARGET_CACHE_STALE_WINDOW = 8192;
+	constexpr size_t TargetCacheSoftLimit = 4096;
+	constexpr uint64_t TargetCachePruneInterval = 1024;
+	constexpr uint64_t TargetCacheStaleWindow = 8192;
 	const uint64_t LastTargetKey = NodeKey ^ (static_cast<uint64_t>(Property) << 61);
 	const float CurrentValue = AnimRuntime.GetValue(NodeKey, Property, Target);
 	const uint64_t CurrentUseCounter = ++s_UseCounter;
 
 	if(s_aLastTargets.empty())
-		s_aLastTargets.reserve(TARGET_CACHE_SOFT_LIMIT);
+		s_aLastTargets.reserve(TargetCacheSoftLimit);
 
-	if((CurrentUseCounter % TARGET_CACHE_PRUNE_INTERVAL) == 0 && s_aLastTargets.size() > TARGET_CACHE_SOFT_LIMIT)
+	if((CurrentUseCounter % TargetCachePruneInterval) == 0 && s_aLastTargets.size() > TargetCacheSoftLimit)
 	{
 		for(auto It = s_aLastTargets.begin(); It != s_aLastTargets.end();)
 		{
-			if(CurrentUseCounter - It->second.m_LastUseCounter > TARGET_CACHE_STALE_WINDOW)
+			if(CurrentUseCounter - It->second.m_LastUseCounter > TargetCacheStaleWindow)
 				It = s_aLastTargets.erase(It);
 			else
 				++It;
 		}
-		if(s_aLastTargets.size() > TARGET_CACHE_SOFT_LIMIT * 2)
+		if(s_aLastTargets.size() > TargetCacheSoftLimit * 2)
 			s_aLastTargets.clear();
 	}
 

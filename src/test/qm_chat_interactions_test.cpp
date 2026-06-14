@@ -1,24 +1,9 @@
 #include <game/client/components/chat.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
-#include <fstream>
-#include <sstream>
 #include <string>
-
-namespace
-{
-
-std::string ReadTextFile(const char *pPath)
-{
-	std::ifstream File(pPath);
-	EXPECT_TRUE(File.good()) << pPath;
-	std::stringstream Buffer;
-	Buffer << File.rdbuf();
-	return Buffer.str();
-}
-
-} // namespace
 
 TEST(QmChatInteractions, ClampBacklogLine)
 {
@@ -90,8 +75,8 @@ TEST(QmChatInteractions, BuildsEscapedSpectateCommand)
 
 TEST(QmChatInteractions, ChatLineMenuKeepsSpectateAction)
 {
-	const std::string Header = ReadTextFile("src/game/client/components/chat.h");
-	const std::string Source = ReadTextFile("src/game/client/components/chat.cpp");
+	const std::string Header = ReadTestSourceFile("src/game/client/components/chat.h");
+	const std::string Source = ReadTestSourceFile("src/game/client/components/chat.cpp");
 
 	EXPECT_NE(Header.find("CButtonContainer m_SpectateButton;"), std::string::npos);
 	EXPECT_NE(Header.find("void SpectateChatLine(const CChatLinePopupContext &Context);"), std::string::npos);

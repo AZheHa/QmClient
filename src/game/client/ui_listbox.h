@@ -48,7 +48,13 @@ public:
 	void DoAutoSpacing(float Spacing = 20.0f) { m_AutoSpacing = Spacing; }
 	void DoSpacing(float Spacing = 20.0f);
 	void DoStart(float RowHeight, int NumItems, int ItemsPerRow, int RowsPerScroll, int SelectedIndex, const CUIRect *pRect = nullptr, bool Background = true, int BackgroundCorners = IGraphics::CORNER_ALL, bool ForceShowScrollbar = false);
+	int ItemIndex() const { return m_ListBoxItemIndex; }
+	int ItemsPerRow() const { return m_ListBoxItemsPerRow; }
+	float RowHeight() const { return m_ListBoxRowHeight; }
+	float ScrollOffsetY() const { return -m_ScrollRegion.ContentScrollOffsetY(); }
+	float ViewHeight() const { return m_ScrollRegion.ClipRect()->h; }
 	void ScrollToSelected() { m_ListBoxUpdateScroll = true; }
+	void SkipItems(int Count);
 	CListboxItem DoNextItem(const void *pId, bool Selected = false, float CornerRadius = 5.0f);
 	CListboxItem DoCustomRow(float Height, bool ScrollHere = false);
 	void ResetScroll() { m_ScrollRegion.Reset(); }

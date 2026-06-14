@@ -78,11 +78,6 @@ MACRO_CONFIG_INT(TcFreezeKatana, tc_frozen_katana, 0, 0, 1, CFGFLAG_CLIENT | CFG
 MACRO_CONFIG_INT(TcOldTeamColors, tc_old_team_colors, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "使用旧版彩虹队伍颜色（恢复旧行为）")
 MACRO_CONFIG_INT(TcRevertHookLine, tc_revert_hook_line, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "恢复旧版单段钩子碰撞线行为")
 
-// Water Fall (Death) Auto Emoticon and Chat
-MACRO_CONFIG_INT(TcWaterFallEnabled, tc_waterfall_enabled, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "落水或死亡时自动发送爱心表情和聊天消息")
-MACRO_CONFIG_INT(TcWaterFallEmoticon, tc_waterfall_emoticon, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "落水/死亡时发送爱心表情")
-MACRO_CONFIG_STR(TcWaterFallMessage, tc_waterfall_message, 128, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "落水/死亡时发送的聊天消息（空=无消息）")
-
 // Freeze Auto Emoticon and Chat
 MACRO_CONFIG_INT(TcFreezeChatEnabled, tc_freeze_chat_enabled, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "进入冻结时自动发送表情和聊天消息")
 MACRO_CONFIG_INT(TcFreezeChatEmoticon, tc_freeze_chat_emoticon, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "进入冻结状态发送表情")
@@ -277,7 +272,6 @@ MACRO_CONFIG_STR(TcVolleyBallBetterBallSkin, tc_volleyball_better_ball_skin, 24,
 // Mod
 MACRO_CONFIG_INT(TcShowPlayerHitBoxes, tc_show_player_hit_boxes, 0, 0, 2, CFGFLAG_CLIENT | CFGFLAG_SAVE, "显示玩家命中框（1=仅预测，2=预测和未预测）")
 
-
 MACRO_CONFIG_INT(TcModWeapon, tc_mod_weapon, 0, 0, 1, CFGFLAG_CLIENT, "指向某人并射击时执行命令（默认 kill，仅在远程控制台已鉴权时生效）")
 MACRO_CONFIG_STR(TcModWeaponCommand, tc_mod_weapon_command, 256, "rcon kill_pl", CFGFLAG_CLIENT | CFGFLAG_SAVE, "tc_mod_weapon 执行的命令，目标 id 会附加在命令末尾")
 
@@ -291,22 +285,6 @@ MACRO_CONFIG_STR(TcCustomCommunitiesUrl, tc_custom_communities_url, 256, "https:
 
 // Discord RPC
 MACRO_CONFIG_INT(TcDiscordRPC, tc_discord_rpc, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用 Discord RPC（需要重启）") // broken
-
-// Sidebar
-MACRO_CONFIG_INT(TcSidebarEnable, tc_sidebar_enable, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用侧边栏")
-MACRO_CONFIG_INT(TcSidebarWidth, tc_sidebar_width, 200, 100, 400, CFGFLAG_CLIENT | CFGFLAG_SAVE, "侧边栏宽度（像素）")
-MACRO_CONFIG_INT(TcSidebarOpacity, tc_sidebar_opacity, 75, 0, 100, CFGFLAG_CLIENT | CFGFLAG_SAVE, "侧边栏背景不透明度（0-100）")
-MACRO_CONFIG_INT(TcSidebarPosition, tc_sidebar_position, 0, 0, 2, CFGFLAG_CLIENT | CFGFLAG_SAVE, "侧边栏位置（0=左，1=右，2=自定义）")
-MACRO_CONFIG_INT(TcSidebarShowInGame, tc_sidebar_show_in_game, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "游戏中显示侧边栏")
-MACRO_CONFIG_INT(TcSidebarShowInMenu, tc_sidebar_show_in_menu, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "在菜单中显示侧边栏")
-MACRO_CONFIG_INT(TcSidebarShowInSpec, tc_sidebar_show_in_spec, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "旁观模式下显示侧边栏")
-
-MACRO_CONFIG_INT(TcSidebarShowFPS, tc_sidebar_show_fps, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "在侧边栏中显示 FPS")
-MACRO_CONFIG_INT(TcSidebarShowPing, tc_sidebar_show_ping, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "在侧边栏中显示 ping")
-MACRO_CONFIG_INT(TcSidebarShowSpeed, tc_sidebar_show_speed, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "在侧边栏中显示玩家速度")
-MACRO_CONFIG_INT(TcSidebarShowPosition, tc_sidebar_show_position, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "在侧边栏中显示玩家位置")
-MACRO_CONFIG_INT(TcSidebarShowTime, tc_sidebar_show_time, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "在侧边栏中显示本地时间")
-MACRO_CONFIG_INT(TcSidebarShowServerInfo, tc_sidebar_show_server_info, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "在侧边栏中显示服务器信息")
 
 // UI Settings
 MACRO_CONFIG_INT(TcUiShowTClient, tc_ui_show_tclient, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "显示 TClient 配置变量")

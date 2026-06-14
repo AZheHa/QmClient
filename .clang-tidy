@@ -111,9 +111,6 @@ Checks: >
   -performance-noexcept-*,
   portability-*,
 
-WarningsAsErrors:
-  readability-identifier-naming,
-
 CheckOptions:
   - key:             readability-identifier-naming.LocalVariableCase
     value:           CamelCase

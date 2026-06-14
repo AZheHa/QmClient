@@ -1,13 +1,12 @@
 #ifndef GAME_CLIENT_COMPONENTS_SECTION_LOADER_H
 #define GAME_CLIENT_COMPONENTS_SECTION_LOADER_H
 
+#include <game/client/components/settings_runtime_cache.h>
+#include <game/client/ui_rect.h>
+
 #include <cstdint>
 #include <functional>
 #include <vector>
-
-#include <engine/graphics.h>
-#include <game/client/components/settings_warmup.h>
-#include <game/client/ui_rect.h>
 
 enum class ESettingsSectionState : uint8_t
 {
@@ -15,18 +14,6 @@ enum class ESettingsSectionState : uint8_t
 	MEASURING,
 	COMPACT,
 	FULL,
-};
-
-enum class ESettingsCacheDirtyReason : uint8_t
-{
-	NONE,
-	CONFIG,
-	LANGUAGE,
-	WINDOW_SIZE,
-	UI_SCALE,
-	FONT,
-	ACTIVE_INTERACTION,
-	GRAPHICS_RESET,
 };
 
 /**
@@ -49,27 +36,16 @@ struct SSettingsSection
 	const char *m_pName;
 	ESettingsSectionState m_State = ESettingsSectionState::UNINITIALIZED;
 	float m_CachedHeight = 0.0f;
+	bool m_HasCachedHeight = false;
 
 	std::function<float(CUIRect &)> m_MeasureFn;
 	std::function<float(CUIRect &)> m_RenderCompactFn;
 	std::function<float(CUIRect &)> m_RenderFullFn;
-	std::function<float(CUIRect &)> m_RenderStaticLayerFn;
-	std::function<float(CUIRect &)> m_RenderInteractiveLayerFn;
-	std::function<bool(const CUIRect &)> m_ShouldRenderInteractiveLayerFn;
 
 	std::vector<const int *> m_DependencyConfigInts;
 	std::vector<const unsigned *> m_DependencyConfigCols;
 	uint64_t m_LastConfigHash = 0;
-	bool m_bDirty = true; // force render on first frame
-	bool m_bCanCacheStaticLayer = false;
-	bool m_bKeepCachedHeightStable = false;
-	bool m_bCacheValid = false;
-	ESettingsCacheDirtyReason m_DirtyReason = ESettingsCacheDirtyReason::CONFIG;
-	SSettingsSectionCacheRuntimeKey m_CacheRuntimeKey;
-	IGraphics::CRenderTargetHandle m_RenderTarget;
-	int m_RenderTargetWidth = 0;
-	int m_RenderTargetHeight = 0;
-	float m_StaticCachePadding = 0.0f;
+	bool m_Dirty = true; // force render on first frame
 };
 
 /**
@@ -85,7 +61,16 @@ struct SSessionUiCache
 	int m_LastQmTab = -1;
 	float m_LastScrollY = 0.0f;
 	SSettingsSectionCacheRuntimeKey m_RuntimeKey;
-	bool m_bValid = false;
+	bool m_Valid = false;
+};
+
+struct SSectionLoaderFrameStats
+{
+	int m_SectionsTotal = 0;
+	int m_SectionsVisible = 0;
+	int m_SectionsSkipped = 0;
+	int m_LayoutDirtySections = 0;
+	ESettingsCacheDirtyReason m_DirtyReason = ESettingsCacheDirtyReason::NONE;
 };
 
 /**
@@ -150,7 +135,6 @@ public:
 	 */
 	bool Warmup(const SSessionUiCache *pCache, float TimeBudgetMs = 3.0f);
 	bool IsWarmupComplete() const;
-	bool PrewarmStaticRenderTargets(CUIRect MainView, float ScrollY, float TimeBudgetMs = 3.0f, bool IncludeFarSections = false);
 
 	// -- Cache invalidation --
 
@@ -165,18 +149,9 @@ public:
 	static bool LoadSessionCache(SSessionUiCache &Cache, const char *pFilename, class IStorage *pStorage);
 	static void SaveSessionCache(const SSessionUiCache &Cache, const char *pFilename, class IStorage *pStorage);
 	static bool IsVisibleSummarySectionName(const char *pName);
-	static CUIRect MakeRenderTargetCacheRectForTests(float Width, float Height);
-	static CUIRect MakeRenderTargetCacheRectForTests(float Width, float Height, float Padding);
-	void SetGraphicsForCache(IGraphics *pGraphics);
 	void SetRuntimeKey(const SSettingsSectionCacheRuntimeKey &RuntimeKey);
 	void SetProgressiveEnabled(bool Enabled);
-	void SetLiveStaticCacheRecordingEnabled(bool Enabled);
-	void SetRenderTargetSupportedForTests(bool Supported);
-	void MarkCacheValidForTests(const char *pName);
-	bool IsCacheValidForTests(const char *pName) const;
-	void InvalidateSectionByName(const char *pName, ESettingsCacheDirtyReason Reason = ESettingsCacheDirtyReason::CONFIG);
-	bool PrewarmSectionByName(const char *pName, CUIRect MainView, float ScrollY);
-	bool DrawCachedSectionByName(const char *pName, CUIRect MainView, float ScrollY);
+	void SetDeferredFarMeasurementEnabled(bool Enabled);
 
 	// -- State exposed for the rendering loop (updated externally) --
 
@@ -187,6 +162,7 @@ public:
 	// -- Profiling --
 
 	const char *GetPerfReport() const;
+	const SSectionLoaderFrameStats &LastFrameStats() const { return m_LastFrameStats; }
 
 private:
 	std::vector<SSettingsSection> m_vSections;
@@ -195,29 +171,25 @@ private:
 	double m_BudgetPerFrameMs = 5.0;
 
 	int m_CurrentIndex = 0;
-	bool m_bInitialized = false;
-	bool m_bComplete = false;
-	bool m_bProgressiveEnabled = false;
-	bool m_bLiveStaticCacheRecordingEnabled = true;
-	bool m_bRenderTargetSupportedForTests = true;
-	IGraphics *m_pGraphics = nullptr;
+	bool m_Initialized = false;
+	bool m_Complete = false;
+	bool m_ProgressiveEnabled = false;
+	bool m_DeferredFarMeasurementEnabled = false;
 	SSettingsSectionCacheRuntimeKey m_RuntimeKey;
 
 	// Warmup state
-	bool m_bWarmupActive = false;
+	bool m_WarmupActive = false;
 	int m_WarmupIndex = 0;
 	float m_WarmupBudgetMs = 0.0f;
 	const SSessionUiCache *m_pWarmupCache = nullptr;
 
 	// Profiling
 	double m_TotalFrameTimeMs = 0.0;
+	SSectionLoaderFrameStats m_LastFrameStats;
+	ESettingsCacheDirtyReason m_LastDirtyReason = ESettingsCacheDirtyReason::NONE;
 
 	/** 0 = in viewport, 1 = near, 2 = far. */
 	int ComputeViewportPriority(const CUIRect &SectionRect) const;
-	void DestroyRenderTarget(SSettingsSection &Section);
-	bool TryRenderCachedSection(SSettingsSection &Section);
-	bool RecordStaticRenderTarget(SSettingsSection &Section, int Width, int Height);
-
 	static uint64_t ComputeConfigHash(const SSettingsSection &Section);
 };
 

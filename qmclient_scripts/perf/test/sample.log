@@ -1,0 +1,7 @@
+2026-06-04 12:00:00 I perf/menu: stage=settings_page_content duration_ms=6.000 frame=10 page=settings:tee
+2026-06-04 12:00:01 I perf/interaction: event=page_switch page=settings from=general to=tee dur_ms=12.500 frame=11
+2026-06-04 12:00:02 I perf/interaction: event=list_frame page=settings:tee items_total=40 rows_visible=12 rows_rendered=12 rows_iterated=40 rows_skipped=28 dur_ms=5.250 frame=12
+2026-06-04 12:00:03 I perf/section: event=section page=settings:tee section=identity dur_ms=4.750 visible=1 dirty=config text_new=2 text_reused=8 frame=13
+2026-06-04 12:00:04 I perf/settings-resource: event=work_drain page=settings:tee kind=upload count=4 bytes=8192 dur_ms=9.000 stop=budget frame=14
+2026-06-04 12:00:05 I perf/skin-ux: event=list_drain_summary page=settings:tee dur_ms=18.000 requested=5 pending=2 loading=1 loaded=10 frame=15
+2026-06-04 12:00:06 I perf/device: event=sample frame=16 gpu_util_percent=61.5 cpu_process_percent=12 memory_process_mb=1024

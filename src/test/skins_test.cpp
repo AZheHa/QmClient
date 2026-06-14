@@ -7,6 +7,7 @@
 #include <game/client/render.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <cstdlib>
 #include <fstream>
@@ -202,7 +203,7 @@ TEST(Skins, HighPriorityBackgroundRequestedTouchesUsageTrackingData)
 
 TEST(Skins, TeeBackgroundDrainSeparatesRequestedBacklogFromAdmittedQueue)
 {
-	std::ifstream File("src/game/client/components/skins.h");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.h"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -227,7 +228,7 @@ TEST(Skins, LoadingStatsRealInflightExcludesBackgroundRequested)
 
 TEST(Skins, TeeBackgroundRequestsWaitForAdmissionBeforePending)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -248,9 +249,31 @@ TEST(Skins, TeeBackgroundRequestsWaitForAdmissionBeforePending)
 	EXPECT_NE(StartLoading.find("Stats.m_NumPending++;"), std::string::npos);
 }
 
+TEST(Skins, TeeSkinListVirtualizationKeepsTotalListLength)
+{
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+	const size_t RenderTeePos = Source.find("void CMenus::RenderSettingsTee(CUIRect MainView)");
+	ASSERT_NE(RenderTeePos, std::string::npos);
+	const size_t RenderTeeEnd = Source.find("void CMenus::RenderSettings", RenderTeePos + 1);
+	const std::string RenderTeeBody = Source.substr(RenderTeePos, RenderTeeEnd - RenderTeePos);
+
+	EXPECT_NE(RenderTeeBody.find("s_ListBox.DoStart(50.0f, vSkinList.size(), 4, 2, OldSelected, &MainView);"), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("SettingsSkinListVisibleRangeForScroll("), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("s_ListBox.SkipItems("), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("int RowsRendered = 0;"), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("if(RowStart)\n\t\t\t++RowsRendered;"), std::string::npos);
+	EXPECT_EQ(RenderTeeBody.find("const int RowsRendered = RowsIterated;"), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("event=list_frame page=settings:tee"), std::string::npos);
+	EXPECT_NE(RenderTeeBody.find("rows_total=%d rows_visible=%d rows_rendered=%d rows_iterated=%d rows_skipped=%d"), std::string::npos);
+}
+
 TEST(Skins, TeePriorityRequestsReclaimBackgroundRequestedBeforeAdmittedBackgroundWork)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -282,7 +305,7 @@ TEST(Skins, SettingsResourcePriorityOnlyUpgradesTowardVisible)
 
 TEST(Skins, PriorityRequestsCanReclaimBackgroundLoadingSlots)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -308,7 +331,7 @@ TEST(Skins, PriorityRequestsCanReclaimBackgroundLoadingSlots)
 
 TEST(Skins, PrioritizedLoadQueueKeepsOriginalRequestPriority)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -328,7 +351,7 @@ TEST(Skins, PrioritizedLoadQueueKeepsOriginalRequestPriority)
 
 TEST(Skins, TeeSettingsScrollBudgetFeedsFinalizeAndUploadLimits)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -349,7 +372,7 @@ TEST(Skins, TeeSettingsScrollBudgetFeedsFinalizeAndUploadLimits)
 
 TEST(Skins, GpuUploadLimiterResetsBeforeSkinUpdateConsumesBudget)
 {
-	std::ifstream File("src/game/client/gameclient.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/gameclient.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -373,7 +396,7 @@ TEST(Skins, GpuUploadLimiterResetsBeforeSkinUpdateConsumesBudget)
 
 TEST(Skins, SettingsWarmupBypassesPeriodicSkinUpdateThrottle)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -391,7 +414,7 @@ TEST(Skins, SettingsWarmupBypassesPeriodicSkinUpdateThrottle)
 
 TEST(Skins, ManagedTeeRenderInfoSkipsInvalidSixupSkinNames)
 {
-	std::ifstream File("src/game/client/gameclient.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/gameclient.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -418,7 +441,7 @@ TEST(Skins, BackgroundRequestedStatusUsesLoadingIndicator)
 
 TEST(Skins, TeeSkinUploadRequiresWholeSourceTextureBudgetBeforeUpload)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -442,7 +465,7 @@ TEST(Skins, TeeSkinUploadRequiresWholeSourceTextureBudgetBeforeUpload)
 
 TEST(Skins, TeeSettingsListUsesIdleBackgroundRequestsAfterVisibleSettle)
 {
-	std::ifstream File("src/game/client/components/menus_settings.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -474,7 +497,7 @@ TEST(Skins, TeeSettingsListUsesIdleBackgroundRequestsAfterVisibleSettle)
 
 TEST(Skins, TeeSourcePathEmitsRequestAndFrameCapPerfLogs)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -489,7 +512,7 @@ TEST(Skins, TeeSourcePathEmitsRequestAndFrameCapPerfLogs)
 
 TEST(Skins, TeeSourcePathCapsActiveLoadingBeforeQueueFuse)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -515,7 +538,7 @@ TEST(Skins, TeeSourcePathCapsActiveLoadingBeforeQueueFuse)
 
 TEST(Skins, TeeBackgroundWindowUsesRealDecodeJobSaturationSignal)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -535,9 +558,37 @@ TEST(Skins, TeeBackgroundWindowUsesRealDecodeJobSaturationSignal)
 	EXPECT_NE(PrepareBody.find("m_SettingsThroughputControllerOutput = SettingsSkinThroughputControllerStep({"), std::string::npos);
 }
 
+TEST(Skins, TeeFinishLoadingKeepsPriorityBeforeBackgroundSweep)
+{
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+
+	const size_t FinishLoadingPos = Source.find("void CSkins::UpdateFinishLoading(");
+	ASSERT_NE(FinishLoadingPos, std::string::npos);
+	const size_t FinishLoadingEnd = Source.find("void CSkins::RefreshEventSkins()", FinishLoadingPos);
+	ASSERT_NE(FinishLoadingEnd, std::string::npos);
+	const std::string FinishLoading = Source.substr(FinishLoadingPos, FinishLoadingEnd - FinishLoadingPos);
+
+	const size_t UsageListPos = FinishLoading.find("for(const std::string &SkinName : vUsageSnapshot)");
+	const size_t DeferBackgroundPos = FinishLoading.find("if(SettingsSkinFinalizeShouldDeferBackgroundSweep(ProcessedHighPrioritySkin, SkinsProcessedThisFrame, MaxSkinsPerFrame))");
+	const size_t BackgroundListPos = FinishLoading.find("for(const std::string &SkinName : vBackgroundSnapshot)");
+	const size_t FallbackSweepPos = FinishLoading.find("for(auto &[_, pSkinContainer] : m_Skins)");
+
+	ASSERT_NE(UsageListPos, std::string::npos);
+	ASSERT_NE(DeferBackgroundPos, std::string::npos);
+	ASSERT_NE(BackgroundListPos, std::string::npos);
+	ASSERT_NE(FallbackSweepPos, std::string::npos);
+	EXPECT_LT(UsageListPos, DeferBackgroundPos);
+	EXPECT_LT(DeferBackgroundPos, BackgroundListPos);
+	EXPECT_LT(BackgroundListPos, FallbackSweepPos);
+}
+
 TEST(Skins, TeeSettingsListEmitsRequestWindowPerfLogs)
 {
-	std::ifstream File("src/game/client/components/menus_settings.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -547,7 +598,12 @@ TEST(Skins, TeeSettingsListEmitsRequestWindowPerfLogs)
 	EXPECT_NE(Source.find("frame_time_avg_ms=%.3f render_frame_time_ms=%.3f admission_underfed=%d underfed_streak=%d"), std::string::npos);
 	EXPECT_NE(Source.find("visible_reserve_effective=%d"), std::string::npos);
 	EXPECT_NE(Source.find("GameClient()->m_Skins.SetSettingsTeeVisibleSnapshot(VisibleSnapshot);"), std::string::npos);
-	EXPECT_NE(Source.find("event=list_drain_summary dur_ms=%.3f uploads_done_total=%" PRIu64 " loaded_total=%" PRIu64 " uploads_per_sec=%.3f loaded_per_sec=%.3f requested=%d pending=%d loading=%d loaded=%d max_requested=%d max_pending=%d max_loading=%d max_real_inflight=%d count_fuse_limit=%d total_requested=%" PRIu64 " total_admitted=%" PRIu64 " total_started=%" PRIu64 " num_loading_window_waits=%d num_gpu_budget_waits=%d num_queue_fuse_waits=%d full_list_ready=%d final_real_inflight=%d last_wait_reason=%s last_dynamic_decision=%s last_request_budget_block_reason=%s"), std::string::npos);
+	EXPECT_NE(Source.find("event=work_drain page=settings:tee kind=merge count=%llu bytes=%d dur_ms=%.3f stop=%s source=list_drain_summary scope=session"), std::string::npos);
+	EXPECT_NE(Source.find("uploads_done_total=%llu loaded_total=%llu uploads_per_sec=%.3f loaded_per_sec=%.3f"), std::string::npos);
+	EXPECT_NE(Source.find("max_requested=%d max_pending=%d max_loading=%d max_real_inflight=%d count_fuse_limit=%d"), std::string::npos);
+	EXPECT_NE(Source.find("total_requested=%llu total_admitted=%llu total_started=%llu"), std::string::npos);
+	EXPECT_NE(Source.find("num_loading_window_waits=%d num_gpu_budget_waits=%d num_queue_fuse_waits=%d full_list_ready=%d final_real_inflight=%d"), std::string::npos);
+	EXPECT_NE(Source.find("last_wait_reason=%s last_dynamic_decision=%s last_request_budget_block_reason=%s"), std::string::npos);
 	EXPECT_NE(Source.find("event=admission_invariant_violation pending=%d loading=%d real_inflight=%d count_fuse_limit=%d"), std::string::npos);
 	EXPECT_NE(Source.find("if(gs_TeeListDrainPerfSession.m_Active)\n\t\t\tLogTeeListDrainSummary(Client(), GameClient()->m_Skins, GameClient()->m_Skins.LoadingStats(), false, RefreshNowNs);"), std::string::npos);
 	EXPECT_NE(Source.find("BeginTeeListDrainPerfSession(GameClient()->m_Skins, RefreshNowNs);"), std::string::npos);
@@ -558,7 +614,7 @@ TEST(Skins, TeeSettingsListEmitsRequestWindowPerfLogs)
 
 TEST(Skins, PrewarmPlayerPreviewReadyRequiresSelectedAndVisibleSourcesLoaded)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -581,7 +637,7 @@ TEST(Skins, PrewarmPlayerPreviewReadyRequiresSelectedAndVisibleSourcesLoaded)
 
 TEST(Skins, PrewarmPlayerPreviewReadyNoLongerBuildsPreviewCacheKeys)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -600,7 +656,7 @@ TEST(Skins, PrewarmPlayerPreviewReadyNoLongerBuildsPreviewCacheKeys)
 
 TEST(Skins, TeeSettingsRequestsNoLongerPromoteToPendingAtRequestSite)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -619,7 +675,7 @@ TEST(Skins, TeeSettingsRequestsNoLongerPromoteToPendingAtRequestSite)
 
 TEST(Skins, TeePrewarmNoLongerUsesImmediateBoolPath)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -644,7 +700,7 @@ TEST(Skins, TeePrewarmNoLongerUsesImmediateBoolPath)
 
 TEST(Skins, SourceResidencyNoLongerDependsOnPreviewCachePins)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -664,7 +720,7 @@ TEST(Skins, SourceResidencyNoLongerDependsOnPreviewCachePins)
 
 TEST(Skins, SkinListWaitsForCompletePlanInsteadOfSeedingPlaceholderEntry)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -676,25 +732,25 @@ TEST(Skins, SkinListWaitsForCompletePlanInsteadOfSeedingPlaceholderEntry)
 
 TEST(Skins, AsyncSkinListKeepsQueuedColorVariantsSelectable)
 {
-	std::ifstream HeaderFile("src/game/client/components/skins.h");
+	std::ifstream HeaderFile(TestSourcePath("src/game/client/components/skins.h"));
 	ASSERT_TRUE(HeaderFile.good());
 	std::stringstream HeaderBuffer;
 	HeaderBuffer << HeaderFile.rdbuf();
 	const std::string Header = HeaderBuffer.str();
 
-	std::ifstream SourceFile("src/game/client/components/skins.cpp");
+	std::ifstream SourceFile(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(SourceFile.good());
 	std::stringstream SourceBuffer;
 	SourceBuffer << SourceFile.rdbuf();
 	const std::string Source = SourceBuffer.str();
 
-	std::ifstream MenuFile("src/game/client/components/menus_settings.cpp");
+	std::ifstream MenuFile(TestSourcePath("src/game/client/components/menus_settings.cpp"));
 	ASSERT_TRUE(MenuFile.good());
 	std::stringstream MenuBuffer;
 	MenuBuffer << MenuFile.rdbuf();
 	const std::string MenuSource = MenuBuffer.str();
 
-	EXPECT_NE(Header.find("class SColorKey"), std::string::npos);
+	EXPECT_NE(Header.find("struct SColorKey"), std::string::npos);
 	EXPECT_NE(Header.find("const std::optional<SColorKey> &ColorKey() const"), std::string::npos);
 	EXPECT_NE(Header.find("CSkinList &SkinList(int Dummy);"), std::string::npos);
 
@@ -711,7 +767,7 @@ TEST(Skins, AsyncSkinListKeepsQueuedColorVariantsSelectable)
 
 TEST(Skins, DirectoryScanPromotesDownloadContainersToLocal)
 {
-	std::ifstream File("src/game/client/components/skins.cpp");
+	std::ifstream File(TestSourcePath("src/game/client/components/skins.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();

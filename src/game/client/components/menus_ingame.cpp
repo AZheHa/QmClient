@@ -337,7 +337,7 @@ void CMenus::StartReportScan()
 		GameClient()->Echo("需要先连接到服务器");
 		return;
 	}
-	if(GameClient()->m_TClient.IsAxiomCommunity())
+	if(GameClient()->m_QmAxiomAutoLogin.IsAxiomCommunity())
 	{
 		GameClient()->Echo("Axiom 服务器内不可使用举报功能");
 		return;
@@ -440,7 +440,7 @@ void CMenus::RenderGame(CUIRect MainView)
 	const bool Recording = DemoRecorder(RECORDER_MANUAL)->IsRecording();
 	const bool FastPracticeEnabled = GameClient()->m_FastPractice.Enabled();
 	const bool LiveDirectorActive = Client()->QmLiveDirectorActive();
-	const bool ReportDisabledOnAxiom = GameClient()->m_TClient.IsAxiomCommunity();
+	const bool ReportDisabledOnAxiom = GameClient()->m_QmAxiomAutoLogin.IsAxiomCommunity();
 
 	const char *pDisconnectButtonLabel = Localize("断开连接");
 	const char *pDummyButtonLabel = nullptr;

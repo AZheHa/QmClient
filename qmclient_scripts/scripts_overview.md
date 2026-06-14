@@ -9,6 +9,12 @@
 
 ## 脚本分层
 
+### `scripts/` 与 `qmclient_scripts/` 边界
+
+根目录 `scripts/` 视为 DDNet 上游同步目录。QmClient 自有逻辑、gate 入口、生成脚本和检查脚本都放在 `qmclient_scripts/`，不要在 gate 或 GitHub workflow 中直接调用 QmClient 修改过的 `scripts/` 文件。
+
+需要复用上游脚本时，先把脚本复制到 `qmclient_scripts/`，在复制件上做 QmClient 适配；不要让 `qmclient_scripts/` 里的脚本反向依赖根目录 `scripts/` 的 QmClient 特化行为。唯一例外是明确保持上游原样的脚本或平台入口，例如 `scripts/android/cmake_android.sh`。
+
 ### 1. `gate/`
 
 这是仓库级门禁与脚本治理层。
@@ -68,8 +74,8 @@
 
 ```bash
 python qmclient_scripts/gate/check_gate.py --mode quick
-python qmclient_scripts/gate/check_gate.py --mode default --base-ref main
-python qmclient_scripts/gate/check_gate.py --mode full --base-ref main
+python qmclient_scripts/gate/check_gate.py --mode default
+python qmclient_scripts/gate/check_gate.py --mode full
 ```
 
 ### 文档入口一致性
@@ -95,7 +101,7 @@ python qmclient_scripts/bump_version.py --tag vX.Y.Z
 ### baseline allowlist
 
 ```bash
-python qmclient_scripts/gate/check_gate.py --mode quick --base-ref main --report-json-path tmp/check-gate-report.json
+python qmclient_scripts/gate/check_gate.py --mode quick --report-json-path tmp/check-gate-report.json
 python qmclient_scripts/gate/tools/refresh_allowlist.py --report tmp/check-gate-report.json --output qmclient_scripts/gate/baseline_debt_allowlist.json
 ```
 
@@ -141,7 +147,7 @@ python qmclient_scripts/gate/tools/refresh_allowlist.py --report tmp/check-gate-
 
 - `quick` 全部
 - `checks/strict_build`
-- 先构建 `testrunner`，再直接执行测试二进制
+- `run_cxx_tests`（会构建 `testrunner`，并在 build 目录下执行测试二进制；源码结构测试通过测试源码根读取 `src/...` / `data/...`）
 
 #### `full`
 
@@ -173,7 +179,7 @@ python qmclient_scripts/gate/tools/refresh_allowlist.py --report tmp/check-gate-
 ### 常用命令
 
 ```bash
-python qmclient_scripts/gate/check_gate.py --mode default --base-ref main --explain-scope --report-json-path tmp/check-gate-report.json
+python qmclient_scripts/gate/check_gate.py --mode default --explain-scope --report-json-path tmp/check-gate-report.json
 ```
 
 ## 不要这样用
@@ -181,6 +187,7 @@ python qmclient_scripts/gate/check_gate.py --mode default --base-ref main --expl
 - 不要把 `check_config_variables.py`、`fix_style.py`、`check_header_guards.py` 误当成仓库级总入口
 - 不要绕开 `qmclient_scripts/gate/check_gate.py` 自己临时拼一套等价门禁
 - 不要把 `qmclient_scripts/` 根目录当成完全平级；门禁相关内容统一以 `gate/` 为准
+- 不要在 QmClient gate 或 workflow 中直接调用根目录 `scripts/` 下的 QmClient 特化脚本；改用 `qmclient_scripts/` 复制件
 
 ## 关联文档
 

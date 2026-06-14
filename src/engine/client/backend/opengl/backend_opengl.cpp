@@ -1076,7 +1076,7 @@ void CCommandProcessorFragment_OpenGL::Cmd_RenderTarget_Begin(const CCommandBuff
 	const SOpenGLRenderTarget &Target = m_vRenderTargets[pCommand->m_TargetId];
 	if(Target.m_Framebuffer == 0)
 		return;
-	if(m_bRenderTargetActive)
+	if(m_RenderTargetActive)
 	{
 		dbg_msg("opengl", "nested render target begin ignored");
 		return;
@@ -1085,7 +1085,7 @@ void CCommandProcessorFragment_OpenGL::Cmd_RenderTarget_Begin(const CCommandBuff
 	// render target 会临时改写绘制目标和视口，结束时必须恢复，否则后续 UI 坐标会错位。
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &m_RenderTargetPreviousFramebuffer);
 	glGetIntegerv(GL_VIEWPORT, m_aRenderTargetPreviousViewport);
-	m_bRenderTargetActive = true;
+	m_RenderTargetActive = true;
 	glBindFramebuffer(GL_FRAMEBUFFER, Target.m_Framebuffer);
 	glViewport(0, 0, Target.m_Width, Target.m_Height);
 	SetState(pCommand->m_State);
@@ -1095,12 +1095,12 @@ void CCommandProcessorFragment_OpenGL::Cmd_RenderTarget_Begin(const CCommandBuff
 
 void CCommandProcessorFragment_OpenGL::Cmd_RenderTarget_End(const CCommandBuffer::SCommand_RenderTarget_End *pCommand)
 {
-	if(!m_bRenderTargetActive)
+	if(!m_RenderTargetActive)
 		return;
 	glBindFramebuffer(GL_FRAMEBUFFER, m_RenderTargetPreviousFramebuffer);
 	glViewport(m_aRenderTargetPreviousViewport[0], m_aRenderTargetPreviousViewport[1], m_aRenderTargetPreviousViewport[2], m_aRenderTargetPreviousViewport[3]);
 	SetState(pCommand->m_State);
-	m_bRenderTargetActive = false;
+	m_RenderTargetActive = false;
 }
 
 void CCommandProcessorFragment_OpenGL::Cmd_RenderTarget_Draw(const CCommandBuffer::SCommand_RenderTarget_Draw *pCommand)

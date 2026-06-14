@@ -7,6 +7,13 @@
 #include <algorithm>
 #include <cmath>
 
+namespace
+{
+
+	constexpr int TEE_IDLE_DRAIN_FINALIZE_BUDGET = 32;
+
+}
+
 float SettingsSkinPreviewSize(float RowHeight, float PreviewWidth, float RequestedSize)
 {
 	const float MaxSize = std::max(0.0f, std::min(RowHeight, PreviewWidth) - 10.0f);
@@ -25,6 +32,33 @@ float SettingsSkinPreviewSize(float RowHeight, float PreviewWidth, float Request
 float SettingsSkinPreviewCenterOffset(float PreviewMinX, float PreviewMaxX)
 {
 	return -(PreviewMinX + PreviewMaxX) * 0.5f;
+}
+
+SSettingsSkinListVisibleRange SettingsSkinListVisibleRangeForScroll(float ScrollY, float ViewHeight, float RowHeight, int ItemsPerRow, int TotalItems, int ExtraRows)
+{
+	SSettingsSkinListVisibleRange Range;
+	Range.m_TotalItems = std::max(0, TotalItems);
+	if(Range.m_TotalItems <= 0 || RowHeight <= 0.0f || ItemsPerRow <= 0 || ViewHeight <= 0.0f)
+		return Range;
+
+	Range.m_TotalRows = (Range.m_TotalItems + ItemsPerRow - 1) / ItemsPerRow;
+	const float TotalHeight = Range.m_TotalRows * RowHeight;
+	const float MaxScrollY = std::max(0.0f, TotalHeight - ViewHeight);
+	const float ClampedScrollY = std::clamp(ScrollY, 0.0f, MaxScrollY);
+	const int SafeExtraRows = std::max(0, ExtraRows);
+	const int FirstRow = std::max(0, (int)std::floor(ClampedScrollY / RowHeight) - SafeExtraRows);
+	const int LastRowExclusive = std::min(
+		Range.m_TotalRows,
+		(int)std::ceil((ClampedScrollY + ViewHeight) / RowHeight) + SafeExtraRows);
+
+	Range.m_FirstVisibleRow = std::min(FirstRow, Range.m_TotalRows);
+	Range.m_LastVisibleRow = LastRowExclusive > Range.m_FirstVisibleRow ? LastRowExclusive - 1 : Range.m_FirstVisibleRow - 1;
+	Range.m_FirstItem = std::min(Range.m_FirstVisibleRow * ItemsPerRow, Range.m_TotalItems);
+	Range.m_EndItem = std::min(LastRowExclusive * ItemsPerRow, Range.m_TotalItems);
+	Range.m_VisibleRows = std::max(0, LastRowExclusive - Range.m_FirstVisibleRow);
+	Range.m_RenderedItems = std::max(0, Range.m_EndItem - Range.m_FirstItem);
+	Range.m_SkippedItems = std::max(0, Range.m_TotalItems - Range.m_RenderedItems);
+	return Range;
 }
 
 bool SettingsSkinListEntryReady(bool SourceReady, bool TerminalFailure, bool PreviewCacheReady)
@@ -379,7 +413,7 @@ int SettingsSkinBackgroundRequestFrameBudget(const SSettingsResourceFrameContext
 	if(Context.m_ScrollActive || Context.m_PostScrollRecoveryFrames > 0)
 		return 0;
 	if(SettingsSkinBackgroundDrainActive(Context, TeeSettingsActive))
-		return 24;
+		return 8;
 	return 6;
 }
 
@@ -402,9 +436,17 @@ SSettingsSkinBackgroundRequestBudgetOutput SettingsSkinBackgroundRequestBudgetDe
 		return Output;
 	}
 
+	const int HardBacklogLimit = maximum(CountFuseLimit, maximum(Input.m_DefaultBudget, 1) * 8);
+	if(Input.m_BackgroundRequested >= HardBacklogLimit)
+	{
+		Output.m_BlockReason = ESettingsSkinBackgroundRequestBlockReason::STALL_BACKPRESSURE;
+		return Output;
+	}
+
 	const int BacklogHighWatermark = maximum(VisibleReserve * 8, CountFuseLimit * 2);
 	if(Input.m_BackgroundRequested >= BacklogHighWatermark &&
-		Input.m_RecentLoadedDelta <= 0)
+		Input.m_RecentLoadedDelta <= 0 &&
+		Input.m_RecentAdmittedDelta <= 0)
 	{
 		Output.m_BlockReason = ESettingsSkinBackgroundRequestBlockReason::STALL_BACKPRESSURE;
 		return Output;
@@ -551,15 +593,15 @@ namespace
 		case ESettingsSkinThroughputControllerMode::IDLE_DRAIN:
 			Profile.m_GpuUploadLimitMin = 192;
 			Profile.m_GpuUploadLimitMax = 384;
-			Profile.m_FinalizeBudgetMin = 64;
-			Profile.m_FinalizeBudgetMax = 96;
+			Profile.m_FinalizeBudgetMin = TEE_IDLE_DRAIN_FINALIZE_BUDGET;
+			Profile.m_FinalizeBudgetMax = TEE_IDLE_DRAIN_FINALIZE_BUDGET;
 			Profile.m_NormalWindowMin = ClampSettingsSkinLoadWindow(192, LoadedMax);
 			Profile.m_NormalWindowMax = ClampSettingsSkinLoadWindow(320, LoadedMax);
 			Profile.m_VisibleWindowMin = ClampSettingsSkinLoadWindow(192, LoadedMax);
 			Profile.m_VisibleWindowMax = ClampSettingsSkinLoadWindow(192, LoadedMax);
 			Profile.m_VisibleReserveMin = 0;
 			Profile.m_VisibleReserveMax = 0;
-			Profile.m_BackgroundRequestBudget = 24;
+			Profile.m_BackgroundRequestBudget = 8;
 			break;
 		case ESettingsSkinThroughputControllerMode::IDLE_VISIBLE:
 		default:
@@ -903,8 +945,6 @@ void SettingsApplyActiveTeeSkinFrameBudget(SSettingsWarmupFrameBudget &Budget, b
 		return;
 
 	Budget.m_MaxGpuUploads = SettingsSkinGpuUploadUnits(true);
-	Budget.m_MaxGpuReadbacks = 1;
-	Budget.m_MaxPreviewCacheIo = 1;
 	Budget.m_MaxJobResultMerges = 2;
 }
 
@@ -1070,44 +1110,13 @@ bool SettingsAssetPreviewHandleMatches(const SSettingsAssetPreviewHandle &Handle
 	       Handle.m_Name == pName;
 }
 
-bool SettingsPageCacheCanUseRecordedResources(bool CacheMatches, bool RenderTargetValid, bool ResourcesReadyAtRecord, bool DependenciesReadyAtRecord)
-{
-	return CacheMatches && RenderTargetValid && ResourcesReadyAtRecord && DependenciesReadyAtRecord;
-}
-
-ESettingsWarmupMissReason SettingsPageRecordedCacheMissReason(bool CacheMatches, bool RenderTargetValid, bool ResourcesReadyAtRecord, bool DependenciesReadyAtRecord)
-{
-	if(SettingsPageCacheCanUseRecordedResources(CacheMatches, RenderTargetValid, ResourcesReadyAtRecord, DependenciesReadyAtRecord))
-		return ESettingsWarmupMissReason::NONE;
-	if(CacheMatches && RenderTargetValid)
-	{
-		if(!DependenciesReadyAtRecord)
-			return ESettingsWarmupMissReason::DEPENDENCY_NOT_READY;
-		if(!ResourcesReadyAtRecord)
-			return ESettingsWarmupMissReason::RESOURCE_PLAN_PENDING;
-	}
-	return ESettingsWarmupMissReason::PAGE_FBO_NOT_READY;
-}
-
-bool SettingsPageCanUsePageFbo(int Page, int AssetsPage, int DynamicPreviewPage, int Tab)
-{
-	const bool IsTClientSettingsPage = Page == CMenus::SETTINGS_TCLIENT && Tab == 0;
-	const bool IsTeeSettingsPage = Page == CMenus::SETTINGS_TEE || Page == CMenus::SETTINGS_PLAYER;
-	const bool IsSystemSettingsPage = Page == CMenus::SETTINGS_GRAPHICS;
-	const bool IsQmClientSettingsPage = Page == CMenus::SETTINGS_QMCLIENT;
-	return Page >= 0 && Page != AssetsPage && Page != DynamicPreviewPage && !IsTClientSettingsPage && !IsTeeSettingsPage && !IsSystemSettingsPage && !IsQmClientSettingsPage;
-}
-
 const char *SettingsWarmupBudgetStopMissReasonName(ESettingsWarmupStopReason StopReason)
 {
 	switch(StopReason)
 	{
 	case ESettingsWarmupStopReason::NONE: return "none";
 	case ESettingsWarmupStopReason::TEXT_BUDGET: return "text_budget";
-	case ESettingsWarmupStopReason::FBO_BUDGET: return "fbo_budget";
 	case ESettingsWarmupStopReason::GPU_UPLOAD_BUDGET: return "gpu_upload_budget";
-	case ESettingsWarmupStopReason::GPU_READBACK_BUDGET: return "gpu_readback_budget";
-	case ESettingsWarmupStopReason::PREVIEW_CACHE_IO_BUDGET: return "preview_cache_io_budget";
 	case ESettingsWarmupStopReason::MERGE_BUDGET: return "merge_budget";
 	case ESettingsWarmupStopReason::ACTIVE_ITEM: return "active_item";
 	}

@@ -1,12 +1,14 @@
 #include <base/system.h>
 
-#include <game/client/components/section_loader.h>
-
 #include <engine/storage.h>
 
-#include <test/test.h>
+#include <game/client/components/section_loader.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
+
+#include <fstream>
+#include <sstream>
 
 // Helper: modify the CUIRect inline without calling HSplitTop (not linked in test runner)
 static float ConsumeHeight(CUIRect &Rect, float Height)
@@ -111,7 +113,7 @@ TEST(SectionLoader, FullSectionsRenderEveryFrame)
 		return std::vector<SSettingsSection>{S};
 	};
 
-	// First frame: m_bDirty=true → FullRender must be called
+	// First frame: m_Dirty=true → FullRender must be called
 	RunRegisteredFrames(Loader, MainView, MakeSections);
 	EXPECT_TRUE(FullRenderCalled);
 
@@ -136,7 +138,9 @@ TEST(SectionLoader, FullSectionsIgnoreFrameBudget)
 		std::vector<SSettingsSection> vSections;
 		for(int SectionIndex = 0; SectionIndex < 3; ++SectionIndex)
 		{
-			SSettingsSection S = MakeTestSection(SectionIndex == 0 ? "Full A" : SectionIndex == 1 ? "Full B" : "Full C", 10.0f);
+			SSettingsSection S = MakeTestSection(SectionIndex == 0 ? "Full A" : SectionIndex == 1 ? "Full B" :
+														"Full C",
+				10.0f);
 			S.m_RenderFullFn = [&FullRenderCount](CUIRect &Rect) -> float {
 				++FullRenderCount;
 				return ConsumeHeight(Rect, 10.0f);
@@ -241,71 +245,164 @@ TEST(SectionLoader, FarFullSectionRendersAfterScrollingIntoView)
 	EXPECT_EQ(FarFullRenderCount, 1);
 }
 
-TEST(SectionLoader, FarCachedInteractiveLayerRunsAfterScrollingIntoView)
+TEST(SectionLoader, DeferredFarMeasurementRequiresKnownHeight)
 {
 	CSectionLoader Loader;
-	int InteractiveRenderCount = 0;
+	Loader.SetProgressiveEnabled(false);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+	int FarMeasureCount = 0;
+
+	SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
+	SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+	Far.m_MeasureFn = [&FarMeasureCount](CUIRect &Rect) -> float {
+		++FarMeasureCount;
+		return ConsumeHeight(Rect, 50.0f);
+	};
+
+	Loader.Register({Top, Far});
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(FarMeasureCount, 1);
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 950.0f);
+}
+
+TEST(SectionLoader, DeferredFarMeasurementUsesCleanCachedHeight)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(false);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+	int FarMeasureCount = 0;
+	int FarFullRenderCount = 0;
 
 	auto MakeSections = [&]() {
 		SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
-		SSettingsSection Far = MakeTestSection("Far Cached Interactive", 50.0f);
-		Far.m_bCanCacheStaticLayer = true;
-		Far.m_RenderInteractiveLayerFn = [&InteractiveRenderCount](CUIRect &Rect) -> float {
-			++InteractiveRenderCount;
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		Far.m_MeasureFn = [&FarMeasureCount](CUIRect &Rect) -> float {
+			++FarMeasureCount;
 			return ConsumeHeight(Rect, 50.0f);
 		};
-		Far.m_ShouldRenderInteractiveLayerFn = [](const CUIRect &) {
-			return true;
+		Far.m_RenderFullFn = [&FarFullRenderCount](CUIRect &Rect) -> float {
+			++FarFullRenderCount;
+			return ConsumeHeight(Rect, 50.0f);
 		};
 		return std::vector<SSettingsSection>{Top, Far};
 	};
 
-	Loader.SetProgressiveEnabled(false);
-	Loader.Register(MakeSections());
-	Loader.m_ScrollY = -900.0f;
-	Loader.Begin(CUIRect{0, -900.0f, 400, 240}, 100.0f);
-	EXPECT_FALSE(Loader.Process());
-	EXPECT_EQ(InteractiveRenderCount, 0);
-
-	Loader.MarkCacheValidForTests("Far Cached Interactive");
-	Loader.m_ScrollY = 0.0f;
 	Loader.Register(MakeSections());
 	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
 	EXPECT_FALSE(Loader.Process());
-	EXPECT_EQ(InteractiveRenderCount, 0);
+	EXPECT_EQ(FarMeasureCount, 1);
+	EXPECT_EQ(FarFullRenderCount, 0);
 
-	Loader.m_ScrollY = -900.0f;
 	Loader.Register(MakeSections());
-	Loader.Begin(CUIRect{0, -900.0f, 400, 240}, 100.0f);
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
 	EXPECT_FALSE(Loader.Process());
-	EXPECT_EQ(InteractiveRenderCount, 1);
+	EXPECT_EQ(FarMeasureCount, 1);
+	EXPECT_EQ(FarFullRenderCount, 0);
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 950.0f);
 }
 
-TEST(SectionLoader, CachedInteractiveLayerInvalidatesWhenInteractiveExceedsMeasuredHeight)
+TEST(SectionLoader, DeferredFarMeasurementSkipsNonFullCleanFarSection)
 {
 	CSectionLoader Loader;
-	int InteractiveRenderCount = 0;
-	int FullRenderCount = 0;
+	Loader.SetProgressiveEnabled(true);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+	int FarMeasureCount = 0;
+	int FarFullRenderCount = 0;
 
-	SSettingsSection Section = MakeTestSection("Stable Cached Interactive", 50.0f);
-	Section.m_bCanCacheStaticLayer = true;
-	Section.m_bKeepCachedHeightStable = true;
-	Section.m_RenderFullFn = [&FullRenderCount](CUIRect &Rect) -> float {
-		++FullRenderCount;
-		return ConsumeHeight(Rect, 50.0f);
+	auto MakeSections = [&]() {
+		SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		Far.m_MeasureFn = [&FarMeasureCount](CUIRect &Rect) -> float {
+			++FarMeasureCount;
+			return ConsumeHeight(Rect, 50.0f);
+		};
+		Far.m_RenderFullFn = [&FarFullRenderCount](CUIRect &Rect) -> float {
+			++FarFullRenderCount;
+			return ConsumeHeight(Rect, 50.0f);
+		};
+		return std::vector<SSettingsSection>{Top, Far};
 	};
-	Section.m_RenderInteractiveLayerFn = [&InteractiveRenderCount](CUIRect &Rect) -> float {
-		++InteractiveRenderCount;
-		return ConsumeHeight(Rect, 70.0f);
-	};
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_TRUE(Loader.Process());
+	EXPECT_EQ(FarMeasureCount, 1);
 
 	Loader.SetProgressiveEnabled(false);
-	Loader.Register({Section});
-	Loader.MarkCacheValidForTests("Stable Cached Interactive");
+	Loader.Register(MakeSections());
 	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
 	EXPECT_FALSE(Loader.Process());
-	EXPECT_EQ(InteractiveRenderCount, 1);
-	EXPECT_EQ(FullRenderCount, 1);
+
+	EXPECT_EQ(FarMeasureCount, 1);
+	EXPECT_EQ(FarFullRenderCount, 0);
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 950.0f);
+}
+
+TEST(SectionLoader, DeferredFarMeasurementDoesNotSkipDirtyHeight)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(false);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+	int FarMeasureHeight = 50;
+	int FarMeasureCount = 0;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		Far.m_MeasureFn = [&FarMeasureHeight, &FarMeasureCount](CUIRect &Rect) -> float {
+			++FarMeasureCount;
+			return ConsumeHeight(Rect, (float)FarMeasureHeight);
+		};
+		Far.m_DependencyConfigInts = {&FarMeasureHeight};
+		return std::vector<SSettingsSection>{Top, Far};
+	};
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(FarMeasureCount, 1);
+
+	FarMeasureHeight = 80;
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+
+	EXPECT_EQ(FarMeasureCount, 2);
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 980.0f);
+}
+
+TEST(SectionLoader, FarCompactSectionAdvancesWithoutRendering)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(true);
+	int FarCompactRenderCount = 0;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		Far.m_RenderCompactFn = [&FarCompactRenderCount](CUIRect &Rect) -> float {
+			++FarCompactRenderCount;
+			return ConsumeHeight(Rect, 50.0f);
+		};
+		return std::vector<SSettingsSection>{Far};
+	};
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_TRUE(Loader.Process());
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_TRUE(Loader.Process());
+	EXPECT_EQ(FarCompactRenderCount, 1);
+
+	Loader.m_ScrollY = -1000.0f;
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 0.0f);
+	EXPECT_TRUE(Loader.Process());
+
+	EXPECT_EQ(FarCompactRenderCount, 1);
 	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 50.0f);
 }
 
@@ -575,7 +672,7 @@ TEST(SectionLoader, WarmupWithoutCache)
 
 	// Invalid cache → same
 	SSessionUiCache InvalidCache;
-	InvalidCache.m_bValid = false;
+	InvalidCache.m_Valid = false;
 	EXPECT_TRUE(Loader.Warmup(&InvalidCache, 3.0f));
 	EXPECT_TRUE(Loader.IsWarmupComplete());
 }
@@ -595,7 +692,7 @@ TEST(SectionLoader, WarmupWithCache)
 	SSessionUiCache Cache;
 	Cache.m_LastTClientTab = 0;
 	Cache.m_LastScrollY = 0.0f;
-	Cache.m_bValid = true;
+	Cache.m_Valid = true;
 
 	bool Done = false;
 	for(int i = 0; i < 20 && !Done; ++i)
@@ -624,7 +721,7 @@ TEST(SectionLoader, SessionCacheRoundTripsLastTabAndScroll)
 	Saved.m_RuntimeKey.m_FontHash = 33;
 	Saved.m_RuntimeKey.m_BackendHash = 44;
 	Saved.m_RuntimeKey.m_WindowHash = 55;
-	Saved.m_bValid = true;
+	Saved.m_Valid = true;
 
 	CSectionLoader::SaveSessionCache(Saved, "qmclient/settings_section_cache_metadata.cfg", pStorage.get());
 
@@ -642,7 +739,7 @@ TEST(SectionLoader, SessionCacheRoundTripsLastTabAndScroll)
 	EXPECT_EQ(Loaded.m_RuntimeKey.m_FontHash, 33u);
 	EXPECT_EQ(Loaded.m_RuntimeKey.m_BackendHash, 44u);
 	EXPECT_EQ(Loaded.m_RuntimeKey.m_WindowHash, 55u);
-	EXPECT_TRUE(Loaded.m_bValid);
+	EXPECT_TRUE(Loaded.m_Valid);
 }
 
 TEST(SectionLoader, SessionCacheLoadKeepsWorkingWhenRuntimeKeyFieldsAreMissing)
@@ -675,7 +772,7 @@ TEST(SectionLoader, SessionCacheLoadKeepsWorkingWhenRuntimeKeyFieldsAreMissing)
 	EXPECT_EQ(Loaded.m_RuntimeKey.m_ViewportHeight, 0);
 	EXPECT_EQ(Loaded.m_RuntimeKey.m_UiScale, 0);
 	EXPECT_EQ(Loaded.m_RuntimeKey.m_ConfigHash, 0u);
-	EXPECT_TRUE(Loaded.m_bValid);
+	EXPECT_TRUE(Loaded.m_Valid);
 }
 
 TEST(SectionLoader, InvalidateAfterLanguageSwitch)
@@ -715,6 +812,144 @@ TEST(SectionLoader, InvalidateAfterLanguageSwitch)
 	EXPECT_EQ(RenderCount, 3);
 }
 
+TEST(SectionLoader, RuntimeKeyChangeInvalidatesCachedHeightsWithReason)
+{
+	CSectionLoader Loader;
+	int MeasuredHeight = 40;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Section;
+		Section.m_pName = "RuntimeKeyDirty";
+		Section.m_MeasureFn = [&MeasuredHeight](CUIRect &Rect) -> float {
+			return ConsumeHeight(Rect, (float)MeasuredHeight);
+		};
+		Section.m_RenderCompactFn = Section.m_MeasureFn;
+		Section.m_RenderFullFn = Section.m_MeasureFn;
+		return std::vector<SSettingsSection>{Section};
+	};
+
+	SSettingsSectionCacheRuntimeKey RuntimeKey;
+	RuntimeKey.m_ViewportWidth = 400;
+	RuntimeKey.m_ViewportHeight = 240;
+	RuntimeKey.m_UiScale = 100;
+	RuntimeKey.m_ConfigHash = 1;
+	RuntimeKey.m_LanguageHash = 2;
+	RuntimeKey.m_FontHash = 3;
+	RuntimeKey.m_BackendHash = 4;
+	RuntimeKey.m_WindowHash = 5;
+	Loader.SetRuntimeKey(RuntimeKey);
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 40.0f);
+
+	MeasuredHeight = 70;
+	RuntimeKey.m_UiScale = 125;
+	Loader.SetRuntimeKey(RuntimeKey);
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 70.0f);
+	EXPECT_EQ(Loader.LastFrameStats().m_DirtyReason, ESettingsCacheDirtyReason::UI_SCALE);
+	EXPECT_GE(Loader.LastFrameStats().m_LayoutDirtySections, 1);
+}
+
+TEST(SectionLoader, DeferredFarMeasurementTracksVisibleAndSkippedTelemetry)
+{
+	CSectionLoader Loader;
+	Loader.SetProgressiveEnabled(false);
+	Loader.SetDeferredFarMeasurementEnabled(true);
+
+	auto MakeSections = [&]() {
+		SSettingsSection Top = MakeTestSection("Tall Top", 900.0f);
+		SSettingsSection Far = MakeTestSection("Far Section", 50.0f);
+		return std::vector<SSettingsSection>{Top, Far};
+	};
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsTotal, 2);
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsVisible, 1);
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsSkipped, 1);
+	EXPECT_EQ(Loader.LastFrameStats().m_LayoutDirtySections, 0);
+}
+
+TEST(SectionLoader, DirtyReasonTelemetryResetsAfterCleanFrame)
+{
+	CSectionLoader Loader;
+	int MeasuredHeight = 40;
+
+	auto MakeSections = [&]() {
+		SSettingsSection Section;
+		Section.m_pName = "DirtyReasonReset";
+		Section.m_MeasureFn = [&MeasuredHeight](CUIRect &Rect) -> float {
+			return ConsumeHeight(Rect, (float)MeasuredHeight);
+		};
+		Section.m_RenderCompactFn = Section.m_MeasureFn;
+		Section.m_RenderFullFn = Section.m_MeasureFn;
+		return std::vector<SSettingsSection>{Section};
+	};
+
+	SSettingsSectionCacheRuntimeKey RuntimeKey;
+	RuntimeKey.m_ViewportWidth = 400;
+	RuntimeKey.m_ViewportHeight = 240;
+	RuntimeKey.m_UiScale = 100;
+	RuntimeKey.m_ConfigHash = 1;
+	RuntimeKey.m_LanguageHash = 2;
+	RuntimeKey.m_FontHash = 3;
+	RuntimeKey.m_BackendHash = 4;
+	RuntimeKey.m_WindowHash = 5;
+	Loader.SetRuntimeKey(RuntimeKey);
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+
+	RuntimeKey.m_UiScale = 125;
+	Loader.SetRuntimeKey(RuntimeKey);
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(Loader.LastFrameStats().m_DirtyReason, ESettingsCacheDirtyReason::UI_SCALE);
+	EXPECT_GE(Loader.LastFrameStats().m_LayoutDirtySections, 1);
+
+	Loader.Register(MakeSections());
+	Loader.Begin(CUIRect{0, 0, 400, 240}, 100.0f);
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(Loader.LastFrameStats().m_LayoutDirtySections, 0);
+	EXPECT_EQ(Loader.LastFrameStats().m_DirtyReason, ESettingsCacheDirtyReason::NONE);
+}
+
+TEST(SectionLoader, VisibilityTelemetryUsesMeasuredSectionRect)
+{
+	CSectionLoader Loader;
+	int MeasuredHeight = 300;
+
+	SSettingsSection Section;
+	Section.m_pName = "MeasuredVisibility";
+	Section.m_MeasureFn = [&MeasuredHeight](CUIRect &Rect) -> float {
+		return ConsumeHeight(Rect, (float)MeasuredHeight);
+	};
+	Section.m_RenderCompactFn = Section.m_MeasureFn;
+	Section.m_RenderFullFn = Section.m_MeasureFn;
+
+	Loader.m_ScrollY = -400.0f;
+	Loader.Register({Section});
+	Loader.Begin(CUIRect{0, -400.0f, 400, 240}, 100.0f);
+
+	EXPECT_FALSE(Loader.Process());
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsTotal, 1);
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsVisible, 1);
+	EXPECT_EQ(Loader.LastFrameStats().m_SectionsSkipped, 0);
+}
+
 TEST(SectionLoader, RejectsVisibleSummarySectionNames)
 {
 	EXPECT_FALSE(CSectionLoader::IsVisibleSummarySectionName("DeferredSummary:Mouse"));
@@ -724,500 +959,32 @@ TEST(SectionLoader, RejectsVisibleSummarySectionNames)
 	EXPECT_TRUE(CSectionLoader::IsVisibleSummarySectionName("TClient:Pet"));
 }
 
-TEST(SectionLoader, RenderTargetUnsupportedFallsBackToFullRender)
+TEST(SectionLoaderCleanup, HeaderNoLongerExposesRecordedTargetCacheApi)
 {
-	CSectionLoader Loader;
-	int FullRenderCount = 0;
-	SSettingsSection S = MakeTestSection("CacheFallback", 10.0f);
-	S.m_bCanCacheStaticLayer = true;
-	S.m_RenderFullFn = [&FullRenderCount](CUIRect &Rect) -> float {
-		++FullRenderCount;
-		return ConsumeHeight(Rect, 10.0f);
-	};
-	Loader.SetRenderTargetSupportedForTests(false);
-
-	CUIRect MainView{0, 0, 400, 600};
-	RunRegisteredFrames(Loader, MainView, [&]() { return std::vector<SSettingsSection>{S}; });
-
-	EXPECT_EQ(FullRenderCount, 1);
-}
-
-TEST(SectionLoader, CleanCachedSectionSkipsFullRender)
-{
-	CSectionLoader Loader;
-	int FullRenderCount = 0;
-
-	SSettingsSection S = MakeTestSection("Cached", 10.0f);
-	S.m_bCanCacheStaticLayer = true;
-	S.m_RenderFullFn = [&FullRenderCount](CUIRect &Rect) -> float {
-		++FullRenderCount;
-		return ConsumeHeight(Rect, 10.0f);
-	};
-
-	CUIRect MainView{0, 0, 400, 600};
-	RunRegisteredFrames(Loader, MainView, [&]() { return std::vector<SSettingsSection>{S}; });
-	EXPECT_EQ(FullRenderCount, 1);
-
-	Loader.MarkCacheValidForTests("Cached");
-	RunRegisteredFrames(Loader, MainView, [&]() { return std::vector<SSettingsSection>{S}; });
-	EXPECT_EQ(FullRenderCount, 1);
-}
-
-TEST(SectionLoader, CachedInteractiveLayerUpdatesSectionHeight)
-{
-	CSectionLoader Loader;
-	SSettingsSection S = MakeTestSection("CachedInteractiveHeight", 40.0f);
-	S.m_bCanCacheStaticLayer = true;
-	S.m_RenderInteractiveLayerFn = [](CUIRect &Rect) -> float {
-		return ConsumeHeight(Rect, 60.0f);
-	};
-
-	CUIRect MainView{0, 0, 400, 600};
-	RunRegisteredFrames(Loader, MainView, [&]() { return std::vector<SSettingsSection>{S}; });
-
-	Loader.MarkCacheValidForTests("CachedInteractiveHeight");
-	RunRegisteredFrames(Loader, MainView, [&]() { return std::vector<SSettingsSection>{S}; });
-
-	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 60.0f);
-}
-
-TEST(SectionLoader, CachedInteractiveLayerStaysVisibleWhenPredicateRejects)
-{
-	CSectionLoader Loader;
-	int FullRenderCount = 0;
-	int InteractiveRenderCount = 0;
-
-	SSettingsSection S = MakeTestSection("CachedInteractiveAlwaysVisible", 40.0f);
-	S.m_bCanCacheStaticLayer = true;
-	S.m_RenderFullFn = [&FullRenderCount](CUIRect &Rect) -> float {
-		++FullRenderCount;
-		return ConsumeHeight(Rect, 40.0f);
-	};
-	S.m_RenderInteractiveLayerFn = [&InteractiveRenderCount](CUIRect &Rect) -> float {
-		++InteractiveRenderCount;
-		return ConsumeHeight(Rect, 40.0f);
-	};
-	S.m_ShouldRenderInteractiveLayerFn = [](const CUIRect &) {
-		return false;
-	};
-
-	CUIRect MainView{0, 0, 400, 600};
-	RunRegisteredFrames(Loader, MainView, [&]() { return std::vector<SSettingsSection>{S}; });
-	EXPECT_EQ(FullRenderCount, 1);
-
-	Loader.MarkCacheValidForTests("CachedInteractiveAlwaysVisible");
-	RunRegisteredFrames(Loader, MainView, [&]() { return std::vector<SSettingsSection>{S}; });
-
-	EXPECT_EQ(FullRenderCount, 1);
-	EXPECT_EQ(InteractiveRenderCount, 1);
-	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 40.0f);
-}
-
-TEST(SectionLoader, CachedInteractiveLayerRunsWhenNeeded)
-{
-	CSectionLoader Loader;
-	int InteractiveRenderCount = 0;
-
-	SSettingsSection S = MakeTestSection("CachedInteractiveNeeded", 40.0f);
-	S.m_bCanCacheStaticLayer = true;
-	S.m_RenderInteractiveLayerFn = [&InteractiveRenderCount](CUIRect &Rect) -> float {
-		++InteractiveRenderCount;
-		return ConsumeHeight(Rect, 45.0f);
-	};
-	S.m_ShouldRenderInteractiveLayerFn = [](const CUIRect &) {
-		return true;
-	};
-
-	CUIRect MainView{0, 0, 400, 600};
-	RunRegisteredFrames(Loader, MainView, [&]() { return std::vector<SSettingsSection>{S}; });
-
-	Loader.MarkCacheValidForTests("CachedInteractiveNeeded");
-	RunRegisteredFrames(Loader, MainView, [&]() { return std::vector<SSettingsSection>{S}; });
-
-	EXPECT_EQ(InteractiveRenderCount, 1);
-	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 45.0f);
-}
-
-TEST(SectionLoader, DirtyReasonInvalidatesCache)
-{
-	CSectionLoader Loader;
-	SSettingsSection S = MakeTestSection("DirtyCache", 10.0f);
-	S.m_bCanCacheStaticLayer = true;
-	Loader.Register({S});
-	Loader.MarkCacheValidForTests("DirtyCache");
-
-	Loader.InvalidateCache(ESettingsCacheDirtyReason::LANGUAGE);
-
-	EXPECT_FALSE(Loader.IsCacheValidForTests("DirtyCache"));
-}
-
-TEST(SectionLoader, RenderTargetCacheRectUsesSectionLocalCoordinates)
-{
-	const CUIRect CacheRect = CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 120.0f);
-
-	EXPECT_FLOAT_EQ(CacheRect.x, 0.0f);
-	EXPECT_FLOAT_EQ(CacheRect.y, 0.0f);
-	EXPECT_FLOAT_EQ(CacheRect.w, 320.0f);
-	EXPECT_FLOAT_EQ(CacheRect.h, 120.0f);
-}
-
-TEST(SectionLoader, RenderTargetCacheRectIncludesPaddingOffset)
-{
-	const CUIRect CacheRect = CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 120.0f, 20.0f);
-
-	EXPECT_FLOAT_EQ(CacheRect.x, 20.0f);
-	EXPECT_FLOAT_EQ(CacheRect.y, 20.0f);
-	EXPECT_FLOAT_EQ(CacheRect.w, 320.0f);
-	EXPECT_FLOAT_EQ(CacheRect.h, 120.0f);
-}
-
-TEST(SectionLoader, PrewarmStaticRenderTargetsMarksNearSectionCacheValidWithoutFullRender)
-{
-	CSectionLoader Loader;
-	Loader.SetProgressiveEnabled(false);
-	Loader.SetRenderTargetSupportedForTests(true);
-
-	int StaticRendered = 0;
-	int FullRendered = 0;
-	SSettingsSection Section;
-	Section.m_pName = "TClient:FirstScreen";
-	Section.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 120.0f);
-	};
-	Section.m_RenderStaticLayerFn = [&](CUIRect &Col) {
-		++StaticRendered;
-		return ConsumeHeight(Col, 120.0f);
-	};
-	Section.m_RenderFullFn = [&](CUIRect &Col) {
-		++FullRendered;
-		return ConsumeHeight(Col, 120.0f);
-	};
-	Section.m_bCanCacheStaticLayer = true;
-	Loader.Register({Section});
-
-	EXPECT_TRUE(Loader.PrewarmStaticRenderTargets(CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f, 5.0f));
-	EXPECT_EQ(StaticRendered, 1);
-	EXPECT_EQ(FullRendered, 0);
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:FirstScreen"));
-}
-
-TEST(SectionLoader, PrewarmedStaticRenderTargetSkipsFullRenderOnNextFrame)
-{
-	CSectionLoader Loader;
-	Loader.SetProgressiveEnabled(false);
-	Loader.SetRenderTargetSupportedForTests(true);
-
-	int StaticRendered = 0;
-	int FullRendered = 0;
-	SSettingsSection Section;
-	Section.m_pName = "TClient:CachedFirstScreen";
-	Section.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 120.0f);
-	};
-	Section.m_RenderStaticLayerFn = [&](CUIRect &Col) {
-		++StaticRendered;
-		return ConsumeHeight(Col, 120.0f);
-	};
-	Section.m_RenderFullFn = [&](CUIRect &Col) {
-		++FullRendered;
-		return ConsumeHeight(Col, 120.0f);
-	};
-	Section.m_bCanCacheStaticLayer = true;
-	Loader.Register({Section});
-
-	EXPECT_TRUE(Loader.PrewarmStaticRenderTargets(CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f, 5.0f));
-
-	Loader.Register({Section});
-	Loader.Begin(CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 5.0f);
-	EXPECT_FALSE(Loader.Process());
-	EXPECT_EQ(StaticRendered, 1);
-	EXPECT_EQ(FullRendered, 0);
-	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 120.0f);
-}
-
-TEST(SectionLoader, ReRegisterConfigChangeInvalidatesPrewarmedCacheBeforeFullState)
-{
-	CSectionLoader Loader;
-	int ConfigValue = 1;
-	SSettingsSection Section;
-	Section.m_pName = "TClient:ConfigSensitive";
-	Section.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 100.0f);
-	};
-	Section.m_RenderStaticLayerFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 100.0f);
-	};
-	Section.m_bCanCacheStaticLayer = true;
-	Section.m_DependencyConfigInts = {&ConfigValue};
-
-	Loader.Register({Section});
-	EXPECT_TRUE(Loader.PrewarmStaticRenderTargets(CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f, 5.0f));
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:ConfigSensitive"));
-
-	ConfigValue = 2;
-	Loader.Register({Section});
-
-	EXPECT_FALSE(Loader.IsCacheValidForTests("TClient:ConfigSensitive"));
-}
-
-TEST(SectionLoader, ReRegisterRuntimeKeyChangeInvalidatesPrewarmedCache)
-{
-	CSectionLoader Loader;
-	SSettingsSection Section;
-	Section.m_pName = "TClient:RuntimeSensitive";
-	Section.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 100.0f);
-	};
-	Section.m_RenderStaticLayerFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 100.0f);
-	};
-	Section.m_bCanCacheStaticLayer = true;
-
-	SSettingsSectionCacheRuntimeKey RuntimeKey;
-	RuntimeKey.m_ViewportWidth = 320;
-	RuntimeKey.m_ViewportHeight = 240;
-	RuntimeKey.m_UiScale = 100;
-	Loader.SetRuntimeKey(RuntimeKey);
-	Loader.Register({Section});
-	EXPECT_TRUE(Loader.PrewarmStaticRenderTargets(CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f, 5.0f));
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:RuntimeSensitive"));
-
-	RuntimeKey.m_ViewportHeight = 260;
-	Loader.SetRuntimeKey(RuntimeKey);
-	Loader.Register({Section});
-
-	EXPECT_FALSE(Loader.IsCacheValidForTests("TClient:RuntimeSensitive"));
-}
-
-TEST(SectionLoader, PrewarmStaticRenderTargetsSkipsFarSectionsUsingRunningColumn)
-{
-	CSectionLoader Loader;
-	int StaticRendered = 0;
-
-	SSettingsSection SpacerTop;
-	SpacerTop.m_pName = "TClient:SpacerTop";
-	SpacerTop.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 900.0f);
-	};
-
-	SSettingsSection FarSecond;
-	FarSecond.m_pName = "TClient:FarSecond";
-	FarSecond.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 100.0f);
-	};
-	FarSecond.m_RenderStaticLayerFn = [&](CUIRect &Col) {
-		++StaticRendered;
-		return ConsumeHeight(Col, 100.0f);
-	};
-	FarSecond.m_bCanCacheStaticLayer = true;
-
-	Loader.Register({SpacerTop, FarSecond});
-
-	EXPECT_TRUE(Loader.PrewarmStaticRenderTargets(CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f, 5.0f));
-	EXPECT_EQ(StaticRendered, 0);
-	EXPECT_FALSE(Loader.IsCacheValidForTests("TClient:FarSecond"));
-}
-
-TEST(SectionLoader, PrewarmStaticRenderTargetsCanIncludeFarSections)
-{
-	CSectionLoader Loader;
-	int StaticRendered = 0;
-
-	SSettingsSection SpacerTop;
-	SpacerTop.m_pName = "TClient:SpacerTop";
-	SpacerTop.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 900.0f);
-	};
-
-	SSettingsSection FarSecond;
-	FarSecond.m_pName = "TClient:FarSecond";
-	FarSecond.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 100.0f);
-	};
-	FarSecond.m_RenderStaticLayerFn = [&](CUIRect &Col) {
-		++StaticRendered;
-		return ConsumeHeight(Col, 100.0f);
-	};
-	FarSecond.m_bCanCacheStaticLayer = true;
-
-	Loader.Register({SpacerTop, FarSecond});
-
-	EXPECT_TRUE(Loader.PrewarmStaticRenderTargets(CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f, 5.0f, true));
-	EXPECT_EQ(StaticRendered, 1);
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:FarSecond"));
-}
-
-TEST(SectionLoader, PaddedPrewarmedStaticRenderTargetKeepsSectionHeight)
-{
-	CSectionLoader Loader;
-	Loader.SetProgressiveEnabled(false);
-	Loader.SetRenderTargetSupportedForTests(true);
-
-	int StaticRendered = 0;
-	SSettingsSection Section;
-	Section.m_pName = "TClient:Padded";
-	Section.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 120.0f);
-	};
-	Section.m_RenderStaticLayerFn = [&](CUIRect &Col) {
-		++StaticRendered;
-		EXPECT_FLOAT_EQ(Col.x, 20.0f);
-		EXPECT_FLOAT_EQ(Col.y, 20.0f);
-		EXPECT_FLOAT_EQ(Col.w, 320.0f);
-		EXPECT_FLOAT_EQ(Col.h, 120.0f);
-		return ConsumeHeight(Col, 120.0f);
-	};
-	Section.m_bCanCacheStaticLayer = true;
-	Section.m_StaticCachePadding = 20.0f;
-	Loader.Register({Section});
-
-	EXPECT_TRUE(Loader.PrewarmStaticRenderTargets(CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f, 5.0f));
-	EXPECT_EQ(StaticRendered, 1);
-
-	Loader.Register({Section});
-	Loader.Begin(CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 5.0f);
-	EXPECT_FALSE(Loader.Process());
-	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 120.0f);
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:Padded"));
-}
-
-TEST(SectionLoader, PrewarmSectionByNameOnlyBuildsTargetCache)
-{
-	CSectionLoader Loader;
-	int StaticRenderedFirst = 0;
-	int StaticRenderedSecond = 0;
-
-	SSettingsSection First;
-	First.m_pName = "TClient:First";
-	First.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 120.0f);
-	};
-	First.m_RenderStaticLayerFn = [&](CUIRect &Col) {
-		++StaticRenderedFirst;
-		return ConsumeHeight(Col, 120.0f);
-	};
-	First.m_bCanCacheStaticLayer = true;
-
-	SSettingsSection Second;
-	Second.m_pName = "TClient:Second";
-	Second.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 80.0f);
-	};
-	Second.m_RenderStaticLayerFn = [&](CUIRect &Col) {
-		++StaticRenderedSecond;
-		return ConsumeHeight(Col, 80.0f);
-	};
-	Second.m_bCanCacheStaticLayer = true;
-
-	Loader.Register({First, Second});
-
-	EXPECT_TRUE(Loader.PrewarmSectionByName("TClient:Second", CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f));
-	EXPECT_EQ(StaticRenderedFirst, 0);
-	EXPECT_EQ(StaticRenderedSecond, 1);
-	EXPECT_FALSE(Loader.IsCacheValidForTests("TClient:First"));
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:Second"));
-}
-
-TEST(SectionLoader, DrawCachedSectionByNameRunsInteractiveLayer)
-{
-	CSectionLoader Loader;
-	int InteractiveRenderCount = 0;
-
-	SSettingsSection Section;
-	Section.m_pName = "TClient:Interactive";
-	Section.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 40.0f);
-	};
-	Section.m_RenderStaticLayerFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 40.0f);
-	};
-	Section.m_RenderInteractiveLayerFn = [&](CUIRect &Col) {
-		++InteractiveRenderCount;
-		return ConsumeHeight(Col, 45.0f);
-	};
-	Section.m_ShouldRenderInteractiveLayerFn = [](const CUIRect &) {
-		return true;
-	};
-	Section.m_bCanCacheStaticLayer = true;
-
-	Loader.Register({Section});
-	Loader.MarkCacheValidForTests("TClient:Interactive");
-
-	EXPECT_TRUE(Loader.DrawCachedSectionByName("TClient:Interactive", CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f));
-	EXPECT_EQ(InteractiveRenderCount, 1);
-	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 45.0f);
-}
-
-TEST(SectionLoader, DrawCachedSectionByNameKeepsInteractiveLayerVisible)
-{
-	CSectionLoader Loader;
-	int InteractiveRenderCount = 0;
-
-	SSettingsSection Section;
-	Section.m_pName = "TClient:Interactive";
-	Section.m_MeasureFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 40.0f);
-	};
-	Section.m_RenderStaticLayerFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 40.0f);
-	};
-	Section.m_RenderInteractiveLayerFn = [&](CUIRect &Col) {
-		++InteractiveRenderCount;
-		return ConsumeHeight(Col, 45.0f);
-	};
-	Section.m_ShouldRenderInteractiveLayerFn = [](const CUIRect &) {
-		return false;
-	};
-	Section.m_bCanCacheStaticLayer = true;
-
-	Loader.Register({Section});
-	Loader.MarkCacheValidForTests("TClient:Interactive");
-
-	EXPECT_TRUE(Loader.DrawCachedSectionByName("TClient:Interactive", CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f));
-	EXPECT_EQ(InteractiveRenderCount, 1);
-	EXPECT_FLOAT_EQ(Loader.GetRunningColumn().y, 45.0f);
-}
-
-TEST(SectionLoader, InvalidateSectionByNameClearsOnlyTargetCache)
-{
-	CSectionLoader Loader;
-
-	SSettingsSection First = MakeTestSection("TClient:First", 40.0f);
-	First.m_bCanCacheStaticLayer = true;
-	SSettingsSection Second = MakeTestSection("TClient:Second", 40.0f);
-	Second.m_bCanCacheStaticLayer = true;
-
-	Loader.Register({First, Second});
-	Loader.MarkCacheValidForTests("TClient:First");
-	Loader.MarkCacheValidForTests("TClient:Second");
-
-	Loader.InvalidateSectionByName("TClient:Second");
-
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:First"));
-	EXPECT_FALSE(Loader.IsCacheValidForTests("TClient:Second"));
-}
-
-TEST(SectionLoader, RegisterPreservesSiblingCachesWithStableSectionSet)
-{
-	CSectionLoader Loader;
-	SSettingsSection First = MakeTestSection("TClient:First", 40.0f);
-	First.m_bCanCacheStaticLayer = true;
-	First.m_RenderStaticLayerFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 40.0f);
-	};
-	SSettingsSection Second = MakeTestSection("TClient:Second", 40.0f);
-	Second.m_bCanCacheStaticLayer = true;
-	Second.m_RenderStaticLayerFn = [](CUIRect &Col) {
-		return ConsumeHeight(Col, 40.0f);
-	};
-
-	Loader.Register({First, Second});
-	EXPECT_TRUE(Loader.PrewarmSectionByName("TClient:First", CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f));
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:First"));
-	EXPECT_FALSE(Loader.IsCacheValidForTests("TClient:Second"));
-
-	Loader.Register({First, Second});
-	EXPECT_TRUE(Loader.PrewarmSectionByName("TClient:Second", CSectionLoader::MakeRenderTargetCacheRectForTests(320.0f, 240.0f), 0.0f));
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:First"));
-	EXPECT_TRUE(Loader.IsCacheValidForTests("TClient:Second"));
+	std::ifstream File(TestSourcePath("src/game/client/components/section_loader.h"));
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+
+	EXPECT_EQ(Source.find("m_CanCacheStaticLayer"), std::string::npos);
+	EXPECT_EQ(Source.find("m_RenderStaticLayerFn"), std::string::npos);
+	EXPECT_EQ(Source.find("m_RenderInteractiveLayerFn"), std::string::npos);
+	EXPECT_EQ(Source.find("m_ShouldRenderInteractiveLayerFn"), std::string::npos);
+	EXPECT_EQ(Source.find("m_CacheValid"), std::string::npos);
+	EXPECT_EQ(Source.find("m_RenderTarget"), std::string::npos);
+	EXPECT_EQ(Source.find("m_RenderTargetWidth"), std::string::npos);
+	EXPECT_EQ(Source.find("m_RenderTargetHeight"), std::string::npos);
+	EXPECT_EQ(Source.find("m_StaticCachePadding"), std::string::npos);
+	EXPECT_EQ(Source.find("PrewarmStaticRenderTargets"), std::string::npos);
+	EXPECT_EQ(Source.find("SetGraphicsForCache"), std::string::npos);
+	EXPECT_EQ(Source.find("SetLiveStaticCacheRecordingEnabled"), std::string::npos);
+	EXPECT_EQ(Source.find("SetRenderTargetSupportedForTests"), std::string::npos);
+	EXPECT_EQ(Source.find("MarkCacheValidForTests"), std::string::npos);
+	EXPECT_EQ(Source.find("IsCacheValidForTests"), std::string::npos);
+	EXPECT_EQ(Source.find("InvalidateSectionByName"), std::string::npos);
+	EXPECT_EQ(Source.find("PrewarmSectionByName"), std::string::npos);
+	EXPECT_EQ(Source.find("DrawCachedSectionByName"), std::string::npos);
+	EXPECT_EQ(Source.find("MakeRenderTargetCacheRectForTests"), std::string::npos);
+	EXPECT_EQ(Source.find("m_LiveStaticCacheRecordingEnabled"), std::string::npos);
 }

@@ -11,10 +11,11 @@
 struct SUiV2PerfStats
 {
 	float m_BuildTreeMs = 0.0f;
-	float m_LayoutMs = 0.0f;
 	float m_AnimMs = 0.0f;
 	float m_RenderBridgeMs = 0.0f;
 	int m_NodeCount = 0;
+	int m_ActiveAnimCount = 0;
+	int m_QueuedAnimCount = 0;
 };
 
 class CUiRuntimeV2
@@ -24,6 +25,8 @@ public:
 	void Reset();
 	void OnRender();
 	bool Enabled() const;
+	void SetPerfContext(const char *pPage, const char *pOperation);
+	void ClearPerfContext();
 	CUiV2AnimationRuntime &AnimRuntime() { return m_AnimRuntime; }
 	const CUiV2AnimationRuntime &AnimRuntime() const { return m_AnimRuntime; }
 
@@ -37,6 +40,8 @@ private:
 	CUiV2RenderBridge m_RenderBridge;
 	SUiV2PerfStats m_LastStats;
 	float m_DebugLogAccumulator = 0.0f;
+	char m_aPerfPage[64] = "";
+	char m_aPerfOperation[64] = "";
 };
 
 #endif

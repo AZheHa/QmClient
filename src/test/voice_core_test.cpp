@@ -9,16 +9,17 @@
 #include <engine/shared/json.h>
 
 #include <game/client/components/qmclient/qmclient_utils.h>
-#include <game/client/components/qmclient/voice_capture_pipeline.h>
-#include <game/client/components/qmclient/voice_core.h>
-#include <game/client/components/qmclient/voice_utils.h>
+#include <game/client/components/qmclient/voice/voice_capture_pipeline.h>
+#include <game/client/components/qmclient/voice/voice_core.h>
+#include <game/client/components/qmclient/voice/voice_utils.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
-#include <fstream>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <fstream>
 #include <limits>
 #include <sstream>
 
@@ -2034,14 +2035,14 @@ TEST(QmClient, ParseQmClientUsersJsonRejectsMissingUsersArrayAndSkipsBrokenEntri
 
 TEST(QmClient, DistributionSuccessLogsAreLatchedUntilFailureOrReset)
 {
-	std::ifstream HeaderFile("src/game/client/components/qmclient/qmclient.h");
+	std::ifstream HeaderFile(TestSourcePath("src/game/client/components/qmclient/qmclient.h"));
 	ASSERT_TRUE(HeaderFile.good());
 	std::stringstream HeaderBuffer;
 	HeaderBuffer << HeaderFile.rdbuf();
 	const std::string Header = HeaderBuffer.str();
 	EXPECT_NE(Header.find("bool m_QmClientDistributionSuccessLatched = false;"), std::string::npos);
 
-	std::ifstream SourceFile("src/game/client/components/qmclient/qmclient.cpp");
+	std::ifstream SourceFile(TestSourcePath("src/game/client/components/qmclient/qmclient.cpp"));
 	ASSERT_TRUE(SourceFile.good());
 	std::stringstream SourceBuffer;
 	SourceBuffer << SourceFile.rdbuf();

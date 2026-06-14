@@ -41,15 +41,24 @@ def parse_config_variables(lines):
     return matches
 
 
-def generate_regex(variable_code):
-    return rf"(g_Config\.m_{variable_code}\b|Config\(\)->m_{variable_code}\b|m_pConfig->m_{variable_code}\b)"
+def generate_regex(variable_code, script_name):
+    command_name = re.escape(script_name)
+    return (
+        rf"(g_Config\.m_{variable_code}\b|"
+        rf"Config\(\)->m_{variable_code}\b|"
+        rf"m_pConfig->m_{variable_code}\b|"
+        rf"Console\(\)->(?:Register|Chain)\(\s*\"{command_name}\"|"
+        rf"Console\(\)->ExecuteLine\([^;]*\"{command_name}\")"
+    )
 
 
 def find_config_variables(config_variables):
     variables_not_found = set(config_variables)
     regex_cache = {}
     for variable_code in variables_not_found.copy():
-        regex_cache[variable_code] = re.compile(generate_regex(variable_code))
+        regex_cache[variable_code] = re.compile(
+            generate_regex(variable_code, config_variables[variable_code])
+        )
     for root, _, files in os.walk("src"):
         if not variables_not_found:
             break

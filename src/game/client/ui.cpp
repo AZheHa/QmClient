@@ -47,6 +47,19 @@ void CUIElement::InitRects(int RequestedRectCount)
 
 CUIElement::SUIElementRect::SUIElementRect() { Reset(); }
 
+CUiScopedQuadBatch::CUiScopedQuadBatch(CUi *pUi) :
+	m_pUi(pUi)
+{
+	if(m_pUi != nullptr)
+		m_pUi->BeginQuadBatch();
+}
+
+CUiScopedQuadBatch::~CUiScopedQuadBatch()
+{
+	if(m_pUi != nullptr)
+		m_pUi->EndQuadBatch();
+}
+
 void CUIElement::SUIElementRect::Reset()
 {
 	m_UIRectQuadContainer = -1;
@@ -137,6 +150,14 @@ CUi::CUi()
 
 CUi::~CUi()
 {
+	for(SQuadBatchRectContainer &Container : m_vQuadBatchRectContainers)
+	{
+		Graphics()->DeleteQuadContainer(Container.m_QuadContainerIndex);
+		Container.m_QuadContainerIndex = -1;
+	}
+	m_vQuadBatchRectContainers.clear();
+	m_vQuadBatchSprites.clear();
+
 	for(CUIElement *pEl : m_vpUIElements)
 	{
 		if(pEl != nullptr)
@@ -187,6 +208,15 @@ void CUi::OnElementsReset()
 	{
 		ResetUIElement(*pEl);
 	}
+
+	for(SQuadBatchRectContainer &Container : m_vQuadBatchRectContainers)
+	{
+		Graphics()->DeleteQuadContainer(Container.m_QuadContainerIndex);
+		Container.m_QuadContainerIndex = -1;
+	}
+	m_vQuadBatchRectContainers.clear();
+	m_vQuadBatchSprites.clear();
+	m_QuadBatchContainerIndex = -1;
 }
 
 void CUi::OnWindowResize()
@@ -487,6 +517,7 @@ float CUi::PixelSize()
 
 void CUi::ClipEnable(const CUIRect *pRect)
 {
+	FlushQuadBatch();
 	if(IsClipped())
 	{
 		const CUIRect *pOldRect = ClipArea();
@@ -506,6 +537,7 @@ void CUi::ClipEnable(const CUIRect *pRect)
 
 void CUi::ClipDisable()
 {
+	FlushQuadBatch();
 	dbg_assert(IsClipped(), "no clip region");
 	m_vClips.pop_back();
 	UpdateClipping();
@@ -530,6 +562,95 @@ void CUi::UpdateClipping()
 	{
 		Graphics()->ClipDisable();
 	}
+}
+
+void CUi::RegisterPassiveHotItem(const void *pId, const CUIRect *pRect)
+{
+	if(MouseHovered(pRect))
+		SetHotItem(pId);
+}
+
+int CUi::QuadBatchRectContainer(float Width, float Height, float Rounding, int Corners) const
+{
+	if(!UiBatchableRectHasPositiveSize(Width, Height))
+		return -1;
+
+	for(const SQuadBatchRectContainer &Container : m_vQuadBatchRectContainers)
+	{
+		if(Container.m_Width == Width && Container.m_Height == Height && Container.m_Rounding == Rounding && Container.m_Corners == Corners)
+			return Container.m_QuadContainerIndex;
+	}
+
+	SQuadBatchRectContainer &Container = m_vQuadBatchRectContainers.emplace_back();
+	Container.m_Width = Width;
+	Container.m_Height = Height;
+	Container.m_Rounding = Rounding;
+	Container.m_Corners = Corners;
+	Container.m_QuadContainerIndex = Graphics()->CreateRectQuadContainer(-Width / 2.0f, -Height / 2.0f, Width, Height, Rounding, Corners);
+	return Container.m_QuadContainerIndex;
+}
+
+void CUi::RenderQuadContainerBatchable(int QuadContainerIndex, float X, float Y, const ColorRGBA &Color) const
+{
+	const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(IsQuadBatchActive(), m_QuadBatchContainerIndex, m_QuadBatchColor, QuadContainerIndex, Color);
+	if(Plan.m_LeavesBatchUntouched)
+		return;
+
+	if(Plan.m_RenderImmediately)
+	{
+		Graphics()->TextureClear();
+		Graphics()->SetColor(Color);
+		Graphics()->RenderQuadContainerEx(QuadContainerIndex, 0, -1, X, Y);
+		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+		return;
+	}
+
+	if(Plan.m_FlushBeforeQueue)
+		FlushQuadBatch();
+
+	if(Plan.m_QueueSprite)
+	{
+		m_QuadBatchContainerIndex = QuadContainerIndex;
+		m_QuadBatchColor = Color;
+		IGraphics::SRenderSpriteInfo &Info = m_vQuadBatchSprites.emplace_back();
+		Info.m_Pos = vec2(X, Y);
+		Info.m_Scale = 1.0f;
+		Info.m_Rotation = 0.0f;
+	}
+}
+
+void CUi::BeginQuadBatch() const
+{
+	++m_QuadBatchDepth;
+}
+
+void CUi::FlushQuadBatch() const
+{
+	if(!UiQuadBatchHasPendingSubmission(m_QuadBatchContainerIndex, m_vQuadBatchSprites.size()))
+		return;
+
+	Graphics()->TextureClear();
+	Graphics()->SetColor(m_QuadBatchColor);
+	Graphics()->RenderQuadContainerAsSpriteMultiple(m_QuadBatchContainerIndex, 0, (int)m_vQuadBatchSprites.size(), m_vQuadBatchSprites.data());
+	Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+	m_vQuadBatchSprites.clear();
+	m_QuadBatchContainerIndex = -1;
+}
+
+void CUi::EndQuadBatch() const
+{
+	if(m_QuadBatchDepth <= 0)
+		return;
+
+	--m_QuadBatchDepth;
+	if(m_QuadBatchDepth == 0)
+		FlushQuadBatch();
+}
+
+void CUi::RenderBatchableRect(const CUIRect *pRect, ColorRGBA Color, int Corners, float Rounding) const
+{
+	const int QuadContainerIndex = QuadBatchRectContainer(pRect->w, pRect->h, Rounding, Corners);
+	RenderQuadContainerBatchable(QuadContainerIndex, pRect->x + pRect->w / 2.0f, pRect->y + pRect->h / 2.0f, Color);
 }
 
 int CUi::DoButtonLogic(const void *pId, int Checked, const CUIRect *pRect, const unsigned Flags)
@@ -849,6 +970,7 @@ CLabelResult CUi::DoLabel(const CUIRect *pRect, const char *pText, float Size, i
 	Cursor.m_Flags |= Flags;
 	Cursor.m_vColorSplits = LabelProps.m_vColorSplits;
 	Cursor.m_LineWidth = (float)LabelProps.m_MaxWidth;
+	FlushQuadBatch();
 	TextRender()->TextEx(&Cursor, pText, -1);
 	return CLabelResult{.m_Truncated = Cursor.m_Truncated};
 }
@@ -881,7 +1003,7 @@ void CUi::DoLabel(CUIElement::SUIElementRect &RectEl, const CUIRect *pRect, cons
 	RectEl.m_Cursor = Cursor;
 }
 
-void CUi::DoLabelStreamed(CUIElement::SUIElementRect &RectEl, const CUIRect *pRect, const char *pText, float Size, int Align, const SLabelProperties &LabelProps, int StrLen, const CTextCursor *pReadCursor, bool Render) const
+void CUi::DoLabelStreamed(CUIElement::SUIElementRect &RectEl, const CUIRect *pRect, const char *pText, float Size, int Align, const SLabelProperties &LabelProps, int StrLen, const CTextCursor *pReadCursor, bool Render, bool *pTextContainerRecreated) const
 {
 	const int ReadCursorGlyphCount = pReadCursor == nullptr ? -1 : pReadCursor->m_GlyphCount;
 	bool NeedsRecreate = false;
@@ -903,6 +1025,8 @@ void CUi::DoLabelStreamed(CUIElement::SUIElementRect &RectEl, const CUIRect *pRe
 				NeedsRecreate = true;
 		}
 	}
+	if(pTextContainerRecreated != nullptr)
+		*pTextContainerRecreated = NeedsRecreate;
 	RectEl.m_X = pRect->x;
 	RectEl.m_Y = pRect->y;
 	if(NeedsRecreate)
@@ -933,6 +1057,7 @@ void CUi::DoLabelStreamed(CUIElement::SUIElementRect &RectEl, const CUIRect *pRe
 	if(Render && RectEl.m_UITextContainer.Valid())
 	{
 		const vec2 CursorPos = CalcAlignedCursorPos(pRect, vec2(RectEl.m_Cursor.m_LongestLineWidth, RectEl.m_Cursor.Height()), Align);
+		FlushQuadBatch();
 		TextRender()->RenderTextContainer(RectEl.m_UITextContainer, RectEl.m_TextColor, RectEl.m_TextOutlineColor, CursorPos.x, CursorPos.y);
 	}
 }
@@ -1219,6 +1344,8 @@ int CUi::DoButton_Menu(CUIElement &UIElement, const CButtonContainer *pId, const
 		ColorText.a *= 0.65f;
 		ColorTextOutline.a *= 0.65f;
 	}
+	if(UIElement.Rect(0)->m_UITextContainer.Valid())
+		FlushQuadBatch();
 	if(UIElement.Rect(0)->m_UITextContainer.Valid())
 		TextRender()->RenderTextContainer(UIElement.Rect(0)->m_UITextContainer, ColorText, ColorTextOutline);
 	if(!Enabled)

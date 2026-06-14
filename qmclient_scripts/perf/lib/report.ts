@@ -3,10 +3,12 @@
 import { basename } from 'node:path';
 
 import type { PerfEntry } from './parse.ts';
+import { reportQuality, type ParseDiagnostics } from './quality.ts';
 import {
   calcPercentiles, toTimeSeries, detectSpikes, histogram, pageBreakdown,
   complianceRate, computeVerdict, generateNarrative, isSamplingBiased, BUDGET,
-  kde, qqNorm,
+  kde, qqNorm, pagePerformanceAttribution, selectFrameTimeEntries, entryDurationMs,
+  inferSamplingThreshold, sectionPerformanceTop, fpsSummaries, targetSettingsSnapshot, PERF_SYSTEM,
   type Percentiles, type SpikeInfo, type PageStats, type ComparisonResult,
 } from './stats.ts';
 
@@ -28,42 +30,59 @@ export function generateReport(
   entries: PerfEntry[],
   sourceFile: string,
   comparison?: ComparisonResult | null,
+  diagnostics: ParseDiagnostics = { totalLines: entries.length, invalidLines: 0 },
 ): string {
-  const interactionEntries = entries.filter(e => e.system === 'perf/interaction');
-  const menuEntries = entries.filter(e => e.system === 'perf/menu' && (e.stage.includes('render_total') || e.stage.includes('page_content')));
-  const deviceEntries = entries.filter(e => e.system === 'perf/device');
-  const skinUxEntries = entries.filter(e => e.system === 'perf/skin-ux');
-  const allEntries = entries.filter(e => e.system === 'perf/menu' || e.system === 'perf/gameclient');
-  const menuDurations = menuEntries.map(e => e.durationMs);
+  const interactionEntries = entries.filter(e => e.system === PERF_SYSTEM.INTERACTION);
+  const frameTimeEntries = selectFrameTimeEntries(entries);
+  const menuEntries = frameTimeEntries.filter(e => e.system === PERF_SYSTEM.MENU && (e.stage.includes('render_total') || e.stage.includes('page_content')));
+  const deviceEntries = entries.filter(e => e.system === PERF_SYSTEM.DEVICE);
+  const skinUxEntries = entries.filter(e => e.system === PERF_SYSTEM.SKIN_UX);
+  const allEntries = frameTimeEntries;
+  const frameDurations = frameTimeEntries.map(e => entryDurationMs(e) ?? e.durationMs);
+  const menuDurations = menuEntries.map(e => entryDurationMs(e) ?? e.durationMs);
+  const attribution = pagePerformanceAttribution(entries);
+  const sectionTop = sectionPerformanceTop(entries, 10);
+  const fps = fpsSummaries(entries);
+  const targetSettings = targetSettingsSnapshot(entries);
 
-  const p = calcPercentiles(menuDurations);
+  const p = calcPercentiles(frameDurations);
   const ts = toTimeSeries(allEntries);
-  const spikes = detectSpikes(allEntries, 16.67);
-  const histData = histogram(menuDurations, [0, 2, 4, 8, 16, 33, 100, 500]);
-  const pages = pageBreakdown(menuEntries, 16.67);
-  const compliance240 = complianceRate(menuDurations, BUDGET.h240);
-  const compliance120 = complianceRate(menuDurations, BUDGET.h120);
-  const compliance60 = complianceRate(menuDurations, BUDGET.h60);
-  const biased = isSamplingBiased(menuDurations);
-  const verdict = computeVerdict(p, spikes.length);
-  const narrative = generateNarrative(p, spikes, compliance240, compliance120, compliance60, biased);
+  const spikes = detectSpikes(allEntries, BUDGET.h60);
+  const histData = histogram(frameDurations, [0, 2, 4, 8, 16, 33, 100, 500]);
+  const pages = pageBreakdown(menuEntries, BUDGET.h60);
+  const compliance240 = complianceRate(frameDurations, BUDGET.h240);
+  const compliance120 = complianceRate(frameDurations, BUDGET.h120);
+  const compliance60 = complianceRate(frameDurations, BUDGET.h60);
+  const biased = isSamplingBiased(frameDurations);
+  const samplingThresholdMs = inferSamplingThreshold(frameDurations);
+  const verdict = frameTimeEntries.length === 0 ? 'WARN' : computeVerdict(p, spikes.length);
+  const narrative = generateNarrative(p, spikes, compliance240, compliance120, compliance60, biased, samplingThresholdMs);
+  const quality = reportQuality(entries, diagnostics);
 
   const dataJson = JSON.stringify({
     percentiles: percentilesToChartData(p),
     timeline: ts,
     spikes: spikes.slice(0, 20),
     histogram: histData,
-    kde: kde(menuDurations),
-    qq: qqNorm(menuDurations),
+    kde: kde(frameDurations),
+    qq: qqNorm(frameDurations),
     qqLine: { x1: 0, y1: 0, x2: p.max, y2: p.max },
     pages: pages.map(pg => ({ page: pg.page, count: pg.count, avg: pg.avg, max: pg.max, p95: pg.p95, boxPlot: pg.boxPlot, outliers: pg.outliers.slice(0, 50) })),
     interactions: interactionEntries.map(e => ({ timestamp: e.timestamp, event: e.fields.event ?? '', page: e.fields.page ?? '', frame: e.fields.frame ?? '', visibleRows: e.fields.visible_rows ?? '', firstVisibleSkin: e.fields.first_visible_skin ?? '' })),
+    fpsSummaries: fps,
+    targetSettings,
+    attribution,
+    sectionTop,
     skinUx: skinUxEntries.map(e => ({ timestamp: e.timestamp, event: e.fields.event ?? '', durMs: e.fields.dur_ms ?? e.fields.duration_ms ?? '', total: e.fields.total ?? '', visibleRows: e.fields.visible_rows ?? '' })),
     devices: deviceEntries.map(e => ({ timestamp: e.timestamp, frame: e.fields.frame ?? '', gpuUtil: e.fields.gpu_util_percent ?? '', gpuDedicated: e.fields.gpu_dedicated_vram_mb ?? '', gpuShared: e.fields.gpu_shared_vram_mb ?? '', cpuProcess: e.fields.cpu_process_percent ?? '', cpuTotal: e.fields.cpu_total_percent ?? '', mem: e.fields.memory_process_mb ?? '', disk: e.fields.disk_read_mb_s ?? '' })),
   });
 
   const kpiClass = (v: number, okThresh: number, warnThresh: number) =>
     v <= okThresh ? 'ok' : v <= warnThresh ? 'warn' : 'bad';
+  const metricClass = (value: number, ok: number, warn: number) => p.count === 0 ? 'warn' : kpiClass(value, ok, warn);
+  const metricValue = (value: number, digits = 1) => p.count === 0 ? 'N/A' : value.toFixed(digits);
+  const complianceValue = (value: number) => p.count === 0 ? 'N/A' : value.toFixed(1);
+  const complianceClass = (value: number, ok: number, warn: number) => p.count === 0 ? 'warn' : value >= ok ? 'ok' : value >= warn ? 'warn' : 'bad';
 
   const verdictClass = verdict === 'PASS' ? 'ok' : verdict === 'WARN' ? 'warn' : 'bad';
   const genDate = new Date().toISOString().slice(0, 19).replace('T', ' ');
@@ -140,7 +159,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-weigh
 
 /* ── Chart Figure ── */
 .figure{margin-top:1rem}
-.figure .chart-wrap{background:white;border:1px solid var(--hairline-strong);border-radius:2px;overflow:hidden}
+.figure .chart-wrap{background:white;border:1px solid var(--hairline-strong);border-radius:2px;overflow:visible}
 .figure .chart-inner{width:100%;height:320px}
 .figure .chart-inner.tall{height:400px}
 .figure .chart-inner.short{height:240px}
@@ -204,10 +223,11 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-weigh
     <span class="label">Verdict</span><span class="value"><span class="verdict-banner ${verdictClass}">${verdict}</span></span>
     <span class="label">Total Frames</span><span class="value">${allEntries.length}</span>
     <span class="label">Menu Frames</span><span class="value">${menuEntries.length}</span>
+    <span class="label">Quality</span><span class="value">${quality.warnings.length === 0 ? 'OK' : `${quality.warnings.length} warning(s)`}</span>
     <span class="label">Spikes</span><span class="value">${spikes.length} (&gt;16.67ms)</span>
   </div>
   ${biased ? `<div style="max-width:var(--max-w);margin:0 auto;padding:1rem 2rem;border-bottom:1px solid var(--hairline);font-family:var(--mono);font-size:0.75rem;color:var(--warn);background:var(--warn-bg)">
-    ⚠ Sampling Bias Detected — 当前采样阈值 ${p.min.toFixed(1)}ms（默认 20ms），日志仅包含超过阈值的帧，合规率和百分位统计不能反映实际帧分布。建议设置 <code style="background:rgba(0,0,0,0.06);padding:0.1em 0.3em;border-radius:2px">qm_perf_debug_threshold_ms 4</code> 后重新采集。
+    ⚠ Sampling Bias Detected — 当前采样阈值估计 p5=${samplingThresholdMs.toFixed(1)}ms（当前默认 4ms），日志可能仅包含超过阈值的帧，合规率和百分位统计不能反映实际帧分布。建议设置 <code style="background:rgba(0,0,0,0.06);padding:0.1em 0.3em;border-radius:2px">qm_perf_debug_threshold_ms 4</code> 后重新采集。
   </div>` : ''}
 </header>
 
@@ -215,6 +235,47 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-weigh
   <div class="kicker">Executive Summary</div>
   <p>${escapeHtml(narrative)}</p>
 </div>
+
+<section class="section">
+  <div class="section-head">
+    <span class="section-num">quality</span>
+    <h2>样本可信度</h2>
+  </div>
+  <table class="data-table">
+    <tbody>
+      <tr><td class="mono">Frame samples</td><td>${quality.sampleCount}</td></tr>
+      <tr><td class="mono">Parsed entries</td><td>${quality.totalEntries}</td></tr>
+      <tr><td class="mono">Invalid lines</td><td>${quality.invalidLines}</td></tr>
+      <tr><td class="mono">Sampling p5 estimate</td><td>${quality.samplingThresholdMs.toFixed(1)}ms</td></tr>
+      <tr><td class="mono">Pages</td><td>${escapeHtml(quality.operation.pages.join(', ') || 'N/A')}</td></tr>
+      <tr><td class="mono">Systems</td><td>${escapeHtml(quality.operation.systems.join(', ') || 'N/A')}</td></tr>
+    </tbody>
+  </table>
+  ${quality.warnings.length === 0 ? '<p class="body-text">当前样本未发现明显采样或解析风险。</p>' : `<p class="body-text">${escapeHtml(quality.warnings.join('；'))}</p>`}
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <span class="section-num">fps</span>
+    <h2>FPS 摘要</h2>
+  </div>
+  ${fps.length === 0 ? '<p class="body-text" style="color:var(--bad)">缺少 fps_summary；目标操作窗口样本不足以验收。请重新采集设置页进入、设置页切 tab、子 tab、Tee 滚动、游戏中 Esc 打开菜单。</p>' : `<table class="data-table">
+    <thead><tr><th>Operation</th><th>Context</th><th>Page</th><th>Tab</th><th>Frames</th><th>FPS avg/min/max</th><th>Frame p95/p99/max</th><th>Cap</th></tr></thead>
+    <tbody>
+      ${fps.map(s => `<tr>
+        <td class="mono">${escapeHtml(s.operation)}</td>
+        <td>${escapeHtml(s.context)}</td>
+        <td>${escapeHtml(s.page)}</td>
+        <td class="mono">${escapeHtml(s.tab)}</td>
+        <td class="mono">${s.sampleFrames}</td>
+        <td class="mono">${s.fpsAvg.toFixed(1)} / ${s.fpsMin.toFixed(1)} / ${s.fpsMax.toFixed(1)}</td>
+        <td class="mono">${s.frameMsP95.toFixed(1)} / ${s.frameMsP99.toFixed(1)} / ${s.frameMsMax.toFixed(1)} ms</td>
+        <td>${s.capLimited ? '<span class="badge warn">cap/vsync</span>' : '<span class="badge ok">free</span>'}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`}
+  <p class="body-text">目标设置页判定只使用 settings / ingame Esc 操作窗口相关样本；internet/offline 和 server browser 高耗时只作为背景热点，不参与设置页达标判定。当前目标判定：<span class="badge ${targetSettings.verdict === 'PASS' ? 'ok' : targetSettings.verdict === 'WARN' ? 'warn' : 'bad'}">${targetSettings.verdictAvailable ? targetSettings.verdict : '不足以验收'}</span>，spikes=${targetSettings.spikeCount}，p99=${targetSettings.verdictAvailable ? targetSettings.percentiles.p99.toFixed(1) + 'ms' : 'N/A'}。</p>
+</section>
 
 ${comparison ? `<section class="compare-section">
   <div class="section-head">
@@ -227,6 +288,8 @@ ${comparison ? `<section class="compare-section">
     → <span class="badge ${comparison.current.verdict.toLowerCase() === 'pass' ? 'ok' : comparison.current.verdict.toLowerCase() === 'warn' ? 'warn' : 'bad'}">${comparison.current.verdict}</span>
     ${comparison.verdictChanged ? '<span style="color:var(--bad);font-weight:600;margin-left:0.5rem">判定变化!</span>' : ''}
   </p>
+  <p class="body-text">此对比基线为自动选择的上一份日志，可能不是同一操作路径或同一采样配置；用于快速观察趋势，不作为严格回归判定。</p>
+  <p class="body-text">对比可信度：${comparison.operation.comparable ? 'same operation signature' : `advisory only - ${escapeHtml(comparison.operation.reason)}`}</p>
   <div class="compare-grid">
     ${comparison.metrics.map(m => `<div class="delta-card">
       <span class="delta-name">${m.name}</span>
@@ -256,13 +319,13 @@ ${comparison ? `<section class="compare-section">
     <h2>关键性能指标</h2>
   </div>
   <div class="kpi-row">
-    <div class="kpi-card"><div class="kpi-label">p50</div><div class="kpi-value ${kpiClass(p.p50, 4, 8)}">${p.p50.toFixed(1)}</div><div class="kpi-unit">ms · median</div></div>
-    <div class="kpi-card"><div class="kpi-label">p95</div><div class="kpi-value ${kpiClass(p.p95, 8, 16)}">${p.p95.toFixed(1)}</div><div class="kpi-unit">ms</div></div>
-    <div class="kpi-card"><div class="kpi-label">p99</div><div class="kpi-value ${kpiClass(p.p99, 16, 33)}">${p.p99.toFixed(1)}</div><div class="kpi-unit">ms</div></div>
-    <div class="kpi-card"><div class="kpi-label">Max</div><div class="kpi-value ${kpiClass(p.max, 16, 999)}">${p.max.toFixed(1)}</div><div class="kpi-unit">ms · worst</div></div>
-    <div class="kpi-card"><div class="kpi-label">240Hz 合规</div><div class="kpi-value ${compliance240 >= 95 ? 'ok' : compliance240 >= 80 ? 'warn' : 'bad'}">${compliance240.toFixed(1)}</div><div class="kpi-unit">% ≤4.17ms</div></div>
-    <div class="kpi-card"><div class="kpi-label">120Hz 合规</div><div class="kpi-value ${compliance120 >= 95 ? 'ok' : compliance120 >= 80 ? 'warn' : 'bad'}">${compliance120.toFixed(1)}</div><div class="kpi-unit">% ≤8.33ms</div></div>
-    <div class="kpi-card"><div class="kpi-label">60Hz 合规</div><div class="kpi-value ${compliance60 >= 99 ? 'ok' : compliance60 >= 95 ? 'warn' : 'bad'}">${compliance60.toFixed(1)}</div><div class="kpi-unit">% ≤16.67ms</div></div>
+    <div class="kpi-card"><div class="kpi-label">p50</div><div class="kpi-value ${metricClass(p.p50, 4, 8)}">${metricValue(p.p50)}</div><div class="kpi-unit">ms · median</div></div>
+    <div class="kpi-card"><div class="kpi-label">p95</div><div class="kpi-value ${metricClass(p.p95, 8, 16)}">${metricValue(p.p95)}</div><div class="kpi-unit">ms</div></div>
+    <div class="kpi-card"><div class="kpi-label">p99</div><div class="kpi-value ${metricClass(p.p99, BUDGET.h60, BUDGET.h60Double)}">${metricValue(p.p99)}</div><div class="kpi-unit">ms</div></div>
+    <div class="kpi-card"><div class="kpi-label">Max</div><div class="kpi-value ${metricClass(p.max, BUDGET.h60, BUDGET.h60Double)}">${metricValue(p.max)}</div><div class="kpi-unit">ms · worst</div></div>
+    <div class="kpi-card"><div class="kpi-label">240Hz 合规</div><div class="kpi-value ${complianceClass(compliance240, 95, 80)}">${complianceValue(compliance240)}</div><div class="kpi-unit">% ≤4.17ms</div></div>
+    <div class="kpi-card"><div class="kpi-label">120Hz 合规</div><div class="kpi-value ${complianceClass(compliance120, 95, 80)}">${complianceValue(compliance120)}</div><div class="kpi-unit">% ≤8.33ms</div></div>
+    <div class="kpi-card"><div class="kpi-label">60Hz 合规</div><div class="kpi-value ${complianceClass(compliance60, 99, 95)}">${complianceValue(compliance60)}</div><div class="kpi-unit">% ≤16.67ms</div></div>
   </div>
 </section>
 
@@ -272,18 +335,18 @@ ${comparison ? `<section class="compare-section">
     <h2>描述统计</h2>
   </div>
   <p class="body-text">
-    样本量 N=${p.count}，均值 ${p.avg.toFixed(2)}ms，标准差 ${p.std.toFixed(2)}ms。
-    IQR (Q3−Q1) = ${p.iqr.toFixed(2)}ms，反映中间 50% 数据的离散程度。
+    样本量 N=${p.count}，均值 ${metricValue(p.avg, 2)}ms，标准差 ${metricValue(p.std, 2)}ms。
+    IQR (Q3−Q1) = ${metricValue(p.iqr, 2)}ms，反映中间 50% 数据的离散程度。
   </p>
   <table class="data-table">
     <thead><tr><th>Statistic</th><th>Value</th><th>Statistic</th><th>Value</th></tr></thead>
     <tbody>
-      <tr><td class="mono">Min</td><td>${p.min.toFixed(2)} ms</td><td class="mono">Max</td><td>${p.max.toFixed(2)} ms</td></tr>
-      <tr><td class="mono">Q1 (p25)</td><td>${p.p25.toFixed(2)} ms</td><td class="mono">Q3 (p75)</td><td>${p.p75.toFixed(2)} ms</td></tr>
-      <tr><td class="mono">Median (p50)</td><td>${p.p50.toFixed(2)} ms</td><td class="mono">IQR</td><td>${p.iqr.toFixed(2)} ms</td></tr>
-      <tr><td class="mono">Mean</td><td>${p.avg.toFixed(2)} ms</td><td class="mono">Std Dev</td><td>${p.std.toFixed(2)} ms</td></tr>
-      <tr><td class="mono">p90</td><td>${p.p90.toFixed(2)} ms</td><td class="mono">p95</td><td>${p.p95.toFixed(2)} ms</td></tr>
-      <tr><td class="mono">p99</td><td>${p.p99.toFixed(2)} ms</td><td class="mono">Spikes</td><td>${spikes.length}</td></tr>
+      <tr><td class="mono">Min</td><td>${metricValue(p.min, 2)} ms</td><td class="mono">Max</td><td>${metricValue(p.max, 2)} ms</td></tr>
+      <tr><td class="mono">Q1 (p25)</td><td>${metricValue(p.p25, 2)} ms</td><td class="mono">Q3 (p75)</td><td>${metricValue(p.p75, 2)} ms</td></tr>
+      <tr><td class="mono">Median (p50)</td><td>${metricValue(p.p50, 2)} ms</td><td class="mono">IQR</td><td>${metricValue(p.iqr, 2)} ms</td></tr>
+      <tr><td class="mono">Mean</td><td>${metricValue(p.avg, 2)} ms</td><td class="mono">Std Dev</td><td>${metricValue(p.std, 2)} ms</td></tr>
+      <tr><td class="mono">p90</td><td>${metricValue(p.p90, 2)} ms</td><td class="mono">p95</td><td>${metricValue(p.p95, 2)} ms</td></tr>
+      <tr><td class="mono">p99</td><td>${metricValue(p.p99, 2)} ms</td><td class="mono">Spikes</td><td>${spikes.length}</td></tr>
     </tbody>
   </table>
   <div class="figcaption"><em>Table 1.</em> 描述统计摘要。Spikes 定义为超过 16.67ms (60Hz 帧预算) 的帧数。</div>
@@ -372,6 +435,38 @@ ${pages.length > 1 ? `<section class="section">
 <section class="section">
   <div class="section-head">
     <span class="section-num">§${pages.length > 1 ? '7' : '6'}</span>
+    <h2>页面性能归因</h2>
+  </div>
+  <p class="body-text">按页面切换、列表处理、UI rebuild 和 work drain 四类事件汇总长帧来源。这里不统计 FBO 命中率，也不把 FBO 作为页面性能判断入口。</p>
+  ${attribution.length === 0 ? '<p class="body-text" style="color:rgba(var(--ink-rgb),0.4);font-style:italic">本次日志未包含 list_frame、section、ui_runtime 或 work_drain 归因事件。</p>' : `<table class="data-table">
+    <thead><tr><th>Timestamp</th><th>Kind</th><th>Page</th><th>Duration</th><th>Summary</th><th>Details</th></tr></thead>
+    <tbody>
+      ${attribution.slice(0, 30).map(e => `<tr><td class="mono">${escapeHtml(e.timestamp.slice(11, 19))}</td><td>${escapeHtml(e.kind)}</td><td>${escapeHtml(e.page)}</td><td class="mono">${e.durationMs.toFixed(3)}ms</td><td class="mono">${escapeHtml(e.summary)}</td><td class="mono">${escapeHtml(e.details)}</td></tr>`).join('')}
+    </tbody>
+  </table>`}
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <span class="section-num">§${pages.length > 1 ? '8' : '7'}</span>
+    <h2>Section Top-10</h2>
+  </div>
+  <p class="body-text">按 <code>perf/section</code> 事件聚合局部 section 耗时，当前数据仍来自设置页局部包装采样，尚不是 <code>CSectionLoader::Process()</code> 的完整生命周期视图。</p>
+  ${sectionTop.length === 0 ? '<p class="body-text" style="color:rgba(var(--ink-rgb),0.4);font-style:italic">本次日志未包含 perf/section 样本。</p>' : `<div class="figure">
+    <div class="chart-wrap"><div id="chart-section-top" class="chart-inner short"></div></div>
+    <div class="figcaption"><em>Figure ${pages.length > 1 ? '6' : '5'}.</em> Section Top-10，按 p95 降序。</div>
+  </div>
+  <table class="data-table">
+    <thead><tr><th>Page</th><th>Section</th><th>Samples</th><th>Avg</th><th>p95</th><th>Max</th></tr></thead>
+    <tbody>
+      ${sectionTop.map(s => `<tr><td>${escapeHtml(s.page)}</td><td>${escapeHtml(s.section)}</td><td class="mono">${s.count}</td><td class="mono">${s.avg.toFixed(3)}ms</td><td class="mono">${s.p95.toFixed(3)}ms</td><td class="mono">${s.max.toFixed(3)}ms</td></tr>`).join('')}
+    </tbody>
+  </table>`}
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <span class="section-num">§${pages.length > 1 ? '9' : '8'}</span>
     <h2>交互窗口</h2>
   </div>
   <p class="body-text">记录 Tee 页进入、滚动、点击、刷新等交互边界，供主线程帧时间与 UX 收敛事件做窗口切片。</p>
@@ -385,7 +480,7 @@ ${pages.length > 1 ? `<section class="section">
 
 <section class="section">
   <div class="section-head">
-    <span class="section-num">§${pages.length > 1 ? '8' : '7'}</span>
+    <span class="section-num">§${pages.length > 1 ? '10' : '9'}</span>
     <h2>Tee 收敛</h2>
   </div>
   <p class="body-text">关注首个可见预览、全部可见预览、全列表完成的 UX 耗时，不把 source/load 队列状态误当成用户已经可见。</p>
@@ -399,7 +494,7 @@ ${pages.length > 1 ? `<section class="section">
 
 <section class="section">
   <div class="section-head">
-    <span class="section-num">§${pages.length > 1 ? '9' : '8'}</span>
+    <span class="section-num">§${pages.length > 1 ? '11' : '10'}</span>
     <h2>设备资源</h2>
   </div>
   <p class="body-text">汇总 GPU、VRAM、CPU、内存、磁盘读速率样本，用于判断加载慢时是否真的把设备资源吃满。</p>
@@ -413,12 +508,12 @@ ${pages.length > 1 ? `<section class="section">
 
 <section class="section methodology">
   <div class="section-head">
-    <span class="section-num">§${pages.length > 1 ? '10' : '9'}</span>
+    <span class="section-num">§${pages.length > 1 ? '12' : '11'}</span>
     <h2>数据采集方法</h2>
   </div>
   <p>性能数据通过 QmClient 内置的 <code>perf/menu</code> 日志系统采集，需启用 <code>qm_perf_debug 1</code> 和 <code>qm_perf_logfile 1</code>。日志输出至 <code>%APPDATA%/DDNet/dumps/QmClient_Perf/</code>。</p>
   <p>帧预算基准：240Hz → 4.17ms，120Hz → 8.33ms，60Hz → 16.67ms。百分位采用最近秩法 (nearest-rank)。直方图分桶 [0, 2, 4, 8, 16, 33, 100, 500] ms。</p>
-  ${biased ? `<p style="color:var(--warn)">当前采样阈值 ${p.min.toFixed(1)}ms（配置项 <code>qm_perf_debug_threshold_ms</code>，默认 20ms）。仅超过阈值的帧会被记录，因此本报告中的合规率和百分位仅反映被采样帧的分布，不能代表实际渲染性能。将阈值降至 4ms 后，可获取完整帧分布和真实合规率。</p>` : ''}
+  ${biased ? `<p style="color:var(--warn)">当前采样阈值估计 p5=${samplingThresholdMs.toFixed(1)}ms（配置项 <code>qm_perf_debug_threshold_ms</code>，当前默认 4ms）。日志可能仅包含超过阈值的帧，因此本报告中的合规率和百分位仅反映被采样帧的分布，不能代表实际渲染性能。确认阈值为 4ms 后，可获取完整帧分布和真实合规率。</p>` : ''}
   <p>判定标准：p99 &lt; 16.67ms 且尖峰 &lt; 5 → <span class="badge ok">PASS</span>；p99 &lt; 33ms 或尖峰 &ge; 1 → <span class="badge warn">WARN</span>；p99 &ge; 33ms 或尖峰 &ge; 5 → <span class="badge bad">FAIL</span>。</p>
 </section>
 
@@ -435,12 +530,28 @@ const DATA = ${dataJson};
   const axisName = { color: '#a3a3a3', fontFamily: F, fontSize: 11 };
   const gridLine = { lineStyle: { color: '#e5e3df', type: 'dashed' } };
   const axisLine = { lineStyle: { color: '#d1cec8' } };
+  const tooltipPosition = (point, params, dom, rect, size) => {
+    const gap = 18;
+    const margin = 12;
+    const viewW = size.viewSize[0];
+    const viewH = size.viewSize[1];
+    const boxW = size.contentSize[0];
+    const boxH = size.contentSize[1];
+    let x = point[0] + gap;
+    let y = point[1] - boxH - gap;
+    if (x + boxW + margin > viewW) x = point[0] - boxW - gap;
+    if (y < margin) y = point[1] + gap;
+    if (y + boxH + margin > viewH) y = viewH - boxH - margin;
+    return [Math.max(margin, x), Math.max(margin, y)];
+  };
   const tooltipStyle = {
     backgroundColor: '#fdfcfa',
     borderColor: '#d1cec8',
     borderWidth: 1,
+    confine: true,
+    position: tooltipPosition,
     textStyle: { color: ink, fontFamily: F, fontSize: 12 },
-    extraCssText: 'box-shadow:0 2px 8px rgba(10,31,61,0.06);',
+    extraCssText: 'max-width:260px;white-space:normal;box-shadow:0 8px 22px rgba(10,31,61,0.14);pointer-events:none;z-index:30;',
   };
   const primaryColor = '#8B9DAF';
   const areaFill = { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(139,157,175,0.10)' }, { offset: 1, color: 'rgba(139,157,175,0)' }] };
@@ -596,6 +707,28 @@ const DATA = ${dataJson};
       grid: { left: 48, right: 10, top: 12, bottom: 26 },
     });
     window.addEventListener('resize', () => bx.resize());
+  }
+
+  const sectionEl = document.getElementById('chart-section-top');
+  if (sectionEl && DATA.sectionTop && DATA.sectionTop.length > 0) {
+    const sec = echarts.init(sectionEl);
+    const sectionNames = DATA.sectionTop.map(s => s.page + ' / ' + s.section).reverse();
+    const sectionValues = DATA.sectionTop.map(s => s.p95).reverse();
+    sec.setOption({
+      textStyle: { fontFamily: F },
+      backgroundColor: 'transparent',
+      tooltip: { ...tooltipStyle, trigger: 'axis', valueFormatter: v => v.toFixed(3) + ' ms' },
+      xAxis: { type: 'value', name: 'p95 ms', nameTextStyle: axisName, axisLabel: { ...axisLbl, fontSize: 10 }, axisLine, splitLine: gridLine },
+      yAxis: { type: 'category', data: sectionNames, axisLabel: { ...axisLbl, fontSize: 10 }, axisLine },
+      series: [{
+        type: 'bar',
+        data: sectionValues,
+        itemStyle: { color: m.yellow },
+        barWidth: '55%',
+      }],
+      grid: { left: 130, right: 12, top: 12, bottom: 28 },
+    });
+    window.addEventListener('resize', () => sec.resize());
   }
 
   window.addEventListener('resize', () => { tl.resize(); hist.resize(); pc.resize(); });

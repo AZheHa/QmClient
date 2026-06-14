@@ -8,7 +8,35 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <fstream>
 #include <functional>
+#include <sstream>
+
+#if !defined(DDNET_TEST_SOURCE_DIR)
+#define DDNET_TEST_SOURCE_DIR "."
+#endif
+
+std::string TestSourcePath(const char *pRelativePath)
+{
+	if(pRelativePath == nullptr || pRelativePath[0] == '\0')
+		return DDNET_TEST_SOURCE_DIR;
+
+	std::string Path = DDNET_TEST_SOURCE_DIR;
+	if(!Path.empty() && Path.back() != '/' && Path.back() != '\\')
+		Path += '/';
+	Path += pRelativePath;
+	return Path;
+}
+
+std::string ReadTestSourceFile(const char *pRelativePath)
+{
+	const std::string Path = TestSourcePath(pRelativePath);
+	std::ifstream File(Path, std::ios::binary);
+	EXPECT_TRUE(File.good()) << Path;
+	std::ostringstream Buffer;
+	Buffer << File.rdbuf();
+	return Buffer.str();
+}
 
 CTestInfo::CTestInfo()
 {

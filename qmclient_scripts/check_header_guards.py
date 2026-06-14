@@ -30,26 +30,7 @@ EXCEPTIONS = [
     "src/tools/config_common.h",
 ]
 
-GUARD_OVERRIDES = {
-    "src/game/client/components/qmclient/qmclient.h": "GAME_CLIENT_COMPONENTS_QMCLIENT_QMCLIENT_H",
-    "src/game/client/components/qmclient/input_overlay.h": "GAME_CLIENT_COMPONENTS_TCLIENT_INPUT_OVERLAY_H",
-    "src/game/client/components/qmclient/colored_parts.h": "GAME_CLIENT_COMPONENTS_TCLIENT_COLORED_PARTS_H",
-    "src/game/client/components/qmclient/translate.h": "GAME_CLIENT_COMPONENTS_TCLIENT_TRANSLATE_H",
-    "src/game/client/components/qmclient/data_version.h": "GAME_CLIENT_COMPONENTS_TCLIENT_DATA_VERSION_H",
-    "src/game/client/components/qmclient/voice_core.h": "GAME_CLIENT_COMPONENTS_RCLIENT_VOICE_H",
-    "src/game/client/components/qmclient/voice_component.h": "GAME_CLIENT_COMPONENTS_QMCLIENT_VOICE_COMPONENT_H",
-    "src/game/client/components/qmclient/scripting/impl.h": "GAME_CLIENT_COMPONENTS_TCLIENT_SCRIPTING_SCRIPTING_H",
-    "src/game/client/components/qmclient/scripting.h": "GAME_CLIENT_COMPONENTS_TCLIENT_CHAISCRIPT_COMPONENT_H",
-    "src/game/client/components/qmclient/lyrics_component.h": "GAME_CLIENT_COMPONENTS_TCLIENT_LYRICS_COMPONENT_H",
-    "src/game/client/components/qmclient/collision_hitbox.h": "GAME_CLIENT_COMPONENTS_TCLIENT_COLLISION_HITBOX_H",
-    "src/game/client/components/qmclient/jelly_tee.h": "GAME_CLIENT_COMPONENTS_QMCLIENT_JELLY_TEE_H",
-    "src/game/client/QmUi/QmTree.h": "GAME_CLIENT_QM_UI_QM_TREE_H",
-    "src/game/client/QmUi/QmLegacy.h": "GAME_CLIENT_QM_UI_QM_LEGACY_H",
-    "src/game/client/QmUi/QmRender.h": "GAME_CLIENT_QM_UI_QM_RENDER_H",
-    "src/game/client/QmUi/QmRt.h": "GAME_CLIENT_QM_UI_QM_RT_H",
-    "src/game/client/QmUi/QmAnim.h": "GAME_CLIENT_QM_UI_QM_ANIM_H",
-    "src/game/client/QmUi/QmLayout.h": "GAME_CLIENT_QM_UI_QM_LAYOUT_H",
-}
+GUARD_OVERRIDES = {}
 
 QMCLIENT_DIRS = [
     "src/game/client/components/qmclient/",
@@ -82,7 +63,9 @@ def check_file(filename, show_fix=False):
                 break
             stripped = line.lstrip()
             if (
-                stripped.startswith("/")
+                line.startswith("\t")
+                or line.startswith(" ")
+                or stripped.startswith("/")
                 or stripped.startswith("*")
                 or stripped == ""
                 or stripped == "\r\n"

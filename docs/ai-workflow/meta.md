@@ -14,6 +14,10 @@
 - `verification.md`
 - `review.md`
 - `git-workflow.md`
+- `advanced/README.md`
+- `advanced/*.md`
+
+`advanced/` 只放专项稳定规则，例如性能、重构、安全、内存生命周期、线程 jobs、观测和回归防护。它们是按风险触发的补充规则，不替代根目录基础规则。
 
 ## 不应放进 `docs/ai-workflow/` 的内容
 

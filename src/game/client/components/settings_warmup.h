@@ -1,8 +1,6 @@
 #ifndef GAME_CLIENT_COMPONENTS_SETTINGS_WARMUP_H
 #define GAME_CLIENT_COMPONENTS_SETTINGS_WARMUP_H
 
-#include <game/client/components/settings_runtime_cache.h>
-
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -65,12 +63,6 @@ enum class EClassicSettingsPage
 	QMCLIENT,
 };
 
-enum class ESettingsWarmupKind : uint8_t
-{
-	TEXT,
-	RUNTIME_FBO,
-};
-
 struct SSettingsSectionCacheRuntimeKey
 {
 	int m_ViewportWidth = 0;
@@ -112,44 +104,13 @@ struct SSettingsSectionCacheMetadata
 	}
 };
 
-struct SSettingsPageRuntimeCacheState
-{
-	int m_Page = -1;
-	int m_Tab = -1;
-	SSettingsSectionCacheRuntimeKey m_RuntimeKey;
-	int m_Width = 0;
-	int m_Height = 0;
-	bool m_Valid = false;
-	bool m_DrawnOnce = false;
-	bool m_ResourcesReadyAtRecord = true;
-	bool m_DependentSubcachesReadyAtRecord = true;
-};
-
-constexpr bool SettingsPageRuntimeCacheMatches(const SSettingsPageRuntimeCacheState &Cache, int Page, int Tab, int Width, int Height, const SSettingsSectionCacheRuntimeKey &RuntimeKey)
-{
-	return Cache.m_Valid &&
-	       Cache.m_Page == Page &&
-	       Cache.m_Tab == Tab &&
-	       Cache.m_Width == Width &&
-	       Cache.m_Height == Height &&
-	       Cache.m_RuntimeKey == RuntimeKey;
-}
-
-constexpr bool SettingsPageRuntimeCacheShouldShortCircuit(SSettingsPageRuntimeCacheState &Cache, int Page, int Tab, int Width, int Height, const SSettingsSectionCacheRuntimeKey &RuntimeKey)
-{
-	if(!SettingsPageRuntimeCacheMatches(Cache, Page, Tab, Width, Height, RuntimeKey))
-		return false;
-	return true;
-}
-
 struct SSettingsWarmupSection
 {
 	EClassicSettingsPage m_Page = EClassicSettingsPage::GENERAL;
 	const char *m_pName = nullptr;
 	int m_Priority = 0;
 	std::function<double()> m_WarmupFn;
-	bool m_bWarmed = false;
-	ESettingsWarmupKind m_Kind = ESettingsWarmupKind::TEXT;
+	bool m_Warmed = false;
 };
 
 class CSettingsWarmupScheduler
@@ -164,8 +125,8 @@ public:
 private:
 	std::vector<SSettingsWarmupSection> m_vSections;
 	EClassicSettingsPage m_LastSessionPage = EClassicSettingsPage::GENERAL;
-	bool m_bEnabled = true;
-	bool m_bSorted = false;
+	bool m_Enabled = true;
+	bool m_Sorted = false;
 };
 
 #endif // GAME_CLIENT_COMPONENTS_SETTINGS_WARMUP_H

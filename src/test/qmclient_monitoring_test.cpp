@@ -1,8 +1,11 @@
 #define CONF_TEST 1
-#include <game/client/components/qmclient/monitoring.h>
+#include <game/client/components/qmclient/monitoring/monitoring.h>
 #include <game/client/components/qmclient/perf_logging.h>
+#include <game/client/components/qmclient/settings_perf_windows.h>
+#include <game/client/ui.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <atomic>
 #include <chrono>
@@ -202,21 +205,256 @@ TEST(QmMonitoringHelpers, DeviceMetricsDefaultToUnavailable)
 	EXPECT_FLOAT_EQ(Perf.m_DiskReadMbPerSec, -1.0f);
 }
 
+TEST(QmMonitoringHelpers, TeeSkinListFrameTelemetryExposesRowsFields)
+{
+	std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+	ASSERT_TRUE(File.good());
+	std::stringstream Buffer;
+	Buffer << File.rdbuf();
+	const std::string Source = Buffer.str();
+	EXPECT_NE(Source.find("event=list_frame page=settings:tee"), std::string::npos);
+	EXPECT_NE(Source.find("rows_total=%d rows_visible=%d rows_rendered=%d rows_iterated=%d rows_skipped=%d"), std::string::npos);
+	EXPECT_NE(Source.find("first_visible_index=%d last_visible_index=%d"), std::string::npos);
+}
+
+TEST(QmMonitoringHelpers, QmUiRuntimeTelemetryExposesSettingsContext)
+{
+	std::ifstream HeaderFile(TestSourcePath("src/game/client/QmUi/QmRt.h"));
+	ASSERT_TRUE(HeaderFile.good());
+	std::stringstream HeaderBuffer;
+	HeaderBuffer << HeaderFile.rdbuf();
+	const std::string Header = HeaderBuffer.str();
+
+	std::ifstream SourceFile(TestSourcePath("src/game/client/QmUi/QmRt.cpp"));
+	ASSERT_TRUE(SourceFile.good());
+	std::stringstream SourceBuffer;
+	SourceBuffer << SourceFile.rdbuf();
+	const std::string Source = SourceBuffer.str();
+
+	EXPECT_NE(Header.find("void SetPerfContext(const char *pPage, const char *pOperation);"), std::string::npos);
+	EXPECT_EQ(Header.find("float m_LayoutMs = 0.0f;"), std::string::npos);
+	EXPECT_NE(Header.find("int m_ActiveAnimCount = 0;"), std::string::npos);
+	EXPECT_NE(Header.find("int m_QueuedAnimCount = 0;"), std::string::npos);
+	EXPECT_NE(Source.find("active_anims=%d queued_anims=%d"), std::string::npos);
+	EXPECT_EQ(Source.find("layout_ms=%.3f"), std::string::npos);
+	EXPECT_NE(Source.find("QmPerfLogPayload(\"perf/ui_runtime\""), std::string::npos);
+}
+
+TEST(QmMonitoringHelpers, SectionQuadBatchingDoesNotCrossTextOrClipBoundaries)
+{
+	{
+		std::ifstream File(TestSourcePath("src/game/client/ui.h"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("class CUiScopedQuadBatch"), std::string::npos);
+		EXPECT_NE(Source.find("void BeginQuadBatch() const;"), std::string::npos);
+		EXPECT_NE(Source.find("void FlushQuadBatch() const;"), std::string::npos);
+		EXPECT_NE(Source.find("void EndQuadBatch() const;"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/ui.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("CUiScopedQuadBatch::CUiScopedQuadBatch"), std::string::npos);
+		EXPECT_NE(Source.find("CUiScopedQuadBatch::~CUiScopedQuadBatch"), std::string::npos);
+		EXPECT_NE(Source.find("void CUi::FlushQuadBatch() const"), std::string::npos);
+		EXPECT_NE(Source.find("RenderQuadContainerAsSpriteMultiple(m_QuadBatchContainerIndex"), std::string::npos);
+		EXPECT_NE(Source.find("TextRender()->RenderTextContainer"), std::string::npos);
+		EXPECT_NE(Source.find("FlushQuadBatch();\n\t\tTextRender()->RenderTextContainer"), std::string::npos);
+		EXPECT_NE(Source.find("void CUi::ClipEnable(const CUIRect *pRect)\n{\n\tFlushQuadBatch();"), std::string::npos);
+		EXPECT_NE(Source.find("void CUi::ClipDisable()\n{\n\tFlushQuadBatch();"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/tclient/menus_tclient.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("CUiScopedQuadBatch QuadBatchScope(Ui());"), std::string::npos);
+	}
+}
+
+TEST(QmMonitoringHelpers, UiQuadBatchFlushGuardsInvalidRectsAndKeepsSubmissionPlan)
+{
+	EXPECT_FALSE(UiBatchableRectHasPositiveSize(0.0f, 10.0f));
+	EXPECT_FALSE(UiBatchableRectHasPositiveSize(10.0f, 0.0f));
+	EXPECT_FALSE(UiBatchableRectHasPositiveSize(-1.0f, 10.0f));
+	EXPECT_FALSE(UiBatchableRectHasPositiveSize(10.0f, -1.0f));
+	EXPECT_TRUE(UiBatchableRectHasPositiveSize(1.0f, 1.0f));
+	EXPECT_TRUE(UiBatchableRectHasPositiveSize(200.0f, 24.0f));
+
+	EXPECT_FALSE(UiQuadBatchHasPendingSubmission(-1, 0));
+	EXPECT_FALSE(UiQuadBatchHasPendingSubmission(-1, 3));
+	EXPECT_FALSE(UiQuadBatchHasPendingSubmission(2, 0));
+	EXPECT_TRUE(UiQuadBatchHasPendingSubmission(0, 1));
+	EXPECT_TRUE(UiQuadBatchHasPendingSubmission(5, 4));
+
+	const ColorRGBA Red(1.0f, 0.0f, 0.0f, 1.0f);
+	const ColorRGBA Blue(0.0f, 0.0f, 1.0f, 1.0f);
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(false, -1, Red, -1, Blue);
+		EXPECT_TRUE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_FALSE(Plan.m_FlushBeforeQueue);
+		EXPECT_FALSE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(false, -1, Red, 7, Blue);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_TRUE(Plan.m_RenderImmediately);
+		EXPECT_FALSE(Plan.m_FlushBeforeQueue);
+		EXPECT_FALSE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(true, -1, Red, 7, Blue);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_FALSE(Plan.m_FlushBeforeQueue);
+		EXPECT_TRUE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(true, 7, Red, 7, Red);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_FALSE(Plan.m_FlushBeforeQueue);
+		EXPECT_TRUE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(true, 7, Red, 8, Red);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_TRUE(Plan.m_FlushBeforeQueue);
+		EXPECT_TRUE(Plan.m_QueueSprite);
+	}
+
+	{
+		const SUiQuadBatchSubmissionPlan Plan = UiPlanQuadBatchSubmission(true, 7, Red, 7, Blue);
+		EXPECT_FALSE(Plan.m_LeavesBatchUntouched);
+		EXPECT_FALSE(Plan.m_RenderImmediately);
+		EXPECT_TRUE(Plan.m_FlushBeforeQueue);
+		EXPECT_TRUE(Plan.m_QueueSprite);
+	}
+}
+
+TEST(QmMonitoringHelpers, SettingsPerfWindowAccumulatesFpsAndFrameStats)
+{
+	CQmSettingsPerfWindowTracker Tracker;
+	Tracker.StartFixedFrameWindow("settings_open", "online", "settings:tee", "none", 30, false);
+
+	Tracker.RecordFrame(0.010f, 12.0, false);
+	Tracker.RecordFrame(0.020f, 30.0, false);
+	Tracker.RecordFrame(0.0f, 99.0, false);
+	Tracker.RecordFrame(-1.0f, 99.0, false);
+
+	EXPECT_TRUE(Tracker.HasActiveWindow());
+	const SQmSettingsPerfWindowSummary Summary = Tracker.FinishActiveWindow();
+
+	EXPECT_STREQ(Summary.m_aOperation, "settings_open");
+	EXPECT_STREQ(Summary.m_aContext, "online");
+	EXPECT_STREQ(Summary.m_aPage, "settings:tee");
+	EXPECT_EQ(Summary.m_SampleFrames, 2);
+	EXPECT_NEAR(Summary.m_SampleSeconds, 0.030f, 0.0001f);
+	EXPECT_NEAR(Summary.m_FpsAvg, 66.666f, 0.01f);
+	EXPECT_NEAR(Summary.m_FpsMin, 50.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FpsMax, 100.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FrameMsAvg, 15.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FrameMsP95, 20.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FrameMsP99, 20.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_FrameMsMax, 20.0f, 0.01f);
+	EXPECT_NEAR(Summary.m_MenuMsMax, 30.0f, 0.01f);
+	EXPECT_FALSE(Summary.m_CapLimited);
+	EXPECT_FALSE(Tracker.HasActiveWindow());
+}
+
+TEST(QmMonitoringHelpers, SettingsPerfWindowEndsAfterFixedFrameBudget)
+{
+	CQmSettingsPerfWindowTracker Tracker;
+	Tracker.StartFixedFrameWindow("settings_tab_switch", "offline", "settings:tclient", "0", 3, true);
+
+	EXPECT_FALSE(Tracker.RecordFrame(0.010f, 2.0, false).m_ShouldFlush);
+	EXPECT_FALSE(Tracker.RecordFrame(0.010f, 3.0, false).m_ShouldFlush);
+	const SQmSettingsPerfWindowFrameResult Result = Tracker.RecordFrame(0.010f, 4.0, false);
+
+	ASSERT_TRUE(Result.m_ShouldFlush);
+	EXPECT_EQ(Result.m_Summary.m_SampleFrames, 3);
+	EXPECT_STREQ(Result.m_Summary.m_aOperation, "settings_tab_switch");
+	EXPECT_STREQ(Result.m_Summary.m_aContext, "offline");
+	EXPECT_STREQ(Result.m_Summary.m_aPage, "settings:tclient");
+	EXPECT_STREQ(Result.m_Summary.m_aTab, "0");
+	EXPECT_TRUE(Result.m_Summary.m_CapLimited);
+	EXPECT_FALSE(Tracker.HasActiveWindow());
+}
+
+TEST(QmMonitoringHelpers, SettingsPerfScrollWindowEndsAfterIdleTimeout)
+{
+	CQmSettingsPerfWindowTracker Tracker;
+	Tracker.StartScrollWindow("settings_tee_scroll", "offline", "settings:tee", "none", 0.250f, false);
+
+	EXPECT_FALSE(Tracker.RecordFrame(0.016f, 5.0, true).m_ShouldFlush);
+	EXPECT_FALSE(Tracker.RecordFrame(0.100f, 6.0, false).m_ShouldFlush);
+	EXPECT_FALSE(Tracker.RecordFrame(0.149f, 7.0, false).m_ShouldFlush);
+	const SQmSettingsPerfWindowFrameResult Result = Tracker.RecordFrame(0.001f, 8.0, false);
+
+	ASSERT_TRUE(Result.m_ShouldFlush);
+	EXPECT_EQ(Result.m_Summary.m_SampleFrames, 4);
+	EXPECT_STREQ(Result.m_Summary.m_aOperation, "settings_tee_scroll");
+	EXPECT_NEAR(Result.m_Summary.m_MenuMsMax, 8.0f, 0.01f);
+	EXPECT_FALSE(Tracker.HasActiveWindow());
+}
+
+TEST(QmMonitoringHelpers, SettingsPerfWindowStartFlushesInterruptedWindow)
+{
+	CQmSettingsPerfWindowTracker Tracker;
+	Tracker.StartFixedFrameWindow("settings_open", "offline", "settings:tee", "none", 30, false);
+	Tracker.RecordFrame(0.016f, 7.0, false);
+	Tracker.RecordFrame(0.017f, 8.0, false);
+
+	const SQmSettingsPerfWindowFrameResult Interrupted = Tracker.StartScrollWindow("settings_tee_scroll", "offline", "settings:tee", "none", 0.250f, false);
+
+	ASSERT_TRUE(Interrupted.m_ShouldFlush);
+	EXPECT_STREQ(Interrupted.m_Summary.m_aOperation, "settings_open");
+	EXPECT_EQ(Interrupted.m_Summary.m_SampleFrames, 2);
+	EXPECT_TRUE(Tracker.HasActiveWindow());
+	EXPECT_STREQ(Tracker.ActiveOperation(), "settings_tee_scroll");
+}
+
+TEST(QmMonitoringHelpers, SettingsOpenWindowIsProtectedFromStalePreviousSettingsState)
+{
+	const std::string MenusSource = ReadTestSourceFile("src/game/client/components/menus.cpp");
+	const std::string SettingsSource = ReadTestSourceFile("src/game/client/components/menus_settings.cpp");
+
+	EXPECT_NE(MenusSource.find("OldPage != NewPage && NewPage == PAGE_SETTINGS"), std::string::npos);
+	EXPECT_NE(MenusSource.find("m_SettingsPerfLastPage = -1;"), std::string::npos);
+	EXPECT_NE(SettingsSource.find("if(m_SettingsPerfLastPage != -1)\n\t\t\tStartSettingsPerfFixedWindow(\"settings_tab_switch\""), std::string::npos);
+}
+
 namespace
 {
 
-template<typename TPredicate>
-bool WaitUntil(TPredicate Predicate, std::chrono::milliseconds Timeout = std::chrono::milliseconds(200))
-{
-	const auto Deadline = std::chrono::steady_clock::now() + Timeout;
-	while(std::chrono::steady_clock::now() < Deadline)
+	template<typename TPredicate>
+	bool WaitUntil(TPredicate Predicate, std::chrono::milliseconds Timeout = std::chrono::milliseconds(200))
 	{
-		if(Predicate())
-			return true;
-		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		const auto Deadline = std::chrono::steady_clock::now() + Timeout;
+		while(std::chrono::steady_clock::now() < Deadline)
+		{
+			if(Predicate())
+				return true;
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		}
+		return Predicate();
 	}
-	return Predicate();
-}
 
 } // namespace
 
@@ -333,7 +571,7 @@ TEST(QmMonitoringHelpers, DiskReadRateUsesMegabytesPerSecond)
 
 TEST(QmMonitoringHelpers, PerfConfigDefaultsUseLowThresholdWithoutJsonToggle)
 {
-	std::ifstream File("src/engine/shared/config_variables_qmclient.h");
+	std::ifstream File(TestSourcePath("src/engine/shared/config_variables_qmclient.h"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -343,9 +581,21 @@ TEST(QmMonitoringHelpers, PerfConfigDefaultsUseLowThresholdWithoutJsonToggle)
 	EXPECT_EQ(Source.find("MACRO_CONFIG_INT(QmPerfJson, qm_perf_json, 0, 0, 1"), std::string::npos);
 }
 
+TEST(QmMonitoringHelpers, PerfDurationGateUsesConfiguredThreshold)
+{
+	const int OldThreshold = g_Config.m_QmPerfDebugThresholdMs;
+	g_Config.m_QmPerfDebugThresholdMs = 4;
+
+	EXPECT_FALSE(QmPerfShouldLogDuration(3.999));
+	EXPECT_TRUE(QmPerfShouldLogDuration(4.0));
+	EXPECT_TRUE(QmPerfShouldLogDuration(0.0, true));
+
+	g_Config.m_QmPerfDebugThresholdMs = OldThreshold;
+}
+
 TEST(QmMonitoringHelpers, ProcessHighPriorityConfigExistsAndDefaultsOff)
 {
-	std::ifstream File("src/engine/shared/config_variables_qmclient.h");
+	std::ifstream File(TestSourcePath("src/engine/shared/config_variables_qmclient.h"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -358,7 +608,7 @@ TEST(QmMonitoringHelpers, ProcessHighPriorityConfigExistsAndDefaultsOff)
 
 TEST(QmMonitoringHelpers, WindowsStartupPriorityHookIsOptionalAndGuarded)
 {
-	std::ifstream File("src/engine/client/client.cpp");
+	std::ifstream File(TestSourcePath("src/engine/client/client.cpp"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -371,7 +621,7 @@ TEST(QmMonitoringHelpers, WindowsStartupPriorityHookIsOptionalAndGuarded)
 
 TEST(QmMonitoringHelpers, PerfLoggingAlwaysEmitsJsonPayload)
 {
-	std::ifstream File("src/game/client/components/qmclient/perf_logging.h");
+	std::ifstream File(TestSourcePath("src/game/client/components/qmclient/perf_logging.h"));
 	ASSERT_TRUE(File.good());
 	std::stringstream Buffer;
 	Buffer << File.rdbuf();
@@ -380,6 +630,7 @@ TEST(QmMonitoringHelpers, PerfLoggingAlwaysEmitsJsonPayload)
 	EXPECT_EQ(Source.find("if(g_Config.m_QmPerfJson == 0)"), std::string::npos);
 	EXPECT_NE(Source.find("str_copy(aJson, \"{\", sizeof(aJson));"), std::string::npos);
 	EXPECT_NE(Source.find("dbg_msg(pSystem, \"%s\", aJson);"), std::string::npos);
+	EXPECT_NE(Source.find("if(!QmPerfShouldLogDuration(DurationMs, Force))"), std::string::npos);
 }
 
 TEST(QmMonitoringHelpers, PerfPayloadJsonFieldsPreserveSpaceContainingValues)
@@ -406,11 +657,153 @@ TEST(QmMonitoringHelpers, RuntimePerfCallsitesUseSharedLoggingHelpers)
 		    "src/game/client/components/tclient/menus_tclient.cpp",
 	    })
 	{
-		std::ifstream File(pPath);
+		std::ifstream File(TestSourcePath(pPath));
 		ASSERT_TRUE(File.good()) << pPath;
 		std::stringstream Buffer;
 		Buffer << File.rdbuf();
 		const std::string Source = Buffer.str();
 		EXPECT_EQ(Source.find("dbg_msg(\"perf/"), std::string::npos) << pPath;
+	}
+}
+
+TEST(QmMonitoringHelpers, SettingsStaticLabelsUseTextElementCache)
+{
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TEE, -1, \"tee-name-label\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TEE, -1, \"tee-clan-label\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_DDNET, -1, \"ddnet-demo-title\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_DDNET, -1, \"ddnet-ghost-title\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_DDNET, -1, \"ddnet-gameplay-title\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_DDNET, -1, \"ddnet-background-title\")"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/tclient/menus_tclient.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TCLIENT, m_TClientSettingsTab, pTitle)"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TCLIENT, m_TClientSettingsTab, \"tclient-visual-font-cursor-title\")"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_TCLIENT, m_TClientSettingsTab, \"tclient-custom-font-label\")"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/qmclient/menus_qmclient.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_QMCLIENT, m_QmClientSettingsTab, pTitle)"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsTextElement(SETTINGS_QMCLIENT, QMCLIENT_SETTINGS_TAB_VISUAL, pText)"), std::string::npos);
+		EXPECT_EQ(Source.find("SettingsTextElement(SETTINGS_QMCLIENT, m_QmClientSettingsTab, pValue)"), std::string::npos);
+	}
+}
+
+TEST(QmMonitoringHelpers, MenuPerfEventsExposePageAttributionFields)
+{
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=page_switch from=%s to=%s dur_ms=%.3f"), std::string::npos);
+		EXPECT_NE(Source.find("event=section page=%s section=%s dur_ms=%.3f visible=%d dirty=%s text_new=%d text_reused=%d"), std::string::npos);
+		EXPECT_NE(Source.find("LogSettingsSectionPerf(IClient *pClient, int Page, int Tab, const char *pSectionId, double DurationMs, const char *pDirtyReason, int TextNew, int TextReused)"), std::string::npos);
+		EXPECT_NE(Source.find("pDirtyReason != nullptr ? pDirtyReason : \"unknown\""), std::string::npos);
+		EXPECT_NE(Source.find("TextNew, TextReused"), std::string::npos);
+		EXPECT_NE(Source.find("CScopedSettingsTextPerfStats TextStats(this);"), std::string::npos);
+		EXPECT_NE(Source.find("TextStats.Stats().m_New"), std::string::npos);
+		EXPECT_NE(Source.find("TextStats.Stats().m_Reused"), std::string::npos);
+		EXPECT_EQ(Source.find("SectionCacheHit ? \"clean\" : \"cache_miss\", 0, 0"), std::string::npos);
+		EXPECT_EQ(Source.find("\"cache_miss\""), std::string::npos);
+		EXPECT_NE(Source.find("page=%s transition=%d sections=%d sections_visible=%d tab=%s"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus.h"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("class CScopedSettingsTextPerfStats"), std::string::npos);
+		EXPECT_NE(Source.find("m_pActiveSettingsTextPerfStats = &m_Stats;"), std::string::npos);
+		EXPECT_NE(Source.find("m_pActiveSettingsTextPerfStats = m_pPrevious;"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=page_switch from=%s to=%s dur_ms=%.3f source=menu_page_switch"), std::string::npos);
+		EXPECT_NE(Source.find("event=page_switch from=%s to=%s dur_ms=%.3f source=game_page_switch"), std::string::npos);
+		EXPECT_NE(Source.find("DoSettingsLabelStreamed"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/ui.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("pTextContainerRecreated"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/section_loader.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("void CSectionLoader::InvalidateCache(ESettingsCacheDirtyReason Reason)"), std::string::npos);
+		EXPECT_EQ(Source.find("(void)Reason;"), std::string::npos);
+		EXPECT_NE(Source.find("m_LastDirtyReason = Reason;"), std::string::npos);
+		EXPECT_NE(Source.find("Section.m_Dirty = true;"), std::string::npos);
+		EXPECT_NE(Source.find("event=section_loader sections_total=%d sections_visible=%d sections_skipped=%d layout_dirty=%d dirty_reason=%s"), std::string::npos);
+		EXPECT_NE(Source.find("SettingsCacheDirtyReasonName(m_LastFrameStats.m_DirtyReason)"), std::string::npos);
+		EXPECT_EQ(Source.find("*pDirtyReason = Section.m_DirtyReason"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_demo.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=list_frame page=demo_browser items_total=%d rows_visible=%d rows_processed=%d rows_skipped=%d dur_ms=%.3f"), std::string::npos);
+		EXPECT_NE(Source.find("const double ListFrameDurationMs = ListFrameTimer.ElapsedMs();"), std::string::npos);
+		EXPECT_NE(Source.find("ListFrameDurationMs >= QmPerfThresholdMs()"), std::string::npos);
+		EXPECT_NE(Source.find("ListFrameDurationMs);"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_browser.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=list_frame page=server_browser items_total=%d rows_visible=%d rows_rendered=%d rows_iterated=%d rows_skipped=%d dur_ms=%.3f source=server_browser"), std::string::npos);
+		EXPECT_NE(Source.find("QmPerfShouldLogDuration(ListFrameDurationMs, false)"), std::string::npos);
+		EXPECT_NE(Source.find("const bool PerfListFrameEnabled = QmPerfEnabled();"), std::string::npos);
+		EXPECT_NE(Source.find("RowsIterated += PerfListFrameEnabled ? 1 : 0;"), std::string::npos);
+	}
+	{
+		std::ifstream File(TestSourcePath("src/game/client/components/menus_settings.cpp"));
+		ASSERT_TRUE(File.good());
+		std::stringstream Buffer;
+		Buffer << File.rdbuf();
+		const std::string Source = Buffer.str();
+
+		EXPECT_NE(Source.find("event=work_drain page=settings:tee kind=merge count=%llu bytes=%d dur_ms=%.3f stop=%s source=list_drain_summary scope=session"), std::string::npos);
 	}
 }

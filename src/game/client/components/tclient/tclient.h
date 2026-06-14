@@ -126,11 +126,6 @@ class CTClient : public CComponent
 	float m_FinishTextTimeout = 0.0f;
 	void DoFinishCheck();
 	const char *CurrentCommunityIdForFinishCheck() const;
-	void ResetAxiomAutoLoginState();
-	void UpdateAxiomAutoLogin();
-	void HandleAxiomAutoLoginMessage(const char *pText);
-	void TrySendAxiomLogin();
-	void TrySendAxiomDummyLogin();
 	void StartUpdateDownload();
 	void ResetUpdateExeTask();
 	bool ReplaceClientFromUpdate();
@@ -381,7 +376,6 @@ public:
 	bool TryRemoveLocalSaveForLoadCommand(const char *pLine);
 	bool IsGoresMapProgressEnabled() const;
 	bool ShouldHideGoresGuides(bool ManualGuideVisible = false) const;
-	bool IsAxiomCommunity() const;
 	bool HasGoresMapProgress(int Dummy = 0) const
 	{
 		const int Idx = Dummy < 0 ? 0 : (Dummy >= NUM_DUMMIES ? NUM_DUMMIES - 1 : Dummy);
@@ -415,15 +409,6 @@ public:
 	unsigned m_GoresAutoMapToken = 0;
 	bool IsFastInputActive() const;
 	bool IsFastInputOthersActive() const;
-	bool m_AxiomAutoLoginAnnounced = false;
-	bool m_AxiomAutoLoginSucceeded = false;
-	bool m_AxiomAutoLoginWaitingReply = false;
-	int m_AxiomAutoLoginAttempts = 0;
-	int64_t m_AxiomAutoLoginNextTryTick = 0;
-	char m_aAxiomAutoLoginServer[NETADDR_MAXSTRSIZE] = "";
-	bool m_AxiomDummyAutoLoginSent = false;
-	bool m_AxiomDummyWasConnected = false;
-	char m_aAxiomDummyAutoLoginServer[NETADDR_MAXSTRSIZE] = "";
 	void ApplyGoresFastInputLink(bool AutoMapCheck = false);
 };
 
