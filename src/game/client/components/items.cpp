@@ -2,6 +2,8 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include "items.h"
 
+#include <base/math.h>
+
 #include <engine/demo.h>
 #include <engine/graphics.h>
 #include <engine/shared/config.h>
@@ -19,6 +21,8 @@
 #include <game/client/prediction/entities/projectile.h>
 #include <game/client/projectile_data.h>
 #include <game/mapitems.h>
+
+#include <cmath>
 
 #define m_RiBetterLasers m_QmLaserEnhanced
 #define m_RiLaserGlowIntensity m_QmLaserGlowIntensity
@@ -373,6 +377,17 @@ void CItems::RenderLaser(vec2 From, vec2 Pos, ColorRGBA OuterColor, ColorRGBA In
 	float Len = distance(Pos, From);
 	const float GlowScale = GlowIntensity / 100.0f;
 	const bool UseEnhancedLaserGlow = g_Config.m_RiBetterLasers && GlowScale > 0.0f;
+	float PulseWidthScale = 1.0f;
+	float PulseAlphaScale = 1.0f;
+	if(UseEnhancedLaserGlow)
+	{
+		const float PulseAmplitude = std::clamp(g_Config.m_QmLaserPulseAmplitude / 100.0f, 0.0f, 1.0f);
+		const float PulseSpeed = std::clamp(g_Config.m_QmLaserPulseSpeed / 100.0f, 0.1f, 5.0f);
+		const float PulseTime = TicksHead / maximum(1.0f, (float)Client()->GameTickSpeed());
+		const float PulseWave = 0.5f + 0.5f * std::sin(PulseTime * 2.0f * pi * PulseSpeed);
+		PulseWidthScale = 1.0f + PulseAmplitude * 0.45f * PulseWave;
+		PulseAlphaScale = 1.0f - PulseAmplitude * 0.25f + PulseAmplitude * 0.25f * PulseWave;
+	}
 	if(UseEnhancedLaserGlow)
 	{
 		if(Len > 0)
@@ -400,8 +415,8 @@ void CItems::RenderLaser(vec2 From, vec2 Pos, ColorRGBA OuterColor, ColorRGBA In
 
 			for(int i = 0; i < NumLayers; ++i)
 			{
-				float Alpha = s_aAlphas[i] * GlowScale * AlphaScale;
-				float Offset = s_aWidths[i] * Ia * GlowScale * SizeScale;
+				float Alpha = s_aAlphas[i] * GlowScale * AlphaScale * PulseAlphaScale;
+				float Offset = s_aWidths[i] * Ia * GlowScale * SizeScale * PulseWidthScale;
 				float EndFade = std::min(std::max(Offset * 0.85f, 1.0f), Len);
 				vec2 EndFadeFrom = Pos - Dir * EndFade;
 				vec2 Out = Perp * Offset;
@@ -498,24 +513,24 @@ void CItems::RenderLaser(vec2 From, vec2 Pos, ColorRGBA OuterColor, ColorRGBA In
 			const float AlphaScale = std::clamp(g_Config.m_QmLaserAlpha / 100.0f, 0.0f, 1.0f);
 			const float SizeScale = std::clamp(g_Config.m_QmLaserSize / 100.0f, 0.5f, 2.0f);
 
-			float BaseScale = 1.8f * AngleFactor * SizeScale;
-			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.15f * GlowScale * AlphaScale));
+			float BaseScale = 1.8f * AngleFactor * SizeScale * PulseWidthScale;
+			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.15f * GlowScale * AlphaScale * PulseAlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 
-			BaseScale = 1.5f * AngleFactor * SizeScale;
-			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.25f * GlowScale * AlphaScale));
+			BaseScale = 1.5f * AngleFactor * SizeScale * PulseWidthScale;
+			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.25f * GlowScale * AlphaScale * PulseAlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 
-			BaseScale = 1.2f * AngleFactor * SizeScale;
-			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.45f * GlowScale * AlphaScale));
+			BaseScale = 1.2f * AngleFactor * SizeScale * PulseWidthScale;
+			Graphics()->SetColor(OuterColor.WithMultipliedAlpha(0.45f * GlowScale * AlphaScale * PulseAlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 
-			BaseScale = 0.9f * AngleFactor * SizeScale;
-			Graphics()->SetColor(InnerColor.WithMultipliedAlpha(0.65f * GlowScale * AlphaScale));
+			BaseScale = 0.9f * AngleFactor * SizeScale * PulseWidthScale;
+			Graphics()->SetColor(InnerColor.WithMultipliedAlpha(0.65f * GlowScale * AlphaScale * PulseAlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 
-			BaseScale = 0.6f * AngleFactor * SizeScale;
-			Graphics()->SetColor(ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f * GlowScale * AlphaScale));
+			BaseScale = 0.6f * AngleFactor * SizeScale * PulseWidthScale;
+			Graphics()->SetColor(ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f * GlowScale * AlphaScale * PulseAlphaScale));
 			Graphics()->RenderQuadContainerAsSprite(m_ItemsQuadContainerIndex, m_aParticleSplatOffset[CurParticle], Pos.x, Pos.y, BaseScale, BaseScale);
 		}
 		else

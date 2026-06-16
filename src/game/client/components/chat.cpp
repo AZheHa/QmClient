@@ -2992,18 +2992,9 @@ vec2 CChat::GetChatMousePos() const
 	return UiMousePos * UiToChatScale;
 }
 
-void CChat::RenderTranslateButton(const CUIRect &InputRect)
+void CChat::RenderTranslateButton(const CUIRect &ButtonRect)
 {
 	using namespace FontIcons;
-
-	const float ButtonSize = maximum(16.0f, FontSize() * 8.0f / 6.0f * 1.35f);
-	const float ButtonGap = 4.0f;
-
-	CUIRect ButtonRect;
-	ButtonRect.x = InputRect.x + InputRect.w + ButtonGap;
-	ButtonRect.y = InputRect.y;
-	ButtonRect.w = ButtonSize;
-	ButtonRect.h = maximum(InputRect.h, ButtonSize);
 
 	m_TranslateButton.m_X = ButtonRect.x;
 	m_TranslateButton.m_Y = ButtonRect.y;
@@ -3012,10 +3003,7 @@ void CChat::RenderTranslateButton(const CUIRect &InputRect)
 	m_TranslateButton.m_RectValid = true;
 
 	const vec2 MousePos = GetChatMousePos();
-	const bool Hovered = MousePos.x >= ButtonRect.x &&
-			     MousePos.x <= ButtonRect.x + ButtonRect.w &&
-			     MousePos.y >= ButtonRect.y &&
-			     MousePos.y <= ButtonRect.y + ButtonRect.h;
+	const bool Hovered = ButtonRect.Inside(MousePos);
 
 	const bool IsOpen = m_LanguageMenuOpen;
 	m_TranslateButton.m_AutoTranslateEnabled = g_Config.m_QmTranslateAutoOutgoing != 0;

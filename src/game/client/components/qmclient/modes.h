@@ -76,6 +76,7 @@ bool ShouldHideGoresGuide(bool GoresEnabled, bool HideGuidesEnabled, bool Manual
 bool ShouldRenderGoresDebugRoute(bool Online, bool DebugRouteEnabled, bool GoresMapProgressEnabled);
 
 bool ShouldHideFocusHud(bool FocusActive, bool HideHud);
+bool ShouldRenderFocusSpectatorHud(bool SpectatorActive, bool SpectatorHudEnabled, bool MainHudVisible, bool FocusActive, bool HideHud);
 bool ShouldHideFocusScoreboard(bool FocusActive, bool HideScoreboard);
 bool ShouldHideFocusNames(bool FocusActive, bool HideNames);
 bool ShouldHideFocusNameplates(bool FocusActive, bool HideNameplates);

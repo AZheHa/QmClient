@@ -1015,7 +1015,7 @@ void CMenus::RenderSettingsTeeIdentity(CUIRect MainView, CUIRect *pFlagButton)
 	DoSettingsLabelStreamed(NameLabelElement, &NameLabel, Localize("Name"), 14.0f, TEXTALIGN_ML);
 	CUIElement &ClanLabelElement = SettingsTextElement(SETTINGS_TEE, -1, "tee-clan-label");
 	DoSettingsLabelStreamed(ClanLabelElement, &ClanLabel, Localize("Clan"), 14.0f, TEXTALIGN_ML);
-	if(Ui()->DoEditBox(&NameInputLine, &NameInputRect, 14.0f))
+	if(Ui()->DoEditBox(&NameInputLine, &NameInputRect, 14.0f) || str_comp(pNameConfig, NameInputLine.GetString()) != 0)
 		gs_TeeIdentityNameInputState.MarkDirty(Dummy);
 	if(gs_TeeIdentityNameInputState.IsDirty(Dummy) && !NameInputLine.IsActive())
 	{
@@ -1185,12 +1185,11 @@ void CMenus::RenderSettingsPlayer(CUIRect MainView)
 		Row.VSplitLeft(150.0f, &Row, nullptr);
 		str_format(aBuf, sizeof(aBuf), "%s:", Localize("Name"));
 		Ui()->DoLabel(&Label, aBuf, 14.0f, TEXTALIGN_ML);
-		const bool WasNameInputActive = NameInput.IsActive();
-		if(Ui()->DoEditBox(&NameInput, &Row, 14.0f))
+		if(Ui()->DoEditBox(&NameInput, &Row, 14.0f) || str_comp(NameConfig(m_Dummy), NameInput.GetString()) != 0)
 		{
 			s_aNameDirty[CurrentNameInputIndex] = true;
 		}
-		if(s_aNameDirty[CurrentNameInputIndex] && WasNameInputActive && !NameInput.IsActive())
+		if(s_aNameDirty[CurrentNameInputIndex] && !NameInput.IsActive())
 			CommitNameInput(m_Dummy);
 	});
 

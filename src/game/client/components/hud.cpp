@@ -18,6 +18,7 @@
 #include <generated/protocol.h>
 
 #include <game/client/animstate.h>
+#include <game/client/components/qmclient/modes.h>
 #include <game/client/components/scoreboard.h>
 #include <game/client/gameclient.h>
 #include <game/client/prediction/entities/character.h>
@@ -5880,10 +5881,17 @@ void CHud::OnRender()
 	}
 
 #if defined(CONF_VIDEORECORDER)
-	if((IVideo::Current() && g_Config.m_ClVideoShowhud) || (!IVideo::Current() && g_Config.m_ClShowhud))
+	const bool MainHudVisible = (IVideo::Current() && g_Config.m_ClVideoShowhud) || (!IVideo::Current() && g_Config.m_ClShowhud);
 #else
-	if(g_Config.m_ClShowhud)
+	const bool MainHudVisible = g_Config.m_ClShowhud != 0;
 #endif
+	const bool FocusSpectatorHudVisible = ShouldRenderFocusSpectatorHud(
+		GameClient()->m_Snap.m_SpecInfo.m_Active,
+		g_Config.m_ClShowhudSpectator != 0,
+		MainHudVisible,
+		g_Config.m_QmFocusMode != 0,
+		g_Config.m_QmFocusModeHideHud != 0);
+	if(MainHudVisible)
 	{
 		if(GameClient()->m_Snap.m_pLocalCharacter && !GameClient()->m_Snap.m_SpecInfo.m_Active && !(GameClient()->m_Snap.m_pGameInfoObj->m_GameStateFlags & GAMESTATEFLAG_GAMEOVER))
 		{
@@ -5974,6 +5982,10 @@ void CHud::OnRender()
 		GameClient()->m_Voting.Render();
 		if(g_Config.m_ClShowRecord)
 			RenderRecord();
+	}
+	else if(FocusSpectatorHudVisible)
+	{
+		RenderSpectatorHud();
 	}
 	GameClient()->m_Voice.RenderOverlay();
 	RenderCursor();

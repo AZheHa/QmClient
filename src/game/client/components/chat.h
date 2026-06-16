@@ -410,7 +410,7 @@ public:
 
 	// 翻译按钮相关方法
 	vec2 GetChatMousePos() const;
-	void RenderTranslateButton(const CUIRect &InputRect);
+	void RenderTranslateButton(const CUIRect &ButtonRect);
 	void ToggleAutoTranslate();
 	void OpenLanguageMenu();
 	void CloseLanguageMenu();

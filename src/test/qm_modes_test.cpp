@@ -103,6 +103,16 @@ TEST(QmFocusMode, HudScoreboardNamesAndNameplatesRequireFocusModeAndTheirOwnTogg
 	EXPECT_FALSE(ShouldHideFocusNameplates(false, true));
 }
 
+TEST(QmFocusMode, SpectatorHudStaysVisibleWhenFocusModeAutoHidesMainHud)
+{
+	EXPECT_TRUE(ShouldRenderFocusSpectatorHud(true, true, false, true, true));
+	EXPECT_FALSE(ShouldRenderFocusSpectatorHud(false, true, false, true, true));
+	EXPECT_FALSE(ShouldRenderFocusSpectatorHud(true, false, false, true, true));
+	EXPECT_FALSE(ShouldRenderFocusSpectatorHud(true, true, true, true, true));
+	EXPECT_FALSE(ShouldRenderFocusSpectatorHud(true, true, false, false, true));
+	EXPECT_FALSE(ShouldRenderFocusSpectatorHud(true, true, false, true, false));
+}
+
 TEST(QmFocusMode, VisualEffectChildrenDoNotInheritTheLegacyVisualParentToggle)
 {
 	EXPECT_FALSE(ShouldHideFocusJumpEffects(true, false));
