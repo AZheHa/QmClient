@@ -2565,7 +2565,13 @@ void CChat::OnRender()
 		ScrollbarHandleH = std::clamp(ScrollbarRect.h * VisibleRatio, 12.0f, ScrollbarRect.h);
 		const float TrackRange = maximum(1.0f, ScrollbarRect.h - ScrollbarHandleH);
 		ScrollbarHandleY = ScrollbarRect.y + TrackRange * BacklogLineToScrollbarValue(m_BacklogCurLine, MaxScroll);
-		const vec2 MousePos = GetChatMousePos();
+		vec2 MousePos = GetChatMousePos();
+		if(HudEditorScope.m_Applied && ChatRect.w > 0.0f)
+		{
+			const float Scale = HudEditorScope.m_TargetRect.w / ChatRect.w;
+			MousePos.x = (MousePos.x - HudEditorScope.m_TargetRect.x) / Scale;
+			MousePos.y = (MousePos.y - HudEditorScope.m_TargetRect.y) / Scale;
+		}
 		const bool InsideRail =
 			MousePos.x >= ScrollbarRect.x &&
 			MousePos.x <= ScrollbarRect.x + ScrollbarRect.w &&
@@ -2604,7 +2610,13 @@ void CChat::OnRender()
 
 	const bool LanguageMenuOpen = m_LanguageMenuOpen || Ui()->IsPopupOpen(&m_LanguagePopupContext);
 	const bool ChatLineMenuOpen = Ui()->IsPopupOpen(&m_ChatLinePopupContext);
-	const vec2 MousePos = GetChatMousePos();
+	vec2 MousePos = GetChatMousePos();
+	if(HudEditorScope.m_Applied && ChatRect.w > 0.0f)
+	{
+		const float Scale = HudEditorScope.m_TargetRect.w / ChatRect.w;
+		MousePos.x = (MousePos.x - HudEditorScope.m_TargetRect.x) / Scale;
+		MousePos.y = (MousePos.y - HudEditorScope.m_TargetRect.y) / Scale;
+	}
 	const bool MouseDown = Input()->KeyIsPressed(KEY_MOUSE_1);
 	const bool InsideInputBlock =
 		InputBlockRectValid &&

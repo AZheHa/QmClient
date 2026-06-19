@@ -17,6 +17,16 @@ typedef struct _json_value json_value;
 class CLyrics : public CComponent
 {
 public:
+	static constexpr int MAX_LYRIC_LINE_TEXT_LENGTH = 256;
+
+	struct SLineState
+	{
+		char m_aText[MAX_LYRIC_LINE_TEXT_LENGTH] = {};
+		char m_aVisibleText[MAX_LYRIC_LINE_TEXT_LENGTH] = {};
+		int m_LineIndex = -1;
+		bool m_HasTimedReveal = false;
+	};
+
 	int Sizeof() const override { return sizeof(*this); }
 	void OnInit() override;
 	void OnShutdown() override;
@@ -25,6 +35,8 @@ public:
 	bool HasLyrics() const { return m_State == EState::READY; }
 	bool GetCurrentLine(char *pBuf, size_t BufSize, int64_t PositionMs) const;
 	bool GetNextLine(char *pBuf, size_t BufSize, int64_t PositionMs) const;
+	bool GetCurrentLineState(SLineState &State, int64_t PositionMs) const;
+	bool GetNextLineState(SLineState &State, int64_t PositionMs) const;
 
 private:
 	struct STrackInfo
@@ -87,6 +99,13 @@ private:
 	int64_t GetDisplayPositionMs(int64_t PositionMs) const;
 	bool IsValidTrack(const STrackInfo &Info) const;
 
+	enum class ETimelineMode
+	{
+		UNDECIDED,
+		SMTC_TRUSTED,
+		INTERNAL_TIMER,
+	};
+
 	std::shared_ptr<CHttpRequest> m_pRequest;
 	EEndpoint m_RequestEndpoint = EEndpoint::LRCLIB_CACHED;
 	EState m_State = EState::IDLE;
@@ -100,10 +119,19 @@ private:
 	std::string m_NeteaseSongId;
 	std::vector<CLyricLine> m_Lines;
 	std::string m_PlainLine;
-	int64_t m_LastMediaPositionMs = -1;
-	int64_t m_DisplayPositionBaseMs = 0;
-	int64_t m_DisplayPositionBaseTick = 0;
-	bool m_DisplayPositionEstimating = false;
+
+	// Timeline: anchor-based position estimation
+	ETimelineMode m_TimelineMode = ETimelineMode::UNDECIDED;
+	int64_t m_AnchorPositionMs = 0;
+	int64_t m_AnchorTick = 0;
+	bool m_AnchorRunning = false;
+	bool m_LastMediaPlaying = false;
+	int64_t m_LastSmtcPositionMs = 0;
+	int m_SmtcZeroCount = 0;
+
+	void UpdateTimeline(bool MediaPlaying, int64_t SmtcPositionMs, const char *pSourceAppId);
+	bool IsInternalTimerSource(const char *pSourceAppId) const;
+
 	char m_aLastError[128] = {};
 };
 

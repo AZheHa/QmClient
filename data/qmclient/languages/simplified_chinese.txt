@@ -493,9 +493,6 @@ Endless hook has been deactivated
 Endpoint (optional)
 == 端点 (可选)
 
-Enlarge first character
-== 放大首字
-
 Enter /practice mode or restart to avoid the entire team being killed in 60 seconds
 == 请输入 /practice 或重新开始，否则整队将在 60 秒后被处死
 
@@ -508,14 +505,14 @@ Example: name1|name2|name3
 Expand module
 == 展开模块
 
+Fade duration
+== 淡入淡出时长
+
 Fallback simple noise reduction strength
 == 回退后的简单降噪强度
 
 Feature Search
 == 功能搜索
-
-First character color
-== 首字颜色
 
 Found %d modules
 == 匹配到 %d 个模块
@@ -643,9 +640,6 @@ I am a robot
 Idiot word filter
 == 傻逼词过滤器
 
-Indicator color
-== 指示器颜色
-
 Input device not found
 == 输入设备不存在
 
@@ -744,6 +738,9 @@ Left/right channel width
 
 Line width
 == 线宽
+
+Lines
+== 行数
 
 Live director
 == 直播导播
@@ -1138,6 +1135,9 @@ Scores are public on this server
 Scroll long lines
 == 滚动长歌词
 
+Scroll speed
+== 滚动速度
+
 SecretId
 == SecretId
 
@@ -1237,9 +1237,6 @@ Show coordinates of yourself and others
 Show current and next lyric lines on HUD
 == 在 HUD 显示当前和下一行歌词
 
-Show current line indicator
-== 显示当前行指示器
-
 Show grenade and laser trajectory preview
 == 显示枪榴弹和激光轨迹预览
 
@@ -1314,6 +1311,9 @@ Slide left
 
 Smooth fade
 == 柔和淡变
+
+Snap threshold
+== 吸附阈值
 
 Speaker
 == 扬声器
@@ -1551,6 +1551,9 @@ This team started already
 
 This team was disbanded because there are more players than allowed in the team.
 == 该队伍因人数超过允许上限而被解散
+
+Time offset
+== 时间偏移
 
 Time to wait before changing team: %s
 == 距离下次切换队伍还需等待：%s

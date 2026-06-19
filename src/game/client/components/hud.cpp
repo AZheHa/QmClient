@@ -3317,9 +3317,10 @@ void CHud::RenderMediaIsland()
 	const bool ScoreboardExpanded = GameClient()->m_Scoreboard.IsActive();
 	const bool ShowFrozenSummaryInStatus = ShouldShowHudFrozenSummaryInStatus(ShowFrozenSummary, TimerCapsule.m_Visible, ScoreboardExpanded);
 	const bool ShowFrozenSummaryInBottomRow = ShouldShowHudFrozenSummaryInBottomRow(ShowFrozenSummary, TimerCapsule.m_Visible);
-	char aDockedLyricBuf[256] = {};
+	CLyrics::SLineState DockedLyricState{};
 	const bool HasDockedLyric = HasMediaState && g_Config.m_QmSmtcLyricsEnable &&
-		GameClient()->m_Lyrics.GetCurrentLine(aDockedLyricBuf, sizeof(aDockedLyricBuf), MediaState.m_PositionMs);
+		GameClient()->m_Lyrics.GetCurrentLineState(DockedLyricState, MediaState.m_PositionMs);
+	const char *pDockedLyricText = DockedLyricState.m_HasTimedReveal ? DockedLyricState.m_aVisibleText : DockedLyricState.m_aText;
 	const int SpectatorCount = GetMediaIslandSpectatorCount(*GameClient(), *Client());
 	const bool ShowSpectator = SpectatorCount > 0;
 	char aTeamBuf[32];
@@ -3455,7 +3456,7 @@ void CHud::RenderMediaIsland()
 	m_LyricHudDockedToMediaIsland = HasDockedLyric && (DockedOverlapsIsland || DockedNearIslandBottom);
 	const bool ShowDockedLyric = m_LyricHudDockedToMediaIsland;
 	const bool ShowBottomRow = ShowSwapCountdown || ShowSwitchCountdown || ShowFrozenSummaryInBottomRow || ShowDockedLyric;
-	const float DockedLyricTextWidth = ShowDockedLyric ? std::round(TextRender()->TextBoundingBox(BottomFontSize, aDockedLyricBuf).m_W) : 0.0f;
+	const float DockedLyricTextWidth = ShowDockedLyric ? std::round(TextRender()->TextBoundingBox(BottomFontSize, DockedLyricState.m_aText).m_W) : 0.0f;
 	struct SBottomTextLayoutItem
 	{
 		const char *m_pText = nullptr;
@@ -3786,11 +3787,28 @@ void CHud::RenderMediaIsland()
 			TextRender()->TextEx(&Cursor, pText);
 		};
 
-		const auto RenderBottomTextCentered = [&](float Y, const char *pText, const ColorRGBA &Color) {
+		const auto RenderBottomTextCentered = [&](float Y, const char *pText, const ColorRGBA &Color, bool AllowMarquee = false) {
 			if(pText == nullptr || pText[0] == '\0' || ContentWidth <= 0.0f)
 				return;
 
 			const float TextWidth = std::round(TextRender()->TextBoundingBox(BottomFontSize, pText).m_W);
+			if(AllowMarquee && g_Config.m_QmLyricsMarquee && TextWidth > ContentWidth)
+			{
+				const int ScrollSeed = g_Config.m_QmLyricsMarqueeSpeed > 0 ? (int)(MediaState.m_PositionMs / maximum(1, 1000 / g_Config.m_QmLyricsMarqueeSpeed)) : 0;
+				const int TextLen = str_length(pText);
+				size_t TextBytes = 0;
+				size_t TextCount = 0;
+				str_utf8_stats(pText, (size_t)TextLen + 1, (size_t)TextLen + 1, &TextBytes, &TextCount);
+				(void)TextBytes;
+				const int OffsetChars = TextCount > 0 ? ScrollSeed % (int)TextCount : 0;
+				int Offset = 0;
+				for(int i = 0; i < OffsetChars; ++i)
+					Offset = str_utf8_forward(pText, Offset);
+				char aMarqueeText[256];
+				str_format(aMarqueeText, sizeof(aMarqueeText), "%s   %s", pText + Offset, pText);
+				RenderBottomTextBlock(ContentX, Y, ContentWidth, aMarqueeText, Color, false);
+				return;
+			}
 			if(TextWidth <= ContentWidth + 0.01f)
 			{
 				TextRender()->TextColor(Color);
@@ -3803,7 +3821,8 @@ void CHud::RenderMediaIsland()
 
 		if(ShowDockedLyric)
 		{
-			RenderBottomTextCentered(BottomTextY, aDockedLyricBuf, DockedLyricColor);
+			const bool DockedLyricNeedsMarquee = g_Config.m_QmLyricsMarquee && DockedLyricTextWidth > ContentWidth;
+			RenderBottomTextCentered(BottomTextY, pDockedLyricText, DockedLyricColor, DockedLyricNeedsMarquee);
 			BottomTextY += BottomRowLineHeight;
 		}
 
@@ -5477,12 +5496,12 @@ float CHud::RenderLegacyMediaInfoAt(float AnchorX, float CenterY)
 	const float IslandWidth = PaddingX + CoverSize + IconGap + TextMaxWidth + PaddingX;
 	const float IslandX = std::clamp(AnchorX, 0.0f, maximum(0.0f, m_Width - IslandWidth));
 	const float IslandY = std::clamp(CenterY - IslandHeight * 0.5f, 0.0f, maximum(0.0f, m_Height - IslandHeight));
-	char aLyricBuf[256] = {};
-	char aNextLyricBuf[256] = {};
+	CLyrics::SLineState CurrentLyricState{};
+	CLyrics::SLineState NextLyricState{};
 	constexpr float LyricFontSize = 6.0f;
 	const float LyricHeight = LyricFontSize + 3.0f;
-	const bool HasLyric = g_Config.m_QmSmtcLyricsEnable && GameClient()->m_Lyrics.GetCurrentLine(aLyricBuf, sizeof(aLyricBuf), MediaState.m_PositionMs);
-	const bool HasNextLyric = HasLyric && g_Config.m_QmSmtcLyricsLines > 1 && GameClient()->m_Lyrics.GetNextLine(aNextLyricBuf, sizeof(aNextLyricBuf), MediaState.m_PositionMs);
+	const bool HasLyric = g_Config.m_QmSmtcLyricsEnable && GameClient()->m_Lyrics.GetCurrentLineState(CurrentLyricState, MediaState.m_PositionMs);
+	const bool HasNextLyric = HasLyric && g_Config.m_QmSmtcLyricsLines > 1 && GameClient()->m_Lyrics.GetNextLineState(NextLyricState, MediaState.m_PositionMs);
 	const int LyricLines = HasLyric ? (HasNextLyric ? 2 : 1) : 0;
 	const float LyricBoxHeight = LyricLines > 0 ? (LyricHeight * LyricLines) : 0.0f;
 	const float LyricY = HasLyric ? std::clamp(IslandY + IslandHeight + 2.0f, 0.0f, maximum(0.0f, m_Height - LyricBoxHeight)) : 0.0f;
@@ -5551,21 +5570,16 @@ float CHud::RenderLegacyMediaInfoAt(float AnchorX, float CenterY)
 		Graphics()->DrawRect(LyricX, LyricY, LyricW, LyricBoxHeight, LyricBg, IGraphics::CORNER_ALL, 3.0f);
 
 		ColorRGBA LyricColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmLyricsColor, true));
-		ColorRGBA IndicatorColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmLyricsIndicatorColor, true));
 		ColorRGBA NextColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmLyricsNextColor, true));
-		const float IndicatorW = g_Config.m_QmLyricsShowIndicator ? 6.0f : 0.0f;
-		if(g_Config.m_QmLyricsShowIndicator)
-		{
-			TextRender()->TextColor(IndicatorColor);
-			TextRender()->Text(LyricX + PaddingX, LyricY + 1.0f, LyricFontSize, ">", -1.0f);
-		}
+		const char *pCurrentText = CurrentLyricState.m_HasTimedReveal ? CurrentLyricState.m_aVisibleText : CurrentLyricState.m_aText;
+		const char *pNextText = NextLyricState.m_aText;
 		TextRender()->TextColor(LyricColor);
 		CTextCursor Cursor;
 		Cursor.m_FontSize = LyricFontSize;
-		Cursor.m_LineWidth = LyricW - PaddingX * 2.0f - IndicatorW;
+		Cursor.m_LineWidth = LyricW - PaddingX * 2.0f;
 		Cursor.m_Flags = TEXTFLAG_RENDER | TEXTFLAG_ELLIPSIS_AT_END;
-		Cursor.SetPosition(vec2(LyricX + PaddingX + IndicatorW, LyricY + 1.0f));
-		TextRender()->TextEx(&Cursor, aLyricBuf);
+		Cursor.SetPosition(vec2(LyricX + PaddingX, LyricY + 1.0f));
+		TextRender()->TextEx(&Cursor, pCurrentText);
 		if(HasNextLyric)
 		{
 			TextRender()->TextColor(NextColor);
@@ -5574,7 +5588,7 @@ float CHud::RenderLegacyMediaInfoAt(float AnchorX, float CenterY)
 			NextCursor.m_LineWidth = LyricW - PaddingX * 2.0f;
 			NextCursor.m_Flags = TEXTFLAG_RENDER | TEXTFLAG_ELLIPSIS_AT_END;
 			NextCursor.SetPosition(vec2(LyricX + PaddingX, LyricY + LyricHeight + 1.0f));
-			TextRender()->TextEx(&NextCursor, aNextLyricBuf);
+			TextRender()->TextEx(&NextCursor, pNextText);
 		}
 	}
 
@@ -5608,14 +5622,16 @@ void CHud::RenderLyricHud()
 	if(!HasMediaState)
 		MediaState.m_PositionMs = 42000;
 
-	char aCurrent[256] = {};
-	char aNext[256] = {};
-	bool HasCurrent = HasMediaState && GameClient()->m_Lyrics.GetCurrentLine(aCurrent, sizeof(aCurrent), MediaState.m_PositionMs);
-	bool HasNext = HasMediaState && GameClient()->m_Lyrics.GetNextLine(aNext, sizeof(aNext), MediaState.m_PositionMs);
+	CLyrics::SLineState CurrentLyricState{};
+	CLyrics::SLineState NextLyricState{};
+	bool HasCurrent = HasMediaState && GameClient()->m_Lyrics.GetCurrentLineState(CurrentLyricState, MediaState.m_PositionMs);
+	bool HasNext = HasMediaState && GameClient()->m_Lyrics.GetNextLineState(NextLyricState, MediaState.m_PositionMs);
 	if(Preview && !HasCurrent)
 	{
-		str_copy(aCurrent, "Counting stars under the island", sizeof(aCurrent));
-		str_copy(aNext, "Dreaming about the things that we could be", sizeof(aNext));
+		str_copy(CurrentLyricState.m_aText, "Counting stars under the island", sizeof(CurrentLyricState.m_aText));
+		str_copy(CurrentLyricState.m_aVisibleText, CurrentLyricState.m_aText, sizeof(CurrentLyricState.m_aVisibleText));
+		str_copy(NextLyricState.m_aText, "Dreaming about the things that we could be", sizeof(NextLyricState.m_aText));
+		str_copy(NextLyricState.m_aVisibleText, NextLyricState.m_aText, sizeof(NextLyricState.m_aVisibleText));
 		HasCurrent = true;
 		HasNext = true;
 	}
@@ -5626,27 +5642,17 @@ void CHud::RenderLyricHud()
 	const float PaddingX = 7.0f;
 	const float PaddingY = 3.0f;
 	const float LineGap = 2.0f;
-	const float IndicatorW = g_Config.m_QmLyricsShowIndicator ? 6.0f : 0.0f;
-	const float CurrentWidth = HasCurrent ? std::round(TextRender()->TextBoundingBox(FontSize, aCurrent).m_W) : 72.0f;
-	const float NextWidth = HasNext ? std::round(TextRender()->TextBoundingBox(FontSize, aNext).m_W) : 0.0f;
-	const float NaturalWidth = std::max(CurrentWidth, NextWidth) + PaddingX * 2.0f + IndicatorW;
+	const char *pNextText = NextLyricState.m_aText;
+	const float CurrentWidth = HasCurrent ? std::round(TextRender()->TextBoundingBox(FontSize, CurrentLyricState.m_aText).m_W) : 72.0f;
+	const float NextWidth = HasNext ? std::round(TextRender()->TextBoundingBox(FontSize, pNextText).m_W) : 0.0f;
+	const float NaturalWidth = std::max(CurrentWidth, NextWidth) + PaddingX * 2.0f;
 	const float MinWidth = 88.0f;
 	const float MaxWidth = std::min(220.0f, m_Width - 10.0f);
 	float BoxWidth = std::clamp(NaturalWidth, MinWidth, MaxWidth);
 	const bool HasIslandAnchor = m_MediaIslandLastVisibleRectValid && g_Config.m_QmLyricsSnapThreshold > 0;
 	const float DefaultX = HasIslandAnchor ? (m_MediaIslandLastVisibleRect.x + m_MediaIslandLastVisibleRect.w * 0.5f - BoxWidth * 0.5f) : (m_Width * 0.5f - BoxWidth * 0.5f);
 	const float DefaultY = HasIslandAnchor ? (m_MediaIslandLastVisibleRect.y + m_MediaIslandLastVisibleRect.h + 2.0f) : 22.0f;
-	if(str_comp(m_aLastLyricHudLine, aCurrent) != 0)
-	{
-		str_copy(m_aLastLyricHudLine, aCurrent, sizeof(m_aLastLyricHudLine));
-		m_LyricHudLineChangeTick = time_get();
-	}
-	float FadeAlpha = 1.0f;
-	if(g_Config.m_QmLyricsFadeDurationMs > 0 && m_LyricHudLineChangeTick > 0)
-	{
-		const float ElapsedMs = (time_get() - m_LyricHudLineChangeTick) * 1000.0f / (float)time_freq();
-		FadeAlpha = std::clamp(ElapsedMs / (float)g_Config.m_QmLyricsFadeDurationMs, 0.0f, 1.0f);
-	}
+	const float FadeAlpha = 1.0f;
 	if(m_LyricHudDockedToMediaIsland)
 	{
 		const auto HudEditorScope = GameClient()->m_HudEditor.BeginTransform(EHudEditorElement::Lyrics, m_LyricHudDockedDragRect, m_LyricHudDockedVisibleRect);
@@ -5670,6 +5676,8 @@ void CHud::RenderLyricHud()
 		BoxWidth = m_MediaIslandLastVisibleRect.w;
 	const int LineCount = SnapToIsland ? 1 : (HasNext && g_Config.m_QmSmtcLyricsLines > 1 ? 2 : 1);
 	const float BoxHeight = PaddingY * 2.0f + FontSize * LineCount + (LineCount > 1 ? LineGap : 0.0f);
+	const float LineWidth = BoxWidth - PaddingX * 2.0f;
+	const char *pCurrentText = CurrentLyricState.m_HasTimedReveal ? CurrentLyricState.m_aVisibleText : CurrentLyricState.m_aText;
 	const CUIRect DefaultRect = {
 		SnapToIsland ? m_MediaIslandLastVisibleRect.x : ProbeDefaultRect.x,
 		SnapToIsland ? (m_MediaIslandLastVisibleRect.y + m_MediaIslandLastVisibleRect.h + 2.0f) : ProbeDefaultRect.y,
@@ -5690,45 +5698,25 @@ void CHud::RenderLyricHud()
 	OutlineColor.a = std::clamp(g_Config.m_QmLyricsOutlineOpacity / 100.0f, 0.0f, 1.0f);
 	TextRender()->TextOutlineColor(OutlineColor);
 
-	auto DrawLyricLine = [&](const char *pText, float Y, const ColorRGBA &Color, bool Current) {
-		float TextX = Rect.x + PaddingX + (Current ? IndicatorW : 0.0f);
-		const float LineWidth = Rect.w - PaddingX * 2.0f - (Current ? IndicatorW : 0.0f);
+	auto DrawLyricLine = [&](const char *pText, float Y, const ColorRGBA &Color) {
+		float TextX = Rect.x + PaddingX;
+		const float LineWidth = Rect.w - PaddingX * 2.0f;
 		const char *pRenderText = pText;
 		char aMarqueeText[256];
 		if(g_Config.m_QmLyricsMarquee && pText[0] != '\0' && TextRender()->TextWidth(FontSize, pText) > LineWidth)
 		{
 			const int ScrollSeed = g_Config.m_QmLyricsMarqueeSpeed > 0 ? (int)(MediaState.m_PositionMs / maximum(1, 1000 / g_Config.m_QmLyricsMarqueeSpeed)) : 0;
 			const int TextLen = str_length(pText);
-			const int Offset = TextLen > 0 ? ScrollSeed % TextLen : 0;
+			size_t TextBytes = 0;
+			size_t TextCount = 0;
+			str_utf8_stats(pText, (size_t)TextLen + 1, (size_t)TextLen + 1, &TextBytes, &TextCount);
+			(void)TextBytes;
+			const int OffsetChars = TextCount > 0 ? ScrollSeed % (int)TextCount : 0;
+			int Offset = 0;
+			for(int i = 0; i < OffsetChars; ++i)
+				Offset = str_utf8_forward(pText, Offset);
 			str_format(aMarqueeText, sizeof(aMarqueeText), "%s   %s", pText + Offset, pText);
 			pRenderText = aMarqueeText;
-		}
-		if(Current && g_Config.m_QmLyricsShowIndicator)
-		{
-			ColorRGBA IndicatorColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmLyricsIndicatorColor, true));
-			TextRender()->TextColor(IndicatorColor);
-			TextRender()->Text(Rect.x + PaddingX, Y, FontSize, ">", -1.0f);
-		}
-		if(Current && g_Config.m_QmLyricsEnlargeFirstChar && pRenderText[0] != '\0')
-		{
-			const int FirstBytes = str_utf8_forward(pRenderText, 0);
-			char aFirst[8] = {};
-			str_copy(aFirst, pRenderText, std::min<int>((int)sizeof(aFirst), FirstBytes + 1));
-			const char *pRest = pRenderText + FirstBytes;
-			const float FirstSize = FontSize * std::clamp(g_Config.m_QmLyricsFirstCharScale / 100.0f, 1.0f, 1.8f);
-			ColorRGBA FirstColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmLyricsFirstCharColor, true));
-			TextRender()->TextColor(FirstColor);
-			TextRender()->Text(TextX, Y - (FirstSize - FontSize) * 0.35f, FirstSize, aFirst, -1.0f);
-			const float FirstWidth = TextRender()->TextWidth(FirstSize, aFirst);
-			TextX += FirstWidth + 0.5f;
-			TextRender()->TextColor(Color);
-			CTextCursor Cursor;
-			Cursor.m_FontSize = FontSize;
-			Cursor.m_LineWidth = maximum(0.0f, LineWidth - FirstWidth - 0.5f);
-			Cursor.m_Flags = TEXTFLAG_RENDER | TEXTFLAG_ELLIPSIS_AT_END;
-			Cursor.SetPosition(vec2(TextX, Y));
-			TextRender()->TextEx(&Cursor, pRest);
-			return;
 		}
 		TextRender()->TextColor(Color);
 		CTextCursor Cursor;
@@ -5743,9 +5731,9 @@ void CHud::RenderLyricHud()
 	ColorRGBA NextColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmLyricsNextColor, true));
 	CurrentColor.a *= FadeAlpha;
 	NextColor.a *= FadeAlpha;
-	DrawLyricLine(aCurrent, Rect.y + PaddingY, CurrentColor, true);
+	DrawLyricLine(pCurrentText, Rect.y + PaddingY, CurrentColor);
 	if(LineCount > 1)
-		DrawLyricLine(aNext, Rect.y + PaddingY + FontSize + LineGap, NextColor, false);
+		DrawLyricLine(pNextText, Rect.y + PaddingY + FontSize + LineGap, NextColor);
 
 	TextRender()->TextColor(PrevTextColor);
 	TextRender()->TextOutlineColor(PrevOutlineColor);

@@ -491,6 +491,58 @@ void SortAndFillDurations(std::vector<CLyricLine> &vLines)
 	}
 }
 
+bool BuildVisibleLineText(const CLyricLine &Line, int64_t PositionMs, char *pBuf, size_t BufSize)
+{
+	if(pBuf == nullptr || BufSize == 0)
+		return false;
+
+	pBuf[0] = '\0';
+	if(Line.m_Text.empty())
+		return false;
+
+	if(Line.m_vSyllables.empty())
+	{
+		str_copy(pBuf, Line.m_Text.c_str(), BufSize);
+		return pBuf[0] != '\0';
+	}
+
+	for(const CSyllable &Syllable : Line.m_vSyllables)
+	{
+		if(Syllable.m_Text.empty())
+			continue;
+
+		const int64_t StartMs = Syllable.m_StartMs;
+		const int64_t EndMs = Syllable.m_DurationMs > 0 ? StartMs + Syllable.m_DurationMs : StartMs;
+		if(PositionMs < StartMs)
+			break;
+
+		if(Syllable.m_DurationMs <= 0 || PositionMs >= EndMs)
+		{
+			str_append(pBuf, Syllable.m_Text.c_str(), BufSize);
+			continue;
+		}
+
+		size_t SyllableSize = 0;
+		size_t SyllableCount = 0;
+		str_utf8_stats(Syllable.m_Text.c_str(), Syllable.m_Text.size() + 1, Syllable.m_Text.size() + 1, &SyllableSize, &SyllableCount);
+		(void)SyllableSize;
+		if(SyllableCount == 0)
+			break;
+
+		const int64_t ElapsedMs = std::max<int64_t>(0, PositionMs - StartMs);
+		size_t RevealCount = (size_t)((ElapsedMs * (int64_t)SyllableCount + Syllable.m_DurationMs - 1) / Syllable.m_DurationMs);
+		RevealCount = std::clamp<size_t>(RevealCount, 1, SyllableCount);
+
+		char aPartial[256];
+		str_utf8_truncate(aPartial, sizeof(aPartial), Syllable.m_Text.c_str(), (int)RevealCount);
+		str_append(pBuf, aPartial, BufSize);
+		break;
+	}
+
+	str_utf8_fix_truncation(pBuf);
+	return pBuf[0] != '\0';
+}
+
 bool ParseLrcLyrics(const std::string &Text, std::vector<CLyricLine> &OutLines, char *pErr, size_t ErrSize)
 {
 	OutLines.clear();

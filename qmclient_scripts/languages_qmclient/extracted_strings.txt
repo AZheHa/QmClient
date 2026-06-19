@@ -126,6 +126,7 @@ Axiom dummy password
 Axiom main account password
 Background Draw
 Background color
+Background opacity
 Based on a pile of Windows... stuff
 Bind Wheel
 Bind Wheel Key
@@ -312,7 +313,6 @@ Endless hook has been activated
 Endless hook has been deactivated
 Endpoint
 Endpoint (optional)
-Enlarge first character
 Enter /practice mode or restart to avoid the entire team being killed in 60 seconds
 Entity Layer Colors
 Event
@@ -322,6 +322,7 @@ Execute on connect
 Expand module
 FTAPI auto-translate is disabled to prevent overload. Enable in settings if needed.
 Fade and slide
+Fade duration
 Fade in
 Fade only
 Fade out
@@ -337,7 +338,6 @@ Favorite maps
 Feature Search
 Finish Name
 Finish Name:
-First character color
 Flip:
 Font size
 Found %d modules
@@ -413,7 +413,6 @@ I am away from the game window
 I muted you
 Idiot word filter
 Indicator alive color
-Indicator color
 Indicator in freeze color
 Indicator max distance
 Indicator max offset
@@ -480,6 +479,7 @@ Left jump
 Left/right channel width
 Lenny:
 Line width
+Lines
 Literal
 Live director
 Load
@@ -768,6 +768,7 @@ Scores are public on this server
 Screen center line color
 Screen center line width
 Scroll long lines
+Scroll speed
 Search
 Seconds
 SecretId
@@ -820,7 +821,6 @@ Show coordinates above players
 Show coordinates of yourself and others
 Show country flags in nameplates
 Show current and next lyric lines on HUD
-Show current line indicator
 Show dotted map route debug
 Show grenade and laser trajectory preview
 Show hitbox mode
@@ -874,6 +874,7 @@ Skin: %s
 Slide left
 Smaller tees
 Smooth fade
+Snap threshold
 Social
 Solid
 Solid tile outline opacity
@@ -994,6 +995,7 @@ This team is locked using /lock. Only members of the team can unlock it using /l
 This team started already
 This team was disbanded because there are more players than allowed in the team.
 Tile outlines
+Time offset
 Time to wait before changing team: %s
 Timer is displayed in %s
 Timer isn't displayed.

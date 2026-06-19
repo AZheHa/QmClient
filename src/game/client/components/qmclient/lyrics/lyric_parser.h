@@ -18,6 +18,7 @@ bool MergeLineTextByTimestamp(std::vector<CLyricLine> &vLines, const std::string
 bool DecryptQqQrcPayload(const std::string &Payload, std::string &OutText, char *pErr, size_t ErrSize);
 std::string BuildNeteaseEapiBody(const char *pUrl, const std::string &JsonPayload, char *pErr, size_t ErrSize);
 void SortAndFillDurations(std::vector<CLyricLine> &vLines);
+bool BuildVisibleLineText(const CLyricLine &Line, int64_t PositionMs, char *pBuf, size_t BufSize);
 
 } // namespace QmLyrics
 

@@ -388,8 +388,6 @@ private:
 	CUIRect m_LyricHudDockedDragRect{};
 	CUIRect m_LyricHudDockedVisibleRect{};
 	bool m_LyricHudDockedToMediaIsland = false;
-	char m_aLastLyricHudLine[256] = {};
-	int64_t m_LyricHudLineChangeTick = 0;
 	bool m_LegacyMediaInfoRendered = false;
 	float m_aMapProgressDisplayed[NUM_DUMMIES] = {0.0f, 0.0f};
 	bool m_aMapProgressInitialized[NUM_DUMMIES] = {false, false};

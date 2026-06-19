@@ -71,6 +71,27 @@ TEST(QmLyricsParser, QrcParsesSyllablesPunctuationAndSpaces)
 	EXPECT_EQ(vLines[0].m_vSyllables[3].m_DurationMs, 618);
 }
 
+TEST(QmLyricsParser, BuildsVisibleLineTextFromTimedSyllables)
+{
+	CLyricLine Line;
+	Line.m_TimeMs = 1000;
+	Line.m_DurationMs = 2000;
+	Line.m_Text = "你好世界";
+	Line.m_vSyllables.push_back({1000, 1000, "你好"});
+	Line.m_vSyllables.push_back({2000, 1000, "世界"});
+
+	char aVisible[64];
+	EXPECT_FALSE(QmLyrics::BuildVisibleLineText(Line, 999, aVisible, sizeof(aVisible)));
+	ASSERT_TRUE(QmLyrics::BuildVisibleLineText(Line, 1000, aVisible, sizeof(aVisible)));
+	EXPECT_STREQ(aVisible, "你");
+	ASSERT_TRUE(QmLyrics::BuildVisibleLineText(Line, 1999, aVisible, sizeof(aVisible)));
+	EXPECT_STREQ(aVisible, "你好");
+	ASSERT_TRUE(QmLyrics::BuildVisibleLineText(Line, 2000, aVisible, sizeof(aVisible)));
+	EXPECT_STREQ(aVisible, "你好世");
+	ASSERT_TRUE(QmLyrics::BuildVisibleLineText(Line, 3000, aVisible, sizeof(aVisible)));
+	EXPECT_STREQ(aVisible, "你好世界");
+}
+
 TEST(QmLyricsParser, YrcParsesCreditLinesAndSkipsMalformedLyricLines)
 {
 	std::vector<CLyricLine> vLines;

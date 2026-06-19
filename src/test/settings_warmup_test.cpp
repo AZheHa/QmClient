@@ -1235,7 +1235,7 @@ TEST(SettingsResourceJobs, RuntimeWarmupOnlyRunsOnSettingsPageWhenIdle)
 	EXPECT_FALSE(SettingsRuntimeWarmupShouldRun(false, true, false, false, false, false, false));
 }
 
-TEST(SettingsResourceJobs, QmClientIdlePrewarmSkipsImmediateModeRenderPass)
+TEST(SettingsResourceJobs, IdlePrewarmSkipsImmediateModeRenderPasses)
 {
 	std::ifstream File(TestSourcePath("src/game/client/components/menus.cpp"));
 	ASSERT_TRUE(File.good());
@@ -1249,6 +1249,7 @@ TEST(SettingsResourceJobs, QmClientIdlePrewarmSkipsImmediateModeRenderPass)
 	ASSERT_NE(PrewarmEnd, std::string::npos);
 	const std::string PrewarmBody = Source.substr(PrewarmPos, PrewarmEnd - PrewarmPos);
 
+	EXPECT_EQ(PrewarmBody.find("RenderSettingsTClient(ContentView, true)"), std::string::npos);
 	EXPECT_EQ(PrewarmBody.find("RenderSettingsQmClient(ContentView, false, true)"), std::string::npos);
 }
 

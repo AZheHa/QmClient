@@ -18,6 +18,7 @@
 #include <cctype>
 #include <cstring>
 #include <ctime>
+#include <iterator>
 #include <string>
 #include <utility>
 
@@ -259,6 +260,25 @@ static bool SourceAppContains(const char *pSourceAppId, const char *pNeedle)
 	return pSourceAppId != nullptr && pSourceAppId[0] != '\0' && str_find_nocase(pSourceAppId, pNeedle) != nullptr;
 }
 
+static void FillLineState(CLyrics::SLineState &State, const CLyricLine &Line, int LineIndex, int64_t PositionMs, bool Current)
+{
+	State = CLyrics::SLineState{};
+	if(Line.m_Text.empty())
+		return;
+
+	str_copy(State.m_aText, Line.m_Text.c_str(), sizeof(State.m_aText));
+	State.m_LineIndex = LineIndex;
+	State.m_HasTimedReveal = Current && !Line.m_vSyllables.empty();
+	if(State.m_HasTimedReveal)
+	{
+		QmLyrics::BuildVisibleLineText(Line, PositionMs, State.m_aVisibleText, sizeof(State.m_aVisibleText));
+	}
+	else
+	{
+		str_copy(State.m_aVisibleText, State.m_aText, sizeof(State.m_aVisibleText));
+	}
+}
+
 } // namespace
 
 const char *CLyrics::EndpointName(EEndpoint Endpoint)
@@ -303,6 +323,12 @@ const char *CLyrics::SourceName(ESource Source)
 
 void CLyrics::OnInit()
 {
+	// Keep legacy config variables loadable, but the HUD no longer renders these styles.
+	g_Config.m_QmLyricsEnlargeFirstChar = 0;
+	g_Config.m_QmLyricsShowIndicator = 0;
+	(void)g_Config.m_QmLyricsFirstCharScale;
+	(void)g_Config.m_QmLyricsFirstCharColor;
+	(void)g_Config.m_QmLyricsIndicatorColor;
 	ResetState();
 }
 
@@ -331,10 +357,13 @@ void CLyrics::ClearLyrics()
 	m_Lines.clear();
 	m_PlainLine.clear();
 	m_aLastError[0] = '\0';
-	m_LastMediaPositionMs = -1;
-	m_DisplayPositionBaseMs = 0;
-	m_DisplayPositionBaseTick = 0;
-	m_DisplayPositionEstimating = false;
+	m_TimelineMode = ETimelineMode::UNDECIDED;
+	m_AnchorPositionMs = 0;
+	m_AnchorTick = 0;
+	m_AnchorRunning = false;
+	m_LastMediaPlaying = false;
+	m_LastSmtcPositionMs = 0;
+	m_SmtcZeroCount = 0;
 }
 
 void CLyrics::CancelRequest()
@@ -365,14 +394,14 @@ std::string CLyrics::BuildSignature(const STrackInfo &Info) const
 	return Key;
 }
 
-int64_t CLyrics::GetDisplayPositionMs(int64_t PositionMs) const
+int64_t CLyrics::GetDisplayPositionMs(int64_t /*PositionMs*/) const
 {
-	if(m_DisplayPositionEstimating && m_DisplayPositionBaseTick > 0)
-	{
-		const int64_t ElapsedMs = (time_get() - m_DisplayPositionBaseTick) * 1000 / time_freq();
-		return std::max<int64_t>(0, m_DisplayPositionBaseMs + ElapsedMs);
-	}
-	return PositionMs;
+	if(m_AnchorTick <= 0)
+		return 0;
+	if(!m_AnchorRunning)
+		return std::max<int64_t>(0, m_AnchorPositionMs);
+	const int64_t ElapsedMs = (time_get() - m_AnchorTick) * 1000 / time_freq();
+	return std::max<int64_t>(0, m_AnchorPositionMs + ElapsedMs);
 }
 
 CLyrics::ESource CLyrics::PreferredSource() const
@@ -1129,8 +1158,6 @@ void CLyrics::OnUpdate()
 {
 	if(!g_Config.m_QmSmtcLyricsEnable)
 	{
-		if(!m_LastSignature.empty())
-			ResetState();
 		return;
 	}
 
@@ -1157,7 +1184,8 @@ void CLyrics::OnUpdate()
 	}
 
 	const std::string Signature = BuildSignature(CurrentTrack);
-	if(Signature != m_LastSignature)
+	const bool NeedsRequestForCurrentTrack = Signature == m_LastSignature && m_State == EState::IDLE && !m_pRequest && m_Lines.empty() && m_PlainLine.empty();
+	if(Signature != m_LastSignature || NeedsRequestForCurrentTrack)
 	{
 		CancelRequest();
 		ClearLyrics();
@@ -1166,34 +1194,23 @@ void CLyrics::OnUpdate()
 		m_NeteaseSongId.clear();
 		m_Track = CurrentTrack;
 		m_LastSignature = Signature;
-		m_LastMediaPositionMs = MediaState.m_PositionMs;
-		m_DisplayPositionBaseMs = MediaState.m_PositionMs;
-		m_DisplayPositionBaseTick = time_get();
-		m_DisplayPositionEstimating = false;
+		m_TimelineMode = IsInternalTimerSource(MediaState.m_aSourceAppId) ? ETimelineMode::INTERNAL_TIMER : ETimelineMode::UNDECIDED;
+		m_AnchorPositionMs = MediaState.m_PositionMs;
+		m_AnchorTick = time_get();
+		m_AnchorRunning = MediaState.m_Playing;
+		m_LastMediaPlaying = MediaState.m_Playing;
+		m_LastSmtcPositionMs = MediaState.m_PositionMs;
+		m_SmtcZeroCount = 0;
 		const ESource Source = PreferredSource();
-		log_info("lyrics", "track source='%s' preferred=%s title='%s' artist='%s'",
-			m_Track.m_aSourceAppId, SourceName(Source), m_Track.m_aTitle, m_Track.m_aArtist);
+		log_info("lyrics", "track source='%s' preferred=%s mode=%s title='%s' artist='%s'",
+			m_Track.m_aSourceAppId, SourceName(Source),
+			m_TimelineMode == ETimelineMode::INTERNAL_TIMER ? "internal-timer" : "undecided",
+			m_Track.m_aTitle, m_Track.m_aArtist);
 		StartSource(Source);
 		return;
 	}
 
-	const bool PositionAdvanced = m_LastMediaPositionMs < 0 || MediaState.m_PositionMs > m_LastMediaPositionMs + 250;
-	if(PositionAdvanced || !MediaState.m_Playing)
-	{
-		if(m_DisplayPositionEstimating && PositionAdvanced)
-			log_info("lyrics", "smtc timeline resumed position=%" PRId64 "ms", MediaState.m_PositionMs);
-		m_LastMediaPositionMs = MediaState.m_PositionMs;
-		m_DisplayPositionBaseMs = MediaState.m_PositionMs;
-		m_DisplayPositionBaseTick = time_get();
-		m_DisplayPositionEstimating = false;
-	}
-	else if(MediaState.m_Playing && !m_DisplayPositionEstimating)
-	{
-		m_DisplayPositionBaseMs = MediaState.m_PositionMs;
-		m_DisplayPositionBaseTick = time_get();
-		m_DisplayPositionEstimating = true;
-		log_info("lyrics", "smtc timeline static, estimating lyric position from %" PRId64 "ms", m_DisplayPositionBaseMs);
-	}
+	UpdateTimeline(MediaState.m_Playing, MediaState.m_PositionMs, MediaState.m_aSourceAppId);
 
 	if(!m_pRequest)
 		return;
@@ -1204,9 +1221,151 @@ void CLyrics::OnUpdate()
 	HandleRequestDone();
 }
 
+bool CLyrics::IsInternalTimerSource(const char *pSourceAppId) const
+{
+	// Players that don't expose SMTC timeline data — must rely on local clock estimation.
+	return SourceAppContains(pSourceAppId, "cloudmusic") ||
+		SourceAppContains(pSourceAppId, "netease") ||
+		SourceAppContains(pSourceAppId, "163music") ||
+		SourceAppContains(pSourceAppId, "music.163") ||
+		SourceAppContains(pSourceAppId, "foobar2000") ||
+		SourceAppContains(pSourceAppId, "kugou");
+}
+
+void CLyrics::UpdateTimeline(bool MediaPlaying, int64_t SmtcPositionMs, const char *pSourceAppId)
+{
+	const int64_t NowTick = time_get();
+	const bool PlaybackStateChanged = MediaPlaying != m_LastMediaPlaying;
+
+	// Mode auto-detection: after ~3s of playback, if SMTC keeps reporting zero,
+	// fall back to internal timer for this track.
+	if(m_TimelineMode == ETimelineMode::UNDECIDED)
+	{
+		if(MediaPlaying)
+		{
+			if(SmtcPositionMs <= 100)
+			{
+				m_SmtcZeroCount++;
+				if(m_SmtcZeroCount >= 30)
+				{
+					m_TimelineMode = ETimelineMode::INTERNAL_TIMER;
+					log_info("lyrics", "switched to internal-timer mode for source='%s'", pSourceAppId ? pSourceAppId : "");
+				}
+			}
+			else
+			{
+				m_TimelineMode = ETimelineMode::SMTC_TRUSTED;
+				m_AnchorPositionMs = SmtcPositionMs;
+				m_AnchorTick = NowTick;
+				m_AnchorRunning = true;
+				log_info("lyrics", "switched to smtc-trusted mode for source='%s' position=%" PRId64 "ms", pSourceAppId ? pSourceAppId : "", SmtcPositionMs);
+			}
+		}
+	}
+
+	if(m_TimelineMode == ETimelineMode::INTERNAL_TIMER)
+	{
+		// Local-clock mode: SMTC position is unreliable. Anchor only moves on
+		// play/pause edges and when SMTC reports a believable non-zero jump.
+		if(PlaybackStateChanged)
+		{
+			if(MediaPlaying)
+			{
+				// Resume: keep anchor position, restart the wallclock.
+				m_AnchorTick = NowTick;
+				m_AnchorRunning = true;
+			}
+			else
+			{
+				// Pause: freeze the displayed position into the anchor.
+				if(m_AnchorRunning)
+				{
+					const int64_t ElapsedMs = (NowTick - m_AnchorTick) * 1000 / time_freq();
+					m_AnchorPositionMs = std::max<int64_t>(0, m_AnchorPositionMs + ElapsedMs);
+				}
+				m_AnchorTick = NowTick;
+				m_AnchorRunning = false;
+			}
+		}
+		else if(MediaPlaying && SmtcPositionMs > 1000)
+		{
+			// Rare: a normally-silent player suddenly reported a real position
+			// (e.g. user manually seeked). Resync.
+			const int64_t Estimated = m_AnchorRunning ? m_AnchorPositionMs + (NowTick - m_AnchorTick) * 1000 / time_freq() : m_AnchorPositionMs;
+			const int64_t Diff = std::abs(SmtcPositionMs - Estimated);
+			if(Diff > 3000)
+			{
+				log_info("lyrics", "internal-timer resync via smtc position=%" PRId64 "ms estimated=%" PRId64 "ms", SmtcPositionMs, Estimated);
+				m_AnchorPositionMs = SmtcPositionMs;
+				m_AnchorTick = NowTick;
+				m_AnchorRunning = true;
+			}
+		}
+	}
+	else if(m_TimelineMode == ETimelineMode::SMTC_TRUSTED)
+	{
+		// SMTC position is trustworthy. Re-anchor on every report.
+		if(PlaybackStateChanged)
+		{
+			if(MediaPlaying)
+			{
+				m_AnchorPositionMs = SmtcPositionMs;
+				m_AnchorTick = NowTick;
+				m_AnchorRunning = true;
+			}
+			else
+			{
+				m_AnchorPositionMs = SmtcPositionMs;
+				m_AnchorTick = NowTick;
+				m_AnchorRunning = false;
+			}
+		}
+		else if(MediaPlaying)
+		{
+			// Detect seeks (large jumps vs. our prediction).
+			const int64_t Estimated = m_AnchorRunning ? m_AnchorPositionMs + (NowTick - m_AnchorTick) * 1000 / time_freq() : m_AnchorPositionMs;
+			const int64_t Diff = std::abs(SmtcPositionMs - Estimated);
+			if(Diff > 1500)
+			{
+				m_AnchorPositionMs = SmtcPositionMs;
+				m_AnchorTick = NowTick;
+				m_AnchorRunning = true;
+			}
+		}
+		else
+		{
+			m_AnchorPositionMs = SmtcPositionMs;
+			m_AnchorTick = NowTick;
+			m_AnchorRunning = false;
+		}
+	}
+
+	m_LastMediaPlaying = MediaPlaying;
+	m_LastSmtcPositionMs = SmtcPositionMs;
+}
+
 bool CLyrics::GetCurrentLine(char *pBuf, size_t BufSize, int64_t PositionMs) const
 {
-	if(m_State != EState::READY || BufSize == 0)
+	SLineState State;
+	if(!GetCurrentLineState(State, PositionMs) || BufSize == 0)
+		return false;
+	str_copy(pBuf, State.m_aText, BufSize);
+	return pBuf[0] != '\0';
+}
+
+bool CLyrics::GetNextLine(char *pBuf, size_t BufSize, int64_t PositionMs) const
+{
+	SLineState State;
+	if(!GetNextLineState(State, PositionMs) || BufSize == 0)
+		return false;
+	str_copy(pBuf, State.m_aText, BufSize);
+	return pBuf[0] != '\0';
+}
+
+bool CLyrics::GetCurrentLineState(SLineState &State, int64_t PositionMs) const
+{
+	State = SLineState{};
+	if(m_State != EState::READY)
 		return false;
 
 	PositionMs = GetDisplayPositionMs(PositionMs) + g_Config.m_QmSmtcLyricsOffsetMs;
@@ -1221,22 +1380,25 @@ bool CLyrics::GetCurrentLine(char *pBuf, size_t BufSize, int64_t PositionMs) con
 		--It;
 		if(It->m_Text.empty())
 			return false;
-		str_copy(pBuf, It->m_Text.c_str(), BufSize);
-		return true;
+		FillLineState(State, *It, (int)std::distance(m_Lines.begin(), It), PositionMs, true);
+		return State.m_aText[0] != '\0';
 	}
 
 	if(!m_PlainLine.empty())
 	{
-		str_copy(pBuf, m_PlainLine.c_str(), BufSize);
+		str_copy(State.m_aText, m_PlainLine.c_str(), sizeof(State.m_aText));
+		str_copy(State.m_aVisibleText, State.m_aText, sizeof(State.m_aVisibleText));
+		State.m_LineIndex = 0;
 		return true;
 	}
 
 	return false;
 }
 
-bool CLyrics::GetNextLine(char *pBuf, size_t BufSize, int64_t PositionMs) const
+bool CLyrics::GetNextLineState(SLineState &State, int64_t PositionMs) const
 {
-	if(m_State != EState::READY || BufSize == 0 || !m_IsSynced || m_Lines.empty())
+	State = SLineState{};
+	if(m_State != EState::READY || !m_IsSynced || m_Lines.empty())
 		return false;
 
 	PositionMs = GetDisplayPositionMs(PositionMs) + g_Config.m_QmSmtcLyricsOffsetMs;
@@ -1247,13 +1409,13 @@ bool CLyrics::GetNextLine(char *pBuf, size_t BufSize, int64_t PositionMs) const
 	{
 		if(It->m_Text.empty())
 			return false;
-		str_copy(pBuf, It->m_Text.c_str(), BufSize);
-		return true;
+		FillLineState(State, *It, 0, PositionMs, false);
+		return State.m_aText[0] != '\0';
 	}
 	if(It == m_Lines.end())
 		return false;
 	if(It->m_Text.empty())
 		return false;
-	str_copy(pBuf, It->m_Text.c_str(), BufSize);
-	return true;
+	FillLineState(State, *It, (int)std::distance(m_Lines.begin(), It), PositionMs, false);
+	return State.m_aText[0] != '\0';
 }

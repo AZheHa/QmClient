@@ -3971,10 +3971,8 @@ void CMenus::PrewarmVisibleSettingsResources(CUIRect MainView)
 		Tab = CurrentSettingsAssetsTab();
 
 	(void)PrewarmSettingsPageResources(Page, Tab, ContentView);
-	if(Page == SETTINGS_TCLIENT)
-		RenderSettingsTClient(ContentView, true);
-	// QmClient settings are still rendered immediate-mode. Running them from the
-	// idle prewarm pass paints a second copy before the real settings shell.
+	// Immediate-mode settings pages must not be rendered from the idle prewarm
+	// pass, otherwise they paint a second copy before the real settings shell.
 }
 
 bool CMenus::OnCursorMove(float x, float y, IInput::ECursorType CursorType)
