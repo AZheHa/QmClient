@@ -394,10 +394,12 @@ std::string CLyrics::BuildSignature(const STrackInfo &Info) const
 	return Key;
 }
 
-int64_t CLyrics::GetDisplayPositionMs(int64_t /*PositionMs*/) const
+int64_t CLyrics::GetDisplayPositionMs(int64_t PositionMs) const
 {
+	if(PositionMs > 100 && m_TimelineMode != ETimelineMode::INTERNAL_TIMER)
+		return PositionMs;
 	if(m_AnchorTick <= 0)
-		return 0;
+		return std::max<int64_t>(0, PositionMs);
 	if(!m_AnchorRunning)
 		return std::max<int64_t>(0, m_AnchorPositionMs);
 	const int64_t ElapsedMs = (time_get() - m_AnchorTick) * 1000 / time_freq();

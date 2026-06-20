@@ -4074,6 +4074,39 @@ Enable repeat feature
 Hammer hit copies skin
 == 锤人换皮肤
 
+Skin transition
+== 皮肤切换
+
+Configure hammer skin steal and skin transition animations
+== 配置锤人偷皮和皮肤切换动画
+
+Hammer skin steal
+== 锤人偷皮
+
+Skin transition animation
+== 皮肤切换动画
+
+Skin transition type
+== 皮肤切换类型
+
+Skin transition duration
+== 皮肤切换时长
+
+Afterimage pop
+== 残影弹出
+
+Smooth fade
+== 柔和淡变
+
+Slide left
+== 向左滑切
+
+Spin pop
+== 旋转弹出
+
+Brightness shift
+== 明暗切换
+
 Random emote on hit
 == 受击随机表情
 

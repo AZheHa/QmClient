@@ -2877,7 +2877,7 @@ static bool ShouldSyncTeamCommandToOther(const char *pLine)
 void CChat::SendChat(int Team, const char *pLine)
 {
 #if defined(CONF_QM_LIVE_CLIENT)
-	if(GameClient()->Client()->QmLiveDirectorActive())
+	if(GameClient()->Client()->QmLiveDirectorActive() && ShouldBlockLiveDirectorChatCommand(pLine))
 		return;
 #endif
 
@@ -2918,7 +2918,7 @@ void CChat::SendChat(int Team, const char *pLine)
 void CChat::SendChatOnConn(int Conn, int Team, const char *pLine)
 {
 #if defined(CONF_QM_LIVE_CLIENT)
-	if(GameClient()->Client()->QmLiveDirectorActive())
+	if(GameClient()->Client()->QmLiveDirectorActive() && ShouldBlockLiveDirectorChatCommand(pLine))
 		return;
 #endif
 
