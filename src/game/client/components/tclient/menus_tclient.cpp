@@ -822,8 +822,20 @@ void CMenus::RenderSettingsTClient(CUIRect MainView, bool PrewarmOnly)
 				m_TClientSettingsTab++;
 		}
 	}
+	if(TabCount <= 0)
+	{
+		SetFlag(g_Config.m_TcTClientSettingsTabs, TCLIENT_TAB_INFO, false);
+		TabCount = 1;
+		m_TClientSettingsTab = TCLIENT_TAB_INFO;
+	}
+	auto FirstVisibleTab = []() -> int {
+		for(int Tab = 0; Tab < NUMBER_OF_TCLIENT_TABS; ++Tab)
+			if(!IsFlagSet(g_Config.m_TcTClientSettingsTabs, Tab))
+				return Tab;
+		return TCLIENT_TAB_INFO;
+	};
 	if(m_TClientSettingsTab < 0 || m_TClientSettingsTab >= NUMBER_OF_TCLIENT_TABS || IsFlagSet(g_Config.m_TcTClientSettingsTabs, m_TClientSettingsTab))
-		m_TClientSettingsTab = TCLIENT_TAB_SETTINGS;
+		m_TClientSettingsTab = FirstVisibleTab();
 
 	MainView = TClientSettingsContentView(MainView, &TabBar);
 	const float TabWidth = TabBar.w / TabCount;
@@ -843,16 +855,18 @@ void CMenus::RenderSettingsTClient(CUIRect MainView, bool PrewarmOnly)
 		s_apTClientTabNames[TCLIENT_TAB_INFO] = Localize("Info");
 	}
 
+	int VisibleTabIndex = 0;
 	for(int Tab = 0; Tab < NUMBER_OF_TCLIENT_TABS; ++Tab)
 	{
 		if(IsFlagSet(g_Config.m_TcTClientSettingsTabs, Tab))
 			continue;
 
 		TabBar.VSplitLeft(TabWidth, &Button, &TabBar);
-		const int Corners = Tab == 0 ? IGraphics::CORNER_L : Tab == NUMBER_OF_TCLIENT_TABS - 1 ? IGraphics::CORNER_R :
-													 IGraphics::CORNER_NONE;
+		const int Corners = VisibleTabIndex == 0 ? IGraphics::CORNER_L : VisibleTabIndex == TabCount - 1 ? IGraphics::CORNER_R :
+														   IGraphics::CORNER_NONE;
 		if(DoButton_MenuTab(&s_aPageTabs[Tab], s_apTClientTabNames[Tab], m_TClientSettingsTab == Tab, &Button, Corners, nullptr, nullptr, nullptr, nullptr, 4.0f))
 			m_TClientSettingsTab = Tab;
+		++VisibleTabIndex;
 	}
 
 	if(PrewarmOnly)
@@ -3646,7 +3660,21 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 	RightView.VSplitMid(&Column3, &Column4, Margin);
 
 	static CWarEntry *s_pSelectedEntry = nullptr;
-	static CWarType *s_pSelectedType = GameClient()->m_WarList.m_WarTypes[0];
+	static CWarType *s_pSelectedType = nullptr;
+	auto WarTypeExists = [&](const CWarType *pType) {
+		return std::find(GameClient()->m_WarList.m_WarTypes.begin(), GameClient()->m_WarList.m_WarTypes.end(), pType) != GameClient()->m_WarList.m_WarTypes.end();
+	};
+	auto DefaultWarType = [&]() -> CWarType * {
+		return GameClient()->m_WarList.m_WarTypes.empty() ? nullptr : GameClient()->m_WarList.m_WarTypes[0];
+	};
+	if(s_pSelectedType == nullptr || !WarTypeExists(s_pSelectedType))
+		s_pSelectedType = DefaultWarType();
+	auto WarEntryExists = [&](const CWarEntry *pEntry) {
+		return pEntry != nullptr && std::find_if(GameClient()->m_WarList.m_vWarEntries.begin(), GameClient()->m_WarList.m_vWarEntries.end(),
+						    [pEntry](const CWarEntry &Entry) { return &Entry == pEntry; }) != GameClient()->m_WarList.m_vWarEntries.end();
+	};
+	if(!WarEntryExists(s_pSelectedEntry))
+		s_pSelectedEntry = nullptr;
 	{
 		CPerfTimer ListTimer;
 		Column1.HSplitTop(HeadlineHeight, &Label, &Column1);
@@ -3699,6 +3727,7 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 		s_vItemIds.resize(MaxEntries);
 		s_vDeleteButtons.resize(MaxEntries);
 
+		CWarEntry *pEntryToRemove = nullptr;
 		for(size_t i = 0; i < s_vFilteredEntries.size(); i++)
 		{
 			CWarEntry *pEntry = s_vFilteredEntries[i];
@@ -3717,8 +3746,7 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 			DeleteButton.VSplitRight(MarginExtraSmall, &DeleteButton, nullptr);
 			if(Ui()->DoButton_FontIcon(&s_vDeleteButtons[i], FONT_ICON_TRASH, 0, &DeleteButton, IGraphics::CORNER_ALL))
 			{
-				GameClient()->m_WarList.RemoveWarEntry(pEntry);
-				++s_TClientWarListFilterRevision;
+				pEntryToRemove = pEntry;
 			}
 
 			bool IsClan = false;
@@ -3755,7 +3783,13 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 		}
 
 		const int NewSelectedEntry = s_EntriesListBox.DoEnd();
-		if(NewSelectedEntry >= 0 &&
+		if(pEntryToRemove != nullptr)
+		{
+			GameClient()->m_WarList.RemoveWarEntry(pEntryToRemove);
+			s_pSelectedEntry = nullptr;
+			++s_TClientWarListFilterRevision;
+		}
+		else if(NewSelectedEntry >= 0 && NewSelectedEntry < (int)s_vFilteredEntries.size() &&
 			(SelectedOldEntry != NewSelectedEntry || (Ui()->HotItem() == &s_vItemIds[NewSelectedEntry] && Ui()->MouseButtonClicked(0))))
 		{
 			s_pSelectedEntry = s_vFilteredEntries[NewSelectedEntry];
@@ -3867,6 +3901,7 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 			if(s_pSelectedType)
 			{
 				GameClient()->m_WarList.AddWarEntry(s_aEntryName, s_aEntryClan, s_aEntryReason, s_pSelectedType->m_aWarName);
+				s_pSelectedEntry = nullptr;
 				++s_TClientWarListFilterRevision;
 			}
 		}
@@ -3944,7 +3979,8 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 		}
 
 		const int NewSelectedType = s_WarTypeListBox.DoEnd();
-		if((SelectedOldType != NewSelectedType && NewSelectedType >= 0) || (NewSelectedType >= 0 && Ui()->HotItem() == &s_vTypeItemIds[NewSelectedType] && Ui()->MouseButtonClicked(0)))
+		const bool NewSelectedTypeValid = NewSelectedType >= 0 && NewSelectedType < (int)GameClient()->m_WarList.m_WarTypes.size();
+		if((SelectedOldType != NewSelectedType && NewSelectedTypeValid) || (NewSelectedTypeValid && Ui()->HotItem() == &s_vTypeItemIds[NewSelectedType] && Ui()->MouseButtonClicked(0)))
 		{
 			s_pSelectedType = GameClient()->m_WarList.m_WarTypes[NewSelectedType];
 			if(!Ui()->LastMouseButton(1) && !Ui()->LastMouseButton(2))
@@ -3955,6 +3991,8 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 		}
 		if(m_pRemoveWarType != nullptr)
 		{
+			if(m_pRemoveWarType == s_pSelectedType)
+				s_pSelectedType = DefaultWarType();
 			char aMessage[256];
 			str_format(aMessage, sizeof(aMessage),
 				Localize("Are you sure that you want to remove '%s' from your war groups?"),
@@ -4220,6 +4258,11 @@ void CMenus::RenderSettingsTClientStatusBar(CUIRect MainView)
 	CPerfTimer EditorTimer;
 	static int s_SelectedItem = -1;
 	static int s_TypeSelectedOld = -1;
+	const int StatusItemTypeCount = (int)GameClient()->m_StatusBar.m_StatusItemTypes.size();
+	if(s_TypeSelectedOld >= StatusItemTypeCount)
+		s_TypeSelectedOld = -1;
+	if(s_SelectedItem >= (int)GameClient()->m_StatusBar.m_StatusBarItems.size())
+		s_SelectedItem = -1;
 
 	CUIRect StatusScheme, StatusButtons, ItemLabel;
 	static CButtonContainer s_ApplyButton, s_AddButton, s_RemoveButton;
@@ -4269,7 +4312,7 @@ void CMenus::RenderSettingsTClientStatusBar(CUIRect MainView)
 	if(s_TypeSelectedOld != TypeSelectedNew)
 	{
 		s_TypeSelectedOld = TypeSelectedNew;
-		if(s_SelectedItem >= 0)
+		if(s_SelectedItem >= 0 && s_TypeSelectedOld >= 0 && s_TypeSelectedOld < StatusItemTypeCount)
 		{
 			GameClient()->m_StatusBar.m_StatusBarItems[s_SelectedItem] = &GameClient()->m_StatusBar.m_StatusItemTypes[s_TypeSelectedOld];
 			GameClient()->m_StatusBar.UpdateStatusBarScheme(g_Config.m_TcStatusBarScheme);
@@ -4278,7 +4321,7 @@ void CMenus::RenderSettingsTClientStatusBar(CUIRect MainView)
 	CUIRect ButtonL, ButtonR;
 	StatusButtons.VSplitMid(&ButtonL, &ButtonR, MarginSmall);
 	size_t NumItems = GameClient()->m_StatusBar.m_StatusBarItems.size();
-	if(DoButton_Menu(&s_AddButton, Localize("Add Item"), 0, &ButtonL) && s_TypeSelectedOld >= 0 && NumItems < 128)
+	if(DoButton_Menu(&s_AddButton, Localize("Add Item"), 0, &ButtonL) && s_TypeSelectedOld >= 0 && s_TypeSelectedOld < StatusItemTypeCount && NumItems < 128)
 	{
 		GameClient()->m_StatusBar.m_StatusBarItems.push_back(&GameClient()->m_StatusBar.m_StatusItemTypes[s_TypeSelectedOld]);
 		GameClient()->m_StatusBar.UpdateStatusBarScheme(g_Config.m_TcStatusBarScheme);
@@ -4286,8 +4329,11 @@ void CMenus::RenderSettingsTClientStatusBar(CUIRect MainView)
 	}
 	if(DoButton_Menu(&s_RemoveButton, Localize("Remove Item"), 0, &ButtonR) && s_SelectedItem >= 0)
 	{
-		GameClient()->m_StatusBar.m_StatusBarItems.erase(GameClient()->m_StatusBar.m_StatusBarItems.begin() + s_SelectedItem);
-		GameClient()->m_StatusBar.UpdateStatusBarScheme(g_Config.m_TcStatusBarScheme);
+		if(s_SelectedItem < (int)GameClient()->m_StatusBar.m_StatusBarItems.size())
+		{
+			GameClient()->m_StatusBar.m_StatusBarItems.erase(GameClient()->m_StatusBar.m_StatusBarItems.begin() + s_SelectedItem);
+			GameClient()->m_StatusBar.UpdateStatusBarScheme(g_Config.m_TcStatusBarScheme);
+		}
 		s_SelectedItem = -1;
 	}
 
@@ -4514,7 +4560,7 @@ void CMenus::RenderSettingsTClientInfo(CUIRect MainView)
 			Ui()->DoLabel(&Label, "SollyBunny / bun bun", LineSize, TEXTALIGN_ML);
 			if(Ui()->DoButton_FontIcon(&s_LinkButton3, FONT_ICON_ARROW_UP_RIGHT_FROM_SQUARE, 0, &Button, IGraphics::CORNER_ALL))
 				Client()->ViewLink("https://github.com/SollyBunny");
-			RenderDevSkin(TeeRect.Center(), 50.0f, "tuzi", "tuzi", false, 0, 0, 2, true, true, true);
+			RenderDevSkin(TeeRect.Center(), 50.0f, "tuzi", "tuzi", false, 0, 0, 2, true, true);
 		}
 		{
 			RightView.HSplitTop(CardSize, &DevCardRect, &RightView);
@@ -4573,6 +4619,7 @@ void CMenus::RenderSettingsTClientInfo(CUIRect MainView)
 		static int s_aShowTabs[NUMBER_OF_TCLIENT_TABS] = {};
 		for(int i = 0; i < NUMBER_OF_TCLIENT_TABS - 1; ++i)
 		{
+			s_aShowTabs[i] = IsFlagSet(g_Config.m_TcTClientSettingsTabs, i);
 			DoButton_CheckBoxAutoVMarginAndSet(&s_aShowTabs[i], apTabNames[i], &s_aShowTabs[i], i % 2 == 0 ? &LeftSettings : &RightSettings, LineSize);
 			SetFlag(g_Config.m_TcTClientSettingsTabs, i, s_aShowTabs[i]);
 		}
@@ -4638,7 +4685,7 @@ void CMenus::RenderSettingsTClientProfiles(CUIRect MainView)
 			{
 				CTeeRenderInfo TeeRenderInfo;
 				TeeRenderInfo.Apply(GameClient()->m_Skins.Find(Profile.m_SkinName));
-				TeeRenderInfo.ApplyColors(Profile.m_BodyColor >= 0 && Profile.m_FeetColor > 0, Profile.m_BodyColor, Profile.m_FeetColor);
+				TeeRenderInfo.ApplyColors(Profile.m_BodyColor >= 0 && Profile.m_FeetColor >= 0, Profile.m_BodyColor, Profile.m_FeetColor);
 				TeeRenderInfo.m_Size = 50.0f;
 				const vec2 Pos = Skin.Center() + vec2(0.0f, TeeRenderInfo.m_Size / 10.0f); // Prevent overflow from hats
 				vec2 Dir = vec2(1.0f, 0.0f);
@@ -4654,7 +4701,7 @@ void CMenus::RenderSettingsTClientProfiles(CUIRect MainView)
 			Rect.VSplitLeft(10.0f, &Colors, &Rect);
 			CUIRect BodyColor{Colors.Center().x - 5.0f, Colors.Center().y - 11.0f, 10.0f, 10.0f};
 			CUIRect FeetColor{Colors.Center().x - 5.0f, Colors.Center().y + 1.0f, 10.0f, 10.0f};
-			if(Profile.m_BodyColor >= 0 && Profile.m_FeetColor > 0)
+			if(Profile.m_BodyColor >= 0 && Profile.m_FeetColor >= 0)
 			{
 				// Body Color
 				Graphics()->DrawRect(BodyColor.x, BodyColor.y, BodyColor.w, BodyColor.h,
@@ -4896,7 +4943,8 @@ void CMenus::RenderSettingsTClientProfiles(CUIRect MainView)
 
 	static CListBox s_ListBox;
 	CPerfTimer ListTimer;
-	s_ListBox.DoStart(50.0f, vProfiles.size(), MainView.w / 200.0f, 3, s_SelectedProfile, &MainView, true, IGraphics::CORNER_ALL, true);
+	const int ProfilesPerRow = maximum(1, (int)(MainView.w / 200.0f));
+	s_ListBox.DoStart(50.0f, vProfiles.size(), ProfilesPerRow, 3, s_SelectedProfile, &MainView, true, IGraphics::CORNER_ALL, true);
 
 	static std::vector<int> s_vProfileItemIds;
 	if(s_vProfileItemIds.size() != vProfiles.size())
