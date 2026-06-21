@@ -68,12 +68,12 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | T4 | SMTC 适配层 — **复用现有 `CSystemMediaControls`**：该组件已暴露 `SState`（含 m_aSourceAppId/Title/Artist/Album/PositionMs/DurationMs/Playing），不需要再从零写 WinRT。T6 组件骨架里直接 `GameClient()->m_SystemMediaControls.GetStateSnapshot(...)` 转 `SSourceQuery`。 | ✅（复用） |
 | T5 | 时钟插值器 + 7 个单元测试 | ✅ |
 | T6 | CQmLyrics 组件骨架 + 30 个 `qm_lyrics_*` 配置 + 注册到 gameclient | ✅ |
-| T7 | 设置页 UI（栖梦 → 视觉 → 歌词 HUD） | ⏳ |
-| T8 | 静态布局 + HUD 编辑器接入（用 T0a 的贴边 Helpers） | ⏳ |
-| T9 | 行级动画（滚动 + alpha/scale 过渡） | ⏳ |
-| T10 | 逐字软边 + 长音脉冲 | ⏳ |
-| T11 | 端到端联调 | ⏳ |
-| T12 | 审查 + gate + 改 status 为 active | ⏳ |
+| T7 | 设置页 UI — 需要把 `EQmModuleId::Lyrics` 加回 menus_qmclient.cpp（T0b1 删了）+ 复刻歌词卡片 UI + 跑 i18n 流水线（extract/generate/validate/review_duplicates）。预估 4-6 小时单独 commit。 | ⏳ |
+| T8 | 静态布局 + HUD 编辑器接入 — **基本已含在 T6 RenderHud 里**（BeginTransform + EHudEditorElement::Lyrics + 透视淡出）。剩余：T0b1 删 `EQmModuleId::Lyrics` 时同时影响了模块表项映射，T8 与 T7 一起恢复。 | 部分（T6 已含）|
+| T9 | 行级动画 — 行切换 easeOutCubic 滚动、滑入/滑出。基于 T6 渲染层增量。预估 1-2 小时。 | ⏳ |
+| T10 | 逐字软边 + 长音脉冲 — `qm_lyrics_karaoke` 已加配置；要在 RenderHud 里按 m_vWords 渲染颜色场过渡 + sin 脉冲。预估 1-2 小时。 | ⏳ |
+| T11 | 端到端联调 — 真机 Windows + Spotify/Apple Music for Windows/Netease，目测 LRCLIB 命中率与渲染体验。**需要你亲手验证**，我无法跑。 | ⏳ |
+| T12 | 代码审查 + gate — 派只读子代理按 docs/ai-workflow/review.md 审；跑 default gate 全量测试；按 findings 收口；spec status 改 active。 | ⏳ |
 
 **当前会话目标**：完成 Spec 改终版 → T0a → T0b → T0c → T0d → T0e → T0f → T1。
 
@@ -84,6 +84,7 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 
 **中断点记录**（每次中断时写一条，记到这里）：
 - 2026-06-22 收在 T0b1 commit `16f7e226b`。next: T0b2 拆 hud.cpp 主入口（5479-5611 + 5620+ + 5634/5640/5661），行号会因后续 grep 重新定位。**注意环境问题**：本地 default gate 因 vswhere PATH 和 Git Bash find 拦截无法跑，T0a/T0b1 quick gate 全绿但未走真实编译。续接前建议在原生 cmd 手动跑 `qmclient_scripts\cmake-windows.cmd --build cmake-build-release --target game-client -j 12` 验证 T0a+T0b1 真编译通过，再动 T0b2。
+- 2026-06-22 第二轮一口气干完：T0b2/T0b3/T0b4/T1/T2/T3/T4(复用)/T5/T6 全部就位（commits e54bb209a..本轮最新）。约 14 个 commit，~4400 行净增量，~2700 行删除。49 测试（21 解析 + 18 匹配 + 9 缓存 + 12 LRCLIB + 8 时钟 = 68 测试，T6 没加测试）。**未完成**：T7（设置页 UI + i18n 流水线）、T9（行切换 easeOutCubic 滚动）、T10（逐字软边 + 长音脉冲）、T11（真机联调，需要 Windows + Spotify/Netease）、T12（review + default gate）。default gate 仍未在本地跑通（vswhere/Git Bash find 环境问题）。续接前先跑构建验证整个 T0a-T6 真编译。
 
 ---
 
