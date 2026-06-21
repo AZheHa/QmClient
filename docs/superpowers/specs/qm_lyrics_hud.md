@@ -62,7 +62,7 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | T0d 删 CLyrics | 删 `lyrics_component.h/cpp` 主类；`lyric_parser.h/cpp` 删 `ParseLrcLyrics` / `BuildVisibleLineText` 实现 | ⏳ |
 | T0e 测试拆分 | 删旧测试文件中 LRC + BuildVisibleLineText 那两条；保留的 QRC/YRC/Merge 拆到新文件 | ⏳ |
 | T0f gate | 跑 `python qmclient_scripts/gate/check_gate.py --mode quick`，build/test 全绿后 commit T0 | ⏳ |
-| T1 | 新写 `qm_lyrics_parser_lrc.{h,cpp}`（标准 + Enhanced + ESLRC）、`qm_lyrics_parser_ttml.{h,cpp}`；测试 `qm_lyrics_parser_lrc_test.cpp` / `qm_lyrics_parser_ttml_test.cpp` 每格式 3+ 样本 | ⏳ |
+| T1 | 新写 `qm_lyrics_model.h`（`SLyricsTrack/SLyricsLine/SLyricsWord` + EFormat），`qm_lyrics_parser_lrc.{h,cpp}`（标准 + Enhanced + ESLRC），`qm_lyrics_parser_ttml.{h,cpp}`（TTML），`qm_lyrics_parser_lrc_test.cpp`（10 用例），`qm_lyrics_parser_ttml_test.cpp`（11 用例）。CMake 加 5 个源文件 + 2 个测试 + 2 个 TESTS_EXTRA。**目录改为 snake_case `qm_lyrics/`** 与项目惯例（hud_notifications/、monitoring/）一致。 | ✅ |
 | T2 | 匹配器 + 缓存 | ⏳ |
 | T3 | LRCLIB 数据源（用 `std::make_shared<CHttpRequest>` + `Http()->Run`） | ⏳ |
 | T4 | SMTC 适配层（Windows-only，C++/WinRT） | ⏳ |
@@ -276,8 +276,8 @@ QmClient 首版**不**做 DLL 热加载，但**类层级**复刻这些契约（�
 
 ### 组件位置
 
-- 新增源码：`src/game/client/components/qmclient/CQmLyrics/`
-  - `CQmLyrics.h` / `CQmLyrics.cpp`：组件主类，继承 `CComponent`，注册到 `gameclient.cpp`。
+- 新增源码：`src/game/client/components/qmclient/qm_lyrics/`（snake_case 与项目其它子目录如 `hud_notifications/`、`monitoring/`、`scripting/` 一致）
+  - `qm_lyrics.h` / `qm_lyrics.cpp`：组件主类 `CQmLyrics`，继承 `CComponent`，注册到 `gameclient.cpp`（T6 阶段创建）。
   - `qm_lyrics_smtc.h` / `qm_lyrics_smtc.cpp`：SMTC 适配层（Windows 专属，`#if defined(CONF_FAMILY_WINDOWS)` 包裹整个 .cpp）。
   - `qm_lyrics_model.h`：`SLyricsLine`、`SLyricsWord`、`SLyricsTrack` POD 结构（**与现有 `lyrics/lyric_model.h` 的 `CLyricLine` / `CSyllable` 是不同类型**——后者为保留代码服务，新模型为新数据源/渲染服务）。
   - `qm_lyrics_parser_lrc.h` / `qm_lyrics_parser_lrc.cpp`：LRC + Enhanced LRC + ESLRC 解析（**新写**，不复用旧 `ParseLrcLyrics`）。

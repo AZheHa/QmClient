@@ -2742,6 +2742,11 @@ if(CLIENT)
     components/qmclient/monitoring/monitoring.cpp
     components/qmclient/monitoring/monitoring_device_perf.cpp
     components/qmclient/monitoring/monitoring.h
+    components/qmclient/qm_lyrics/qm_lyrics_model.h
+    components/qmclient/qm_lyrics/qm_lyrics_parser_lrc.cpp
+    components/qmclient/qm_lyrics/qm_lyrics_parser_lrc.h
+    components/qmclient/qm_lyrics/qm_lyrics_parser_ttml.cpp
+    components/qmclient/qm_lyrics/qm_lyrics_parser_ttml.h
     components/qmclient/qmclient.cpp
     components/qmclient/qmclient.h
     components/qmclient/qmclient_utils.cpp
@@ -3677,6 +3682,8 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     qm_hud_notifications_test.cpp
     qm_new_ui_menu_branch_test.cpp
     qm_live_client_test.cpp
+    qm_lyrics_parser_lrc_test.cpp
+    qm_lyrics_parser_ttml_test.cpp
     qm_modes_test.cpp
     qmclient_update_version_test.cpp
     QmUiTokensTest.cpp
@@ -3737,6 +3744,8 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     src/game/client/components/qmclient/hud_notifications/hud_notification_catalog.cpp
     src/game/client/components/qmclient/hud_notifications/hud_notification_rules.cpp
     src/game/client/components/qmclient/monitoring/monitoring_device_perf.cpp
+    src/game/client/components/qmclient/qm_lyrics/qm_lyrics_parser_lrc.cpp
+    src/game/client/components/qmclient/qm_lyrics/qm_lyrics_parser_ttml.cpp
     src/game/client/live/live_director.cpp
     src/game/client/live/live_replay_buffer.cpp
     src/game/client/components/qmclient/modes.cpp
