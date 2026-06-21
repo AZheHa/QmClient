@@ -1179,30 +1179,6 @@ def _business_data_records_from_path(
                 )
         return records
 
-    if normalized.endswith("src/game/client/components/qmclient/lyrics_component.cpp"):
-        for text, line in _extract_cpp_string_literal_records(content):
-            line_text = lines[line - 1] if 0 < line <= len(lines) else ""
-            if any(
-                token in line_text
-                for token in (
-                    "m_aLastError",
-                    "pErr",
-                    "str_copy(",
-                    "str_format(",
-                    "json_object_get(",
-                )
-            ) and (looks_human_readable(text) or "%" in text):
-                records.append(
-                    StringAuditRecord(
-                        path,
-                        line,
-                        text,
-                        "business_data",
-                        "lyrics API response parser diagnostic text",
-                    )
-                )
-        # Continue with generic rules for this file.
-
     if normalized.endswith("src/game/client/components/qmclient/axiom_auto_login.cpp"):
         for text, line in _extract_cpp_string_literal_records(content):
             line_text = lines[line - 1] if 0 < line <= len(lines) else ""

@@ -23,24 +23,26 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 > 这是单一权威进度状态。会话中断后，下次重新读 spec 就能续上。
 > 已完成项前置 ✅，正在做置 🚧，未开始置 ⏳。
 
-**整体策略**：替换重写 + 保留 QQ/网易能力。
+**整体策略**：替换重写 - 完全推倒重来，不保留 QQ/网易能力（2026-06-22 决策变更）。
+
+**策略变更记录**：
+- 原计划保留 QQ/网易 HTTP + QRC/YRC 解密 + EAPI 签名等纯函数代码（T0c 抽取后续复用）。
+- 实际进展中 T0c 重构（把 CLyrics state 依赖剥离为纯函数 + 重新设计接口）评估为 1-2 小时工程，且会让 commit 之间耦合复杂。
+- 用户最终决策：放弃 QQ/网易能力，整个 lyrics_component.{h,cpp} + lyrics/lyric_*.{h,cpp} + 旧测试一刮子全删。新组件 T1+ 阶段从零写 LRC/eslrc/TTML 解析器，数据源首版只 LRCLIB；QQ/网易日后愿意时另起项目重做。
 
 **保留代码清单**（不许动）：
 
-- `src/game/client/components/qmclient/lyrics/lyric_parser.cpp` 大部分函数（按 H 节"保留清单"）
-- `lyric_parser.h` 中 `ParseQrcLyrics` / `ParseYrcLyrics` / `MergeLineTextByTimestamp` / `DecryptQqQrcPayload` / `BuildNeteaseEapiBody` / `SortAndFillDurations` 声明
-- `lyric_model.h` 中 `CSyllable` / `CLyricLine`（POD 结构）
-- 现有测试 `qm_lyrics_parser_test.cpp` 中的 `QrcParsesSyllablesPunctuationAndSpaces` / `YrcParsesCreditLinesAndSkipsMalformedLyricLines` / `MergesTranslationByTimestamp`（拆到 `qm_lyrics_qq_test.cpp` / `qm_lyrics_netease_test.cpp` / `qm_lyrics_model_test.cpp`）
+- ~~已废弃：原本保留 QQ/网易 + QRC/YRC 等纯函数（见上方策略变更记录）~~。当前**无保留代码**——整个 lyrics_component.{h,cpp}、lyrics/lyric_parser.{h,cpp}、lyrics/lyric_model.h、src/test/qm_lyrics_parser_test.cpp 全删。
 
-**删除代码清单**（按 H 节"删除清单"）：
+**删除代码清单**（按 H 节"删除清单" + 策略变更后的扩展）：
 
-- `CLyrics` 整个类、`OnInit/OnShutdown/OnUpdate/UpdateTimeline` 所有方法
-- `ETimelineMode` 双模式估算
-- `ParseLrcLyrics` / `BuildVisibleLineText`
-- LRC 旧解析测试
+- `lyrics_component.h/cpp` 整个文件（含 CLyrics class、SMTC 接入、QQ/网易 HTTP、双模式时间轴）
+- `lyrics/lyric_parser.h/cpp` 整个文件（含 QRC/YRC 解析、AES/TripleDES 解密、EAPI 签名）
+- `lyrics/lyric_model.h` 整个文件
+- `src/test/qm_lyrics_parser_test.cpp` 整个文件
 - 20 个 `qm_lyrics_*` / `qm_smtc_lyrics_*` 配置
-- `hud.cpp` 中 5 处 `m_Lyrics` 调用 + 整个 `RenderLyricsHud`
-- 设置页歌词卡片
+- `hud.cpp` 中 5 处 `m_Lyrics` 调用 + 整个 `RenderLyricsHud`（已完成 T0b2/T0b3）
+- 设置页歌词卡片（已完成 T0b1）
 - `gameclient.h:245` 成员 + `gameclient.cpp:295` Add
 
 **进度看板**：
@@ -52,7 +54,10 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | T0b1 | 删 menus_qmclient 设置页歌词卡 + 模块表项 + 7 处枚举 case + HUD tab 新功能红点；`QmModuleCount` 36→35 | ✅ commit `16f7e226b` |
 | T0b2 拆除主入口 | 删 `hud.h` RenderLyricHud 声明 + `hud.cpp` RenderLyricHud 函数体（130 行）+ 调用点；不动 RenderMediaIsland 内嵌歌词块（T0b3） | ✅ commit `09dcee910` |
 | T0b3 拆除媒体岛嵌入 | 删 `hud.cpp` RenderMediaIsland 内 9 处 DockedLyric*/m_LyricHudDocked* 探测+布局+绘制；删 RenderLegacyMediaInfoAt 内嵌歌词块；删 hud.h 3 个 m_LyricHud* 成员；OnRender 主循环复位 | ✅ commit `265e0a277` |
-| T0b4 拆除 CLyrics | 删 `lyrics_component.h/cpp`；`gameclient.h:245` 成员；`gameclient.cpp:295` Add；20 个配置；include `lyrics_component.h` | ⏳ |
+| T0b4 一刮子全删 | 删 `lyrics_component.{h,cpp}` + `lyrics/lyric_parser.{h,cpp}` + `lyrics/lyric_model.h` + `src/test/qm_lyrics_parser_test.cpp` + 20 个配置 + `gameclient.h:245` 成员 + `gameclient.cpp:295` Add（含原 T0c+T0d+T0e 内容，因策略变更全部并掉） | ⏳ |
+| ~~T0c 抽取 QQ/网易~~ | ~~已废弃，策略变更后不再保留~~ | 🚫 |
+| ~~T0d 删 CLyrics + LRC 解析~~ | ~~并入 T0b4~~ | 🚫 |
+| ~~T0e 测试拆分~~ | ~~不需要拆分，QQ/YRC 测试全删~~ | 🚫 |
 | T0c 抽取 | `lyrics_component.cpp` 中 QQ/网易 4 段代码抽到新模块 `lyrics/qq_music_api.{h,cpp}` 与 `lyrics/netease_music_api.{h,cpp}`；纯函数接口；不依赖 CLyrics state | ⏳ |
 | T0d 删 CLyrics | 删 `lyrics_component.h/cpp` 主类；`lyric_parser.h/cpp` 删 `ParseLrcLyrics` / `BuildVisibleLineText` 实现 | ⏳ |
 | T0e 测试拆分 | 删旧测试文件中 LRC + BuildVisibleLineText 那两条；保留的 QRC/YRC/Merge 拆到新文件 | ⏳ |

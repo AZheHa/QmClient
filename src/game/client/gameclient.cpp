@@ -292,7 +292,6 @@ void CGameClient::OnConsoleInit()
 					      &m_FastPractice,
 					      &m_Voice,
 					      &m_SystemMediaControls,
-					      &m_Lyrics,
 					      &m_Players,
 					      &m_MovingTilesBackground,
 					      &m_MapLayersForeground,
