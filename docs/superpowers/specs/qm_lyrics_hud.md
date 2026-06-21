@@ -64,7 +64,7 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | T0f gate | 跑 `python qmclient_scripts/gate/check_gate.py --mode quick`，build/test 全绿后 commit T0 | ⏳ |
 | T1 | 新写 `qm_lyrics_model.h`（`SLyricsTrack/SLyricsLine/SLyricsWord` + EFormat），`qm_lyrics_parser_lrc.{h,cpp}`（标准 + Enhanced + ESLRC），`qm_lyrics_parser_ttml.{h,cpp}`（TTML），`qm_lyrics_parser_lrc_test.cpp`（10 用例），`qm_lyrics_parser_ttml_test.cpp`（11 用例）。CMake 加 5 个源文件 + 2 个测试 + 2 个 TESTS_EXTRA。**目录改为 snake_case `qm_lyrics/`** 与项目惯例（hud_notifications/、monitoring/）一致。 | ✅ |
 | T2 | 匹配器 + 缓存 | ✅ |
-| T3 | LRCLIB 数据源（用 `std::make_shared<CHttpRequest>` + `Http()->Run`） | ⏳ |
+| T3 | LRCLIB 数据源（用 `std::make_shared<CHttpRequest>` + `Http()->Run`）+ IQmLyricsSource 抽象 + 12 个测试 | ✅ |
 | T4 | SMTC 适配层（Windows-only，C++/WinRT） | ⏳ |
 | T5 | 时钟插值器 | ⏳ |
 | T6 | 组件骨架 + 32 个 `qm_lyrics_*` 新配置 | ⏳ |
