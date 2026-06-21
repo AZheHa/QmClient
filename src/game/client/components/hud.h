@@ -383,9 +383,6 @@ private:
 	float m_MovementInfoBoxH = 0.0f;
 	CUIRect m_MediaIslandLastVisibleRect{};
 	bool m_MediaIslandLastVisibleRectValid = false;
-	CUIRect m_LyricHudDockedDragRect{};
-	CUIRect m_LyricHudDockedVisibleRect{};
-	bool m_LyricHudDockedToMediaIsland = false;
 	bool m_LegacyMediaInfoRendered = false;
 	float m_aMapProgressDisplayed[NUM_DUMMIES] = {0.0f, 0.0f};
 	bool m_aMapProgressInitialized[NUM_DUMMIES] = {false, false};
