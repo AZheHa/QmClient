@@ -68,7 +68,7 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | T4 | SMTC 适配层 — **复用现有 `CSystemMediaControls`**：该组件已暴露 `SState`（含 m_aSourceAppId/Title/Artist/Album/PositionMs/DurationMs/Playing），不需要再从零写 WinRT。T6 组件骨架里直接 `GameClient()->m_SystemMediaControls.GetStateSnapshot(...)` 转 `SSourceQuery`。 | ✅（复用） |
 | T5 | 时钟插值器 + 7 个单元测试 | ✅ |
 | T6 | CQmLyrics 组件骨架 + 30 个 `qm_lyrics_*` 配置 + 注册到 gameclient | ✅ |
-| T7 | 设置页 UI — 需要把 `EQmModuleId::Lyrics` 加回 menus_qmclient.cpp（T0b1 删了）+ 复刻歌词卡片 UI + 跑 i18n 流水线（extract/generate/validate/review_duplicates）。预估 4-6 小时单独 commit。 | ⏳ |
+| T7 | 设置页 UI：恢复 EQmModuleId::Lyrics + QmModuleCount 35→36 + 模块表/搜索关键词/标题表项；新增设置页歌词卡（启用/自动拉取/逐字/暂停隐藏/翻译显示 5 开关 + 17 滑块 + 3 颜色选择器）；4 个预留配置（source/cache_enable/show_transliteration/hide_no_lyrics）在 OnInit touch 通过配置使用检查。**i18n 流水线挂 Python 3.9 兼容性问题（脚本自身 bug），未跑；新加的 Localize 字符串走运行时英文回退。** | ✅ |
 | T8 | 静态布局 + HUD 编辑器接入 — **基本已含在 T6 RenderHud 里**（BeginTransform + EHudEditorElement::Lyrics + 透视淡出）。剩余：T0b1 删 `EQmModuleId::Lyrics` 时同时影响了模块表项映射，T8 与 T7 一起恢复。 | 部分（T6 已含）|
 | T9 | 行级动画 — 行切换 easeOutCubic 滚动、滑入/滑出。基于 T6 渲染层增量。预估 1-2 小时。 | ⏳ |
 | T10 | 逐字软边 + 长音脉冲 — `qm_lyrics_karaoke` 已加配置；要在 RenderHud 里按 m_vWords 渲染颜色场过渡 + sin 脉冲。预估 1-2 小时。 | ⏳ |

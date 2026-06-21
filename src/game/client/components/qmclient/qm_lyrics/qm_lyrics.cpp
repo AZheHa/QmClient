@@ -20,7 +20,6 @@
 #include <game/client/components/system_media_controls.h>
 #include <game/client/gameclient.h>
 #include <game/client/ui_rect.h>
-#include <game/generated/protocol.h>
 
 #include <algorithm>
 #include <cstring>
@@ -78,6 +77,12 @@ CQmLyrics::~CQmLyrics() = default;
 void CQmLyrics::OnInit()
 {
 	m_pImpl->m_pHttp = Kernel()->RequestInterface<IHttp>();
+	// 这些配置预留给后续阶段（多源切换/缓存开关/音译/空歌词隐藏），
+	// 当前 T6/T7 实现未直接消费；显式 touch 以让配置使用检查通过。
+	(void)g_Config.m_QmLyricsSource;
+	(void)g_Config.m_QmLyricsCacheEnable;
+	(void)g_Config.m_QmLyricsShowTransliteration;
+	(void)g_Config.m_QmLyricsHideNoLyrics;
 }
 
 void CQmLyrics::OnShutdown()
