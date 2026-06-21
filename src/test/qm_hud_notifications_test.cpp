@@ -1080,6 +1080,78 @@ TEST(QmHudNotificationsGeometry, EdgeMarginInsetsOnlyAnchoredPreviewEdges)
 	EXPECT_FLOAT_EQ(FreeInset.y, FreeRect.y);
 }
 
+TEST(QmHudEditorGeometry, ApplyEdgeMarginMatchesInsetAnchoredRectAcrossAnchors)
+{
+	const CUIRect AnchorRect = {0.0f, 0.0f, 128.0f, 92.0f};
+	const QmHudEditor::SEdgeMargin Margin = QmHudEditor::SEdgeMargin::Uniform(8.0f);
+
+	const CUIRect LeftTop = QmHudEditor::ApplyEdgeMargin(AnchorRect, Margin, true, false, true, false);
+	const CUIRect RightBottom = QmHudEditor::ApplyEdgeMargin(AnchorRect, Margin, false, true, false, true);
+
+	const CUIRect LegacyLeftTop = QmHudNotifications::InsetAnchoredRect(AnchorRect, 8.0f, true, false, true, false);
+	const CUIRect LegacyRightBottom = QmHudNotifications::InsetAnchoredRect(AnchorRect, 8.0f, false, true, false, true);
+
+	EXPECT_FLOAT_EQ(LeftTop.x, LegacyLeftTop.x);
+	EXPECT_FLOAT_EQ(LeftTop.y, LegacyLeftTop.y);
+	EXPECT_FLOAT_EQ(LeftTop.w, LegacyLeftTop.w);
+	EXPECT_FLOAT_EQ(LeftTop.h, LegacyLeftTop.h);
+	EXPECT_FLOAT_EQ(RightBottom.x, LegacyRightBottom.x);
+	EXPECT_FLOAT_EQ(RightBottom.y, LegacyRightBottom.y);
+}
+
+TEST(QmHudEditorGeometry, ApplyEdgeMarginHandlesNonUniformMargins)
+{
+	const CUIRect AnchorRect = {0.0f, 0.0f, 64.0f, 32.0f};
+	const QmHudEditor::SEdgeMargin Margin{4.0f, 8.0f, 2.0f, 16.0f};
+
+	const CUIRect LeftTop = QmHudEditor::ApplyEdgeMargin(AnchorRect, Margin, true, false, true, false);
+	EXPECT_FLOAT_EQ(LeftTop.x, 4.0f);
+	EXPECT_FLOAT_EQ(LeftTop.y, 2.0f);
+
+	const CUIRect RightBottom = QmHudEditor::ApplyEdgeMargin(AnchorRect, Margin, false, true, false, true);
+	EXPECT_FLOAT_EQ(RightBottom.x, -8.0f);
+	EXPECT_FLOAT_EQ(RightBottom.y, -16.0f);
+}
+
+TEST(QmHudEditorGeometry, ApplyEdgeMarginZeroIsIdentity)
+{
+	const CUIRect AnchorRect = {12.0f, 34.0f, 56.0f, 78.0f};
+	const QmHudEditor::SEdgeMargin Zero{};
+
+	const CUIRect LeftTop = QmHudEditor::ApplyEdgeMargin(AnchorRect, Zero, true, false, true, false);
+	const CUIRect RightBottom = QmHudEditor::ApplyEdgeMargin(AnchorRect, Zero, false, true, false, true);
+	const CUIRect Free = QmHudEditor::ApplyEdgeMargin(AnchorRect, Zero, false, false, false, false);
+
+	EXPECT_FLOAT_EQ(LeftTop.x, AnchorRect.x);
+	EXPECT_FLOAT_EQ(LeftTop.y, AnchorRect.y);
+	EXPECT_FLOAT_EQ(RightBottom.x, AnchorRect.x);
+	EXPECT_FLOAT_EQ(RightBottom.y, AnchorRect.y);
+	EXPECT_FLOAT_EQ(Free.x, AnchorRect.x);
+	EXPECT_FLOAT_EQ(Free.y, AnchorRect.y);
+}
+
+TEST(QmHudEditorGeometry, ApplyEdgeMarginIsZeroPredicate)
+{
+	EXPECT_TRUE((QmHudEditor::SEdgeMargin{}).IsZero());
+	EXPECT_FALSE(QmHudEditor::SEdgeMargin::Uniform(1.0f).IsZero());
+	EXPECT_FALSE((QmHudEditor::SEdgeMargin{0.0f, 0.0f, 0.0f, 0.5f}).IsZero());
+}
+
+TEST(QmHudEditorGeometry, ResolveHorizontalFlowFromVisibleRect)
+{
+	const float ScreenStartX = 0.0f;
+	const float ScreenWidth = 400.0f;
+	const CUIRect AnchoredLeft = {0.0f, 0.0f, 120.0f, 80.0f};
+	const CUIRect AnchoredRight = {280.0f, 0.0f, 120.0f, 80.0f};
+	const CUIRect CenterTilt = {100.0f, 0.0f, 80.0f, 60.0f};
+	const CUIRect FarRightTilt = {260.0f, 0.0f, 60.0f, 60.0f};
+
+	EXPECT_EQ(QmHudEditor::ResolveHorizontalFlow(AnchoredLeft, ScreenStartX, ScreenWidth), QmHudEditor::EHorizontalFlow::LeftToRight);
+	EXPECT_EQ(QmHudEditor::ResolveHorizontalFlow(AnchoredRight, ScreenStartX, ScreenWidth), QmHudEditor::EHorizontalFlow::RightToLeft);
+	EXPECT_EQ(QmHudEditor::ResolveHorizontalFlow(CenterTilt, ScreenStartX, ScreenWidth), QmHudEditor::EHorizontalFlow::LeftToRight);
+	EXPECT_EQ(QmHudEditor::ResolveHorizontalFlow(FarRightTilt, ScreenStartX, ScreenWidth), QmHudEditor::EHorizontalFlow::RightToLeft);
+}
+
 TEST(QmHudNotificationsGeometry, EditorPreviewRightFlowBoxMatchesStableRightEdge)
 {
 	const CUIRect EditorRect = {100.0f, 40.0f, 128.0f, 92.0f};
