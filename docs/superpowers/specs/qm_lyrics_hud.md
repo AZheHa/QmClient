@@ -54,7 +54,7 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | T0b1 | 删 menus_qmclient 设置页歌词卡 + 模块表项 + 7 处枚举 case + HUD tab 新功能红点；`QmModuleCount` 36→35 | ✅ commit `16f7e226b` |
 | T0b2 拆除主入口 | 删 `hud.h` RenderLyricHud 声明 + `hud.cpp` RenderLyricHud 函数体（130 行）+ 调用点；不动 RenderMediaIsland 内嵌歌词块（T0b3） | ✅ commit `09dcee910` |
 | T0b3 拆除媒体岛嵌入 | 删 `hud.cpp` RenderMediaIsland 内 9 处 DockedLyric*/m_LyricHudDocked* 探测+布局+绘制；删 RenderLegacyMediaInfoAt 内嵌歌词块；删 hud.h 3 个 m_LyricHud* 成员；OnRender 主循环复位 | ✅ commit `265e0a277` |
-| T0b4 一刮子全删 | 删 `lyrics_component.{h,cpp}` + `lyrics/lyric_parser.{h,cpp}` + `lyrics/lyric_model.h` + `src/test/qm_lyrics_parser_test.cpp` + 20 个配置 + `gameclient.h:245` 成员 + `gameclient.cpp:295` Add（含原 T0c+T0d+T0e 内容，因策略变更全部并掉） | ⏳ |
+| T0b4 一刮子全删 | 删 `lyrics_component.{h,cpp}` + `lyrics/lyric_parser.{h,cpp}` + `lyrics/lyric_model.h` + `src/test/qm_lyrics_parser_test.cpp` + 20 个配置 + `gameclient.h:245` 成员 + `gameclient.cpp:295` Add + CMakeLists.txt 引用 + i18n 提取规则（含原 T0c+T0d+T0e 内容，因策略变更全部并掉） | ✅ commit `089610c82` |
 | ~~T0c 抽取 QQ/网易~~ | ~~已废弃，策略变更后不再保留~~ | 🚫 |
 | ~~T0d 删 CLyrics + LRC 解析~~ | ~~并入 T0b4~~ | 🚫 |
 | ~~T0e 测试拆分~~ | ~~不需要拆分，QQ/YRC 测试全删~~ | 🚫 |
