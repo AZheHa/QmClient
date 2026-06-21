@@ -249,7 +249,7 @@ bool CQmHudNotifications::QueueEcho(const char *pMessage, unsigned EchoColor)
 
 bool CQmHudNotifications::ShouldSuppressServerChat(const char *pMessage)
 {
-	return HandleServerChat(pMessage, g_Config.m_QmHudNotificationsSystem != 0, false, false);
+	return HandleServerChat(pMessage, CurrentRouteConfig(false, false));
 }
 
 bool CQmHudNotifications::ShouldConsumeHiddenServerChat(const char *pMessage, bool HideBasicInfo, bool HidePrompt)
@@ -260,7 +260,7 @@ bool CQmHudNotifications::ShouldConsumeHiddenServerChat(const char *pMessage, bo
 		m_PendingCompatPrompt = QmHudNotifications::ESoloPrompt::None;
 
 	const QmHudNotifications::SServerMessageAnalysis Analysis = QmHudNotifications::AnalyzeServerMessage(pMessage, m_PendingCompatPrompt);
-	const QmHudNotifications::SServerMessageEntryDecision Decision = QmHudNotifications::DecideServerMessageEntry(Analysis, g_Config.m_QmHudNotificationsSystem != 0, HideBasicInfo, HidePrompt);
+	const QmHudNotifications::SServerMessageEntryDecision Decision = QmHudNotifications::DecideServerMessageEntry(Analysis, CurrentRouteConfig(HideBasicInfo, HidePrompt));
 	if(Decision.m_ClearPendingCompatPrompt)
 		m_PendingCompatPrompt = QmHudNotifications::ESoloPrompt::None;
 	return Decision.m_ConsumeHiddenMessage;
@@ -299,7 +299,6 @@ void CQmHudNotifications::RenderNotifications(const CUIRect &BaseRect, const CUI
 
 	ColorRGBA BgColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_QmHudNotificationsBgColor, true));
 	float Y = BaseRect.y;
-	float UsedHeight = 0.0f;
 
 	for(int i = 0; i < NumVisible; ++i)
 	{
@@ -333,7 +332,6 @@ void CQmHudNotifications::RenderNotifications(const CUIRect &BaseRect, const CUI
 		TextRender()->Text(Box.x + PaddingX, Box.y + PaddingY, FontSize, Notification.m_aText, TextMaxWidth);
 
 		Y += BoxH + Gap;
-		UsedHeight += BoxH + (i + 1 < NumVisible ? Gap : 0.0f);
 	}
 
 	TextRender()->TextColor(TextRender()->DefaultTextColor());

@@ -1,5 +1,7 @@
 #include "modes.h"
 
+#include <algorithm>
+
 int ApplyQmFocusConfigOverride(SQmFocusConfigOverrideState &State, bool HideActive, int CurrentValue, int HiddenValue, bool &Changed)
 {
 	Changed = false;
@@ -46,6 +48,15 @@ bool ApplyQmGoresLinkedConfig(bool GoresActive, bool AutoToggle, bool CurrentVal
 	return GoresActive;
 }
 
+int ApplyQmGoresDummyHammerConfig(bool GoresActive, int CurrentValue, bool &Changed)
+{
+	Changed = false;
+	if(!GoresActive || CurrentValue == 0)
+		return CurrentValue;
+	Changed = true;
+	return 0;
+}
+
 bool ShouldHideGoresGuide(bool GoresEnabled, bool HideGuidesEnabled, bool ManualGuideVisible)
 {
 	return GoresEnabled && HideGuidesEnabled && !ManualGuideVisible;
@@ -54,6 +65,16 @@ bool ShouldHideGoresGuide(bool GoresEnabled, bool HideGuidesEnabled, bool Manual
 bool ShouldRenderGoresDebugRoute(bool Online, bool DebugRouteEnabled, bool GoresMapProgressEnabled)
 {
 	return Online && DebugRouteEnabled && GoresMapProgressEnabled;
+}
+
+bool ConsumeQmBudgetedWork(int &Cursor, int Total, int Budget)
+{
+	if(Cursor >= Total)
+		return false;
+	if(Budget <= 0)
+		return true;
+	Cursor = std::min(Total, Cursor + Budget);
+	return Cursor < Total;
 }
 
 bool ShouldHideFocusHud(bool FocusActive, bool HideHud)

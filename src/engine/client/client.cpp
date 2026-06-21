@@ -57,6 +57,7 @@
 #include <generated/protocolglue.h>
 
 #include <game/client/components/qmclient/perf_logging.h>
+#include <game/client/frame_scheduler.h>
 #include <game/localization.h>
 #include <game/version.h>
 
@@ -5467,7 +5468,7 @@ void CClient::RegisterCommands()
 	m_pConsole->Register("minimize", "", CFGFLAG_CLIENT | CFGFLAG_STORE, Con_Minimize, this, "Minimize the client");
 	m_pConsole->Register("connect", "r[host|ip]", CFGFLAG_CLIENT, Con_Connect, this, "Connect to the specified host/ip");
 	m_pConsole->Register("disconnect", "", CFGFLAG_CLIENT, Con_Disconnect, this, "Disconnect from the server");
-	m_pConsole->Register("qm_timeout_disconnect", "", CFGFLAG_CLIENT, Con_QmTimeoutDisconnect, this, "静默断开当前服务器连接，用于保留 Tee 超时保护");
+	m_pConsole->Register("qm_timeout_disconnect", "", CFGFLAG_CLIENT, Con_QmTimeoutDisconnect, this, "Silently disconnect from the current server while keeping Tee timeout protection");
 	m_pConsole->Register("ping", "", CFGFLAG_CLIENT, Con_Ping, this, "Ping the current server");
 	m_pConsole->Register("screenshot", "", CFGFLAG_CLIENT | CFGFLAG_STORE, Con_Screenshot, this, "Take a screenshot");
 	m_pConsole->Register("net_reset", "", CFGFLAG_CLIENT, ConNetReset, this, "Rebinds the client's listening address and port");
@@ -5929,6 +5930,9 @@ int main(int argc, const char **argv)
 	IEngineTextRender *pEngineTextRender = CreateEngineTextRender();
 	pKernel->RegisterInterface(pEngineTextRender); // IEngineTextRender
 	pKernel->RegisterInterface(static_cast<ITextRender *>(pEngineTextRender), false);
+
+	IFrameScheduler *pFrameScheduler = CreateFrameScheduler();
+	pKernel->RegisterInterface(pFrameScheduler);
 
 	IEngineMap *pEngineMap = CreateEngineMap();
 	pKernel->RegisterInterface(pEngineMap); // IEngineMap
