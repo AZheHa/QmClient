@@ -8,11 +8,10 @@
 
 #include <generated/protocol.h>
 
-#include <game/teamscore.h>
-
-#include <game/client/component.h>
 #include <game/client/QmUi/QmLayout.h>
+#include <game/client/component.h>
 #include <game/client/ui_rect.h>
+#include <game/teamscore.h>
 
 #include <cstdint>
 #include <vector>
@@ -271,7 +270,6 @@ class CHud : public CComponent
 	bool HasVisibleMediaIsland() const;
 	float GetTopIslandAvoidanceRight() const;
 	void RenderMediaIsland();
-	void RenderLyricHud();
 
 	int m_LastSpectatorCountTick;
 	void RenderSpectatorCount();
