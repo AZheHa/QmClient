@@ -48,8 +48,11 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | 阶段 | 内容 | 状态 |
 |------|------|------|
 | Spec 改终版 | 加进度看板 + 保留/删除清单 + #10 合进 T0 + 调整 T1 解析器为「只写 LRC/eslrc/TTML 不动 QRC/YRC」 | ✅ |
-| T0a | #10 共用贴边 Helpers：`QmHudEditor::SEdgeMargin` / `ApplyEdgeMargin` / `EHorizontalFlow` / `ResolveHorizontalFlow` 加到 `hud_editor.h`；通知栏 `InsetAnchoredRect` 迁移；通知栏测试全绿 | ✅ |
-| T0b 拆除 | 5 处 `m_Lyrics` 调用 + `RenderLyricsHud` + 设置页歌词卡 + 模块表项 + 20 个配置 + `gameclient.h:245` 成员；保留 `EHudEditorElement::Lyrics` token | 🚧 |
+| T0a | #10 共用贴边 Helpers：`QmHudEditor::SEdgeMargin` / `ApplyEdgeMargin` / `EHorizontalFlow` / `ResolveHorizontalFlow` 加到 `hud_editor.h`；通知栏 `InsetAnchoredRect` 迁移；通知栏测试全绿 | ✅ commit `e54bb209a` |
+| T0b1 | 删 menus_qmclient 设置页歌词卡 + 模块表项 + 7 处枚举 case + HUD tab 新功能红点；`QmModuleCount` 36→35 | ✅ commit `16f7e226b` |
+| T0b2 拆除主入口 | 删 `hud.cpp` 5479-5611（HUD 主入口 `HasLyric`/`HasNextLyric` + lyric layout）+ 5620+ 整个 `RenderLyricsHud` + 5634/5640/5661 BeginTransform/PreviewTransform | ⏳ |
+| T0b3 拆除媒体岛嵌入 | 删 `hud.cpp` 3296-3299 `DockedLyricState`/`HasDockedLyric`/`pDockedLyricText`；3310/3422-3520 `m_LyricHudDocked*`；3422 PreviewTransform；m_LyricHudDockedToMediaIsland 状态机 | ⏳ |
+| T0b4 拆除 CLyrics | 删 `lyrics_component.h/cpp`；`gameclient.h:245` 成员；`gameclient.cpp:295` Add；20 个配置；include `lyrics_component.h` | ⏳ |
 | T0c 抽取 | `lyrics_component.cpp` 中 QQ/网易 4 段代码抽到新模块 `lyrics/qq_music_api.{h,cpp}` 与 `lyrics/netease_music_api.{h,cpp}`；纯函数接口；不依赖 CLyrics state | ⏳ |
 | T0d 删 CLyrics | 删 `lyrics_component.h/cpp` 主类；`lyric_parser.h/cpp` 删 `ParseLrcLyrics` / `BuildVisibleLineText` 实现 | ⏳ |
 | T0e 测试拆分 | 删旧测试文件中 LRC + BuildVisibleLineText 那两条；保留的 QRC/YRC/Merge 拆到新文件 | ⏳ |
@@ -75,7 +78,7 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 3. 完成后改成 ✅ 并 commit。
 
 **中断点记录**（每次中断时写一条，记到这里）：
-- _暂无_
+- 2026-06-22 收在 T0b1 commit `16f7e226b`。next: T0b2 拆 hud.cpp 主入口（5479-5611 + 5620+ + 5634/5640/5661），行号会因后续 grep 重新定位。**注意环境问题**：本地 default gate 因 vswhere PATH 和 Git Bash find 拦截无法跑，T0a/T0b1 quick gate 全绿但未走真实编译。续接前建议在原生 cmd 手动跑 `qmclient_scripts\cmake-windows.cmd --build cmake-build-release --target game-client -j 12` 验证 T0a+T0b1 真编译通过，再动 T0b2。
 
 ---
 
