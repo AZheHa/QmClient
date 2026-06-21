@@ -75,6 +75,7 @@
 #include "components/qmclient/hud_notifications/hud_notifications.h"
 #include "components/qmclient/input_overlay.h"
 #include "components/qmclient/monitoring/monitoring.h"
+#include "components/qmclient/qm_lyrics/qm_lyrics.h"
 #include "components/qmclient/qmclient.h"
 #include "components/qmclient/scripting.h"
 #include "components/qmclient/translate/translate.h"
@@ -241,6 +242,7 @@ public:
 	CSounds m_Sounds;
 	CEmoticon m_Emoticon;
 	CSystemMediaControls m_SystemMediaControls;
+	CQmLyrics m_QmLyrics;
 
 	CDamageInd m_DamageInd;
 	CTouchControls m_TouchControls;

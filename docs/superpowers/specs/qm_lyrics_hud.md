@@ -67,7 +67,7 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | T3 | LRCLIB 数据源（用 `std::make_shared<CHttpRequest>` + `Http()->Run`）+ IQmLyricsSource 抽象 + 12 个测试 | ✅ |
 | T4 | SMTC 适配层 — **复用现有 `CSystemMediaControls`**：该组件已暴露 `SState`（含 m_aSourceAppId/Title/Artist/Album/PositionMs/DurationMs/Playing），不需要再从零写 WinRT。T6 组件骨架里直接 `GameClient()->m_SystemMediaControls.GetStateSnapshot(...)` 转 `SSourceQuery`。 | ✅（复用） |
 | T5 | 时钟插值器 + 7 个单元测试 | ✅ |
-| T6 | 组件骨架 + 32 个 `qm_lyrics_*` 新配置 | ⏳ |
+| T6 | CQmLyrics 组件骨架 + 30 个 `qm_lyrics_*` 配置 + 注册到 gameclient | ✅ |
 | T7 | 设置页 UI（栖梦 → 视觉 → 歌词 HUD） | ⏳ |
 | T8 | 静态布局 + HUD 编辑器接入（用 T0a 的贴边 Helpers） | ⏳ |
 | T9 | 行级动画（滚动 + alpha/scale 过渡） | ⏳ |

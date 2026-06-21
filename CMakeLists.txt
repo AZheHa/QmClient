@@ -2742,6 +2742,8 @@ if(CLIENT)
     components/qmclient/monitoring/monitoring.cpp
     components/qmclient/monitoring/monitoring_device_perf.cpp
     components/qmclient/monitoring/monitoring.h
+    components/qmclient/qm_lyrics/qm_lyrics.cpp
+    components/qmclient/qm_lyrics/qm_lyrics.h
     components/qmclient/qm_lyrics/qm_lyrics_cache.cpp
     components/qmclient/qm_lyrics/qm_lyrics_cache.h
     components/qmclient/qm_lyrics/qm_lyrics_clock.cpp
