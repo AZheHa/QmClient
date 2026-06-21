@@ -50,8 +50,8 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | Spec 改终版 | 加进度看板 + 保留/删除清单 + #10 合进 T0 + 调整 T1 解析器为「只写 LRC/eslrc/TTML 不动 QRC/YRC」 | ✅ |
 | T0a | #10 共用贴边 Helpers：`QmHudEditor::SEdgeMargin` / `ApplyEdgeMargin` / `EHorizontalFlow` / `ResolveHorizontalFlow` 加到 `hud_editor.h`；通知栏 `InsetAnchoredRect` 迁移；通知栏测试全绿 | ✅ commit `e54bb209a` |
 | T0b1 | 删 menus_qmclient 设置页歌词卡 + 模块表项 + 7 处枚举 case + HUD tab 新功能红点；`QmModuleCount` 36→35 | ✅ commit `16f7e226b` |
-| T0b2 拆除主入口 | 删 `hud.cpp` 5479-5611（HUD 主入口 `HasLyric`/`HasNextLyric` + lyric layout）+ 5620+ 整个 `RenderLyricsHud` + 5634/5640/5661 BeginTransform/PreviewTransform | ⏳ |
-| T0b3 拆除媒体岛嵌入 | 删 `hud.cpp` 3296-3299 `DockedLyricState`/`HasDockedLyric`/`pDockedLyricText`；3310/3422-3520 `m_LyricHudDocked*`；3422 PreviewTransform；m_LyricHudDockedToMediaIsland 状态机 | ⏳ |
+| T0b2 拆除主入口 | 删 `hud.h` RenderLyricHud 声明 + `hud.cpp` RenderLyricHud 函数体（130 行）+ 调用点；不动 RenderMediaIsland 内嵌歌词块（T0b3） | ✅ commit `09dcee910` |
+| T0b3 拆除媒体岛嵌入 | 删 `hud.cpp` RenderMediaIsland 内 5475-5586 歌词块；3296-3299 `DockedLyricState`；3310/3422-3520 `m_LyricHudDocked*`；3422 PreviewTransform；m_LyricHudDockedToMediaIsland 状态机 | ⏳ |
 | T0b4 拆除 CLyrics | 删 `lyrics_component.h/cpp`；`gameclient.h:245` 成员；`gameclient.cpp:295` Add；20 个配置；include `lyrics_component.h` | ⏳ |
 | T0c 抽取 | `lyrics_component.cpp` 中 QQ/网易 4 段代码抽到新模块 `lyrics/qq_music_api.{h,cpp}` 与 `lyrics/netease_music_api.{h,cpp}`；纯函数接口；不依赖 CLyrics state | ⏳ |
 | T0d 删 CLyrics | 删 `lyrics_component.h/cpp` 主类；`lyric_parser.h/cpp` 删 `ParseLrcLyrics` / `BuildVisibleLineText` 实现 | ⏳ |
