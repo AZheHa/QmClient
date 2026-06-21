@@ -3701,6 +3701,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     render_target_test.cpp
     shell_execute_test.cpp
     snapshot_test.cpp
+    steam_presence_test.cpp
     str_test.cpp
     strip_path_and_extension_test.cpp
     swap_endian_test.cpp
