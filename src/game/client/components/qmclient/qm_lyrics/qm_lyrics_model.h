@@ -28,10 +28,13 @@ namespace QmLyrics
 
 	enum class EFormat
 	{
+		PLAIN,
 		LRC_STANDARD,
 		LRC_ENHANCED,
 		ESLRC,
 		TTML,
+		KRC,
+		QRC,
 	};
 
 	struct SLyricsTrack

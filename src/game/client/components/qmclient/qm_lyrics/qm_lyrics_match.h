@@ -14,6 +14,7 @@ namespace QmLyrics
 		std::string m_Title;
 		std::string m_Artist;
 		std::string m_Album;
+		std::string m_FileName; // 本地文件候选的文件名，可空。
 		int m_DurationSec = 0;
 	};
 
@@ -23,6 +24,10 @@ namespace QmLyrics
 		std::string m_Title;
 		std::string m_Artist;
 		std::string m_Album; // 可空
+		std::string m_PlayerId; // SMTC SourceAppUserModelId
+		std::string m_NeteaseSongId; // 来自 SMTC Genres: NCM-...
+		std::string m_QqMusicSongId; // 来自 SMTC Genres: QQ-...
+		std::string m_LinkedFileName; // 来自 SMTC Genres: FILENAME-...
 		int m_DurationSec = 0; // 0 表示未知
 	};
 
@@ -39,20 +44,21 @@ namespace QmLyrics
 	// 适合艺人名顺序不同（"Pink Floyd" vs "Floyd, Pink"）的情况。
 	float TokenSetRatio(std::string_view A, std::string_view B);
 
-	// duration 容差评分。
-	// 返回 0..1：完全匹配 1.0，差 TolMs 时降到 0；超出线性。
-	// TolMs 通常 5000；查询 0 表示未知，返回 0.5（中性）。
-	float DurationScore(int QuerySec, int CandidateSec, int TolMs = 5000);
+	// duration 容差评分，对齐 BetterLyrics：
+	// 差距 <= 1s 视作 1.0，差距 >= MaxTolMs 视作 0，中间线性插值。
+	// 候选时长 0 表示远端无时长数据，返回 0。
+	float DurationScore(int QuerySec, int CandidateSec, int MaxTolMs = 10000);
 
 	// 综合评分（0..100）。
-	// 默认权重：title=50, artist=30, duration=20。
-	// 各字段先归一化后用 LevenshteinDistance / max_length 转 0..1 相似度。
-	// 候选/查询中任一字段为空时该字段计入但视作 0。
+	// 对齐 BetterLyrics：title=30, artist=30, album=10, duration=30。
+	// 字符串字段 trim/lower 后使用 Jaro-Winkler；双方都为空视作匹配。
+	// 如果查询或候选缺少标题，则回退到排序 token 指纹。
 	struct SMatchWeights
 	{
-		float m_TitleWeight = 50.0f;
+		float m_TitleWeight = 30.0f;
 		float m_ArtistWeight = 30.0f;
-		float m_DurationWeight = 20.0f;
+		float m_AlbumWeight = 10.0f;
+		float m_DurationWeight = 30.0f;
 	};
 
 	float ScoreMatch(const SMatchQuery &Query, const SMatchCandidate &Candidate, const SMatchWeights &Weights = {});

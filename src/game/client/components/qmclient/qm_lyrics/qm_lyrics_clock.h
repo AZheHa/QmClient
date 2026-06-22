@@ -6,11 +6,13 @@
 namespace QmLyrics
 {
 
+	bool ShouldUpdateTimelineAnchor(int64_t LastPositionMs, double LastPlaybackRate, int64_t PositionMs, double PlaybackRate, bool IdentityChanged);
+
 	// 时钟插值器：根据 SMTC 上报的 (AnchorPositionMs, AnchorWallTick) 与本地时钟
 	// 推算当前播放毫秒。
 	//
-	// 抗漂移策略：保留 "actual" 与 "target" 两条状态，每帧 actual = lerp(actual, target, 0.2)
-	// 平滑靠拢；差值 > DriftCorrectMs 时硬切。
+	// 抗漂移策略：本地时间正常推进；SMTC 重新锚定时如果与当前推算位置小幅偏离，
+	// 用 correction 逐步收敛；差值 > DriftCorrectMs 时硬切。
 	//
 	// 单元测试用 fake clock 注入 NowTick + TickFreq，避免依赖真实 time_get()。
 	class CClockInterpolator
@@ -55,7 +57,11 @@ namespace QmLyrics
 		// 平滑状态
 		int64_t m_LastActualMs = 0;
 		int64_t m_LastTargetMs = 0;
+		int64_t m_CorrectionMs = 0;
+		int64_t m_LastNowWallTick = 0;
+		int64_t m_LastTickFreq = 0;
 		bool m_HasState = false;
+		bool m_HasLastNow = false;
 	};
 
 } // namespace QmLyrics

@@ -60,9 +60,14 @@ TEST(QmLyricsSourceLrclibUrl, SearchCombinesTitleAndArtist)
 	SSourceQuery Q;
 	Q.m_Title = "Hello";
 	Q.m_Artist = "Adele";
+	Q.m_Album = "25";
+	Q.m_DurationSec = 295;
 	const std::string Url = BuildLrclibSearchUrl(Q);
 	EXPECT_NE(Url.find("/api/search"), std::string::npos);
-	EXPECT_NE(Url.find("q=Hello%20Adele"), std::string::npos);
+	EXPECT_NE(Url.find("track_name=Hello"), std::string::npos);
+	EXPECT_NE(Url.find("artist_name=Adele"), std::string::npos);
+	EXPECT_NE(Url.find("album_name=25"), std::string::npos);
+	EXPECT_NE(Url.find("durationMs=295000"), std::string::npos);
 }
 
 TEST(QmLyricsSourceLrclibParse, GetSyncedLyricsBecomesEnhanced)
@@ -107,7 +112,7 @@ TEST(QmLyricsSourceLrclibParse, GetFallsBackToPlainWhenSyncedEmpty)
 	})";
 	const auto vC = ParseGet(pBody);
 	ASSERT_EQ(vC.size(), 1u);
-	EXPECT_EQ(vC[0].m_FormatHint, EFormat::LRC_STANDARD);
+	EXPECT_EQ(vC[0].m_FormatHint, EFormat::PLAIN);
 	EXPECT_NE(vC[0].m_RawText.find("Line 1"), std::string::npos);
 }
 

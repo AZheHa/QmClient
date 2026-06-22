@@ -2755,9 +2755,23 @@ if(CLIENT)
     components/qmclient/qm_lyrics/qm_lyrics_parser_lrc.h
     components/qmclient/qm_lyrics/qm_lyrics_parser_ttml.cpp
     components/qmclient/qm_lyrics/qm_lyrics_parser_ttml.h
+    components/qmclient/qm_lyrics/qm_lyrics_render.cpp
+    components/qmclient/qm_lyrics/qm_lyrics_render.h
+    components/qmclient/qm_lyrics/qm_lyrics_source_amll_ttml_db.cpp
+    components/qmclient/qm_lyrics/qm_lyrics_source_amll_ttml_db.h
+    components/qmclient/qm_lyrics/qm_lyrics_source_apple_music.cpp
+    components/qmclient/qm_lyrics/qm_lyrics_source_apple_music.h
     components/qmclient/qm_lyrics/qm_lyrics_source.h
+    components/qmclient/qm_lyrics/qm_lyrics_source_kugou.cpp
+    components/qmclient/qm_lyrics/qm_lyrics_source_kugou.h
+    components/qmclient/qm_lyrics/qm_lyrics_source_local_files.cpp
+    components/qmclient/qm_lyrics/qm_lyrics_source_local_files.h
+    components/qmclient/qm_lyrics/qm_lyrics_source_lyricify_cn.cpp
+    components/qmclient/qm_lyrics/qm_lyrics_source_lyricify_cn.h
     components/qmclient/qm_lyrics/qm_lyrics_source_lrclib.cpp
     components/qmclient/qm_lyrics/qm_lyrics_source_lrclib.h
+    components/qmclient/qm_lyrics/qm_lyrics_song_search_map.cpp
+    components/qmclient/qm_lyrics/qm_lyrics_song_search_map.h
     components/qmclient/qmclient.cpp
     components/qmclient/qmclient.h
     components/qmclient/qmclient_utils.cpp
@@ -3698,7 +3712,13 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     qm_lyrics_match_test.cpp
     qm_lyrics_parser_lrc_test.cpp
     qm_lyrics_parser_ttml_test.cpp
+    qm_lyrics_render_test.cpp
+    qm_lyrics_source_amll_ttml_db_test.cpp
+    qm_lyrics_source_apple_music_test.cpp
+    qm_lyrics_source_local_files_test.cpp
+    qm_lyrics_source_lyricify_cn_test.cpp
     qm_lyrics_source_lrclib_test.cpp
+    qm_lyrics_song_search_map_test.cpp
     qm_modes_test.cpp
     qmclient_update_version_test.cpp
     QmUiTokensTest.cpp
@@ -3764,7 +3784,14 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     src/game/client/components/qmclient/qm_lyrics/qm_lyrics_match.cpp
     src/game/client/components/qmclient/qm_lyrics/qm_lyrics_parser_lrc.cpp
     src/game/client/components/qmclient/qm_lyrics/qm_lyrics_parser_ttml.cpp
+    src/game/client/components/qmclient/qm_lyrics/qm_lyrics_render.cpp
+    src/game/client/components/qmclient/qm_lyrics/qm_lyrics_source_amll_ttml_db.cpp
+    src/game/client/components/qmclient/qm_lyrics/qm_lyrics_source_apple_music.cpp
+    src/game/client/components/qmclient/qm_lyrics/qm_lyrics_source_kugou.cpp
+    src/game/client/components/qmclient/qm_lyrics/qm_lyrics_source_local_files.cpp
+    src/game/client/components/qmclient/qm_lyrics/qm_lyrics_source_lyricify_cn.cpp
     src/game/client/components/qmclient/qm_lyrics/qm_lyrics_source_lrclib.cpp
+    src/game/client/components/qmclient/qm_lyrics/qm_lyrics_song_search_map.cpp
     src/game/client/live/live_director.cpp
     src/game/client/live/live_replay_buffer.cpp
     src/game/client/components/qmclient/modes.cpp
@@ -3802,6 +3829,9 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
   )
   add_dependencies(${TARGET_TESTRUNNER} generate_protocol)
   target_link_libraries(${TARGET_TESTRUNNER} ${PNG_LIBRARIES} ${WebP_LIBRARIES} ${GTEST_LIBRARIES} ${LIBS_SERVER})
+  if(FFMPEG_FOUND)
+    target_link_libraries(${TARGET_TESTRUNNER} ${FFMPEG_LIBRARIES})
+  endif()
   target_compile_definitions(${TARGET_TESTRUNNER} PRIVATE
     DDNET_TEST_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
   )
@@ -3809,6 +3839,9 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     ${GTEST_INCLUDE_DIRS}
     ${SDL2_INCLUDE_DIRS}
   )
+  if(FFMPEG_FOUND)
+    target_include_directories(${TARGET_TESTRUNNER} SYSTEM PRIVATE ${FFMPEG_INCLUDE_DIRS})
+  endif()
 
   list(APPEND TARGETS_OWN ${TARGET_TESTRUNNER})
   list(APPEND TARGETS_LINK ${TARGET_TESTRUNNER})

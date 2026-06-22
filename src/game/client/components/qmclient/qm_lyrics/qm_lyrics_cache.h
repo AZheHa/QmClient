@@ -1,11 +1,16 @@
 #ifndef GAME_CLIENT_COMPONENTS_QMCLIENT_QM_LYRICS_QM_LYRICS_CACHE_H
 #define GAME_CLIENT_COMPONENTS_QMCLIENT_QM_LYRICS_QM_LYRICS_CACHE_H
 
+#include "qm_lyrics_match.h"
+#include "qm_lyrics_model.h"
+
 #include <cstdint>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+
+class IStorage;
 
 namespace QmLyrics
 {
@@ -54,6 +59,22 @@ namespace QmLyrics
 	// FileName：sha256(Key) 取前 16 hex 字符 + ".json"。
 	std::string BuildCacheKey(std::string_view Title, std::string_view Artist, std::string_view Album, int DurationSec);
 	std::string FileNameForKey(std::string_view Key);
+
+	struct SCachePayload
+	{
+		std::string m_RawText;
+		std::string m_TranslationText;
+		std::string m_TransliterationText;
+		EFormat m_Format = EFormat::LRC_STANDARD;
+		SMatchCandidate m_Metadata;
+		std::string m_Source;
+	};
+
+	bool LoadCacheIndex(IStorage *pStorage, CCacheIndex *pOut);
+	bool SaveCacheIndex(IStorage *pStorage, const CCacheIndex &Index);
+	bool LoadCachePayload(IStorage *pStorage, const char *pFileName, SCachePayload *pOut);
+	bool SaveCachePayload(IStorage *pStorage, const char *pFileName, const SCachePayload &Payload);
+	void RemoveCachePayload(IStorage *pStorage, const char *pFileName);
 
 } // namespace QmLyrics
 

@@ -402,7 +402,11 @@ MACRO_CONFIG_INT(QmSmtcShowHud, qm_smtc_show_hud, 1, 0, 1, CFGFLAG_CLIENT | CFGF
 
 // Lyrics HUD (CQmLyrics 重写版) - 歌词叠加层
 MACRO_CONFIG_INT(QmLyrics, qm_lyrics, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用歌词 HUD 叠加层")
-MACRO_CONFIG_INT(QmLyricsSource, qm_lyrics_source, 0, 0, 3, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词数据源（0=LRCLIB）")
+MACRO_CONFIG_INT(QmLyricsSource, qm_lyrics_source, 0, 0, 10, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词数据源（0=自动最佳匹配，1=LRCLIB，2=Kugou，3=QQ，4=Netease，5=AMLL TTML DB，6=Apple Music，7=Local Music File，8=Local LRC，9=Local ESLRC，10=Local TTML）")
+MACRO_CONFIG_INT(QmLyricsSearchType, qm_lyrics_search_type, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词搜索策略（0=按来源顺序，1=并发最佳匹配）")
+MACRO_CONFIG_STR(QmLyricsSourceOrder, qm_lyrics_source_order, 512, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词自动搜索来源顺序/启用列表（空=默认；用 | 分隔，如 QQ|Kugou|Netease|LrcLib）")
+MACRO_CONFIG_STR(QmLyricsProviderThresholds, qm_lyrics_provider_thresholds, 512, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词来源独立匹配阈值（空=全局阈值；如 QQ=60|LrcLib=70）")
+MACRO_CONFIG_STR(QmLyricsIgnoreCacheProviders, qm_lyrics_ignore_cache_providers, 512, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词搜索时忽略缓存的来源列表（用 | 分隔，如 QQ|Kugou）")
 MACRO_CONFIG_INT(QmLyricsAutoFetch, qm_lyrics_auto_fetch, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "检测新歌时自动联网拉取歌词")
 MACRO_CONFIG_INT(QmLyricsCacheEnable, qm_lyrics_cache_enable, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用歌词本地缓存")
 MACRO_CONFIG_INT(QmLyricsCacheTtlDays, qm_lyrics_cache_ttl_days, 30, 0, 3650, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词缓存过期天数（0=永久）")
@@ -428,7 +432,12 @@ MACRO_CONFIG_INT(QmLyricsScrollMs, qm_lyrics_scroll_ms, 350, 0, 1000, CFGFLAG_CL
 MACRO_CONFIG_INT(QmLyricsDriftCorrectMs, qm_lyrics_drift_correct_ms, 1000, 100, 5000, CFGFLAG_CLIENT | CFGFLAG_SAVE, "时钟漂移硬切阈值 ms")
 MACRO_CONFIG_INT(QmLyricsEdgeMargin, qm_lyrics_edge_margin, 8, 0, 64, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词 HUD 贴边外边距 px")
 MACRO_CONFIG_INT(QmLyricsHttpTimeoutMs, qm_lyrics_http_timeout_ms, 8000, 500, 30000, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词 HTTP 请求超时 ms")
-MACRO_CONFIG_INT(QmLyricsOffsetMs, qm_lyrics_offset_ms, 0, -5000, 5000, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词手动时间轴偏移 ms")
+MACRO_CONFIG_STR(QmLyricsLrclibBase, qm_lyrics_lrclib_base, 64, "https://lrclib.net", CFGFLAG_CLIENT | CFGFLAG_SAVE, "LRCLIB API 基地址（可改成镜像）")
+MACRO_CONFIG_STR(QmLyricsAmllTtmlDbBase, qm_lyrics_amll_ttml_db_base, 128, "https://raw.githubusercontent.com/amll-dev/amll-ttml-db/refs/heads/main", CFGFLAG_CLIENT | CFGFLAG_SAVE, "AMLL TTML DB API 基地址（可改成镜像）")
+MACRO_CONFIG_STR(QmLyricsAppleMusicMediaUserToken, qm_lyrics_apple_music_media_user_token, 2048, "", CFGFLAG_CLIENT | CFGFLAG_SAVE | CFGFLAG_INSENSITIVE, "Apple Music media-user-token")
+MACRO_CONFIG_STR(QmLyricsLocalMediaFolders, qm_lyrics_local_media_folders, 4096, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词本地媒体库目录（多个目录用 | 分隔）")
+MACRO_CONFIG_STR(QmLyricsHttpProxy, qm_lyrics_http_proxy, 128, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词 HTTP 代理（如 http://127.0.0.1:7890）")
+MACRO_CONFIG_INT(QmLyricsOffsetMs, qm_lyrics_offset_ms, 0, -30000, 30000, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词手动时间轴偏移 ms（运行时按 500ms 步进）")
 MACRO_CONFIG_INT(QmLyricsHideWhenPaused, qm_lyrics_hide_when_paused, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "暂停时隐藏歌词")
 MACRO_CONFIG_INT(QmLyricsHideNoLyrics, qm_lyrics_hide_no_lyrics, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "未找到歌词时隐藏（而非显示提示）")
 

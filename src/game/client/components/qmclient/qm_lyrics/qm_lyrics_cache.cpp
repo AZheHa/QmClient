@@ -6,9 +6,12 @@
 #include <base/system.h>
 
 #include <engine/external/json-parser/json.h>
+#include <engine/shared/jsonwriter.h>
+#include <engine/storage.h>
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 namespace QmLyrics
@@ -263,6 +266,161 @@ namespace QmLyrics
 		json_value_free(pRoot);
 		m_mEntries = std::move(mNew);
 		return true;
+	}
+
+	namespace
+	{
+
+		constexpr const char *CACHE_DIR = "qmclient/lyrics";
+		constexpr const char *CACHE_INDEX = "qmclient/lyrics/index.json";
+
+		bool EnsureCacheDir(IStorage *pStorage)
+		{
+			if(pStorage == nullptr)
+				return false;
+			pStorage->CreateFolder("qmclient", IStorage::TYPE_SAVE);
+			return pStorage->CreateFolder(CACHE_DIR, IStorage::TYPE_SAVE) || pStorage->FolderExists(CACHE_DIR, IStorage::TYPE_SAVE);
+		}
+
+		std::string CachePayloadPath(const char *pFileName)
+		{
+			std::string Path = CACHE_DIR;
+			Path.push_back('/');
+			Path.append(pFileName != nullptr ? pFileName : "");
+			return Path;
+		}
+
+		EFormat FormatFromInt(int Value)
+		{
+			switch(Value)
+			{
+			case 0: return EFormat::PLAIN;
+			case 1: return EFormat::LRC_STANDARD;
+			case 2: return EFormat::LRC_ENHANCED;
+			case 3: return EFormat::ESLRC;
+			case 4: return EFormat::TTML;
+			case 5: return EFormat::KRC;
+			case 6: return EFormat::QRC;
+			default: return EFormat::LRC_STANDARD;
+			}
+		}
+
+	} // anonymous namespace
+
+	bool LoadCacheIndex(IStorage *pStorage, CCacheIndex *pOut)
+	{
+		if(pStorage == nullptr || pOut == nullptr)
+			return false;
+		char *pJson = pStorage->ReadFileStr(CACHE_INDEX, IStorage::TYPE_SAVE);
+		if(pJson == nullptr)
+			return false;
+		char aErr[128];
+		const bool Ok = pOut->FromJson(pJson, aErr, sizeof(aErr));
+		free(pJson);
+		return Ok;
+	}
+
+	bool SaveCacheIndex(IStorage *pStorage, const CCacheIndex &Index)
+	{
+		if(!EnsureCacheDir(pStorage))
+			return false;
+		IOHANDLE File = pStorage->OpenFile(CACHE_INDEX, IOFLAG_WRITE, IStorage::TYPE_SAVE);
+		if(!File)
+			return false;
+		const std::string Json = Index.ToJson();
+		const bool Ok = io_write(File, Json.data(), (unsigned)Json.size()) == Json.size();
+		io_close(File);
+		return Ok;
+	}
+
+	bool LoadCachePayload(IStorage *pStorage, const char *pFileName, SCachePayload *pOut)
+	{
+		if(pStorage == nullptr || pFileName == nullptr || pFileName[0] == '\0' || pOut == nullptr)
+			return false;
+		const std::string Path = CachePayloadPath(pFileName);
+		char *pJsonText = pStorage->ReadFileStr(Path.c_str(), IStorage::TYPE_SAVE);
+		if(pJsonText == nullptr)
+			return false;
+
+		json_settings Settings{};
+		char aJsonErr[json_error_max];
+		json_value *pRoot = json_parse_ex(&Settings, pJsonText, str_length(pJsonText), aJsonErr);
+		free(pJsonText);
+		if(pRoot == nullptr)
+			return false;
+		if(pRoot->type != json_object)
+		{
+			json_value_free(pRoot);
+			return false;
+		}
+
+		SCachePayload Payload;
+		Payload.m_RawText = JsonString(&(*pRoot)["raw"]);
+		Payload.m_TranslationText = JsonString(&(*pRoot)["translation"]);
+		Payload.m_TransliterationText = JsonString(&(*pRoot)["transliteration"]);
+		Payload.m_Format = FormatFromInt((int)JsonInt(&(*pRoot)["format"], (int)EFormat::LRC_STANDARD));
+		Payload.m_Source = JsonString(&(*pRoot)["source"]);
+		const json_value &Metadata = (*pRoot)["metadata"];
+		if(Metadata.type == json_object)
+		{
+			Payload.m_Metadata.m_Title = JsonString(&Metadata["title"]);
+			Payload.m_Metadata.m_Artist = JsonString(&Metadata["artist"]);
+			Payload.m_Metadata.m_Album = JsonString(&Metadata["album"]);
+			Payload.m_Metadata.m_DurationSec = (int)JsonInt(&Metadata["duration"]);
+		}
+		json_value_free(pRoot);
+		if(Payload.m_RawText.empty())
+			return false;
+		*pOut = std::move(Payload);
+		return true;
+	}
+
+	bool SaveCachePayload(IStorage *pStorage, const char *pFileName, const SCachePayload &Payload)
+	{
+		if(pFileName == nullptr || pFileName[0] == '\0' || Payload.m_RawText.empty() || !EnsureCacheDir(pStorage))
+			return false;
+
+		CJsonStringWriter Writer;
+		Writer.BeginObject();
+		Writer.WriteAttribute("raw");
+		Writer.WriteStrValue(Payload.m_RawText.c_str());
+		Writer.WriteAttribute("translation");
+		Writer.WriteStrValue(Payload.m_TranslationText.c_str());
+		Writer.WriteAttribute("transliteration");
+		Writer.WriteStrValue(Payload.m_TransliterationText.c_str());
+		Writer.WriteAttribute("format");
+		Writer.WriteIntValue((int)Payload.m_Format);
+		Writer.WriteAttribute("source");
+		Writer.WriteStrValue(Payload.m_Source.c_str());
+		Writer.WriteAttribute("metadata");
+		Writer.BeginObject();
+		Writer.WriteAttribute("title");
+		Writer.WriteStrValue(Payload.m_Metadata.m_Title.c_str());
+		Writer.WriteAttribute("artist");
+		Writer.WriteStrValue(Payload.m_Metadata.m_Artist.c_str());
+		Writer.WriteAttribute("album");
+		Writer.WriteStrValue(Payload.m_Metadata.m_Album.c_str());
+		Writer.WriteAttribute("duration");
+		Writer.WriteIntValue(Payload.m_Metadata.m_DurationSec);
+		Writer.EndObject();
+		Writer.EndObject();
+		std::string Json = Writer.GetOutputString();
+
+		const std::string Path = CachePayloadPath(pFileName);
+		IOHANDLE File = pStorage->OpenFile(Path.c_str(), IOFLAG_WRITE, IStorage::TYPE_SAVE);
+		if(!File)
+			return false;
+		const bool Ok = io_write(File, Json.data(), (unsigned)Json.size()) == Json.size();
+		io_close(File);
+		return Ok;
+	}
+
+	void RemoveCachePayload(IStorage *pStorage, const char *pFileName)
+	{
+		if(pStorage == nullptr || pFileName == nullptr || pFileName[0] == '\0')
+			return;
+		const std::string Path = CachePayloadPath(pFileName);
+		pStorage->RemoveFile(Path.c_str(), IStorage::TYPE_SAVE);
 	}
 
 } // namespace QmLyrics

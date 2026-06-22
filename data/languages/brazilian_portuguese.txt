@@ -283,6 +283,12 @@ Active color
 Active disconnect
 == Desconexão ativa
 
+Active line font size
+== Active line font size
+
+Active line scale
+== Active line scale
+
 Active moderator mode disabled because you are afk.
 == Modo moderador ativo desativado porque você está ausente.
 
@@ -595,6 +601,9 @@ API key
 Appearance
 == Aparência
 
+Apple Music media-user-token
+== Apple Music media-user-token
+
 Applied to %d same-family part(s).
 == Aplicado a %d parte(s) da mesma família.
 
@@ -763,6 +772,9 @@ Auto enable in Gores mode
 Auto execute
 == Execução automática
 
+Auto fetch lyrics
+== Auto fetch lyrics
+
 Auto gain control for mic (AGC, experimental)
 == Controle automático de ganho para microfone (AGC, experimental)
 
@@ -889,9 +901,6 @@ Background Draw
 Background music volume
 == Volume da música de fundo
 
-Background opacity
-== Background opacity
-
 Ban a certain nickname
 == Banir um certo apelido
 
@@ -930,6 +939,9 @@ Benchmark frame times for number of seconds to file, then quit
 
 Best
 == Melhor
+
+Best match
+== Best match
 
 Bind key to execute a command or view keybindings
 == Vincular tecla para executar um comando ou ver atalhos
@@ -1002,6 +1014,9 @@ Buttons
 
 c = Player position
 == c = Posição do jogador
+
+Cache TTL
+== Cache TTL
 
 Calculate unfinished maps for player in certain mode
 == Calcular mapas não finalizados para jogador em certo modo
@@ -1297,6 +1312,9 @@ Client prediction time is high
 Client uptime
 == Tempo ativo do cliente
 
+Clock drift hard-snap
+== Clock drift hard-snap
+
 Close
 == Fechar
 
@@ -1566,9 +1584,6 @@ Current cut is invalid or already added
 
 Current file
 == Arquivo atual
-
-Current line color
-== Current line color
 
 Current queue: %s
 == Fila atual: %s
@@ -1945,6 +1960,12 @@ Displays your ping to the current server
 Dissolve
 == Dissolver
 
+Distance fade per line
+== Distance fade per line
+
+Distance scale falloff
+== Distance scale falloff
+
 Do not translate server messages
 == Não traduzir mensagens do servidor
 
@@ -2212,8 +2233,8 @@ Enable keyword reply
 Enable long pain sound (used when shooting in freeze)
 == Ativar som de dor longo (usado ao atirar no freeze)
 
-Enable lyrics
-== Enable lyrics
+Enable lyrics HUD
+== Enable lyrics HUD
 
 Enable map compatibility mode using the specified bug (example: grenade-doubleexplosion@ddnet.tw)
 == Ativar modo de compatibilidade de mapa usando o bug especificado (exemplo: grenade-doubleexplosion@ddnet.tw)
@@ -2418,9 +2439,6 @@ f = Frame rate
 
 Fade and slide
 == Desvanecer e deslizar
-
-Fade duration
-== Fade duration
 
 Fade in
 == Desvanecer
@@ -2956,8 +2974,8 @@ Hide UI for focused gameplay
 Hide weapon muzzle flashes
 == Ocultar flashes de boca da arma
 
-Hide without media state
-== Hide without media state
+Hide when paused
+== Hide when paused
 
 High Detail
 == Alto detalhe
@@ -3055,6 +3073,9 @@ I muted you
 Idiot word filter
 == Filtro de palavras idiotas
 
+Ignore cache providers
+== Ignore cache providers
+
 Import from clipboard
 == Importar da área de transferência
 
@@ -3064,8 +3085,14 @@ Improved Anti Ping
 In memory of me
 == Que este cliente se lembre de mim
 
+In-game lyrics overlay with smart matching
+== In-game lyrics overlay with smart matching
+
 Inactive color
 == Cor inativa
+
+Inactive line opacity
+== Inactive line opacity
 
 Incoming language
 == Idioma de entrada
@@ -3262,6 +3289,9 @@ k = Resend loss
 Kaomoji
 == Kaomoji
 
+Karaoke edge softness
+== Karaoke edge softness
+
 Key Bindings
 == Atalhos de Teclas
 
@@ -3421,14 +3451,23 @@ Lht.
 LibreTranslate
 == LibreTranslate
 
+Line scroll duration
+== Line scroll duration
+
+Line spacing
+== Line spacing
+
 Line width
 == Largura da linha
 
-Lines
-== Lines
-
 Lines %d - %d (%s)
 == Linhas %d - %d (%s)
+
+Lines above active
+== Lines above active
+
+Lines below active
+== Lines below active
 
 List all commands that are available in practice mode
 == Listar todos os comandos disponíveis no modo de prática
@@ -3559,6 +3598,18 @@ Local
 Local + Dummy
 == Local + Dummy
 
+Local ESLRC file
+== Local ESLRC file
+
+Local LRC file
+== Local LRC file
+
+Local media folders
+== Local media folders
+
+Local music file
+== Local music file
+
 Local only
 == Apenas local
 
@@ -3576,6 +3627,9 @@ Local test mode, no server needed
 
 Local Time
 == Hora Local
+
+Local TTML file
+== Local TTML file
 
 Local-only
 == Apenas local
@@ -3604,8 +3658,32 @@ Long press on a touch button to select it.
 Low to high
 == Baixo para alto
 
-Lyrics
-== Lyrics
+Lyrics HTTP timeout
+== Lyrics HTTP timeout
+
+Lyrics HUD
+== Lyrics HUD
+
+Lyrics search type
+== Lyrics search type
+
+Lyrics source
+== Lyrics source
+
+Lyrics source order
+== Lyrics source order
+
+Lyrics: empty track
+== Lyrics: empty track
+
+Lyrics: no lyrics found
+== Lyrics: no lyrics found
+
+Lyrics: no media playing
+== Lyrics: no media playing
+
+Lyrics: searching...
+== Lyrics: searching...
 
 Main Asset
 == Asset principal
@@ -3708,6 +3786,9 @@ Markers
 
 Match %d of %d
 == Resultado %d de %d
+
+Match score threshold
+== Match score threshold
 
 Matched with callable peer
 == Correspondido com par chamável
@@ -3966,9 +4047,6 @@ News
 
 Next
 == Próximo
-
-Next line color
-== Next line color
 
 Next page in console
 == Próxima página no console
@@ -4339,11 +4417,11 @@ Option color
 Other
 == Outro
 
+Other lines font size
+== Other lines font size
+
 Outgoing language
 == Idioma de saída
-
-Outline color
-== Outline color
 
 Outline opacity
 == Opacidade do contorno
@@ -4465,6 +4543,9 @@ Pause the current demo
 Pause/unpause game
 == Pausar/despausar jogo
 
+Per-word highlight (karaoke)
+== Per-word highlight (karaoke)
+
 Personal best:
 == Melhor pessoal:
 
@@ -4524,6 +4605,9 @@ Play/pause the current demo
 
 Playback volume
 == Volume de reprodução
+
+Played word color
+== Played word color
 
 Player
 == Jogador
@@ -4746,6 +4830,9 @@ Progress bar height
 
 Progress bar width
 == Largura da barra de progresso
+
+Provider thresholds
+== Provider thresholds
 
 Publicly messages everyone your current time in this current running race
 == Envia publicamente para todos seu tempo atual nesta corrida atual
@@ -5530,12 +5617,6 @@ Screenshots
 Screenshots directory
 == Diretório de capturas de tela
 
-Scroll long lines
-== Scroll long lines
-
-Scroll speed
-== Scroll speed
-
 Search
 == Pesquisar
 
@@ -5682,6 +5763,9 @@ Sends a command to the antibot
 
 Separate with commas
 == Separe com vírgulas
+
+Sequential
+== Sequential
 
 Server
 == Servidor
@@ -5892,9 +5976,6 @@ Show coordinates of yourself and others
 
 Show country flags in nameplates
 == Mostrar bandeiras de país nas placas de nome
-
-Show current and next lyric lines on HUD
-== Show current and next lyric lines on HUD
 
 Show DDNet map finishes in server browser
 == Mostrar conclusões de mapas DDNet no navegador de servidores
@@ -6154,6 +6235,9 @@ Show tiles layers from BG map
 Show toast
 == Mostrar toast
 
+Show translation
+== Show translation
+
 Show unknown server messages
 == Mostrar mensagens desconhecidas do servidor
 
@@ -6330,9 +6414,6 @@ Smooth fade
 
 SMTC
 == SMTC
-
-Snap threshold
-== Snap threshold
 
 Snapshot Latency
 == Latência de snapshots
@@ -7183,6 +7264,9 @@ Translating to %s...
 Translation backend invalid, sending original
 == Backend de tradução inválido, enviando original
 
+Translation color
+== Translation color
+
 Translation queue full, sending original
 == Fila de tradução cheia, enviando original
 
@@ -7404,6 +7488,9 @@ Unmute player with list index
 
 Unmute:
 == Desmutar:
+
+Unplayed word color
+== Unplayed word color
 
 Unpredicted ghost opacity
 == Opacidade do fantasma não previsto

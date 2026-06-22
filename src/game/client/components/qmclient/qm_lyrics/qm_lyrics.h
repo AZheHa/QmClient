@@ -40,8 +40,9 @@ public:
 	void OnReset() override;
 	void OnRender() override;
 
-private:
 	struct SImpl;
+
+private:
 	std::unique_ptr<SImpl> m_pImpl;
 
 	void TickStateMachine();

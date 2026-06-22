@@ -283,6 +283,12 @@ Active color
 Active disconnect
 == Активное отключение
 
+Active line font size
+== Active line font size
+
+Active line scale
+== Active line scale
+
 Active moderator mode disabled because you are afk.
 == Режим активного модератора отключён, так как вы AFK.
 
@@ -595,6 +601,9 @@ API key
 Appearance
 == Внешний вид
 
+Apple Music media-user-token
+== Apple Music media-user-token
+
 Applied to %d same-family part(s).
 == Применено к %d частям того же семейства.
 
@@ -763,6 +772,9 @@ Auto enable in Gores mode
 Auto execute
 == Автовыполнение
 
+Auto fetch lyrics
+== Auto fetch lyrics
+
 Auto gain control for mic (AGC, experimental)
 == Авторегулировка усиления микрофона (AGC, экспериментально)
 
@@ -889,9 +901,6 @@ Background Draw
 Background music volume
 == Громкость фоновой музыки
 
-Background opacity
-== Background opacity
-
 Ban a certain nickname
 == Забанить определённый никнейм
 
@@ -930,6 +939,9 @@ Benchmark frame times for number of seconds to file, then quit
 
 Best
 == Лучший
+
+Best match
+== Best match
 
 Bind key to execute a command or view keybindings
 == Привязать клавишу для выполнения команды или просмотреть привязки клавиш
@@ -1002,6 +1014,9 @@ Buttons
 
 c = Player position
 == c = Позиция игрока
+
+Cache TTL
+== Cache TTL
 
 Calculate unfinished maps for player in certain mode
 == Рассчитать незавершенные карты для игрока в определенном режиме
@@ -1297,6 +1312,9 @@ Client prediction time is high
 Client uptime
 == Время работы клиента
 
+Clock drift hard-snap
+== Clock drift hard-snap
+
 Close
 == Закрыть
 
@@ -1566,9 +1584,6 @@ Current cut is invalid or already added
 
 Current file
 == Текущий файл
-
-Current line color
-== Current line color
 
 Current queue: %s
 == Текущая очередь: %s
@@ -1945,6 +1960,12 @@ Displays your ping to the current server
 Dissolve
 == Растворение
 
+Distance fade per line
+== Distance fade per line
+
+Distance scale falloff
+== Distance scale falloff
+
 Do not translate server messages
 == Не переводить сообщения сервера
 
@@ -2212,8 +2233,8 @@ Enable keyword reply
 Enable long pain sound (used when shooting in freeze)
 == Включить длинный звук боли (используется при стрельбе в заморозке)
 
-Enable lyrics
-== Enable lyrics
+Enable lyrics HUD
+== Enable lyrics HUD
 
 Enable map compatibility mode using the specified bug (example: grenade-doubleexplosion@ddnet.tw)
 == Включить режим совместимости карты с указанным багом (пример: grenade-doubleexplosion@ddnet.tw)
@@ -2418,9 +2439,6 @@ f = Frame rate
 
 Fade and slide
 == Исчезновение и скольжение
-
-Fade duration
-== Fade duration
 
 Fade in
 == Исчезновение
@@ -2956,8 +2974,8 @@ Hide UI for focused gameplay
 Hide weapon muzzle flashes
 == Скрыть вспышки оружия
 
-Hide without media state
-== Hide without media state
+Hide when paused
+== Hide when paused
 
 High Detail
 == Высокая детализация
@@ -3055,6 +3073,9 @@ I muted you
 Idiot word filter
 == Фильтр идиотских слов
 
+Ignore cache providers
+== Ignore cache providers
+
 Import from clipboard
 == Импорт из буфера обмена
 
@@ -3064,8 +3085,14 @@ Improved Anti Ping
 In memory of me
 == Пусть этот клиент хранит память обо мне
 
+In-game lyrics overlay with smart matching
+== In-game lyrics overlay with smart matching
+
 Inactive color
 == Цвет бездействия
+
+Inactive line opacity
+== Inactive line opacity
 
 Incoming language
 == Входящий язык
@@ -3262,6 +3289,9 @@ k = Resend loss
 Kaomoji
 == Каомодзи
 
+Karaoke edge softness
+== Karaoke edge softness
+
 Key Bindings
 == Привязки клавиш
 
@@ -3421,14 +3451,23 @@ Lht.
 LibreTranslate
 == LibreTranslate
 
+Line scroll duration
+== Line scroll duration
+
+Line spacing
+== Line spacing
+
 Line width
 == Ширина линии
 
-Lines
-== Lines
-
 Lines %d - %d (%s)
 == Строки %d - %d (%s)
+
+Lines above active
+== Lines above active
+
+Lines below active
+== Lines below active
 
 List all commands that are available in practice mode
 == Список всех команд, доступных в режиме практики
@@ -3559,6 +3598,18 @@ Local
 Local + Dummy
 == Локальный + дамми
 
+Local ESLRC file
+== Local ESLRC file
+
+Local LRC file
+== Local LRC file
+
+Local media folders
+== Local media folders
+
+Local music file
+== Local music file
+
 Local only
 == Только локальный
 
@@ -3576,6 +3627,9 @@ Local test mode, no server needed
 
 Local Time
 == Местное время
+
+Local TTML file
+== Local TTML file
 
 Local-only
 == Только локально
@@ -3604,8 +3658,32 @@ Long press on a touch button to select it.
 Low to high
 == От низкого к высокому
 
-Lyrics
-== Lyrics
+Lyrics HTTP timeout
+== Lyrics HTTP timeout
+
+Lyrics HUD
+== Lyrics HUD
+
+Lyrics search type
+== Lyrics search type
+
+Lyrics source
+== Lyrics source
+
+Lyrics source order
+== Lyrics source order
+
+Lyrics: empty track
+== Lyrics: empty track
+
+Lyrics: no lyrics found
+== Lyrics: no lyrics found
+
+Lyrics: no media playing
+== Lyrics: no media playing
+
+Lyrics: searching...
+== Lyrics: searching...
 
 Main Asset
 == Основной ресурс
@@ -3708,6 +3786,9 @@ Markers
 
 Match %d of %d
 == Результат %d из %d
+
+Match score threshold
+== Match score threshold
 
 Matched with callable peer
 == Найден вызываемый пир
@@ -3966,9 +4047,6 @@ News
 
 Next
 == Следующий
-
-Next line color
-== Next line color
 
 Next page in console
 == Следующая страница в консоли
@@ -4339,11 +4417,11 @@ Option color
 Other
 == Другое
 
+Other lines font size
+== Other lines font size
+
 Outgoing language
 == Исходящий язык
-
-Outline color
-== Outline color
 
 Outline opacity
 == Непрозрачность контура
@@ -4465,6 +4543,9 @@ Pause the current demo
 Pause/unpause game
 == Поставить/снять игру на паузу
 
+Per-word highlight (karaoke)
+== Per-word highlight (karaoke)
+
 Personal best:
 == Личный рекорд:
 
@@ -4524,6 +4605,9 @@ Play/pause the current demo
 
 Playback volume
 == Громкость воспроизведения
+
+Played word color
+== Played word color
 
 Player
 == Игрок
@@ -4746,6 +4830,9 @@ Progress bar height
 
 Progress bar width
 == Ширина индикатора прогресса
+
+Provider thresholds
+== Provider thresholds
 
 Publicly messages everyone your current time in this current running race
 == Публично сообщает всем ваше текущее время в этом забеге
@@ -5530,12 +5617,6 @@ Screenshots
 Screenshots directory
 == Каталог скриншотов
 
-Scroll long lines
-== Scroll long lines
-
-Scroll speed
-== Scroll speed
-
 Search
 == Поиск
 
@@ -5682,6 +5763,9 @@ Sends a command to the antibot
 
 Separate with commas
 == Разделяйте запятыми
+
+Sequential
+== Sequential
 
 Server
 == Сервер
@@ -5892,9 +5976,6 @@ Show coordinates of yourself and others
 
 Show country flags in nameplates
 == Показывать флаги стран в табличках с именами
-
-Show current and next lyric lines on HUD
-== Show current and next lyric lines on HUD
 
 Show DDNet map finishes in server browser
 == Показывать пройденные карты DDNet в браузере серверов
@@ -6154,6 +6235,9 @@ Show tiles layers from BG map
 Show toast
 == Показать toast
 
+Show translation
+== Show translation
+
 Show unknown server messages
 == Показывать неизвестные сообщения сервера
 
@@ -6330,9 +6414,6 @@ Smooth fade
 
 SMTC
 == SMTC
-
-Snap threshold
-== Snap threshold
 
 Snapshot Latency
 == Задержка снимков
@@ -7183,6 +7264,9 @@ Translating to %s...
 Translation backend invalid, sending original
 == Бэкенд перевода недействителен, отправка оригинала
 
+Translation color
+== Translation color
+
 Translation queue full, sending original
 == Очередь перевода заполнена, отправка оригинала
 
@@ -7404,6 +7488,9 @@ Unmute player with list index
 
 Unmute:
 == Снять заглушение:
+
+Unplayed word color
+== Unplayed word color
 
 Unpredicted ghost opacity
 == Непрозрачность непредсказанного призрака

@@ -18,6 +18,26 @@ TEST(QmLyricsClock, ResetIsZero)
 	EXPECT_EQ(C.Now(0, TICK_FREQ), 0);
 }
 
+TEST(QmLyricsClock, TimelineAnchorRequiresRealPlaybackChange)
+{
+	EXPECT_TRUE(ShouldUpdateTimelineAnchor(-1, 1.0, 0, 1.0, false));
+	EXPECT_TRUE(ShouldUpdateTimelineAnchor(0, 1.0, 1000, 1.0, false));
+	EXPECT_TRUE(ShouldUpdateTimelineAnchor(0, 1.0, 0, 1.25, false));
+	EXPECT_TRUE(ShouldUpdateTimelineAnchor(0, 1.0, 0, 1.0, true));
+
+	EXPECT_FALSE(ShouldUpdateTimelineAnchor(0, 1.0, 0, 1.0, false));
+}
+
+TEST(QmLyricsClock, RepeatedStaleTimelineSampleKeepsLocalClockAdvancing)
+{
+	CClockInterpolator C;
+	C.Anchor(0, MsToTicks(0), 1.0);
+	C.SetPlaying(true, MsToTicks(0));
+
+	ASSERT_FALSE(ShouldUpdateTimelineAnchor(0, 1.0, 0, 1.0, false));
+	EXPECT_EQ(C.Now(MsToTicks(1000), TICK_FREQ), 1000);
+}
+
 TEST(QmLyricsClock, AnchorReturnsPositionWhenNotPlaying)
 {
 	CClockInterpolator C;
@@ -33,7 +53,7 @@ TEST(QmLyricsClock, AdvancesWhilePlaying)
 	C.SetPlaying(true, MsToTicks(0));
 	// 第一次 Now 初始化 lastActual=target
 	EXPECT_EQ(C.Now(MsToTicks(100), TICK_FREQ), 10100);
-	// 后续按 0.2 平滑（差很小时直接到 target）
+	// 正常本地推进不做平滑，否则歌词会天然落后。
 	EXPECT_EQ(C.Now(MsToTicks(200), TICK_FREQ), 10200);
 }
 
@@ -81,7 +101,7 @@ TEST(QmLyricsClock, PauseFreezesPosition)
 	C.Now(MsToTicks(500), TICK_FREQ); // 推进到 10500
 	C.SetPlaying(false, MsToTicks(500));
 	// 暂停后再过 2s
-	EXPECT_EQ(C.Now(MsToTicks(2500), TICK_FREQ), 10000);
+	EXPECT_EQ(C.Now(MsToTicks(2500), TICK_FREQ), 10500);
 }
 
 TEST(QmLyricsClock, RateScalesAdvance)
@@ -90,4 +110,12 @@ TEST(QmLyricsClock, RateScalesAdvance)
 	C.Anchor(0, MsToTicks(0), 2.0); // 2x 速度
 	C.SetPlaying(true, MsToTicks(0));
 	EXPECT_EQ(C.Now(MsToTicks(1000), TICK_FREQ), 2000);
+}
+
+TEST(QmLyricsClock, AnchorUsesTimelineSampleTick)
+{
+	CClockInterpolator C;
+	C.Anchor(60000, MsToTicks(10000), 1.0);
+	C.SetPlaying(true, MsToTicks(10000));
+	EXPECT_EQ(C.Now(MsToTicks(12500), TICK_FREQ), 62500);
 }

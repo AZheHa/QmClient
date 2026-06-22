@@ -93,9 +93,9 @@ TEST(QmLyricsCache, EvictExpiredHonorsTtl)
 	CCacheIndex Idx;
 	const int64_t Day = 86400;
 	Idx.Upsert(MakeEntry("old", 0), 100); // 已过期（StoredAt=0）
-	Idx.Upsert(MakeEntry("fresh", 10 * Day), 100);
 
 	const int64_t Now = 30 * Day;
+	Idx.Upsert(MakeEntry("fresh", Now - 2 * Day), 100);
 	const auto vEvicted = Idx.EvictExpired(7, Now); // TTL 7 天
 	EXPECT_EQ(vEvicted.size(), 1u);
 	EXPECT_EQ(Idx.Size(), 1u);

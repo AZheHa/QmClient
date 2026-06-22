@@ -82,8 +82,8 @@ TEST(QmLyricsDuration, ExactMatch)
 
 TEST(QmLyricsDuration, WithinTolerance)
 {
-	// 2s 差 / 5000ms tol → 1 - 0.4 = 0.6
-	EXPECT_NEAR(DurationScore(180, 182, 5000), 0.6f, 0.001f);
+	// BetterLyrics: <=1s 满分，>=5s 为 0；2s 差 → 1 - (2 - 1) / (5 - 1)
+	EXPECT_NEAR(DurationScore(180, 182, 5000), 0.75f, 0.001f);
 }
 
 TEST(QmLyricsDuration, BeyondTolerance)
@@ -91,10 +91,10 @@ TEST(QmLyricsDuration, BeyondTolerance)
 	EXPECT_NEAR(DurationScore(180, 200, 5000), 0.0f, 0.001f);
 }
 
-TEST(QmLyricsDuration, UnknownReturnsNeutral)
+TEST(QmLyricsDuration, UnknownCandidateReturnsZero)
 {
-	EXPECT_NEAR(DurationScore(0, 180, 5000), 0.5f, 0.001f);
-	EXPECT_NEAR(DurationScore(180, 0, 5000), 0.5f, 0.001f);
+	EXPECT_NEAR(DurationScore(0, 180, 5000), 0.0f, 0.001f);
+	EXPECT_NEAR(DurationScore(180, 0, 5000), 0.0f, 0.001f);
 }
 
 TEST(QmLyricsScore, PerfectMatch)
@@ -134,8 +134,7 @@ TEST(QmLyricsScore, DifferentDurationLowersScore)
 	C.m_Artist = "Queen";
 	C.m_DurationSec = 400; // 远超 5s tol
 	const float S = Score(Q, C);
-	EXPECT_LT(S, 90.0f);
-	EXPECT_GT(S, 70.0f); // title+artist 仍满分
+	EXPECT_NEAR(S, 70.0f, 0.001f); // title+artist+empty album 满分，duration 为 0
 }
 
 TEST(QmLyricsScore, WrongTitleLowersScore)
@@ -148,5 +147,30 @@ TEST(QmLyricsScore, WrongTitleLowersScore)
 	C.m_Title = "Killer Queen";
 	C.m_Artist = "Queen";
 	C.m_DurationSec = 354;
-	EXPECT_LT(Score(Q, C), 80.0f);
+	EXPECT_NEAR(Score(Q, C), 83.0f, 0.001f);
+}
+
+TEST(QmLyricsScore, AlbumContributesTenPercent)
+{
+	SMatchQuery Q;
+	Q.m_Title = "Nocturne";
+	Q.m_Artist = "Jay Chou";
+	Q.m_Album = "November Chopin";
+	Q.m_DurationSec = 230;
+	SMatchCandidate C;
+	C.m_Title = "Nocturne";
+	C.m_Artist = "Jay Chou";
+	C.m_Album = "Initial J";
+	C.m_DurationSec = 230;
+	EXPECT_NEAR(Score(Q, C), 95.0f, 0.001f);
+}
+
+TEST(QmLyricsScore, FallsBackToLinkedFileNameFingerprint)
+{
+	SMatchQuery Q;
+	Q.m_LinkedFileName = "C:/Music/Queen - Bohemian Rhapsody.flac";
+	SMatchCandidate C;
+	C.m_Title = "Bohemian Rhapsody";
+	C.m_Artist = "Queen";
+	EXPECT_NEAR(Score(Q, C), 100.0f, 0.001f);
 }

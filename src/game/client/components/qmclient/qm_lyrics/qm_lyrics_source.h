@@ -19,8 +19,11 @@ namespace QmLyrics
 	struct SSourceCandidate
 	{
 		std::string m_RawText; // 原始歌词文本（LRC/eslrc/TTML）
+		std::string m_TranslationText; // 可选翻译歌词（通常是同时间戳 LRC）
+		std::string m_TransliterationText; // 可选音译歌词（通常是同时间戳 LRC）
 		EFormat m_FormatHint = EFormat::LRC_ENHANCED; // 源对格式的提示
 		SMatchCandidate m_Metadata; // 候选自报的 title/artist/album/duration
+		std::string m_SourceId; // 源唯一标识，由调度层/源实现填写
 		float m_SourceScore = 0.0f; // 源自评的置信度，0..1
 	};
 
@@ -40,6 +43,9 @@ namespace QmLyrics
 		// 启动一次异步查询。Done 在成功 (即使候选为空) 时回调；Error 在网络/解析失败时回调。
 		// 实现应非阻塞。
 		virtual void QueryAsync(const SSourceQuery &Query, FSourceDoneCallback Done, FSourceErrorCallback Error) = 0;
+
+		// 在主线程轮询异步请求状态；若请求完成，源实现应在这里触发 Done/Error。
+		virtual void Tick() = 0;
 
 		// 取消当前进行中的查询（如有）。允许多次调用。
 		virtual void Cancel() = 0;

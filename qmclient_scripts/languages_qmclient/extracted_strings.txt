@@ -93,6 +93,8 @@ Activate
 Activate all
 Active color
 Active disconnect
+Active line font size
+Active line scale
 Active moderator mode disabled because you are afk.
 Active moderator mode disabled for you.
 Active moderator mode enabled for you.
@@ -197,6 +199,7 @@ AntiPing: predict other players
 AntiPing: predict weapons
 API key
 Appearance
+Apple Music media-user-token
 Applied to %d same-family part(s).
 Apply
 Apply a saved profile by 1-based index to the current tee
@@ -253,6 +256,7 @@ Auto concurrency: %d (smart default)
 Auto disable when time expires
 Auto enable in Gores mode
 Auto execute
+Auto fetch lyrics
 Auto gain control for mic (AGC, experimental)
 Auto greet friends entering map
 Auto hot-reload after external saves
@@ -295,7 +299,6 @@ Background
 Background color
 Background Draw
 Background music volume
-Background opacity
 Ban a certain nickname
 Ban ip for x minutes for any reason
 Ban ip range for x minutes for any reason
@@ -309,6 +312,7 @@ Behavior
 Behavior type
 Benchmark frame times for number of seconds to file, then quit
 Best
+Best match
 Bind key to execute a command or view keybindings
 Bind Wheel
 Bind Wheel Key
@@ -333,6 +337,7 @@ Button - Enabled
 Button position is outside of the screen.
 Buttons
 c = Player position
+Cache TTL
 Calculate unfinished maps for player in certain mode
 Call vote
 Camera
@@ -431,6 +436,7 @@ Client message
 Client performance pressure is high
 Client prediction time is high
 Client uptime
+Clock drift hard-snap
 Close
 Close the demo player
 Color
@@ -521,7 +527,6 @@ Current aspect ratio:
 Current aspect ratio: Show default
 Current cut is invalid or already added
 Current file
-Current line color
 Current queue: %s
 Current rescue mode: %s
 Current status
@@ -647,6 +652,8 @@ Displays your frames per second
 Displays your local time
 Displays your ping to the current server
 Dissolve
+Distance fade per line
+Distance scale falloff
 Do not translate server messages
 Donor (drag parts from left)
 Donor Asset
@@ -736,7 +743,7 @@ Enable highlighted chat sound
 Enable Jelly Tee
 Enable keyword reply
 Enable long pain sound (used when shooting in freeze)
-Enable lyrics
+Enable lyrics HUD
 Enable map compatibility mode using the specified bug (example: grenade-doubleexplosion@ddnet.tw)
 Enable mod weapon on %d: %s
 Enable pie menu
@@ -805,7 +812,6 @@ Exported to %s
 Extras
 f = Frame rate
 Fade and slide
-Fade duration
 Fade in
 Fade only
 Fade out
@@ -984,7 +990,7 @@ Hide sponsor QR code
 Hide toast
 Hide UI for focused gameplay
 Hide weapon muzzle flashes
-Hide without media state
+Hide when paused
 High Detail
 High to low
 Highlight Color
@@ -1017,10 +1023,13 @@ I am a robot
 I am away from the game window
 I muted you
 Idiot word filter
+Ignore cache providers
 Import from clipboard
 Improved Anti Ping
 In memory of me
+In-game lyrics overlay with smart matching
 Inactive color
+Inactive line opacity
 Incoming language
 Indicate map finish
 Indicator alive color
@@ -1086,6 +1095,7 @@ Jump
 Jump hint text
 k = Resend loss
 Kaomoji
+Karaoke edge softness
 Key Bindings
 Key Presses
 Key Sticking: ?
@@ -1139,9 +1149,12 @@ Lenny:
 Lets you join team i (shows your team if left blank)
 Lht.
 LibreTranslate
+Line scroll duration
+Line spacing
 Line width
-Lines
 Lines %d - %d (%s)
+Lines above active
+Lines below active
 List all commands that are available in practice mode
 List all commands which are accessible for given access level
 List all commands which are accessible for users
@@ -1185,12 +1198,17 @@ Loading sound files
 Loading…
 Local
 Local + Dummy
+Local ESLRC file
+Local LRC file
+Local media folders
+Local music file
 Local only
 Local particle effects
 Local saves
 Local test mode
 Local test mode, no server needed
 Local Time
+Local TTML file
 Local-only
 Lock delay
 Lock team
@@ -1200,7 +1218,15 @@ Logout of econ
 Logout of rcon
 Long press on a touch button to select it.
 Low to high
-Lyrics
+Lyrics HTTP timeout
+Lyrics HUD
+Lyrics search type
+Lyrics source
+Lyrics source order
+Lyrics: empty track
+Lyrics: no lyrics found
+Lyrics: no media playing
+Lyrics: searching...
 Main Asset
 Main menu
 Make inactive tee fire
@@ -1235,6 +1261,7 @@ Mark the end of a cut (right click to reset)
 Mark the end of a demo cut
 Markers
 Match %d of %d
+Match score threshold
 Matched with callable peer
 Max CSVs
 Max demos
@@ -1321,7 +1348,6 @@ New random timeout code
 New UI
 News
 Next
-Next line color
 Next page in console
 Next weapon
 Nickname
@@ -1445,8 +1471,8 @@ Opt out of spectator count and hide auth status to non-authed players (1 = hidde
 Optimistic prediction along stable direction
 Option color
 Other
+Other lines font size
 Outgoing language
-Outline color
 Outline opacity
 Output device
 Output device not found
@@ -1487,6 +1513,7 @@ Password incorrect
 Pause
 Pause the current demo
 Pause/unpause game
+Per-word highlight (karaoke)
 Personal best:
 Personal Setting of showing time in either broadcast or game/round timer, timer s, where s = broadcast for broadcast, gametimer for game/round timer, cycle for cycle, both for both, none for no timer and nothing to show current status
 Pet
@@ -1507,6 +1534,7 @@ Play the current demo
 Play/Pause
 Play/pause the current demo
 Playback volume
+Played word color
 Player
 Player already invited
 Player country:
@@ -1581,6 +1609,7 @@ Profiles file
 Progress bar color
 Progress bar height
 Progress bar width
+Provider thresholds
 Publicly messages everyone your current time in this current running race
 Pulse
 Pulse amplitude
@@ -1842,8 +1871,6 @@ Screen center line width
 Screenshot
 Screenshots
 Screenshots directory
-Scroll long lines
-Scroll speed
 Search
 Search donor asset
 Search main asset
@@ -1893,6 +1920,7 @@ Sending locally, suggest the other party unmute or confirm they can receive
 Sending, waiting for peer echo
 Sends a command to the antibot
 Separate with commas
+Sequential
 Server
 Server address:
 Server alert
@@ -1963,7 +1991,6 @@ Show Coordinates
 Show coordinates above players
 Show coordinates of yourself and others
 Show country flags in nameplates
-Show current and next lyric lines on HUD
 Show DDNet map finishes in server browser
 Show DDRace HUD
 Show Directory
@@ -2050,6 +2077,7 @@ Show the screen center line
 Show the server rules
 Show tiles layers from BG map
 Show toast
+Show translation
 Show unknown server messages
 Show unpredicted ghosts for other players
 Show voice connection status
@@ -2109,7 +2137,6 @@ Smaller tees
 Smooth Dynamic Camera
 Smooth fade
 SMTC
-Snap threshold
 Snapshot Latency
 Social
 Solid
@@ -2393,6 +2420,7 @@ Translate:
 Translated text hidden due to streamer mode
 Translating to %s...
 Translation backend invalid, sending original
+Translation color
 Translation queue full, sending original
 Translation service
 Translation Settings
@@ -2467,6 +2495,7 @@ Unmute player with client ID
 Unmute player with IP address
 Unmute player with list index
 Unmute:
+Unplayed word color
 Unpredicted ghost opacity
 Unregister protocol and file extensions
 Unsaved changes

@@ -1,7 +1,7 @@
 ---
 title: QmClient 游戏内歌词 HUD 叠加层（CQmLyrics）规格
 date: 2026-06-21
-status: draft
+status: active
 source: BetterLyrics（https://github.com/jayfunc/BetterLyrics, GPL-3.0）架构调研 + QmClient HUD/编辑器/i18n 现状映射
 scope: 仅 Windows，仅游戏内 HUD 叠加层（不创建独立窗口），允许只读 SMTC 接入；不动协议、物理、预测、demo 格式
 license: 实现为 clean-room 复刻，仅复用 BetterLyrics 的行为/算法描述，不复制其源码或资源
@@ -68,14 +68,14 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 | T4 | SMTC 适配层 — **复用现有 `CSystemMediaControls`**：该组件已暴露 `SState`（含 m_aSourceAppId/Title/Artist/Album/PositionMs/DurationMs/Playing），不需要再从零写 WinRT。T6 组件骨架里直接 `GameClient()->m_SystemMediaControls.GetStateSnapshot(...)` 转 `SSourceQuery`。 | ✅（复用） |
 | T5 | 时钟插值器 + 7 个单元测试 | ✅ |
 | T6 | CQmLyrics 组件骨架 + 30 个 `qm_lyrics_*` 配置 + 注册到 gameclient | ✅ |
-| T7 | 设置页 UI：恢复 EQmModuleId::Lyrics + QmModuleCount 35→36 + 模块表/搜索关键词/标题表项；新增设置页歌词卡（启用/自动拉取/逐字/暂停隐藏/翻译显示 5 开关 + 17 滑块 + 3 颜色选择器）；4 个预留配置（source/cache_enable/show_transliteration/hide_no_lyrics）在 OnInit touch 通过配置使用检查。**i18n 流水线挂 Python 3.9 兼容性问题（脚本自身 bug），未跑；新加的 Localize 字符串走运行时英文回退。** | ✅ |
-| T8 | 静态布局 + HUD 编辑器接入 — **基本已含在 T6 RenderHud 里**（BeginTransform + EHudEditorElement::Lyrics + 透视淡出）。剩余：T0b1 删 `EQmModuleId::Lyrics` 时同时影响了模块表项映射，T8 与 T7 一起恢复。 | 部分（T6 已含）|
-| T9 | 行级动画 — 行切换 easeOutCubic 滚动、滑入/滑出。基于 T6 渲染层增量。预估 1-2 小时。 | ⏳ |
-| T10 | 逐字软边 + 长音脉冲 — `qm_lyrics_karaoke` 已加配置；要在 RenderHud 里按 m_vWords 渲染颜色场过渡 + sin 脉冲。预估 1-2 小时。 | ⏳ |
-| T11 | 端到端联调 — 真机 Windows + Spotify/Apple Music for Windows/Netease，目测 LRCLIB 命中率与渲染体验。**需要你亲手验证**，我无法跑。 | ⏳ |
-| T12 | 代码审查 + gate — 派只读子代理按 docs/ai-workflow/review.md 审；跑 default gate 全量测试；按 findings 收口；spec status 改 active。 | ⏳ |
+| T7 | 设置页 UI：恢复 EQmModuleId::Lyrics + QmModuleCount 35→36 + 模块表/搜索关键词/标题表项；新增设置页歌词卡（启用/自动拉取/逐字/暂停隐藏/翻译显示 5 开关 + 17 滑块 + 3 颜色选择器）；4 个预留配置（source/cache_enable/show_transliteration/hide_no_lyrics）在 OnInit touch 通过配置使用检查。i18n 流水线已重新跑通：`extract_strings.py` / `generate_all.py` / `validate.py` / `review_duplicate_entries.py` 全通过。 | ✅ |
+| T8 | 静态布局 + HUD 编辑器接入 — RenderHud 已接入 `BeginTransform` + `EHudEditorElement::Lyrics` + 透视淡出；模块表项映射随 T7 恢复。 | ✅ |
+| T9 | 行级动画 — 行切换 easeOutCubic 滚动、滑入/滑出；本轮补强为按实际活动行/非活动行/翻译块高度计算滚动距离，并避免中途打开/大跳转触发错误长距离动画。 | ✅ |
+| T10 | 逐字软边 + 长音脉冲 — RenderHud 按 `m_vWords` 做逐字颜色推进，保留 `qm_lyrics_karaoke` 与长音脉冲配置；本轮补齐渲染辅助测试覆盖。 | ✅ |
+| T11 | 端到端联调 — 代码侧已覆盖 SMTC 时间轴锚点、开关恢复、offset、滚动和翻译生成；真机 Windows + Spotify/Apple Music for Windows/Netease 视觉联调仍需人工播放器环境确认。 | ⚠️ 代码侧完成，真机联调待验 |
+| T12 | 代码审查 + gate — 已派只读子代理按 docs/ai-workflow/review.md 审；复审发现的 toggle 状态保留与行间空档显示问题已修复并补测试；已跑 `game-client`、目标歌词测试、i18n 流水线、`check_gate.py --mode quick`、`check_gate.py --mode default`。 | ✅ |
 
-**当前会话目标**：完成 Spec 改终版 → T0a → T0b → T0c → T0d → T0e → T0f → T1。
+**当前会话目标**：收口歌词重写后的 BetterLyrics 行为差距：SMTC 时间轴锚点、mid-song 显示、滚动恢复、开关后重新搜索、offset 语义和翻译/i18n 生效。
 
 **下次会话续接指引**：
 1. 读本节进度看板；
@@ -85,6 +85,7 @@ GPL-3.0 是 strong copyleft——直接合并 BetterLyrics 源码会污染整个
 **中断点记录**（每次中断时写一条，记到这里）：
 - 2026-06-22 收在 T0b1 commit `16f7e226b`。next: T0b2 拆 hud.cpp 主入口（5479-5611 + 5620+ + 5634/5640/5661），行号会因后续 grep 重新定位。**注意环境问题**：本地 default gate 因 vswhere PATH 和 Git Bash find 拦截无法跑，T0a/T0b1 quick gate 全绿但未走真实编译。续接前建议在原生 cmd 手动跑 `qmclient_scripts\cmake-windows.cmd --build cmake-build-release --target game-client -j 12` 验证 T0a+T0b1 真编译通过，再动 T0b2。
 - 2026-06-22 第二轮一口气干完：T0b2/T0b3/T0b4/T1/T2/T3/T4(复用)/T5/T6 全部就位（commits e54bb209a..本轮最新）。约 14 个 commit，~4400 行净增量，~2700 行删除。49 测试（21 解析 + 18 匹配 + 9 缓存 + 12 LRCLIB + 8 时钟 = 68 测试，T6 没加测试）。**未完成**：T7（设置页 UI + i18n 流水线）、T9（行切换 easeOutCubic 滚动）、T10（逐字软边 + 长音脉冲）、T11（真机联调，需要 Windows + Spotify/Netease）、T12（review + default gate）。default gate 仍未在本地跑通（vswhere/Git Bash find 环境问题）。续接前先跑构建验证整个 T0a-T6 真编译。
+- 2026-06-22 第三轮针对歌词错轴/滚动/开关/i18n 继续收口：按 BetterLyrics 的 `position_at_last_update + steady_now_delta * playback_rate` 思路，把 SMTC `LastUpdatedTime` 和 `PlaybackRate` 暴露给歌词时钟；关闭歌词 HUD 时保留已加载轨道，只有关闭期间取消未完成搜索时才清空 identity 以便重开后重新发起搜索；禁用 SMTC/无媒体时重置播放身份；`[offset:]` 语义改为从播放时间中扣除轨道 offset；行切换滚动距离改为按实际文字块高度计算，大跳转/中途打开不做错误动画；行间空档显示保持上一句而不是跳到最后一句。验证：`game-client` 通过，歌词目标测试 49/49 通过，`run_cxx_tests` 1565/1565 通过，i18n 生成/校验通过，default gate 通过（ruff/shellcheck 缺失仅警告）。真机播放器视觉联调仍需外部环境确认。
 
 ---
 

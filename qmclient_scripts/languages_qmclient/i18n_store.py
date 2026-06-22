@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import tomllib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -125,28 +125,7 @@ def load_language_store() -> dict[str, dict[tuple[str, str], dict[str, str]]]:
         return store
 
     for path in sorted(TRANSLATIONS_DIR.glob("*.toml")):
-        with path.open("rb") as file:
-            data = tomllib.load(file)
-        entries = data.get("message", [])
-        module_entries: dict[tuple[str, str], dict[str, str]] = {}
-        for entry in entries:
-            if not isinstance(entry, dict):
-                continue
-            key = entry.get("key", "")
-            context = entry.get("context", "")
-            translations = entry.get("translations", {})
-            if not key or not isinstance(translations, dict):
-                continue
-            normalized = {
-                language: translation
-                for language, translation in translations.items()
-                if isinstance(language, str)
-                and isinstance(translation, str)
-                and translation
-            }
-            if normalized:
-                module_entries[(key, context)] = normalized
-        store[path.stem] = module_entries
+        store[path.stem] = parse_module_toml(path.read_text(encoding="utf-8"))
     return store
 
 
@@ -181,6 +160,11 @@ def dump_module(messages: list[tuple[Message, dict[str, str]]]) -> str:
     )
 
 
+def write_text_lf(path: Path, text: str) -> None:
+    with path.open("w", encoding="utf-8", newline="\n") as file:
+        file.write(text)
+
+
 def write_language_store(
     store: dict[str, dict[tuple[str, str], dict[str, str]]],
 ) -> None:
@@ -194,7 +178,7 @@ def write_language_store(
             (Message(key, context), translations)
             for (key, context), translations in entries.items()
         ]
-        path.write_text(dump_module(messages), encoding="utf-8", newline="\n")
+        write_text_lf(path, dump_module(messages))
 
 
 def _parse_assignment_value(line: str, name: str) -> str | None:
@@ -203,12 +187,9 @@ def _parse_assignment_value(line: str, name: str) -> str | None:
     if not stripped.startswith(prefix):
         return None
     try:
-        import tomllib
-
-        data = tomllib.loads(stripped)
-    except tomllib.TOMLDecodeError:
+        value = json.loads(stripped[len(prefix) :])
+    except json.JSONDecodeError:
         return None
-    value = data.get(name)
     return value if isinstance(value, str) else None
 
 
@@ -246,6 +227,30 @@ def _block_identity(lines: list[str]) -> tuple[str, str] | None:
     return (key, context)
 
 
+def parse_module_toml(text: str) -> dict[tuple[str, str], dict[str, str]]:
+    entries: dict[tuple[str, str], dict[str, str]] = {}
+    lines = text.splitlines()
+    index = 0
+    while index < len(lines):
+        if lines[index].strip() != "[[message]]":
+            index += 1
+            continue
+
+        start = index
+        index += 1
+        while index < len(lines) and lines[index].strip() != "[[message]]":
+            index += 1
+
+        block = lines[start:index]
+        identity = _block_identity(block)
+        if identity is None:
+            continue
+        translations = _block_translations(block)
+        if translations:
+            entries[identity] = translations
+    return entries
+
+
 def _patch_message_block(lines: list[str], entries: dict[str, str]) -> list[str]:
     identity = _block_identity(lines)
     if identity is None:
@@ -270,7 +275,7 @@ def patch_module_store(
             (Message(key, context), translations)
             for (key, context), translations in entries.items()
         ]
-        path.write_text(dump_module(messages), encoding="utf-8", newline="\n")
+        write_text_lf(path, dump_module(messages))
         return
 
     original = path.read_text(encoding="utf-8")
@@ -313,7 +318,7 @@ def patch_module_store(
     text = "\n".join(output)
     if has_trailing_newline or missing:
         text += "\n"
-    path.write_text(text, encoding="utf-8", newline="\n")
+    write_text_lf(path, text)
 
 
 def build_module_store_from_records(

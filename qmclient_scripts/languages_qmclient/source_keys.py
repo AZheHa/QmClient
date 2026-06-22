@@ -17,6 +17,9 @@ SOURCE_EXTENSIONS = {".c", ".cpp", ".h", ".hpp"}
 SOURCE_PATHS = (PROJECT_ROOT / "src",)
 AUDIT_PATHS = (PROJECT_ROOT / "src", SCRIPT_DIR)
 AUDIT_REPORT_FILE = SCRIPT_DIR / "extracted_audit_report.json"
+IGNORED_SOURCE_DIRS = {
+    PROJECT_ROOT / "src" / "engine" / "external",
+}
 
 CPP_STRING_LITERAL_RE = re.compile(r'"((?:[^"\\]|\\.)*)"')
 LOCALIZE_CALL_RE = re.compile(r"\b(?:Localize|Localizable)\s*\(")
@@ -570,6 +573,8 @@ def iter_source_files(paths: tuple[Path, ...] = SOURCE_PATHS) -> list[Path]:
             files.append(root)
             continue
         for path in sorted(root.rglob("*")):
+            if any(path.is_relative_to(ignored) for ignored in IGNORED_SOURCE_DIRS):
+                continue
             if path.suffix in SOURCE_EXTENSIONS:
                 files.append(path)
     return sorted(files)
@@ -857,6 +862,8 @@ def _iter_audit_files(paths: tuple[Path, ...]) -> list[Path]:
             files.append(root)
             continue
         for path in sorted(root.rglob("*")):
+            if any(path.is_relative_to(ignored) for ignored in IGNORED_SOURCE_DIRS):
+                continue
             if path.suffix in SOURCE_EXTENSIONS or path.suffix == ".py":
                 files.append(path)
     return sorted(files)
@@ -2021,11 +2028,11 @@ def audit_report_to_dict(report: StringAuditReport) -> dict[str, object]:
 
 
 def write_string_audit_report(path: Path, report: StringAuditReport) -> None:
-    path.write_text(
-        json.dumps(audit_report_to_dict(report), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    with path.open("w", encoding="utf-8", newline="\n") as file:
+        file.write(
+            json.dumps(audit_report_to_dict(report), ensure_ascii=False, indent=2)
+            + "\n"
+        )
 
 
 def read_string_audit_report(path: Path) -> StringAuditReport:

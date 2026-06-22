@@ -84,12 +84,13 @@ namespace QmLyrics
 			else
 			{
 				pOut->m_RawText = pPlain;
-				pOut->m_FormatHint = EFormat::LRC_STANDARD;
+				pOut->m_FormatHint = EFormat::PLAIN;
 			}
 			pOut->m_Metadata.m_Title = JsonString(&Item["trackName"]);
 			pOut->m_Metadata.m_Artist = JsonString(&Item["artistName"]);
 			pOut->m_Metadata.m_Album = JsonString(&Item["albumName"]);
 			pOut->m_Metadata.m_DurationSec = JsonInt(&Item["duration"]);
+			pOut->m_SourceId = "lrclib";
 			// LRCLIB 不给评分，固定 0.5 表示中性置信
 			pOut->m_SourceScore = 0.5f;
 			return true;
@@ -139,17 +140,35 @@ namespace QmLyrics
 		return Url;
 	}
 
-	std::string BuildLrclibSearchUrl(const SSourceQuery &Query)
+	std::string BuildLrclibSearchUrl(const SSourceQuery &Query, const char *pBaseUrl)
 	{
-		std::string Url = "https://lrclib.net/api/search";
-		std::string Q = Query.m_Title;
+		std::string Url = (pBaseUrl != nullptr && pBaseUrl[0] != '\0') ? pBaseUrl : "https://lrclib.net";
+		while(!Url.empty() && Url.back() == '/')
+			Url.pop_back();
+		Url.append("/api/search");
+		bool First = true;
+		if(!Query.m_Title.empty())
+		{
+			AppendQueryParam(&Url, "track_name", Query.m_Title, First);
+			First = false;
+		}
 		if(!Query.m_Artist.empty())
 		{
-			if(!Q.empty())
-				Q.push_back(' ');
-			Q.append(Query.m_Artist);
+			AppendQueryParam(&Url, "artist_name", Query.m_Artist, First);
+			First = false;
 		}
-		AppendQueryParam(&Url, "q", Q, true);
+		if(!Query.m_Album.empty())
+		{
+			AppendQueryParam(&Url, "album_name", Query.m_Album, First);
+			First = false;
+		}
+		if(Query.m_DurationSec > 0)
+		{
+			char aBuf[32];
+			str_format(aBuf, sizeof(aBuf), "%d", Query.m_DurationSec * 1000);
+			AppendQueryParam(&Url, "durationMs", aBuf, First);
+			First = false;
+		}
 		return Url;
 	}
 
@@ -203,6 +222,7 @@ namespace QmLyrics
 	{
 		IHttp *m_pHttp = nullptr;
 		int m_TimeoutMs = 8000;
+		std::string m_BaseUrl = "https://lrclib.net";
 		std::shared_ptr<CHttpRequest> m_pRequest;
 		FSourceDoneCallback m_Done;
 		FSourceErrorCallback m_Error;
@@ -210,16 +230,17 @@ namespace QmLyrics
 		enum class EStage
 		{
 			IDLE,
-			GET,
 			SEARCH,
 		} m_Stage = EStage::IDLE;
 	};
 
-	CLyricsSourceLrclib::CLyricsSourceLrclib(IHttp *pHttp, int TimeoutMs) :
+	CLyricsSourceLrclib::CLyricsSourceLrclib(IHttp *pHttp, int TimeoutMs, const char *pBaseUrl) :
 		m_pImpl(std::make_unique<SImpl>())
 	{
 		m_pImpl->m_pHttp = pHttp;
 		m_pImpl->m_TimeoutMs = TimeoutMs > 0 ? TimeoutMs : 8000;
+		if(pBaseUrl != nullptr && pBaseUrl[0] != '\0')
+			m_pImpl->m_BaseUrl = pBaseUrl;
 	}
 
 	CLyricsSourceLrclib::~CLyricsSourceLrclib()
@@ -250,7 +271,8 @@ namespace QmLyrics
 		void DispatchRequest(CLyricsSourceLrclib::SImpl *pImpl, const std::string &Url)
 		{
 			pImpl->m_pRequest = std::make_shared<CHttpRequest>(Url.c_str());
-			pImpl->m_pRequest->Timeout(CTimeout{pImpl->m_TimeoutMs, pImpl->m_TimeoutMs, 500, 5});
+			// 连接 5s，整体超时 m_TimeoutMs；关闭低速检测（小 API 响应易误触发）。
+			pImpl->m_pRequest->Timeout(CTimeout{5000, pImpl->m_TimeoutMs, 0, 0});
 			pImpl->m_pRequest->LogProgress(HTTPLOG::FAILURE);
 			pImpl->m_pRequest->HeaderString("User-Agent", "QmClient (https://github.com/Q1menG)");
 			pImpl->m_pHttp->Run(pImpl->m_pRequest);
@@ -270,8 +292,52 @@ namespace QmLyrics
 		m_pImpl->m_Done = std::move(Done);
 		m_pImpl->m_Error = std::move(Error);
 		m_pImpl->m_PendingQuery = Query;
-		m_pImpl->m_Stage = SImpl::EStage::GET;
-		DispatchRequest(m_pImpl.get(), BuildLrclibGetUrl(Query));
+		m_pImpl->m_Stage = SImpl::EStage::SEARCH;
+		DispatchRequest(m_pImpl.get(), BuildLrclibSearchUrl(Query, m_pImpl->m_BaseUrl.c_str()));
+	}
+
+	void CLyricsSourceLrclib::Tick()
+	{
+		if(m_pImpl->m_Stage == SImpl::EStage::IDLE || !m_pImpl->m_pRequest || !m_pImpl->m_pRequest->Done())
+			return;
+
+		std::shared_ptr<CHttpRequest> pRequest = m_pImpl->m_pRequest;
+		m_pImpl->m_pRequest.reset();
+
+		FSourceDoneCallback Done = std::move(m_pImpl->m_Done);
+		FSourceErrorCallback Error = std::move(m_pImpl->m_Error);
+		m_pImpl->m_Done = nullptr;
+		m_pImpl->m_Error = nullptr;
+		m_pImpl->m_Stage = SImpl::EStage::IDLE;
+
+		if(pRequest->State() != EHttpState::DONE)
+		{
+			if(Error)
+				Error("request failed");
+			return;
+		}
+
+		if(pRequest->StatusCode() < 200 || pRequest->StatusCode() >= 300)
+		{
+			if(Done)
+				Done({});
+			return;
+		}
+
+		unsigned char *pBody = nullptr;
+		size_t BodyLen = 0;
+		pRequest->Result(&pBody, &BodyLen);
+		if(pBody == nullptr || BodyLen == 0)
+		{
+			if(Done)
+				Done({});
+			return;
+		}
+
+		char aErr[128];
+		std::vector<SSourceCandidate> vCandidates = ParseLrclibSearchResponse((const char *)pBody, BodyLen, aErr, sizeof(aErr));
+		if(Done)
+			Done(std::move(vCandidates));
 	}
 
 } // namespace QmLyrics
