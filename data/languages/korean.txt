@@ -283,6 +283,12 @@ Active color
 Active disconnect
 == 능동적 연결 해제
 
+Active line font size
+== Active line font size
+
+Active line scale
+== Active line scale
+
 Active moderator mode disabled because you are afk.
 == 자리 비움 상태이므로 능동적 관리자 모드가 비활성화되었습니다.
 
@@ -595,6 +601,9 @@ API key
 Appearance
 == 외형
 
+Apple Music media-user-token
+== Apple Music media-user-token
+
 Applied to %d same-family part(s).
 == 같은 계열 부품 %d개에 적용됨.
 
@@ -763,6 +772,9 @@ Auto enable in Gores mode
 Auto execute
 == 자동 실행
 
+Auto fetch lyrics
+== Auto fetch lyrics
+
 Auto gain control for mic (AGC, experimental)
 == 마이크 자동 게인 제어 (AGC, 실험적)
 
@@ -889,9 +901,6 @@ Background Draw
 Background music volume
 == 배경 음악 볼륨
 
-Background opacity
-== Background opacity
-
 Ban a certain nickname
 == 특정 닉네임 차단
 
@@ -930,6 +939,9 @@ Benchmark frame times for number of seconds to file, then quit
 
 Best
 == 최고
+
+Best match
+== Best match
 
 Bind key to execute a command or view keybindings
 == 키를 바인딩하여 명령 실행 또는 키바인딩 보기
@@ -1002,6 +1014,9 @@ Buttons
 
 c = Player position
 == c = 플레이어 위치
+
+Cache TTL
+== Cache TTL
 
 Calculate unfinished maps for player in certain mode
 == 특정 모드에서 플레이어의 미완료 맵 계산
@@ -1297,6 +1312,9 @@ Client prediction time is high
 Client uptime
 == 클라이언트 실행 시간
 
+Clock drift hard-snap
+== Clock drift hard-snap
+
 Close
 == 닫기
 
@@ -1566,9 +1584,6 @@ Current cut is invalid or already added
 
 Current file
 == 현재 파일
-
-Current line color
-== Current line color
 
 Current queue: %s
 == 현재 대기열: %s
@@ -1945,6 +1960,12 @@ Displays your ping to the current server
 Dissolve
 == 해산
 
+Distance fade per line
+== Distance fade per line
+
+Distance scale falloff
+== Distance scale falloff
+
 Do not translate server messages
 == 서버 메시지 번역 안 함
 
@@ -2212,8 +2233,8 @@ Enable keyword reply
 Enable long pain sound (used when shooting in freeze)
 == 긴 고통 사운드 활성화 (프리즈에서 발사 시 사용)
 
-Enable lyrics
-== Enable lyrics
+Enable lyrics HUD
+== Enable lyrics HUD
 
 Enable map compatibility mode using the specified bug (example: grenade-doubleexplosion@ddnet.tw)
 == 지정된 버그를 사용하여 맵 호환 모드 활성화 (예: grenade-doubleexplosion@ddnet.tw)
@@ -2418,9 +2439,6 @@ f = Frame rate
 
 Fade and slide
 == 페이드 및 슬라이드
-
-Fade duration
-== Fade duration
 
 Fade in
 == 페이드 인
@@ -2956,8 +2974,8 @@ Hide UI for focused gameplay
 Hide weapon muzzle flashes
 == 무기 총구 섬광 숨기기
 
-Hide without media state
-== Hide without media state
+Hide when paused
+== Hide when paused
 
 High Detail
 == 높은 디테일
@@ -3055,6 +3073,9 @@ I muted you
 Idiot word filter
 == 바보 단어 필터
 
+Ignore cache providers
+== Ignore cache providers
+
 Import from clipboard
 == 클립보드에서 가져오기
 
@@ -3064,8 +3085,14 @@ Improved Anti Ping
 In memory of me
 == 이 클라이언트에 나를 기억해 줘
 
+In-game lyrics overlay with smart matching
+== In-game lyrics overlay with smart matching
+
 Inactive color
 == 비활성 색상
+
+Inactive line opacity
+== Inactive line opacity
 
 Incoming language
 == 수신 언어
@@ -3262,6 +3289,9 @@ k = Resend loss
 Kaomoji
 == 카오모지
 
+Karaoke edge softness
+== Karaoke edge softness
+
 Key Bindings
 == 키 바인딩
 
@@ -3421,14 +3451,23 @@ Lht.
 LibreTranslate
 == LibreTranslate
 
+Line scroll duration
+== Line scroll duration
+
+Line spacing
+== Line spacing
+
 Line width
 == 선 두께
 
-Lines
-== Lines
-
 Lines %d - %d (%s)
 == 줄 %d - %d (%s)
+
+Lines above active
+== Lines above active
+
+Lines below active
+== Lines below active
 
 List all commands that are available in practice mode
 == 연습 모드에서 사용 가능한 모든 명령 나열
@@ -3559,6 +3598,18 @@ Local
 Local + Dummy
 == 로컬 + 더미
 
+Local ESLRC file
+== Local ESLRC file
+
+Local LRC file
+== Local LRC file
+
+Local media folders
+== Local media folders
+
+Local music file
+== Local music file
+
 Local only
 == 로컬만
 
@@ -3576,6 +3627,9 @@ Local test mode, no server needed
 
 Local Time
 == 현지 시간
+
+Local TTML file
+== Local TTML file
 
 Local-only
 == 로컬 전용
@@ -3604,8 +3658,32 @@ Long press on a touch button to select it.
 Low to high
 == 낮음에서 높음
 
-Lyrics
-== Lyrics
+Lyrics HTTP timeout
+== Lyrics HTTP timeout
+
+Lyrics HUD
+== Lyrics HUD
+
+Lyrics search type
+== Lyrics search type
+
+Lyrics source
+== Lyrics source
+
+Lyrics source order
+== Lyrics source order
+
+Lyrics: empty track
+== Lyrics: empty track
+
+Lyrics: no lyrics found
+== Lyrics: no lyrics found
+
+Lyrics: no media playing
+== Lyrics: no media playing
+
+Lyrics: searching...
+== Lyrics: searching...
 
 Main Asset
 == 메인 에셋
@@ -3708,6 +3786,9 @@ Markers
 
 Match %d of %d
 == 결과 %d / 총 %d
+
+Match score threshold
+== Match score threshold
 
 Matched with callable peer
 == 통화 가능 상대와 매칭됨
@@ -3966,9 +4047,6 @@ News
 
 Next
 == 다음
-
-Next line color
-== Next line color
 
 Next page in console
 == 콘솔 다음 페이지
@@ -4339,11 +4417,11 @@ Option color
 Other
 == 기타
 
+Other lines font size
+== Other lines font size
+
 Outgoing language
 == 발신 언어
-
-Outline color
-== Outline color
 
 Outline opacity
 == 윤곽선 불투명도
@@ -4465,6 +4543,9 @@ Pause the current demo
 Pause/unpause game
 == 게임 일시정지/재개
 
+Per-word highlight (karaoke)
+== Per-word highlight (karaoke)
+
 Personal best:
 == 개인 최고 기록:
 
@@ -4524,6 +4605,9 @@ Play/pause the current demo
 
 Playback volume
 == 재생 볼륨
+
+Played word color
+== Played word color
 
 Player
 == 플레이어
@@ -4746,6 +4830,9 @@ Progress bar height
 
 Progress bar width
 == 진행 표시줄 너비
+
+Provider thresholds
+== Provider thresholds
 
 Publicly messages everyone your current time in this current running race
 == 현재 진행 중인 레이스의 당신 시간을 모든 사람에게 공개 메시지로 보냄
@@ -5530,12 +5617,6 @@ Screenshots
 Screenshots directory
 == 스크린샷 디렉터리
 
-Scroll long lines
-== Scroll long lines
-
-Scroll speed
-== Scroll speed
-
 Search
 == 검색
 
@@ -5682,6 +5763,9 @@ Sends a command to the antibot
 
 Separate with commas
 == 쉼표로 구분
+
+Sequential
+== Sequential
 
 Server
 == 서버
@@ -5892,9 +5976,6 @@ Show coordinates of yourself and others
 
 Show country flags in nameplates
 == 이름표에 국가 국기 표시
-
-Show current and next lyric lines on HUD
-== Show current and next lyric lines on HUD
 
 Show DDNet map finishes in server browser
 == 서버 브라우저에서 DDNet 맵 완료 표시
@@ -6154,6 +6235,9 @@ Show tiles layers from BG map
 Show toast
 == 토스트 표시
 
+Show translation
+== Show translation
+
 Show unknown server messages
 == 알 수 없는 서버 메시지 표시
 
@@ -6330,9 +6414,6 @@ Smooth fade
 
 SMTC
 == 시스템 미디어 컨트롤
-
-Snap threshold
-== Snap threshold
 
 Snapshot Latency
 == 스냅샷 지연
@@ -7183,6 +7264,9 @@ Translating to %s...
 Translation backend invalid, sending original
 == 번역 백엔드가 유효하지 않아 원문 전송
 
+Translation color
+== Translation color
+
 Translation queue full, sending original
 == 번역 큐가 가득 차서 원문 전송
 
@@ -7404,6 +7488,9 @@ Unmute player with list index
 
 Unmute:
 == 음소거 해제:
+
+Unplayed word color
+== Unplayed word color
 
 Unpredicted ghost opacity
 == 예측되지 않은 고스트 불투명도

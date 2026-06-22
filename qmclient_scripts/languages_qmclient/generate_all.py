@@ -178,15 +178,14 @@ def write_language_file(
             item[0][0],
         ),
     )
-    path.write_text(
-        "\n\n".join(
-            format_language_entry(key, context, translation)
-            for (key, context), translation in sorted_entries
+    with path.open("w", encoding="utf-8", newline="\n") as file:
+        file.write(
+            "\n\n".join(
+                format_language_entry(key, context, translation)
+                for (key, context), translation in sorted_entries
+            )
+            + ("\n" if sorted_entries else "")
         )
-        + ("\n" if sorted_entries else ""),
-        encoding="utf-8",
-        newline="\n",
-    )
     print(f"  Generated {len(sorted_entries)} entries to {path}")
 
 

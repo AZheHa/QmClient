@@ -802,27 +802,7 @@ def load_existing_draft_module(
     path = TRANSLATIONS_DRAFT_DIR / language / f"{module}.toml"
     if not path.exists():
         return {}
-    import tomllib
-
-    with path.open("rb") as file:
-        data = tomllib.load(file)
-    entries: dict[tuple[str, str], dict[str, str]] = {}
-    for entry in data.get("message", []):
-        if not isinstance(entry, dict):
-            continue
-        key = entry.get("key", "")
-        context = entry.get("context", "")
-        translations = entry.get("translations", {})
-        if not isinstance(key, str) or not key or not isinstance(translations, dict):
-            continue
-        normalized = {
-            item_language: value
-            for item_language, value in translations.items()
-            if isinstance(item_language, str) and isinstance(value, str) and value
-        }
-        if normalized:
-            entries[(key, context if isinstance(context, str) else "")] = normalized
-    return entries
+    return i18n_store.parse_module_toml(path.read_text(encoding="utf-8"))
 
 
 def load_existing_valid_draft_identities(
@@ -914,9 +894,7 @@ def write_draft_module(
         (i18n_store.Message(key, context), translation_map)
         for (key, context), translation_map in merged.items()
     ]
-    out_path.write_text(
-        i18n_store.dump_module(messages), encoding="utf-8", newline="\n"
-    )
+    i18n_store.write_text_lf(out_path, i18n_store.dump_module(messages))
     return out_path
 
 

@@ -283,6 +283,12 @@ Active color
 Active disconnect
 == 主动断开
 
+Active line font size
+== 当前行字号
+
+Active line scale
+== 当前行缩放
+
 Active moderator mode disabled because you are afk.
 == 由于你已挂机，主动管理员模式已关闭
 
@@ -595,6 +601,9 @@ API key
 Appearance
 == 游戏界面
 
+Apple Music media-user-token
+== Apple Music 媒体用户令牌
+
 Applied to %d same-family part(s).
 == 已应用到 %d 个同族部件。
 
@@ -763,6 +772,9 @@ Auto enable in Gores mode
 Auto execute
 == 自动执行
 
+Auto fetch lyrics
+== 自动获取歌词
+
 Auto gain control for mic (AGC, experimental)
 == 自动平衡麦克风音量（AGC，实验性）
 
@@ -889,9 +901,6 @@ Background Draw
 Background music volume
 == 背景音乐音量
 
-Background opacity
-== 背景透明度
-
 Ban a certain nickname
 == 禁止某个昵称
 
@@ -930,6 +939,9 @@ Benchmark frame times for number of seconds to file, then quit
 
 Best
 == 最高
+
+Best match
+== 最佳匹配
 
 Bind key to execute a command or view keybindings
 == 绑定按键以执行命令或查看按键绑定
@@ -1002,6 +1014,9 @@ Buttons
 
 c = Player position
 == c = 玩家坐标
+
+Cache TTL
+== 缓存有效期
 
 Calculate unfinished maps for player in certain mode
 == 计算玩家某个模式下的未完成图
@@ -1297,6 +1312,9 @@ Client prediction time is high
 Client uptime
 == 客户端启动时间
 
+Clock drift hard-snap
+== 时钟漂移硬切阈值
+
 Close
 == 关闭
 
@@ -1566,9 +1584,6 @@ Current cut is invalid or already added
 
 Current file
 == 当前文件
-
-Current line color
-== 当前行颜色
 
 Current queue: %s
 == 当前队列：%s
@@ -1945,6 +1960,12 @@ Displays your ping to the current server
 Dissolve
 == 消散
 
+Distance fade per line
+== 远离行透明度衰减
+
+Distance scale falloff
+== 远离行缩小幅度
+
 Do not translate server messages
 == 不翻译服务器消息
 
@@ -2212,8 +2233,8 @@ Enable keyword reply
 Enable long pain sound (used when shooting in freeze)
 == 启用冻结呼叫声
 
-Enable lyrics
-== 启用歌词
+Enable lyrics HUD
+== 启用歌词 HUD
 
 Enable map compatibility mode using the specified bug (example: grenade-doubleexplosion@ddnet.tw)
 == 使用指定 bug 启用地图兼容模式（例如：grenade-doubleexplosion@ddnet.tw）
@@ -2418,9 +2439,6 @@ f = Frame rate
 
 Fade and slide
 == 淡入并滑入
-
-Fade duration
-== 淡入淡出时长
 
 Fade in
 == 淡入
@@ -2956,8 +2974,8 @@ Hide UI for focused gameplay
 Hide weapon muzzle flashes
 == 隐藏武器火焰
 
-Hide without media state
-== 无媒体状态时隐藏
+Hide when paused
+== 暂停时隐藏
 
 High Detail
 == 显示地图细节
@@ -3055,6 +3073,9 @@ I muted you
 Idiot word filter
 == 傻逼词过滤器
 
+Ignore cache providers
+== 忽略缓存来源
+
 Import from clipboard
 == 从剪贴板导入
 
@@ -3064,8 +3085,14 @@ Improved Anti Ping
 In memory of me
 == 谨以此端，回忆我
 
+In-game lyrics overlay with smart matching
+== 游戏内歌词叠加层，支持在线歌词源
+
 Inactive color
 == 按键未激活时颜色
+
+Inactive line opacity
+== 非当前行不透明度
 
 Incoming language
 == 接收语言
@@ -3262,6 +3289,9 @@ k = Resend loss
 Kaomoji
 == 表情符号
 
+Karaoke edge softness
+== 逐字高亮边缘柔化
+
 Key Bindings
 == 按键绑定
 
@@ -3421,14 +3451,23 @@ Lht.
 LibreTranslate
 == Libre 翻译
 
+Line scroll duration
+== 行切换滚动时长
+
+Line spacing
+== 行间距
+
 Line width
 == 线宽
 
-Lines
-== 行数
-
 Lines %d - %d (%s)
 == 行 %d - %d (%s)
+
+Lines above active
+== 当前行上方行数
+
+Lines below active
+== 当前行下方行数
 
 List all commands that are available in practice mode
 == 列出练习模式下可用的所有命令
@@ -3559,6 +3598,18 @@ Local
 Local + Dummy
 == 本地 + 分身
 
+Local ESLRC file
+== 本地 ESLRC 文件
+
+Local LRC file
+== 本地 LRC 文件
+
+Local media folders
+== 本地媒体目录
+
+Local music file
+== 本地音乐文件
+
 Local only
 == 仅本地
 
@@ -3576,6 +3627,9 @@ Local test mode, no server needed
 
 Local Time
 == 本地时间
+
+Local TTML file
+== 本地 TTML 文件
 
 Local-only
 == 仅本地资源
@@ -3604,8 +3658,32 @@ Long press on a touch button to select it.
 Low to high
 == 由低到高
 
-Lyrics
-== 歌词
+Lyrics HTTP timeout
+== 歌词 HTTP 超时
+
+Lyrics HUD
+== 歌词 HUD
+
+Lyrics search type
+== 歌词搜索策略
+
+Lyrics source
+== 歌词来源
+
+Lyrics source order
+== 歌词来源顺序
+
+Lyrics: empty track
+== 歌词：歌词为空
+
+Lyrics: no lyrics found
+== 歌词：未找到歌词
+
+Lyrics: no media playing
+== 歌词：没有正在播放的媒体
+
+Lyrics: searching...
+== 歌词：正在搜索……
 
 Main Asset
 == 主材质
@@ -3708,6 +3786,9 @@ Markers
 
 Match %d of %d
 == 匹配 %d/%d
+
+Match score threshold
+== 匹配评分阈值
 
 Matched with callable peer
 == 已匹配到可通话对端
@@ -3966,9 +4047,6 @@ News
 
 Next
 == 下一个
-
-Next line color
-== 下一行颜色
 
 Next page in console
 == 控制台下一页
@@ -4339,11 +4417,11 @@ Option color
 Other
 == 其他
 
+Other lines font size
+== 其他行字号
+
 Outgoing language
 == 发送语言
-
-Outline color
-== 描边颜色
 
 Outline opacity
 == 轮廓不透明度
@@ -4465,6 +4543,9 @@ Pause the current demo
 Pause/unpause game
 == 暂停/恢复游戏
 
+Per-word highlight (karaoke)
+== 逐字高亮（卡拉 OK）
+
 Personal best:
 == 个人最佳
 
@@ -4524,6 +4605,9 @@ Play/pause the current demo
 
 Playback volume
 == 播放音量
+
+Played word color
+== 已播放词颜色
 
 Player
 == 玩家
@@ -4746,6 +4830,9 @@ Progress bar height
 
 Progress bar width
 == 进度条宽度
+
+Provider thresholds
+== 来源匹配阈值
 
 Publicly messages everyone your current time in this current running race
 == 公开发送你当前竞速时间给所有人
@@ -5530,12 +5617,6 @@ Screenshots
 Screenshots directory
 == 截图目录
 
-Scroll long lines
-== 滚动长歌词
-
-Scroll speed
-== 滚动速度
-
 Search
 == 搜索
 
@@ -5682,6 +5763,9 @@ Sends a command to the antibot
 
 Separate with commas
 == 用 , 分隔
+
+Sequential
+== 按顺序
 
 Server
 == 服务器
@@ -5892,9 +5976,6 @@ Show coordinates of yourself and others
 
 Show country flags in nameplates
 == 在玩家昵称旁显示国旗
-
-Show current and next lyric lines on HUD
-== 在 HUD 上显示当前和下一句歌词
 
 Show DDNet map finishes in server browser
 == 在服务器浏览器中显示已完成的 DDNet 地图
@@ -6154,6 +6235,9 @@ Show tiles layers from BG map
 Show toast
 == 显示 toast
 
+Show translation
+== 显示翻译
+
 Show unknown server messages
 == 显示未知服务器消息
 
@@ -6330,9 +6414,6 @@ Smooth fade
 
 SMTC
 == 系统媒体控制
-
-Snap threshold
-== 吸附阈值
 
 Snapshot Latency
 == 快照延迟
@@ -7183,6 +7264,9 @@ Translating to %s...
 Translation backend invalid, sending original
 == 翻译后端无效，发送原文
 
+Translation color
+== 翻译颜色
+
 Translation queue full, sending original
 == 翻译队列已满，发送原文
 
@@ -7404,6 +7488,9 @@ Unmute player with list index
 
 Unmute:
 == 取消禁言：
+
+Unplayed word color
+== 未播放词颜色
 
 Unpredicted ghost opacity
 == 未预测影子不透明度

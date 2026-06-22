@@ -283,6 +283,12 @@ Active color
 Active disconnect
 == Aktif bağlantı kesme
 
+Active line font size
+== Active line font size
+
+Active line scale
+== Active line scale
+
 Active moderator mode disabled because you are afk.
 == AFK olduğun için aktif moderatör modu devre dışı bırakıldı.
 
@@ -595,6 +601,9 @@ API key
 Appearance
 == Görünüm
 
+Apple Music media-user-token
+== Apple Music media-user-token
+
 Applied to %d same-family part(s).
 == %d adet aynı aile parçasına uygulandı.
 
@@ -763,6 +772,9 @@ Auto enable in Gores mode
 Auto execute
 == Otomatik çalıştır
 
+Auto fetch lyrics
+== Auto fetch lyrics
+
 Auto gain control for mic (AGC, experimental)
 == Mikrofon için otomatik kazanç kontrolü (AGC, deneysel)
 
@@ -889,9 +901,6 @@ Background Draw
 Background music volume
 == Arka plan müziği sesi
 
-Background opacity
-== Background opacity
-
 Ban a certain nickname
 == Belirli bir takma adı yasakla
 
@@ -930,6 +939,9 @@ Benchmark frame times for number of seconds to file, then quit
 
 Best
 == En iyi
+
+Best match
+== Best match
 
 Bind key to execute a command or view keybindings
 == Bir komutu yürütmek için tuş bağla veya tuş bağlantılarını görüntüle
@@ -1002,6 +1014,9 @@ Buttons
 
 c = Player position
 == c = Oyuncu konumu
+
+Cache TTL
+== Cache TTL
 
 Calculate unfinished maps for player in certain mode
 == Belirli bir modda oyuncu için bitmemiş haritaları hesapla
@@ -1297,6 +1312,9 @@ Client prediction time is high
 Client uptime
 == İstemci çalışma süresi
 
+Clock drift hard-snap
+== Clock drift hard-snap
+
 Close
 == Kapat
 
@@ -1566,9 +1584,6 @@ Current cut is invalid or already added
 
 Current file
 == Geçerli dosya
-
-Current line color
-== Current line color
 
 Current queue: %s
 == Geçerli sıra: %s
@@ -1945,6 +1960,12 @@ Displays your ping to the current server
 Dissolve
 == Çözün
 
+Distance fade per line
+== Distance fade per line
+
+Distance scale falloff
+== Distance scale falloff
+
 Do not translate server messages
 == Sunucu mesajlarını çevirme
 
@@ -2212,8 +2233,8 @@ Enable keyword reply
 Enable long pain sound (used when shooting in freeze)
 == Uzun acı sesini etkinleştir (dondurucuda ateş ederken kullanılır)
 
-Enable lyrics
-== Enable lyrics
+Enable lyrics HUD
+== Enable lyrics HUD
 
 Enable map compatibility mode using the specified bug (example: grenade-doubleexplosion@ddnet.tw)
 == Belirtilen hatayı kullanarak harita uyumluluk modunu etkinleştir (örnek: grenade-doubleexplosion@ddnet.tw)
@@ -2418,9 +2439,6 @@ f = Frame rate
 
 Fade and slide
 == Soldur ve kaydır
-
-Fade duration
-== Fade duration
 
 Fade in
 == Soldurarak aç
@@ -2956,8 +2974,8 @@ Hide UI for focused gameplay
 Hide weapon muzzle flashes
 == Silah namlu flaşlarını gizle
 
-Hide without media state
-== Hide without media state
+Hide when paused
+== Hide when paused
 
 High Detail
 == Yüksek Detay
@@ -3055,6 +3073,9 @@ I muted you
 Idiot word filter
 == Aptal kelime filtresi
 
+Ignore cache providers
+== Ignore cache providers
+
 Import from clipboard
 == Panodan içe aktar
 
@@ -3064,8 +3085,14 @@ Improved Anti Ping
 In memory of me
 == Bu istemci beni hatırlasın
 
+In-game lyrics overlay with smart matching
+== In-game lyrics overlay with smart matching
+
 Inactive color
 == Etkin olmayan renk
+
+Inactive line opacity
+== Inactive line opacity
 
 Incoming language
 == Gelen dil
@@ -3262,6 +3289,9 @@ k = Resend loss
 Kaomoji
 == Kaomoji
 
+Karaoke edge softness
+== Karaoke edge softness
+
 Key Bindings
 == Tuş Bağlamaları
 
@@ -3421,14 +3451,23 @@ Lht.
 LibreTranslate
 == LibreTranslate
 
+Line scroll duration
+== Line scroll duration
+
+Line spacing
+== Line spacing
+
 Line width
 == Çizgi genişliği
 
-Lines
-== Lines
-
 Lines %d - %d (%s)
 == Satırlar %d - %d (%s)
+
+Lines above active
+== Lines above active
+
+Lines below active
+== Lines below active
 
 List all commands that are available in practice mode
 == Pratik modunda mevcut olan tüm komutları listele
@@ -3559,6 +3598,18 @@ Local
 Local + Dummy
 == Yerel + Dummy
 
+Local ESLRC file
+== Local ESLRC file
+
+Local LRC file
+== Local LRC file
+
+Local media folders
+== Local media folders
+
+Local music file
+== Local music file
+
 Local only
 == Yalnızca yerel
 
@@ -3576,6 +3627,9 @@ Local test mode, no server needed
 
 Local Time
 == Yerel Saat
+
+Local TTML file
+== Local TTML file
 
 Local-only
 == Yalnızca yerel
@@ -3604,8 +3658,32 @@ Long press on a touch button to select it.
 Low to high
 == Düşükten yükseğe
 
-Lyrics
-== Lyrics
+Lyrics HTTP timeout
+== Lyrics HTTP timeout
+
+Lyrics HUD
+== Lyrics HUD
+
+Lyrics search type
+== Lyrics search type
+
+Lyrics source
+== Lyrics source
+
+Lyrics source order
+== Lyrics source order
+
+Lyrics: empty track
+== Lyrics: empty track
+
+Lyrics: no lyrics found
+== Lyrics: no lyrics found
+
+Lyrics: no media playing
+== Lyrics: no media playing
+
+Lyrics: searching...
+== Lyrics: searching...
 
 Main Asset
 == Ana Varlık
@@ -3708,6 +3786,9 @@ Markers
 
 Match %d of %d
 == %d / %d eşleşmesi
+
+Match score threshold
+== Match score threshold
 
 Matched with callable peer
 == Aranabilir eşle eşleşti
@@ -3966,9 +4047,6 @@ News
 
 Next
 == Sonraki
-
-Next line color
-== Next line color
 
 Next page in console
 == Konsolda sonraki sayfa
@@ -4339,11 +4417,11 @@ Option color
 Other
 == Diğer
 
+Other lines font size
+== Other lines font size
+
 Outgoing language
 == Giden dil
-
-Outline color
-== Outline color
 
 Outline opacity
 == Anahat opaklığı
@@ -4465,6 +4543,9 @@ Pause the current demo
 Pause/unpause game
 == Oyunu duraklat/duraklatmayı kaldır
 
+Per-word highlight (karaoke)
+== Per-word highlight (karaoke)
+
 Personal best:
 == Kişisel en iyi:
 
@@ -4524,6 +4605,9 @@ Play/pause the current demo
 
 Playback volume
 == Oynatma sesi
+
+Played word color
+== Played word color
 
 Player
 == Oyuncu
@@ -4746,6 +4830,9 @@ Progress bar height
 
 Progress bar width
 == İlerleme çubuğu genişliği
+
+Provider thresholds
+== Provider thresholds
 
 Publicly messages everyone your current time in this current running race
 == Bu devam eden yarıştaki geçerli süreni herkese açık olarak mesajla
@@ -5530,12 +5617,6 @@ Screenshots
 Screenshots directory
 == Ekran görüntüleri dizini
 
-Scroll long lines
-== Scroll long lines
-
-Scroll speed
-== Scroll speed
-
 Search
 == Ara
 
@@ -5682,6 +5763,9 @@ Sends a command to the antibot
 
 Separate with commas
 == Virgülle ayır
+
+Sequential
+== Sequential
 
 Server
 == Sunucu
@@ -5892,9 +5976,6 @@ Show coordinates of yourself and others
 
 Show country flags in nameplates
 == İsim levhalarında ülke bayraklarını göster
-
-Show current and next lyric lines on HUD
-== Show current and next lyric lines on HUD
 
 Show DDNet map finishes in server browser
 == Sunucu tarayıcısında tamamlanan DDNet haritalarını göster
@@ -6154,6 +6235,9 @@ Show tiles layers from BG map
 Show toast
 == Toast'ı göster
 
+Show translation
+== Show translation
+
 Show unknown server messages
 == Bilinmeyen sunucu mesajlarını göster
 
@@ -6330,9 +6414,6 @@ Smooth fade
 
 SMTC
 == SMTC
-
-Snap threshold
-== Snap threshold
 
 Snapshot Latency
 == Snapshot gecikmesi
@@ -7183,6 +7264,9 @@ Translating to %s...
 Translation backend invalid, sending original
 == Çeviri arka ucu geçersiz, orijinal metin gönderiliyor
 
+Translation color
+== Translation color
+
 Translation queue full, sending original
 == Çeviri kuyruğu dolu, orijinal metin gönderiliyor
 
@@ -7404,6 +7488,9 @@ Unmute player with list index
 
 Unmute:
 == Sessizi Kaldır:
+
+Unplayed word color
+== Unplayed word color
 
 Unpredicted ghost opacity
 == Tahmin edilmemiş hayalet opaklığı
