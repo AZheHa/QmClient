@@ -2848,6 +2848,9 @@ Grabs
 Graphics
 == Grafikler
 
+Graphics backend
+== Grafik arka ucu
+
 Graphics card
 == Ekran kartı
 
@@ -2862,6 +2865,9 @@ Group name
 
 Guide line color
 == Kılavuz çizgisi rengi
+
+Gun
+== Tabanca
 
 Hammer
 == Çekiç
@@ -5257,9 +5263,6 @@ Render ghosts as circles
 Render tiny tees instead of circles
 == Daireler yerine minik teeler işle
 
-Renderer
-== Oluşturucu
-
 Renders your frame rate in the top right
 == Sağ üstte kare hızınızı gösterir
 
@@ -5388,6 +5391,9 @@ Reset to defaults
 
 Reset zone tuning in zone x or in all zones
 == x bölgesindeki veya tüm bölgelerdeki bölge ayarını sıfırla
+
+Respawn default weapon
+== Yeniden doğuş varsayılan silahı
 
 Restart
 == Yeniden Başlat
@@ -6054,6 +6060,9 @@ Show important server prompts and Echo messages as popups
 
 Show important server prompts as notifications
 == Önemli sunucu uyarılarını bildirim olarak göster
+
+Show in Dynamic Island
+== Dynamic Island içinde göster
 
 Show info about the map with name r gives (current map by default)
 == r adındaki harita hakkında bilgi gösterir (varsayılan olarak geçerli harita)

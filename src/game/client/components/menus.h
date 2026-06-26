@@ -936,6 +936,8 @@ protected:
 	float m_MenuPageTransitionDirection = 0.0f;
 	float m_GamePageTransitionDirection = 0.0f;
 	float m_BrowserTabTransitionDirection = 0.0f;
+	std::chrono::nanoseconds m_LastMenuInteractionTime{0};
+	void MarkMenuInteraction();
 
 	char m_aNextServer[256];
 
@@ -1733,6 +1735,7 @@ public:
 	bool IsSettingsPageActive() const;
 	const char *CurrentQmUiPerfPage() const;
 	const char *CurrentQmUiPerfOperation() const;
+	int IdleRenderFrameRate() const;
 	SSettingsResourceFrameContext SettingsResourceFrameContext() const { return {m_SettingsScrollActive, false, m_SettingsPostScrollRecoveryFrames, m_SettingsHighPrioritySettled}; }
 	const SSettingsAdaptiveBudgetOutput &CurrentSettingsUiFrameBudget() const { return m_CurrentSettingsUiFrameBudget; }
 	void SetActive(bool Active);

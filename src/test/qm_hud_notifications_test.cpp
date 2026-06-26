@@ -1189,6 +1189,29 @@ TEST(QmHudEditorGeometry, SnapsToOtherModuleAlignmentGuides)
 	EXPECT_FLOAT_EQ(QmHudEditor::SnapAxisToGuides(120.0f, 30.0f, 0.0f, 300.0f, aReferences, 1), 120.0f);
 }
 
+TEST(QmHudEditorGeometry, ReportsVisibleSnapGuidePosition)
+{
+	const QmHudEditor::SAxisReference aReferences[] = {
+		{40.0f, 60.0f},
+	};
+
+	const QmHudEditor::SSnapAxisResult ScreenCenter = QmHudEditor::SnapAxisToGuidesEx(127.0f, 40.0f, 0.0f, 300.0f, nullptr, 0);
+	EXPECT_TRUE(ScreenCenter.m_HasGuide);
+	EXPECT_FLOAT_EQ(ScreenCenter.m_Position, 130.0f);
+	EXPECT_FLOAT_EQ(ScreenCenter.m_GuidePosition, 150.0f);
+	EXPECT_EQ(ScreenCenter.m_GuideKind, QmHudEditor::ESnapGuideKind::ScreenCenter);
+
+	const QmHudEditor::SSnapAxisResult ReferenceEnd = QmHudEditor::SnapAxisToGuidesEx(68.0f, 30.0f, 0.0f, 300.0f, aReferences, 1);
+	EXPECT_TRUE(ReferenceEnd.m_HasGuide);
+	EXPECT_FLOAT_EQ(ReferenceEnd.m_Position, 70.0f);
+	EXPECT_FLOAT_EQ(ReferenceEnd.m_GuidePosition, 100.0f);
+	EXPECT_EQ(ReferenceEnd.m_GuideKind, QmHudEditor::ESnapGuideKind::ReferenceEnd);
+
+	const QmHudEditor::SSnapAxisResult Free = QmHudEditor::SnapAxisToGuidesEx(120.0f, 30.0f, 0.0f, 300.0f, aReferences, 1);
+	EXPECT_FALSE(Free.m_HasGuide);
+	EXPECT_FLOAT_EQ(Free.m_Position, 120.0f);
+}
+
 TEST(QmHudEditorGeometry, HudNotificationsUsesStableLayoutToken)
 {
 	const char *pToken = QmHudEditor::ElementToken(EHudEditorElement::HudNotifications);

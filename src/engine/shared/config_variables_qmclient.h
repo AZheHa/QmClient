@@ -133,6 +133,7 @@ MACRO_CONFIG_INT(QmWeaponTrajectoryWidth, qm_weapon_trajectory_width, 2, 1, 10, 
 MACRO_CONFIG_INT(QmWeaponTrajectoryAlpha, qm_weapon_trajectory_alpha, 70, 0, 100, CFGFLAG_CLIENT | CFGFLAG_SAVE, "武器弹道辅助线透明度")
 MACRO_CONFIG_INT(QmWeaponSwitchAnim, qm_weapon_switch_anim, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "切换武器时播放滑入旋转动画")
 MACRO_CONFIG_INT(QmWeaponSwitchAnimScope, qm_weapon_switch_anim_scope, 0, 0, 2, CFGFLAG_CLIENT | CFGFLAG_SAVE, "武器切换动画范围: 0=仅自己 1=本地+分身 2=所有玩家")
+MACRO_CONFIG_INT(QmRespawnDefaultWeapon, qm_respawn_default_weapon, 0, 0, 5, CFGFLAG_CLIENT | CFGFLAG_SAVE, "重生后默认请求切换的武器（0=关闭，1=锤子，2=手枪，3=霰弹枪，4=榴弹枪，5=激光）")
 MACRO_CONFIG_INT(QmDeepflyMode, qm_deepfly_mode, 0, 0, 3, CFGFLAG_CLIENT, "Deepfly模式（0=正常，1=DF，2=HDF，3=自定义）")
 
 // Auto Unspec on Unfreeze / 解冻自动取消旁观
@@ -315,6 +316,7 @@ MACRO_CONFIG_INT(QmHudIslandUseOriginalStyle, qm_hud_island_use_original_style, 
 MACRO_CONFIG_INT(QmHudIslandShowTeam, qm_hud_island_show_team, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "HUD 灵动岛显示队伍")
 MACRO_CONFIG_COL(QmHudIslandBgColor, qm_hud_island_bg_color, 0x9C460E, CFGFLAG_CLIENT | CFGFLAG_SAVE, "灵动岛背景颜色")
 MACRO_CONFIG_INT(QmHudIslandBgOpacity, qm_hud_island_bg_opacity, 80, 0, 100, CFGFLAG_CLIENT | CFGFLAG_SAVE, "灵动岛背景透明度")
+MACRO_CONFIG_INT(QmHudIslandEdgeMargin, qm_hud_island_edge_margin, 5, 0, 64, CFGFLAG_CLIENT | CFGFLAG_SAVE, "灵动岛 HUD 编辑器贴边外边距 px")
 MACRO_CONFIG_STR(QmHudEditorLayout, qm_hud_editor_layout, 2048, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "HUD 编辑器布局")
 
 // Camera / View - 相机、视野
@@ -402,6 +404,7 @@ MACRO_CONFIG_INT(QmSmtcShowHud, qm_smtc_show_hud, 1, 0, 1, CFGFLAG_CLIENT | CFGF
 
 // Lyrics HUD (CQmLyrics 重写版) - 歌词叠加层
 MACRO_CONFIG_INT(QmLyrics, qm_lyrics, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用歌词 HUD 叠加层")
+MACRO_CONFIG_INT(QmLyricsInMediaIsland, qm_lyrics_in_media_island, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "将歌词显示在灵动岛内")
 MACRO_CONFIG_INT(QmLyricsSource, qm_lyrics_source, 0, 0, 10, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词数据源（0=自动最佳匹配，1=LRCLIB，2=Kugou，3=QQ，4=Netease，5=AMLL TTML DB，6=Apple Music，7=Local Music File，8=Local LRC，9=Local ESLRC，10=Local TTML）")
 MACRO_CONFIG_INT(QmLyricsSearchType, qm_lyrics_search_type, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词搜索策略（0=按来源顺序，1=并发最佳匹配）")
 MACRO_CONFIG_STR(QmLyricsSourceOrder, qm_lyrics_source_order, 512, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "歌词自动搜索来源顺序/启用列表（空=默认；用 | 分隔，如 QQ|Kugou|Netease|LrcLib）")

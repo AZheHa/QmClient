@@ -791,6 +791,11 @@ void CGameClient::OnUpdate()
 	RecordDemoInputWheelEvent();
 }
 
+int CGameClient::RenderThrottleRefreshRate() const
+{
+	return m_Menus.IdleRenderFrameRate();
+}
+
 void CGameClient::RequestPredictionRefreshAfterConfigChange()
 {
 	m_RequestPredictionRefreshAfterConfigChange = true;

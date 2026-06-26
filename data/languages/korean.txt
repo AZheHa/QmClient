@@ -2848,6 +2848,9 @@ Grabs
 Graphics
 == 그래픽
 
+Graphics backend
+== 그래픽 백엔드
+
 Graphics card
 == 그래픽 카드
 
@@ -2862,6 +2865,9 @@ Group name
 
 Guide line color
 == 가이드선 색상
+
+Gun
+== 권총
 
 Hammer
 == 망치
@@ -5257,9 +5263,6 @@ Render ghosts as circles
 Render tiny tees instead of circles
 == 원 대신 작은 티로 렌더링
 
-Renderer
-== 렌더러
-
 Renders your frame rate in the top right
 == 오른쪽 상단에 프레임 속도 표시
 
@@ -5388,6 +5391,9 @@ Reset to defaults
 
 Reset zone tuning in zone x or in all zones
 == 영역 x 또는 모든 영역의 영역 튜닝 초기화
+
+Respawn default weapon
+== 부활 기본 무기
 
 Restart
 == 다시 시작
@@ -6054,6 +6060,9 @@ Show important server prompts and Echo messages as popups
 
 Show important server prompts as notifications
 == 중요한 서버 알림을 알림으로 표시
+
+Show in Dynamic Island
+== Dynamic Island에 표시
 
 Show info about the map with name r gives (current map by default)
 == 이름이 r인 맵에 대한 정보 표시 (기본값은 현재 맵)

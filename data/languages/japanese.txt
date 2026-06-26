@@ -2848,6 +2848,9 @@ Grabs
 Graphics
 == グラフィックス
 
+Graphics backend
+== グラフィックスバックエンド
+
 Graphics card
 == グラフィックカード
 
@@ -2862,6 +2865,9 @@ Group name
 
 Guide line color
 == ガイドラインの色
+
+Gun
+== ピストル
 
 Hammer
 == ハンマー
@@ -5257,9 +5263,6 @@ Render ghosts as circles
 Render tiny tees instead of circles
 == 円の代わりに小さなTeeをレンダリング
 
-Renderer
-== レンダラー
-
 Renders your frame rate in the top right
 == 右上にフレームレートを表示
 
@@ -5388,6 +5391,9 @@ Reset to defaults
 
 Reset zone tuning in zone x or in all zones
 == ゾーン x または全ゾーンのゾーンチューニングをリセット
+
+Respawn default weapon
+== リスポーン時の既定武器
 
 Restart
 == 再起動
@@ -6054,6 +6060,9 @@ Show important server prompts and Echo messages as popups
 
 Show important server prompts as notifications
 == 重要なサーバー通知を通知欄に表示
+
+Show in Dynamic Island
+== Dynamic Island に表示
 
 Show info about the map with name r gives (current map by default)
 == 名前 r のマップの情報を表示（デフォルトで現在のマップ）

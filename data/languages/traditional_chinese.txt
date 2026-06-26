@@ -2848,6 +2848,9 @@ Grabs
 Graphics
 == 圖像
 
+Graphics backend
+== 圖形後端
+
 Graphics card
 == 顯示卡
 
@@ -2862,6 +2865,9 @@ Group name
 
 Guide line color
 == 輔助線顏色
+
+Gun
+== 手槍
 
 Hammer
 == 錘子
@@ -5257,9 +5263,6 @@ Render ghosts as circles
 Render tiny tees instead of circles
 == 渲染成迷你 Tee 而不是圓圈
 
-Renderer
-== 渲染設定
-
 Renders your frame rate in the top right
 == 在右上角顯示幀率
 
@@ -5388,6 +5391,9 @@ Reset to defaults
 
 Reset zone tuning in zone x or in all zones
 == 重置區域 x（或全部區域）的調參配置
+
+Respawn default weapon
+== 重生預設武器
 
 Restart
 == 重新開始
@@ -6054,6 +6060,9 @@ Show important server prompts and Echo messages as popups
 
 Show important server prompts as notifications
 == 重要伺服器提示改走通知欄
+
+Show in Dynamic Island
+== 顯示在靈動島內
 
 Show info about the map with name r gives (current map by default)
 == 顯示有關名稱為 r 的地圖的資訊（預設為目前地圖）

@@ -2848,6 +2848,9 @@ Grabs
 Graphics
 == Grafik
 
+Graphics backend
+== Grafik-Backend
+
 Graphics card
 == Grafikkarte
 
@@ -2862,6 +2865,9 @@ Group name
 
 Guide line color
 == Führungslinienfarbe
+
+Gun
+== Pistole
 
 Hammer
 == Hammer
@@ -5257,9 +5263,6 @@ Render ghosts as circles
 Render tiny tees instead of circles
 == Winzige Tees anstelle von Kreisen rendern
 
-Renderer
-== Renderer
-
 Renders your frame rate in the top right
 == Zeigt die Bildrate oben rechts an
 
@@ -5388,6 +5391,9 @@ Reset to defaults
 
 Reset zone tuning in zone x or in all zones
 == Zonen-Tuning in Zone x oder in allen Zonen zurücksetzen
+
+Respawn default weapon
+== Standardwaffe nach Respawn
 
 Restart
 == Neustart
@@ -6054,6 +6060,9 @@ Show important server prompts and Echo messages as popups
 
 Show important server prompts as notifications
 == Wichtige Server-Hinweise als Benachrichtigungen anzeigen
+
+Show in Dynamic Island
+== In Dynamic Island anzeigen
 
 Show info about the map with name r gives (current map by default)
 == Informationen über die Karte mit Namen r anzeigen (standardmäßig aktuelle Karte)

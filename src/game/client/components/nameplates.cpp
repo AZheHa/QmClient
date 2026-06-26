@@ -75,13 +75,21 @@ struct SCoordXAlignState
 	bool m_Active = false;
 	bool m_Aligned = false;
 	float m_WindowStartTime = 0.0f;
+	int m_ReferenceClientId = -1;
 };
 
 struct SCoordXAlignFrameState
 {
 	bool m_LocalAligned = false;
+	bool m_aClientAligned[MAX_CLIENTS] = {};
 	int m_LocalClientId = -1;
 	int m_LocalRoundedX = 0;
+};
+
+struct SCoordXAlignReference
+{
+	int m_ClientId = -1;
+	int m_RoundedX = 0;
 };
 
 static uint64_t ChatBubbleAnimNodeKey(int ClientId)
@@ -1436,49 +1444,99 @@ void CNamePlates::UpdateCoordXAlignFrameState()
 			CoordXAlignState = SCoordXAlignState();
 		return;
 	}
-	if(GameClient()->m_Snap.m_LocalClientId < 0 || GameClient()->m_Snap.m_LocalClientId >= MAX_CLIENTS)
+	std::array<SCoordXAlignReference, NUM_DUMMIES> aLocalRefs{};
+	int NumLocalRefs = 0;
+	for(int Dummy = 0; Dummy < NUM_DUMMIES; ++Dummy)
 	{
-		for(SCoordXAlignState &CoordXAlignState : m_pData->m_aCoordXAlign)
-			CoordXAlignState = SCoordXAlignState();
-		return;
+		const int LocalClientId = GameClient()->m_aLocalIds[Dummy];
+		if(LocalClientId < 0 || LocalClientId >= MAX_CLIENTS)
+			continue;
+		if(!GameClient()->m_Snap.m_apPlayerInfos[LocalClientId])
+			continue;
+		if(!GameClient()->m_Snap.m_aCharacters[LocalClientId].m_Active)
+			continue;
+
+		const vec2 LocalPos = LocalClientId == GameClient()->m_Snap.m_LocalClientId ?
+					      GameClient()->m_LocalCharacterPos :
+					      GameClient()->m_aClients[LocalClientId].m_RenderPos;
+		aLocalRefs[NumLocalRefs++] = {LocalClientId, RoundCoordToCentitiles(LocalPos.x / 32.0f)};
 	}
-	if(!GameClient()->m_Snap.m_aCharacters[GameClient()->m_Snap.m_LocalClientId].m_Active)
+
+	if(NumLocalRefs == 0)
 	{
 		for(SCoordXAlignState &CoordXAlignState : m_pData->m_aCoordXAlign)
 			CoordXAlignState = SCoordXAlignState();
 		return;
 	}
 
-	FrameState.m_LocalClientId = GameClient()->m_Snap.m_LocalClientId;
-	FrameState.m_LocalRoundedX = RoundCoordToCentitiles(GameClient()->m_LocalCharacterPos.x / 32.0f);
+	FrameState.m_LocalClientId = aLocalRefs[0].m_ClientId;
+	FrameState.m_LocalRoundedX = aLocalRefs[0].m_RoundedX;
 
 	const int MaxAllowedDiff = g_Config.m_QmNameplateCoordXAlignHintStrict ? 0 : 3;
 	const float WindowSeconds = std::clamp(g_Config.m_QmNameplateCoordXAlignHintWindowMs / 1000.0f, 0.1f, 3.0f);
 	const float Now = Client()->LocalTime();
 	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 	{
-		if(ClientId == FrameState.m_LocalClientId || !GameClient()->m_Snap.m_apPlayerInfos[ClientId])
+		SCoordXAlignState &CoordXAlignState = m_pData->m_aCoordXAlign[ClientId];
+		if(!GameClient()->m_Snap.m_apPlayerInfos[ClientId])
+		{
+			CoordXAlignState = SCoordXAlignState();
 			continue;
+		}
 		if(!GameClient()->m_Snap.m_aCharacters[ClientId].m_Active || GameClient()->m_aClients[ClientId].m_IsVolleyBall)
+		{
+			CoordXAlignState = SCoordXAlignState();
 			continue;
+		}
 		if(GameClient()->IsOtherTeam(ClientId))
 		{
-			m_pData->m_aCoordXAlign[ClientId] = SCoordXAlignState();
+			CoordXAlignState = SCoordXAlignState();
 			continue;
 		}
 
-		SCoordXAlignState &CoordXAlignState = m_pData->m_aCoordXAlign[ClientId];
-		const int RoundedX = RoundCoordToCentitiles(GameClient()->m_aClients[ClientId].m_RenderPos.x / 32.0f);
-		const int RoundedXDiff = absolute(RoundedX - FrameState.m_LocalRoundedX);
-		if(!CoordXAlignState.m_Active || RoundedXDiff > MaxAllowedDiff)
+		int RoundedX = RoundCoordToCentitiles(GameClient()->m_aClients[ClientId].m_RenderPos.x / 32.0f);
+		for(int i = 0; i < NumLocalRefs; ++i)
+		{
+			if(aLocalRefs[i].m_ClientId == ClientId)
+			{
+				RoundedX = aLocalRefs[i].m_RoundedX;
+				break;
+			}
+		}
+
+		int ReferenceClientId = -1;
+		int RoundedXDiff = std::numeric_limits<int>::max();
+		for(int i = 0; i < NumLocalRefs; ++i)
+		{
+			if(aLocalRefs[i].m_ClientId == ClientId)
+				continue;
+			const int Diff = absolute(RoundedX - aLocalRefs[i].m_RoundedX);
+			if(Diff < RoundedXDiff)
+			{
+				RoundedXDiff = Diff;
+				ReferenceClientId = aLocalRefs[i].m_ClientId;
+			}
+		}
+		if(RoundedXDiff == std::numeric_limits<int>::max())
+		{
+			CoordXAlignState = SCoordXAlignState();
+			continue;
+		}
+		if(!CoordXAlignState.m_Active || RoundedXDiff > MaxAllowedDiff || CoordXAlignState.m_ReferenceClientId != ReferenceClientId)
 		{
 			CoordXAlignState.m_Active = true;
 			CoordXAlignState.m_Aligned = false;
 			CoordXAlignState.m_WindowStartTime = Now;
+			CoordXAlignState.m_ReferenceClientId = ReferenceClientId;
 		}
 		CoordXAlignState.m_Aligned = RoundedXDiff <= MaxAllowedDiff && Now - CoordXAlignState.m_WindowStartTime >= WindowSeconds;
 		if(CoordXAlignState.m_Aligned)
+		{
 			FrameState.m_LocalAligned = true;
+			FrameState.m_aClientAligned[ClientId] = true;
+			if(ReferenceClientId >= 0 && ReferenceClientId < MAX_CLIENTS)
+				FrameState.m_aClientAligned[ReferenceClientId] = true;
+		}
 	}
 }
 
@@ -1539,26 +1597,24 @@ void CNamePlates::RenderNamePlateGame(vec2 Position, const CNetObj_PlayerInfo *p
 		(Data.m_CoordXAlignHint || Data.m_CoordXAlignHintStrict);
 	const bool LocalCoordXAligned =
 		TrackCoordXAlign &&
-		ClientId == m_pData->m_CoordXAlignFrame.m_LocalClientId &&
-		m_pData->m_CoordXAlignFrame.m_LocalAligned;
-	const bool NameplateScopeAllowsCoords = pPlayerInfo->m_Local ? g_Config.m_ClNamePlatesOwn : g_Config.m_ClNamePlates;
-	const bool CoordModuleAllowsCoords = pPlayerInfo->m_Local ? g_Config.m_QmNameplateCoordsOwn : g_Config.m_QmNameplateCoords;
-	const bool ShowLocalAlignedCoordX = NameplateScopeAllowsCoords && CoordXAlignHintEnabled && LocalCoordXAligned;
-	Data.m_ShowCoordX = (NameplateScopeAllowsCoords && CoordModuleAllowsCoords && g_Config.m_QmNameplateCoordX != 0) || ShowLocalAlignedCoordX;
-	Data.m_ShowCoordY = NameplateScopeAllowsCoords && CoordModuleAllowsCoords && g_Config.m_QmNameplateCoordY != 0;
-	Data.m_ShowCoords = (NameplateScopeAllowsCoords && CoordModuleAllowsCoords) || ShowLocalAlignedCoordX;
+		IsAnyLocalClient &&
+		m_pData->m_CoordXAlignFrame.m_aClientAligned[ClientId];
+	const bool CoordModuleAllowsCoords = IsAnyLocalClient ? g_Config.m_QmNameplateCoordsOwn : g_Config.m_QmNameplateCoords;
+	const bool ShowLocalAlignedCoordX = CoordModuleAllowsCoords && CoordXAlignHintEnabled && LocalCoordXAligned;
+	Data.m_ShowCoordX = (CoordModuleAllowsCoords && g_Config.m_QmNameplateCoordX != 0) || ShowLocalAlignedCoordX;
+	Data.m_ShowCoordY = CoordModuleAllowsCoords && g_Config.m_QmNameplateCoordY != 0;
+	Data.m_ShowCoords = CoordModuleAllowsCoords || ShowLocalAlignedCoordX;
 	Data.m_Coords = Position / 32.0f;
 	Data.m_FontSizeCoords = 18.0f + 20.0f * g_Config.m_ClNamePlatesCoordsSize / 100.0f;
 
 	const bool ShouldTrackCoordXAlign =
 		TrackCoordXAlign &&
-		!IsAnyLocalClient &&
 		GameClient()->m_Snap.m_LocalClientId >= 0 &&
 		!OtherTeam &&
 		CoordXAlignHintEnabled;
 	if(ShouldTrackCoordXAlign)
 	{
-		Data.m_CoordXAligned = CoordXAlignState.m_Aligned;
+		Data.m_CoordXAligned = IsAnyLocalClient ? LocalCoordXAligned : CoordXAlignState.m_Aligned;
 	}
 	else
 	{
@@ -1691,7 +1747,7 @@ void CNamePlates::RenderNamePlateGame(vec2 Position, const CNetObj_PlayerInfo *p
 		FrameData.m_ShowFriendMark = FrameData.m_ShowName && g_Config.m_ClNamePlatesFriendMark && GameClient()->m_aClients[ClientId].m_Friend;
 		FrameData.m_ShowClientId = FrameData.m_ShowName && (g_Config.m_Debug || g_Config.m_ClNamePlatesIds) && !HideIdentity;
 		FrameData.m_ShowClan = FrameData.m_ShowName && g_Config.m_ClNamePlatesClan && !HideIdentity;
-		const bool FrameShowLocalAlignedCoordX = CoordXAlignHintEnabled && LocalCoordXAligned;
+		const bool FrameShowLocalAlignedCoordX = CoordModuleAllowsCoords && CoordXAlignHintEnabled && LocalCoordXAligned;
 		FrameData.m_ShowCoordX = (CoordModuleAllowsCoords && g_Config.m_QmNameplateCoordX != 0) || FrameShowLocalAlignedCoordX;
 		FrameData.m_ShowCoordY = CoordModuleAllowsCoords && g_Config.m_QmNameplateCoordY != 0;
 		FrameData.m_ShowCoords = CoordModuleAllowsCoords || FrameShowLocalAlignedCoordX;
@@ -1748,7 +1804,7 @@ void CNamePlates::RenderNamePlatePreview(vec2 Position, int Dummy)
 			str_copy(Data.m_aClan, Localize("Clan Name"));
 		Data.m_FontSizeClan = FontSizeClan;
 
-		Data.m_ShowCoords = NameplateScopeAllowsPreview && CoordModuleAllowsPreview;
+		Data.m_ShowCoords = CoordModuleAllowsPreview;
 		Data.m_ShowCoordX = Data.m_ShowCoords && g_Config.m_QmNameplateCoordX != 0;
 		Data.m_ShowCoordY = Data.m_ShowCoords && g_Config.m_QmNameplateCoordY != 0;
 		Data.m_Coords = vec2(12.34f + DummyIdx, 56.78f + DummyIdx);

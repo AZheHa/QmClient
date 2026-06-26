@@ -948,11 +948,13 @@ Gores Mode
 Gores mode key
 Grabs
 Graphics
+Graphics backend
 Graphics card
 Greeting text
 Grenade
 Group name
 Guide line color
+Gun
 Hammer
 Hammer Mode:
 Hammer skin steal
@@ -1751,7 +1753,6 @@ Render cut to video
 Render demo
 Render ghosts as circles
 Render tiny tees instead of circles
-Renderer
 Renders your frame rate in the top right
 Repeat message
 Repeat the latest chat message
@@ -1795,6 +1796,7 @@ Reset position of mouse when opening bindwheel
 Reset stats when joining a server
 Reset to defaults
 Reset zone tuning in zone x or in all zones
+Respawn default weapon
 Restart
 Restart in x seconds (0 = abort)
 Restart the client
@@ -2017,6 +2019,7 @@ Show HUD
 Show important server prompts
 Show important server prompts and Echo messages as popups
 Show important server prompts as notifications
+Show in Dynamic Island
 Show info about the map with name r gives (current map by default)
 Show information about this server
 Show ingame HUD

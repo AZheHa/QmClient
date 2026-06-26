@@ -7117,6 +7117,16 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 				DoQmSettingsCheckboxAuto(&g_Config.m_QmHudIslandShowTeam, "Show team", Localize("Show team"), &g_Config.m_QmHudIslandShowTeam, &Row, LgLineHeight);
 				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 
+				CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
+				{
+					CUIRect LabelColValue, ControlColValue;
+					Row.VSplitLeft(LgLabelWidth, &LabelColValue, &ControlColValue);
+					DoQmSettingsLabel("qmclient-dynamic-island-edge-margin", &LabelColValue, Localize("Edge margin"), LgBodySize);
+					static int s_QmHudIslandEdgeMarginInputId;
+					RenderSliderWithValueInput(&s_QmHudIslandEdgeMarginInputId, ControlColValue, &g_Config.m_QmHudIslandEdgeMargin, 0, 64, "px");
+				}
+				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
+
 				if(g_Config.m_QmHudIslandUseOriginalStyle)
 				{
 				}
@@ -7215,6 +7225,10 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 				{
 					CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
 					DoQmSettingsCheckboxAuto(&g_Config.m_QmLyricsAutoFetch, "Auto fetch lyrics", Localize("Auto fetch lyrics"), &g_Config.m_QmLyricsAutoFetch, &Row, LgLineHeight);
+					CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
+
+					CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
+					DoQmSettingsCheckboxAuto(&g_Config.m_QmLyricsInMediaIsland, "Show in Dynamic Island", Localize("Show in Dynamic Island"), &g_Config.m_QmLyricsInMediaIsland, &Row, LgLineHeight);
 					CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 
 					CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);

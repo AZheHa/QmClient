@@ -8875,6 +8875,22 @@ turkish = "Takımı göster"
 polish = "Pokaż drużynę"
 
 [[message]]
+key = "Show in Dynamic Island"
+[message.translations]
+japanese = "Dynamic Island に表示"
+korean = "Dynamic Island에 표시"
+simplified_chinese = "显示在灵动岛内"
+traditional_chinese = "顯示在靈動島內"
+russian = "Показывать в Dynamic Island"
+german = "In Dynamic Island anzeigen"
+spanish = "Mostrar en Dynamic Island"
+french = "Afficher dans Dynamic Island"
+brazilian_portuguese = "Mostrar na Dynamic Island"
+portuguese = "Mostrar na Dynamic Island"
+turkish = "Dynamic Island içinde göster"
+polish = "Pokaż w Dynamic Island"
+
+[[message]]
 key = "Show Tee, map, and weapon interaction hitboxes"
 [message.translations]
 japanese = "Tee、マップ、武器の相互作用のヒットボックスを表示"
