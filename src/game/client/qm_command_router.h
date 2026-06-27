@@ -71,6 +71,13 @@ struct SQmDummyPassiveOverride
 	int m_Hook = 0;
 };
 
+struct SQmDummyLegacyState
+{
+	int m_DummyFire = 0;
+	int m_TransientInputMask = QM_DUMMY_INPUT_NONE;
+	bool m_ForceSend = false;
+};
+
 struct SQmDummyCommand
 {
 	class CQmCommandRouter *m_pRouter = nullptr;
@@ -210,9 +217,64 @@ namespace qm_dummy_command
 		return ((HammerFire + 1) & ~1) & INPUT_STATE_MASK;
 	}
 
-	inline bool ShouldAlignLegacyFireCounter(bool WasFireActive, bool FireActive, int PendingMask)
+	inline void AlignLegacyFireWithHammer(CNetObj_PlayerInput &Input, int HammerFire, bool DummyHammer)
+	{
+		if(DummyHammer)
+			Input.m_Fire = HammerFire & INPUT_STATE_MASK;
+	}
+
+	inline void PrepareLegacyFirePress(CNetObj_PlayerInput &Input, int HammerFire, bool DummyHammer)
+	{
+		if(DummyHammer)
+			Input.m_Fire = AlignedLegacyFireCounter(HammerFire);
+	}
+
+	inline void SyncHammerFireAfterLegacyInput(CNetObj_PlayerInput &HammerInput, const CNetObj_PlayerInput &LegacyInput, bool DummyHammer)
+	{
+		if(DummyHammer)
+			HammerInput.m_Fire = LegacyInput.m_Fire & INPUT_STATE_MASK;
+	}
+
+	inline bool ShouldPrepareLegacyFirePress(bool WasFireActive, bool FireActive, int PendingMask)
 	{
 		return !WasFireActive && FireActive && !HasDummyInputField(PendingMask, QM_DUMMY_INPUT_FIRE);
+	}
+
+	inline void ReleaseDummyInput(CNetObj_PlayerInput &Input)
+	{
+		Input.m_Direction = 0;
+		Input.m_Jump = 0;
+		Input.m_Hook = 0;
+		Input.m_WantedWeapon = 0;
+		if((Input.m_Fire & 1) != 0)
+			Input.m_Fire++;
+		if((Input.m_NextWeapon & 1) != 0)
+			Input.m_NextWeapon++;
+		if((Input.m_PrevWeapon & 1) != 0)
+			Input.m_PrevWeapon++;
+		Input.m_Fire &= INPUT_STATE_MASK;
+		Input.m_NextWeapon &= INPUT_STATE_MASK;
+		Input.m_PrevWeapon &= INPUT_STATE_MASK;
+	}
+
+	inline SQmDummyLegacyState ClearLegacyInputImmediately(CNetObj_PlayerInput &Input)
+	{
+		ReleaseDummyInput(Input);
+		return {};
+	}
+
+	inline SQmDummyLegacyState CancelRuntimeLegacyInputAndFlushRelease(int DummyFire, int TransientInputMask, bool HadPassiveOverride, CNetObj_PlayerInput &Input)
+	{
+		const bool HadHeldFire = DummyFire != 0;
+		const bool HadPendingFire = HasDummyInputField(TransientInputMask, QM_DUMMY_INPUT_FIRE);
+		if(HadHeldFire)
+			UpdateInputCounter(Input.m_Fire, 0);
+
+		SQmDummyLegacyState State;
+		if(HadHeldFire || HadPendingFire)
+			State.m_TransientInputMask = QM_DUMMY_INPUT_FIRE;
+		State.m_ForceSend = HadPassiveOverride || State.m_TransientInputMask != QM_DUMMY_INPUT_NONE;
+		return State;
 	}
 
 	inline EDummyInputRoute DummyInputRouteForLegacyMask(int LegacyMask)
@@ -249,7 +311,8 @@ public:
 	void Init(CGameClient *pGameClient);
 	void OnConsoleInit();
 	void OnDummySwap();
-	void ResetDummyInputState();
+	void ClearDummyInputStateImmediately();
+	void CancelRuntimeDummyInputAndFlushRelease();
 	EDummyInputRoute DummyInputRoute() const;
 	SQmDummyInputOwnership GetLegacyExclusiveInputOwnership() const;
 	int LegacyExclusiveInputMask() const;
@@ -280,7 +343,8 @@ private:
 	void ReportDummyUnavailable();
 	int ActiveLegacyExclusiveInputMask() const;
 	void ClearDummyInputState();
-	void AlignManualFireCounter(CNetObj_PlayerInput &Input) const;
+	void AlignLegacyFireWithHammer(CNetObj_PlayerInput &Input) const;
+	void PrepareLegacyFirePress(CNetObj_PlayerInput &Input) const;
 	void ReleaseDummyInput(CNetObj_PlayerInput &Input) const;
 	void PrepareDummyInput(CNetObj_PlayerInput &Input, int TargetConn) const;
 	void ApplyDummyInput(EQmDummyInputCommand Command, int State);

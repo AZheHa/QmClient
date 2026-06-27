@@ -54,9 +54,147 @@ TEST(QmDummyCommand, LegacyFirePressDuringPendingReleaseKeepsDirectCounter)
 	qm_dummy_command::UpdateInputCounter(DirectFire, 0);
 	EXPECT_EQ(DirectFire, 4);
 
-	EXPECT_FALSE(qm_dummy_command::ShouldAlignLegacyFireCounter(false, true, QM_DUMMY_INPUT_FIRE));
+	EXPECT_FALSE(qm_dummy_command::ShouldPrepareLegacyFirePress(false, true, QM_DUMMY_INPUT_FIRE));
 	qm_dummy_command::UpdateInputCounter(DirectFire, 1);
 	EXPECT_EQ(DirectFire, 5);
+}
+
+TEST(QmDummyCommand, LegacyWeaponAlignsFireToHammerWithoutPress)
+{
+	CNetObj_PlayerInput DirectInput = {};
+	DirectInput.m_Fire = 0;
+
+	qm_dummy_command::AlignLegacyFireWithHammer(DirectInput, 1, true);
+	DirectInput.m_WantedWeapon = 1;
+
+	EXPECT_EQ(DirectInput.m_Fire, 1);
+	EXPECT_EQ(DirectInput.m_WantedWeapon, 1);
+}
+
+TEST(QmDummyCommand, LegacyNextWeaponAlignsFireToCurrentHammerCounter)
+{
+	CNetObj_PlayerInput DirectInput = {};
+	DirectInput.m_Fire = 2;
+
+	qm_dummy_command::AlignLegacyFireWithHammer(DirectInput, 7, true);
+	qm_dummy_command::UpdateInputCounter(DirectInput.m_NextWeapon, 1);
+
+	EXPECT_EQ(DirectInput.m_Fire, 7);
+	EXPECT_EQ(DirectInput.m_NextWeapon, 1);
+}
+
+TEST(QmDummyCommand, LegacyFireReleaseSyncsHammerBeforeNextHammerPress)
+{
+	CNetObj_PlayerInput DirectInput = {};
+	qm_dummy_command::PrepareLegacyFirePress(DirectInput, 1, true);
+	qm_dummy_command::UpdateInputCounter(DirectInput.m_Fire, 1);
+	EXPECT_EQ(DirectInput.m_Fire, 3);
+
+	qm_dummy_command::UpdateInputCounter(DirectInput.m_Fire, 0);
+	EXPECT_EQ(DirectInput.m_Fire, 4);
+
+	CNetObj_PlayerInput HammerInput = {};
+	HammerInput.m_Fire = 1;
+	qm_dummy_command::SyncHammerFireAfterLegacyInput(HammerInput, DirectInput, true);
+	EXPECT_EQ(HammerInput.m_Fire, 4);
+
+	HammerInput.m_Fire = (HammerInput.m_Fire + 1) | 1;
+	EXPECT_EQ(HammerInput.m_Fire, 5);
+}
+
+TEST(QmDummyCommand, LegacyWeaponSendDoesNotChangeHammerFire)
+{
+	CNetObj_PlayerInput HammerInput = {};
+	HammerInput.m_Fire = 9;
+	CNetObj_PlayerInput DirectInput = {};
+
+	qm_dummy_command::AlignLegacyFireWithHammer(DirectInput, HammerInput.m_Fire, true);
+	DirectInput.m_WantedWeapon = 1;
+	qm_dummy_command::SyncHammerFireAfterLegacyInput(HammerInput, DirectInput, true);
+
+	EXPECT_EQ(DirectInput.m_Fire, 9);
+	EXPECT_EQ(HammerInput.m_Fire, 9);
+}
+
+TEST(QmDummyCommand, RuntimeCancelFlushesHeldLegacyFireRelease)
+{
+	CNetObj_PlayerInput DirectInput = {};
+	DirectInput.m_Fire = 3;
+
+	const SQmDummyLegacyState State = qm_dummy_command::CancelRuntimeLegacyInputAndFlushRelease(
+		1,
+		QM_DUMMY_INPUT_NONE,
+		false,
+		DirectInput);
+
+	EXPECT_EQ(DirectInput.m_Fire, 4);
+	EXPECT_EQ(State.m_DummyFire, 0);
+	EXPECT_EQ(State.m_TransientInputMask, QM_DUMMY_INPUT_FIRE);
+	EXPECT_TRUE(State.m_ForceSend);
+	EXPECT_EQ(qm_dummy_command::DummyInputRouteForLegacyMask(State.m_TransientInputMask), EDummyInputRoute::LEGACY_EXCLUSIVE);
+
+	const SQmDummyInputOwnership AfterReleaseSend = qm_dummy_command::BuildDummyInputOwnership(State.m_DummyFire, QM_DUMMY_INPUT_NONE);
+	EXPECT_EQ(qm_dummy_command::DummyInputRouteForLegacyMask(AfterReleaseSend.m_CombinedMask), EDummyInputRoute::OFFICIAL_WITH_PASSIVE_OVERLAY);
+}
+
+TEST(QmDummyCommand, RuntimeCancelKeepsPendingLegacyFireRelease)
+{
+	CNetObj_PlayerInput DirectInput = {};
+	DirectInput.m_Fire = 4;
+
+	const SQmDummyLegacyState State = qm_dummy_command::CancelRuntimeLegacyInputAndFlushRelease(
+		0,
+		QM_DUMMY_INPUT_FIRE | QM_DUMMY_INPUT_WANTED_WEAPON,
+		false,
+		DirectInput);
+
+	EXPECT_EQ(DirectInput.m_Fire, 4);
+	EXPECT_EQ(State.m_DummyFire, 0);
+	EXPECT_EQ(State.m_TransientInputMask, QM_DUMMY_INPUT_FIRE);
+	EXPECT_TRUE(State.m_ForceSend);
+}
+
+TEST(QmDummyCommand, RuntimeCancelPassiveOnlyForcesOfficialClear)
+{
+	CNetObj_PlayerInput DirectInput = {};
+	DirectInput.m_Fire = 17;
+
+	const SQmDummyLegacyState State = qm_dummy_command::CancelRuntimeLegacyInputAndFlushRelease(
+		0,
+		QM_DUMMY_INPUT_NONE,
+		true,
+		DirectInput);
+
+	EXPECT_EQ(State.m_DummyFire, 0);
+	EXPECT_EQ(State.m_TransientInputMask, QM_DUMMY_INPUT_NONE);
+	EXPECT_TRUE(State.m_ForceSend);
+	EXPECT_EQ(qm_dummy_command::DummyInputRouteForLegacyMask(State.m_TransientInputMask), EDummyInputRoute::OFFICIAL_WITH_PASSIVE_OVERLAY);
+}
+
+TEST(QmDummyCommand, ImmediateClearDoesNotRequestReleaseFlush)
+{
+	CNetObj_PlayerInput DirectInput = {};
+	DirectInput.m_Direction = 1;
+	DirectInput.m_Jump = 1;
+	DirectInput.m_Hook = 1;
+	DirectInput.m_WantedWeapon = 2;
+	DirectInput.m_Fire = 3;
+	DirectInput.m_NextWeapon = 5;
+	DirectInput.m_PrevWeapon = 7;
+
+	const SQmDummyLegacyState State = qm_dummy_command::ClearLegacyInputImmediately(DirectInput);
+
+	EXPECT_EQ(State.m_DummyFire, 0);
+	EXPECT_EQ(State.m_TransientInputMask, QM_DUMMY_INPUT_NONE);
+	EXPECT_FALSE(State.m_ForceSend);
+	EXPECT_EQ(qm_dummy_command::DummyInputRouteForLegacyMask(State.m_TransientInputMask), EDummyInputRoute::OFFICIAL_WITH_PASSIVE_OVERLAY);
+	EXPECT_EQ(DirectInput.m_Direction, 0);
+	EXPECT_EQ(DirectInput.m_Jump, 0);
+	EXPECT_EQ(DirectInput.m_Hook, 0);
+	EXPECT_EQ(DirectInput.m_WantedWeapon, 0);
+	EXPECT_EQ(DirectInput.m_Fire, 4);
+	EXPECT_EQ(DirectInput.m_NextWeapon, 6);
+	EXPECT_EQ(DirectInput.m_PrevWeapon, 8);
 }
 
 TEST(QmDummyCommand, HeldInputIgnoresOneShotWeaponSwitch)

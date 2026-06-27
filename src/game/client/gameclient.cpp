@@ -970,6 +970,7 @@ int CGameClient::OnSnapInput(int *pData, bool Dummy, bool Force)
 		CNetObj_PlayerInput FinalDummyInput = m_DummyInput;
 		m_QmCommandRouter.ApplyPassiveDummyOverrides(FinalDummyInput);
 		mem_copy(pData, &FinalDummyInput, sizeof(FinalDummyInput));
+		qm_dummy_command::SyncHammerFireAfterLegacyInput(m_HammerInput, FinalDummyInput, g_Config.m_ClDummyHammer);
 		m_QmDummyInputForceSend = false;
 		m_QmCommandRouter.ConsumeLegacyExclusiveInputAfterSend();
 		return sizeof(FinalDummyInput);
@@ -1185,7 +1186,7 @@ void CGameClient::OnReset()
 
 	std::fill(std::begin(m_aNextChangeInfo), std::end(m_aNextChangeInfo), -1);
 	std::fill(std::begin(m_aLocalIds), std::end(m_aLocalIds), -1);
-	m_QmCommandRouter.ResetDummyInputState();
+	m_QmCommandRouter.ClearDummyInputStateImmediately();
 	m_DummyInput = {};
 	m_HammerInput = {};
 	m_DummyFire = 0;
@@ -2282,7 +2283,7 @@ void CGameClient::OnDummyDisconnect()
 	m_aLastPredictedAirJumpTick[1] = -1;
 	m_PredictedDummyId = -1;
 	m_FastPractice.InvalidateBufferedInputState();
-	m_QmCommandRouter.ResetDummyInputState();
+	m_QmCommandRouter.ClearDummyInputStateImmediately();
 }
 
 int CGameClient::LastRaceTick() const
@@ -7660,16 +7661,18 @@ void CGameClient::DummyResetInput()
 	if(!Client()->DummyConnected())
 		return;
 
-	m_QmCommandRouter.ResetDummyInputState();
+	m_QmCommandRouter.ClearDummyInputStateImmediately();
 
 	if((m_DummyInput.m_Fire & 1) != 0)
 		m_DummyInput.m_Fire++;
+	m_DummyInput.m_Fire &= INPUT_STATE_MASK;
 
 	m_Controls.ResetInput(!g_Config.m_ClDummy);
 	m_Controls.m_aInputData[!g_Config.m_ClDummy].m_Hook = 0;
 	m_Controls.m_aInputData[!g_Config.m_ClDummy].m_Fire = m_DummyInput.m_Fire;
 
 	m_DummyInput = m_Controls.m_aInputData[!g_Config.m_ClDummy];
+	m_QmDummyInputForceSend = true;
 }
 
 bool CGameClient::CanDisplayWarning() const

@@ -269,7 +269,7 @@ int CControls::SnapInput(int *pData)
 		if(!GameClient()->m_GameInfo.m_BugDDRaceInput)
 			ResetInput(g_Config.m_ClDummy);
 		if(GameClient()->QmCommandRouter()->HasActiveOrPendingLegacyExclusiveInput() || GameClient()->QmCommandRouter()->HasPassiveDummyOverride())
-			GameClient()->QmCommandRouter()->ResetDummyInputState();
+			GameClient()->QmCommandRouter()->CancelRuntimeDummyInputAndFlushRelease();
 
 		mem_copy(pData, &m_aInputData[g_Config.m_ClDummy], sizeof(m_aInputData[0]));
 
