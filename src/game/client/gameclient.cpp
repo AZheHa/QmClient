@@ -955,9 +955,9 @@ int CGameClient::OnSnapInput(int *pData, bool Dummy, bool Force)
 		return 0;
 	}
 
-	const bool QmManualDummyInputActive = m_QmCommandRouter.HasManualDummyInput();
+	const bool QmHeldManualDummyInputActive = m_QmCommandRouter.HasHeldManualDummyInput();
 
-	if(!g_Config.m_ClDummyHammer || QmManualDummyInputActive)
+	if(qm_dummy_command::ShouldSendDirectDummyInput(g_Config.m_ClDummyHammer != 0, QmHeldManualDummyInputActive))
 	{
 		if(m_DummyFire != 0)
 		{
@@ -978,6 +978,8 @@ int CGameClient::OnSnapInput(int *pData, bool Dummy, bool Force)
 	}
 	else
 	{
+		m_QmDummyInputForceSend = false;
+
 		if(m_DummyFire % 25 != 0)
 		{
 			m_DummyFire++;

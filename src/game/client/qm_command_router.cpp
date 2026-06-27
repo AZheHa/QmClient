@@ -110,7 +110,7 @@ void CQmCommandRouter::ResetDummyInputState()
 bool CQmCommandRouter::HasManualDummyInput() const
 {
 	return m_pGameClient != nullptr &&
-	       (m_pGameClient->m_QmDummyInputForceSend ||
+	       (qm_dummy_command::ForceSendBlocksAutomaticDummyInput(g_Config.m_ClDummyHammer != 0, m_pGameClient->m_QmDummyInputForceSend) ||
 		       m_DummyLeft != 0 ||
 		       m_DummyRight != 0 ||
 		       m_DummyJump != 0 ||
@@ -118,6 +118,11 @@ bool CQmCommandRouter::HasManualDummyInput() const
 		       m_DummyFire != 0 ||
 		       m_DummyNextWeapon != 0 ||
 		       m_DummyPrevWeapon != 0);
+}
+
+bool CQmCommandRouter::HasHeldManualDummyInput() const
+{
+	return m_pGameClient != nullptr && HasHeldDummyInputState();
 }
 
 int CQmCommandRouter::ConnForTarget(EQmCommandTarget Target) const

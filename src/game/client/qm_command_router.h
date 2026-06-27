@@ -44,44 +44,54 @@ struct SQmDummyCommand
 
 namespace qm_dummy_command
 {
-inline void UpdateInputCounter(int &Value, int State)
-{
-	if((Value & 1) != (State != 0 ? 1 : 0))
-		Value++;
-	Value &= INPUT_STATE_MASK;
-}
-
-inline bool HasHeldInput(const CNetObj_PlayerInput &Input)
-{
-	return Input.m_Direction != 0 ||
-	       Input.m_Jump != 0 ||
-	       Input.m_Hook != 0 ||
-	       (Input.m_Fire & 1) != 0 ||
-	       (Input.m_NextWeapon & 1) != 0 ||
-	       (Input.m_PrevWeapon & 1) != 0;
-}
-
-inline int InactiveConn(int ActiveConn)
-{
-	return ActiveConn ^ 1;
-}
-
-inline void BuildSlashCommand(char *pBuf, int BufSize, const char *pCommand, const char *pArgs)
-{
-	if(pBuf == nullptr || BufSize <= 0)
-		return;
-
-	if(pCommand == nullptr || pCommand[0] == '\0')
+	inline void UpdateInputCounter(int &Value, int State)
 	{
-		pBuf[0] = '\0';
-		return;
+		if((Value & 1) != (State != 0 ? 1 : 0))
+			Value++;
+		Value &= INPUT_STATE_MASK;
 	}
 
-	if(pArgs != nullptr && pArgs[0] != '\0')
-		str_format(pBuf, BufSize, "/%s %s", pCommand, pArgs);
-	else
-		str_format(pBuf, BufSize, "/%s", pCommand);
-}
+	inline bool HasHeldInput(const CNetObj_PlayerInput &Input)
+	{
+		return Input.m_Direction != 0 ||
+		       Input.m_Jump != 0 ||
+		       Input.m_Hook != 0 ||
+		       (Input.m_Fire & 1) != 0 ||
+		       (Input.m_NextWeapon & 1) != 0 ||
+		       (Input.m_PrevWeapon & 1) != 0;
+	}
+
+	inline int InactiveConn(int ActiveConn)
+	{
+		return ActiveConn ^ 1;
+	}
+
+	inline bool ShouldSendDirectDummyInput(bool DummyHammer, bool HeldManualDummyInput)
+	{
+		return !DummyHammer || HeldManualDummyInput;
+	}
+
+	inline bool ForceSendBlocksAutomaticDummyInput(bool DummyHammer, bool ForceSend)
+	{
+		return ForceSend && !DummyHammer;
+	}
+
+	inline void BuildSlashCommand(char *pBuf, int BufSize, const char *pCommand, const char *pArgs)
+	{
+		if(pBuf == nullptr || BufSize <= 0)
+			return;
+
+		if(pCommand == nullptr || pCommand[0] == '\0')
+		{
+			pBuf[0] = '\0';
+			return;
+		}
+
+		if(pArgs != nullptr && pArgs[0] != '\0')
+			str_format(pBuf, BufSize, "/%s %s", pCommand, pArgs);
+		else
+			str_format(pBuf, BufSize, "/%s", pCommand);
+	}
 } // namespace qm_dummy_command
 
 class CQmCommandRouter
@@ -92,6 +102,7 @@ public:
 	void OnDummySwap();
 	void ResetDummyInputState();
 	bool HasManualDummyInput() const;
+	bool HasHeldManualDummyInput() const;
 
 private:
 	static void ConDummyInput(IConsole::IResult *pResult, void *pUserData);

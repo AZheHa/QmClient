@@ -56,3 +56,19 @@ TEST(QmDummyCommand, InactiveConnIsRelativeToActiveConn)
 	EXPECT_EQ(qm_dummy_command::InactiveConn(IClient::CONN_MAIN), IClient::CONN_DUMMY);
 	EXPECT_EQ(qm_dummy_command::InactiveConn(IClient::CONN_DUMMY), IClient::CONN_MAIN);
 }
+
+TEST(QmDummyCommand, DummyHammerKeepsOfficialPriorityWithoutHeldManualInput)
+{
+	EXPECT_TRUE(qm_dummy_command::ShouldSendDirectDummyInput(false, false));
+	EXPECT_TRUE(qm_dummy_command::ShouldSendDirectDummyInput(false, true));
+	EXPECT_FALSE(qm_dummy_command::ShouldSendDirectDummyInput(true, false));
+	EXPECT_TRUE(qm_dummy_command::ShouldSendDirectDummyInput(true, true));
+}
+
+TEST(QmDummyCommand, DummyHammerIgnoresForceSendForAutomaticInputProtection)
+{
+	EXPECT_FALSE(qm_dummy_command::ForceSendBlocksAutomaticDummyInput(false, false));
+	EXPECT_TRUE(qm_dummy_command::ForceSendBlocksAutomaticDummyInput(false, true));
+	EXPECT_FALSE(qm_dummy_command::ForceSendBlocksAutomaticDummyInput(true, false));
+	EXPECT_FALSE(qm_dummy_command::ForceSendBlocksAutomaticDummyInput(true, true));
+}
