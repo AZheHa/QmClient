@@ -2632,6 +2632,8 @@ if(CLIENT)
     components/background.cpp
     components/background.h
     components/binds.cpp
+    components/binds_deepfly_mode.cpp
+    components/binds_deepfly_mode.h
     components/binds.h
     components/broadcast.cpp
     components/broadcast.h
@@ -3774,6 +3776,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     src/game/client/QmUi/QmAnim.cpp
     src/game/client/QmUi/QmLayout.cpp
     src/game/client/components/assets_resource_registry.cpp
+    src/game/client/components/binds_deepfly_mode.cpp
     src/generated/client_data.h
     src/generated/client_data7.h
     src/game/client/components/qmclient/hud_notifications/hud_notification_catalog.cpp
