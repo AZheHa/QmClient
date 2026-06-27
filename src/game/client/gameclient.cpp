@@ -935,6 +935,7 @@ void CGameClient::OnDummySwap()
 	const int PrevDummyFire = m_DummyInput.m_Fire;
 	m_DummyInput = m_Controls.m_aInputData[!g_Config.m_ClDummy];
 	m_Controls.m_aInputData[g_Config.m_ClDummy].m_Fire = PrevDummyFire;
+	m_QmCommandRouter.OnDummySwap();
 	m_IsDummySwapping = 1;
 }
 
@@ -955,38 +956,50 @@ int CGameClient::OnSnapInput(int *pData, bool Dummy, bool Force)
 		return 0;
 	}
 
-	const bool QmHeldManualDummyInputActive = m_QmCommandRouter.HasHeldManualDummyInput();
+	const EDummyInputRoute QmDummyInputRoute = m_QmCommandRouter.DummyInputRoute();
+	const bool QmForceSend = m_QmCommandRouter.NeedsDummyInputForceSend();
+	const bool QmHasPassiveOverride = m_QmCommandRouter.HasPassiveDummyOverride();
 
-	if(qm_dummy_command::ShouldSendDirectDummyInput(g_Config.m_ClDummyHammer != 0, QmHeldManualDummyInputActive))
+	if(QmDummyInputRoute == EDummyInputRoute::LEGACY_EXCLUSIVE)
 	{
-		if(m_DummyFire != 0)
-		{
-			m_DummyInput.m_Fire = (m_HammerInput.m_Fire + 1) & ~1;
-			m_DummyFire = 0;
-		}
-
-		const bool QmForceSend = m_QmDummyInputForceSend;
-		const bool HasHeldDummyInput = qm_dummy_command::HasHeldInput(m_DummyInput);
-		if(!Force && !QmForceSend && !HasHeldDummyInput)
+		if(!Force && !QmForceSend && !m_QmCommandRouter.HasActiveOrPendingLegacyExclusiveInput() && !QmHasPassiveOverride)
 		{
 			return 0;
 		}
 
-		mem_copy(pData, &m_DummyInput, sizeof(m_DummyInput));
+		CNetObj_PlayerInput FinalDummyInput = m_DummyInput;
+		m_QmCommandRouter.ApplyPassiveDummyOverrides(FinalDummyInput);
+		mem_copy(pData, &FinalDummyInput, sizeof(FinalDummyInput));
 		m_QmDummyInputForceSend = false;
-		return sizeof(m_DummyInput);
+		m_QmCommandRouter.ConsumeLegacyExclusiveInputAfterSend();
+		return sizeof(FinalDummyInput);
 	}
-	else
-	{
-		m_QmDummyInputForceSend = false;
 
-		if(m_DummyFire % 25 != 0)
+	if(!g_Config.m_ClDummyHammer)
+	{
+		CNetObj_PlayerInput FinalDummyInput = m_DummyInput;
+		m_QmCommandRouter.ApplyPassiveDummyOverrides(FinalDummyInput);
+		if(!Force && !QmForceSend && !QmHasPassiveOverride && !qm_dummy_command::HasHeldInput(FinalDummyInput))
 		{
-			m_DummyFire++;
 			return 0;
 		}
-		m_DummyFire++;
 
+		mem_copy(pData, &FinalDummyInput, sizeof(FinalDummyInput));
+		m_QmDummyInputForceSend = false;
+		return sizeof(FinalDummyInput);
+	}
+
+	const bool HammerTick = m_DummyFire % 25 == 0;
+	m_DummyFire++;
+
+	if(!qm_dummy_command::ShouldSendOfficialDummyInput(Force, QmForceSend, HammerTick))
+	{
+		m_QmDummyInputForceSend = false;
+		return 0;
+	}
+
+	if(HammerTick)
+	{
 		m_HammerInput.m_Fire = (m_HammerInput.m_Fire + 1) | 1;
 		m_HammerInput.m_WantedWeapon = WEAPON_HAMMER + 1;
 		if(!g_Config.m_ClDummyRestoreWeapon)
@@ -997,10 +1010,13 @@ int CGameClient::OnSnapInput(int *pData, bool Dummy, bool Force)
 		const vec2 Dir = m_LocalCharacterPos - m_aClients[m_aLocalIds[!g_Config.m_ClDummy]].m_Predicted.m_Pos;
 		m_HammerInput.m_TargetX = (int)Dir.x;
 		m_HammerInput.m_TargetY = (int)Dir.y;
-
-		mem_copy(pData, &m_HammerInput, sizeof(m_HammerInput));
-		return sizeof(m_HammerInput);
 	}
+
+	CNetObj_PlayerInput FinalDummyInput = m_HammerInput;
+	m_QmCommandRouter.ApplyPassiveDummyOverrides(FinalDummyInput);
+	mem_copy(pData, &FinalDummyInput, sizeof(FinalDummyInput));
+	m_QmDummyInputForceSend = false;
+	return sizeof(FinalDummyInput);
 }
 
 bool CGameClient::GetDummyFastInput(CNetObj_PlayerInput &DummyFastInput, const CNetObj_PlayerInput *pDummyInputData, const CCharacter *pDummyChar, int LocalTee, int DummyTee) const
@@ -1008,9 +1024,17 @@ bool CGameClient::GetDummyFastInput(CNetObj_PlayerInput &DummyFastInput, const C
 	if(!PredictDummy() || !pDummyChar)
 		return false;
 
+	if(m_QmCommandRouter.DummyInputRoute() == EDummyInputRoute::LEGACY_EXCLUSIVE)
+	{
+		DummyFastInput = m_DummyInput;
+		m_QmCommandRouter.ApplyPassiveDummyOverrides(DummyFastInput);
+		return true;
+	}
+
 	if(g_Config.m_ClDummyHammer)
 	{
 		DummyFastInput = m_HammerInput;
+		m_QmCommandRouter.ApplyPassiveDummyOverrides(DummyFastInput);
 		return true;
 	}
 
@@ -1028,6 +1052,7 @@ bool CGameClient::GetDummyFastInput(CNetObj_PlayerInput &DummyFastInput, const C
 			DummyFastInput.m_Fire = BaseDummyInput.m_Fire;
 			DummyFastInput.m_Hook = BaseDummyInput.m_Hook;
 		}
+		m_QmCommandRouter.ApplyPassiveDummyOverrides(DummyFastInput);
 		return true;
 	}
 
@@ -1042,6 +1067,7 @@ bool CGameClient::GetDummyFastInput(CNetObj_PlayerInput &DummyFastInput, const C
 		DummyFastInput.m_WantedWeapon = m_Controls.m_aFastInput[DummyTee].m_WantedWeapon;
 		DummyFastInput.m_NextWeapon = m_Controls.m_aFastInput[DummyTee].m_NextWeapon;
 		DummyFastInput.m_PrevWeapon = m_Controls.m_aFastInput[DummyTee].m_PrevWeapon;
+		m_QmCommandRouter.ApplyPassiveDummyOverrides(DummyFastInput);
 		return true;
 	}
 
@@ -1159,6 +1185,7 @@ void CGameClient::OnReset()
 
 	std::fill(std::begin(m_aNextChangeInfo), std::end(m_aNextChangeInfo), -1);
 	std::fill(std::begin(m_aLocalIds), std::end(m_aLocalIds), -1);
+	m_QmCommandRouter.ResetDummyInputState();
 	m_DummyInput = {};
 	m_HammerInput = {};
 	m_DummyFire = 0;

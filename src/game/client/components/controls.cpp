@@ -268,6 +268,8 @@ int CControls::SnapInput(int *pData)
 	{
 		if(!GameClient()->m_GameInfo.m_BugDDRaceInput)
 			ResetInput(g_Config.m_ClDummy);
+		if(GameClient()->QmCommandRouter()->HasActiveOrPendingLegacyExclusiveInput() || GameClient()->QmCommandRouter()->HasPassiveDummyOverride())
+			GameClient()->QmCommandRouter()->ResetDummyInputState();
 
 		mem_copy(pData, &m_aInputData[g_Config.m_ClDummy], sizeof(m_aInputData[0]));
 
@@ -320,10 +322,10 @@ int CControls::SnapInput(int *pData)
 		m_aInputData[g_Config.m_ClDummy].m_Direction = m_aInputDirectionRight[g_Config.m_ClDummy] - m_aInputDirectionLeft[g_Config.m_ClDummy];
 
 		CNetObj_PlayerInput *pDummyInput = &GameClient()->m_DummyInput;
-		const bool QmManualDummyInput = GameClient()->QmCommandRouter()->HasManualDummyInput();
+		const bool QmLegacyExclusiveDummyInput = GameClient()->QmCommandRouter()->HasActiveOrPendingLegacyExclusiveInput();
 
 		// dummy copy moves
-		if(g_Config.m_ClDummyCopyMoves && !QmManualDummyInput)
+		if(g_Config.m_ClDummyCopyMoves && !QmLegacyExclusiveDummyInput)
 		{
 			// Don't copy any input to dummy when spectating others
 			if(!GameClient()->m_Snap.m_SpecInfo.m_Active || GameClient()->m_Snap.m_SpecInfo.m_SpectatorId < 0)
@@ -346,7 +348,7 @@ int CControls::SnapInput(int *pData)
 			m_aInputData[!g_Config.m_ClDummy] = *pDummyInput;
 		}
 
-		if(g_Config.m_ClDummyControl && !QmManualDummyInput)
+		if(g_Config.m_ClDummyControl && !QmLegacyExclusiveDummyInput)
 		{
 			pDummyInput->m_Jump = g_Config.m_ClDummyJump;
 

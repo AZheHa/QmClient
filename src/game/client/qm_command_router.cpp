@@ -56,8 +56,18 @@ void CQmCommandRouter::OnConsoleInit()
 
 void CQmCommandRouter::OnDummySwap()
 {
-	if(m_pGameClient == nullptr || !HasHeldDummyInputState())
+	const bool HadPassiveOverride = HasPassiveDummyOverride();
+	const bool HadLegacyHeldInput = HasActiveLegacyExclusiveInput();
+	m_DummyTransientInputMask = QM_DUMMY_INPUT_NONE;
+	m_DummyFire = 0;
+
+	if(m_pGameClient == nullptr)
 		return;
+	if(!HadPassiveOverride && !HadLegacyHeldInput)
+	{
+		m_pGameClient->m_QmDummyInputForceSend = false;
+		return;
+	}
 
 	const int ActiveConn = g_Config.m_ClDummy;
 	const int TargetConn = qm_dummy_command::InactiveConn(ActiveConn);
@@ -67,9 +77,13 @@ void CQmCommandRouter::OnDummySwap()
 	m_pGameClient->m_Controls.m_aInputDirectionLeft[PrevTargetConn] = 0;
 	m_pGameClient->m_Controls.m_aInputDirectionRight[PrevTargetConn] = 0;
 
+	if(!HadPassiveOverride)
+	{
+		m_pGameClient->m_QmDummyInputForceSend = false;
+		return;
+	}
+
 	CNetObj_PlayerInput &TargetInput = m_pGameClient->m_DummyInput;
-	PrepareDummyInput(TargetInput, TargetConn);
-	ApplyHeldDummyInput(TargetInput);
 
 	m_pGameClient->m_Controls.m_aInputData[TargetConn] = TargetInput;
 	m_pGameClient->m_Controls.m_aInputDirectionLeft[TargetConn] = m_DummyLeft;
@@ -79,13 +93,7 @@ void CQmCommandRouter::OnDummySwap()
 
 void CQmCommandRouter::ResetDummyInputState()
 {
-	m_DummyLeft = 0;
-	m_DummyRight = 0;
-	m_DummyJump = 0;
-	m_DummyHook = 0;
-	m_DummyFire = 0;
-	m_DummyNextWeapon = 0;
-	m_DummyPrevWeapon = 0;
+	ClearDummyInputState();
 
 	if(m_pGameClient == nullptr)
 		return;
@@ -107,22 +115,79 @@ void CQmCommandRouter::ResetDummyInputState()
 	m_pGameClient->m_QmDummyInputForceSend = TargetConn != g_Config.m_ClDummy && DummyConnected;
 }
 
-bool CQmCommandRouter::HasManualDummyInput() const
+EDummyInputRoute CQmCommandRouter::DummyInputRoute() const
 {
-	return m_pGameClient != nullptr &&
-	       (qm_dummy_command::ForceSendBlocksAutomaticDummyInput(g_Config.m_ClDummyHammer != 0, m_pGameClient->m_QmDummyInputForceSend) ||
-		       m_DummyLeft != 0 ||
-		       m_DummyRight != 0 ||
-		       m_DummyJump != 0 ||
-		       m_DummyHook != 0 ||
-		       m_DummyFire != 0 ||
-		       m_DummyNextWeapon != 0 ||
-		       m_DummyPrevWeapon != 0);
+	return qm_dummy_command::DummyInputRouteForLegacyMask(LegacyExclusiveInputMask());
 }
 
-bool CQmCommandRouter::HasHeldManualDummyInput() const
+SQmDummyInputOwnership CQmCommandRouter::GetLegacyExclusiveInputOwnership() const
 {
-	return m_pGameClient != nullptr && HasHeldDummyInputState();
+	if(m_pGameClient == nullptr)
+		return {};
+	return qm_dummy_command::BuildDummyInputOwnership(ActiveLegacyExclusiveInputMask(), m_DummyTransientInputMask);
+}
+
+int CQmCommandRouter::LegacyExclusiveInputMask() const
+{
+	return GetLegacyExclusiveInputOwnership().m_CombinedMask;
+}
+
+bool CQmCommandRouter::HasActiveOrPendingLegacyExclusiveInput() const
+{
+	return LegacyExclusiveInputMask() != QM_DUMMY_INPUT_NONE;
+}
+
+bool CQmCommandRouter::HasActiveLegacyExclusiveInput() const
+{
+	return m_pGameClient != nullptr && ActiveLegacyExclusiveInputMask() != QM_DUMMY_INPUT_NONE;
+}
+
+bool CQmCommandRouter::NeedsDummyInputForceSend() const
+{
+	return m_pGameClient != nullptr && m_pGameClient->m_QmDummyInputForceSend;
+}
+
+bool CQmCommandRouter::HasPendingLegacyExclusiveInput() const
+{
+	return m_pGameClient != nullptr && m_DummyTransientInputMask != QM_DUMMY_INPUT_NONE;
+}
+
+void CQmCommandRouter::ConsumeLegacyExclusiveInputAfterSend()
+{
+	if(m_pGameClient == nullptr || m_DummyTransientInputMask == QM_DUMMY_INPUT_NONE)
+		return;
+
+	CNetObj_PlayerInput &Input = m_pGameClient->m_DummyInput;
+	if(qm_dummy_command::HasDummyInputField(m_DummyTransientInputMask, QM_DUMMY_INPUT_WANTED_WEAPON))
+		Input.m_WantedWeapon = 0;
+	if(qm_dummy_command::HasDummyInputField(m_DummyTransientInputMask, QM_DUMMY_INPUT_NEXT_WEAPON))
+		qm_dummy_command::UpdateInputCounter(Input.m_NextWeapon, 0);
+	if(qm_dummy_command::HasDummyInputField(m_DummyTransientInputMask, QM_DUMMY_INPUT_PREV_WEAPON))
+		qm_dummy_command::UpdateInputCounter(Input.m_PrevWeapon, 0);
+
+	const int TargetConn = qm_dummy_command::InactiveConn(g_Config.m_ClDummy);
+	m_pGameClient->m_Controls.m_aInputData[TargetConn] = Input;
+	m_DummyTransientInputMask = QM_DUMMY_INPUT_NONE;
+}
+
+SQmDummyPassiveOverride CQmCommandRouter::GetPassiveDummyOverride() const
+{
+	return qm_dummy_command::BuildPassiveDummyOverride(m_DummyLeft, m_DummyRight, m_DummyJump, m_DummyHook);
+}
+
+int CQmCommandRouter::PassiveDummyInputMask() const
+{
+	return qm_dummy_command::PassiveDummyInputMask(GetPassiveDummyOverride());
+}
+
+bool CQmCommandRouter::HasPassiveDummyOverride() const
+{
+	return m_pGameClient != nullptr && qm_dummy_command::HasPassiveDummyOverride(GetPassiveDummyOverride());
+}
+
+void CQmCommandRouter::ApplyPassiveDummyOverrides(CNetObj_PlayerInput &Input) const
+{
+	qm_dummy_command::ApplyPassiveDummyOverride(Input, GetPassiveDummyOverride());
 }
 
 int CQmCommandRouter::ConnForTarget(EQmCommandTarget Target) const
@@ -165,15 +230,30 @@ void CQmCommandRouter::ReportDummyUnavailable()
 		m_pGameClient->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "qm_dummy", "Dummy command ignored: dummy is not connected.");
 }
 
-bool CQmCommandRouter::HasHeldDummyInputState() const
+int CQmCommandRouter::ActiveLegacyExclusiveInputMask() const
 {
-	return m_DummyLeft != 0 ||
-	       m_DummyRight != 0 ||
-	       m_DummyJump != 0 ||
-	       m_DummyHook != 0 ||
-	       m_DummyFire != 0 ||
-	       m_DummyNextWeapon != 0 ||
-	       m_DummyPrevWeapon != 0;
+	int Mask = QM_DUMMY_INPUT_NONE;
+	if(m_DummyFire != 0)
+		Mask |= QM_DUMMY_INPUT_FIRE;
+	return Mask;
+}
+
+void CQmCommandRouter::ClearDummyInputState()
+{
+	m_DummyLeft = 0;
+	m_DummyRight = 0;
+	m_DummyJump = 0;
+	m_DummyHook = 0;
+	m_DummyFire = 0;
+	m_DummyTransientInputMask = QM_DUMMY_INPUT_NONE;
+}
+
+void CQmCommandRouter::AlignManualFireCounter(CNetObj_PlayerInput &Input) const
+{
+	if(m_pGameClient == nullptr || !g_Config.m_ClDummyHammer)
+		return;
+
+	Input.m_Fire = qm_dummy_command::AlignedLegacyFireCounter(m_pGameClient->m_HammerInput.m_Fire);
 }
 
 void CQmCommandRouter::ReleaseDummyInput(CNetObj_PlayerInput &Input) const
@@ -228,31 +308,38 @@ void CQmCommandRouter::PrepareDummyInput(CNetObj_PlayerInput &Input, int TargetC
 		Input.m_TargetX = 1;
 }
 
-void CQmCommandRouter::ApplyHeldDummyInput(CNetObj_PlayerInput &Input) const
-{
-	Input.m_Direction = m_DummyRight - m_DummyLeft;
-	Input.m_Jump = m_DummyJump;
-	Input.m_Hook = m_DummyHook;
-	if(m_DummyFire != 0)
-		qm_dummy_command::UpdateInputCounter(Input.m_Fire, 1);
-	if(m_DummyNextWeapon != 0)
-	{
-		qm_dummy_command::UpdateInputCounter(Input.m_NextWeapon, 1);
-		Input.m_WantedWeapon = 0;
-	}
-	if(m_DummyPrevWeapon != 0)
-	{
-		qm_dummy_command::UpdateInputCounter(Input.m_PrevWeapon, 1);
-		Input.m_WantedWeapon = 0;
-	}
-}
-
 void CQmCommandRouter::ApplyDummyInput(EQmDummyInputCommand Command, int State)
 {
 	const int TargetConn = qm_dummy_command::InactiveConn(g_Config.m_ClDummy);
 	if(!EnsureConnAvailable(TargetConn, State != 0))
 	{
 		ResetDummyInputState();
+		return;
+	}
+
+	if(qm_dummy_command::IsPassiveDummyInputCommand(Command))
+	{
+		switch(Command)
+		{
+		case EQmDummyInputCommand::LEFT:
+			m_DummyLeft = State != 0 ? 1 : 0;
+			break;
+		case EQmDummyInputCommand::RIGHT:
+			m_DummyRight = State != 0 ? 1 : 0;
+			break;
+		case EQmDummyInputCommand::JUMP:
+			m_DummyJump = State != 0 ? 1 : 0;
+			break;
+		case EQmDummyInputCommand::HOOK:
+			m_DummyHook = State != 0 ? 1 : 0;
+			break;
+		default:
+			break;
+		}
+
+		m_pGameClient->m_Controls.m_aInputDirectionLeft[TargetConn] = m_DummyLeft;
+		m_pGameClient->m_Controls.m_aInputDirectionRight[TargetConn] = m_DummyRight;
+		m_pGameClient->m_QmDummyInputForceSend = true;
 		return;
 	}
 
@@ -263,44 +350,54 @@ void CQmCommandRouter::ApplyDummyInput(EQmDummyInputCommand Command, int State)
 	switch(Command)
 	{
 	case EQmDummyInputCommand::LEFT:
-		m_DummyLeft = State != 0 ? 1 : 0;
-		TargetInput.m_Direction = m_DummyRight - m_DummyLeft;
-		break;
 	case EQmDummyInputCommand::RIGHT:
-		m_DummyRight = State != 0 ? 1 : 0;
-		TargetInput.m_Direction = m_DummyRight - m_DummyLeft;
-		break;
 	case EQmDummyInputCommand::JUMP:
-		m_DummyJump = State != 0 ? 1 : 0;
-		TargetInput.m_Jump = State != 0 ? 1 : 0;
-		break;
 	case EQmDummyInputCommand::HOOK:
-		m_DummyHook = State != 0 ? 1 : 0;
-		TargetInput.m_Hook = State != 0 ? 1 : 0;
 		break;
 	case EQmDummyInputCommand::FIRE:
-		m_DummyFire = State != 0 ? 1 : 0;
+	{
+		const bool WasFireActive = m_DummyFire != 0;
+		const bool FireActive = State != 0;
+		if(qm_dummy_command::ShouldAlignLegacyFireCounter(WasFireActive, FireActive, m_DummyTransientInputMask))
+			AlignManualFireCounter(TargetInput);
+		m_DummyFire = FireActive ? 1 : 0;
 		qm_dummy_command::UpdateInputCounter(TargetInput.m_Fire, State);
+		if(WasFireActive && !FireActive)
+			m_DummyTransientInputMask |= QM_DUMMY_INPUT_FIRE;
 		break;
+	}
 	case EQmDummyInputCommand::WEAPON1:
 	case EQmDummyInputCommand::WEAPON2:
 	case EQmDummyInputCommand::WEAPON3:
 	case EQmDummyInputCommand::WEAPON4:
 	case EQmDummyInputCommand::WEAPON5:
 		if(State != 0)
+		{
 			TargetInput.m_WantedWeapon = static_cast<int>(Command) - static_cast<int>(EQmDummyInputCommand::WEAPON1) + 1;
+			m_DummyTransientInputMask |= qm_dummy_command::DummyInputFieldForCommand(Command);
+		}
 		else
 			ForceSend = false;
 		break;
 	case EQmDummyInputCommand::NEXT_WEAPON:
-		m_DummyNextWeapon = State != 0 ? 1 : 0;
-		qm_dummy_command::UpdateInputCounter(TargetInput.m_NextWeapon, State);
-		TargetInput.m_WantedWeapon = 0;
+		if(State != 0)
+		{
+			qm_dummy_command::UpdateInputCounter(TargetInput.m_NextWeapon, 1);
+			TargetInput.m_WantedWeapon = 0;
+			m_DummyTransientInputMask |= qm_dummy_command::DummyInputFieldForCommand(Command);
+		}
+		else
+			ForceSend = false;
 		break;
 	case EQmDummyInputCommand::PREV_WEAPON:
-		m_DummyPrevWeapon = State != 0 ? 1 : 0;
-		qm_dummy_command::UpdateInputCounter(TargetInput.m_PrevWeapon, State);
-		TargetInput.m_WantedWeapon = 0;
+		if(State != 0)
+		{
+			qm_dummy_command::UpdateInputCounter(TargetInput.m_PrevWeapon, 1);
+			TargetInput.m_WantedWeapon = 0;
+			m_DummyTransientInputMask |= qm_dummy_command::DummyInputFieldForCommand(Command);
+		}
+		else
+			ForceSend = false;
 		break;
 	}
 

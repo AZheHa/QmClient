@@ -35,6 +35,30 @@ TEST(QmDummyCommand, UpdatesInputCounterLikeDDNetControls)
 	EXPECT_EQ(Value, 2);
 }
 
+TEST(QmDummyCommand, LegacyFireReleaseDoesNotRealignToHammerCounter)
+{
+	int DirectFire = qm_dummy_command::AlignedLegacyFireCounter(1);
+	EXPECT_EQ(DirectFire, 2);
+
+	qm_dummy_command::UpdateInputCounter(DirectFire, 1);
+	EXPECT_EQ(DirectFire, 3);
+
+	qm_dummy_command::UpdateInputCounter(DirectFire, 0);
+	EXPECT_EQ(DirectFire, 4);
+}
+
+TEST(QmDummyCommand, LegacyFirePressDuringPendingReleaseKeepsDirectCounter)
+{
+	int DirectFire = qm_dummy_command::AlignedLegacyFireCounter(1);
+	qm_dummy_command::UpdateInputCounter(DirectFire, 1);
+	qm_dummy_command::UpdateInputCounter(DirectFire, 0);
+	EXPECT_EQ(DirectFire, 4);
+
+	EXPECT_FALSE(qm_dummy_command::ShouldAlignLegacyFireCounter(false, true, QM_DUMMY_INPUT_FIRE));
+	qm_dummy_command::UpdateInputCounter(DirectFire, 1);
+	EXPECT_EQ(DirectFire, 5);
+}
+
 TEST(QmDummyCommand, HeldInputIgnoresOneShotWeaponSwitch)
 {
 	CNetObj_PlayerInput Input = {};
@@ -57,18 +81,209 @@ TEST(QmDummyCommand, InactiveConnIsRelativeToActiveConn)
 	EXPECT_EQ(qm_dummy_command::InactiveConn(IClient::CONN_DUMMY), IClient::CONN_MAIN);
 }
 
-TEST(QmDummyCommand, DummyHammerKeepsOfficialPriorityWithoutHeldManualInput)
+static CNetObj_PlayerInput QmDummyCommandBaseInput()
 {
-	EXPECT_TRUE(qm_dummy_command::ShouldSendDirectDummyInput(false, false));
-	EXPECT_TRUE(qm_dummy_command::ShouldSendDirectDummyInput(false, true));
-	EXPECT_FALSE(qm_dummy_command::ShouldSendDirectDummyInput(true, false));
-	EXPECT_TRUE(qm_dummy_command::ShouldSendDirectDummyInput(true, true));
+	CNetObj_PlayerInput Input = {};
+	Input.m_Direction = 1;
+	Input.m_TargetX = 100;
+	Input.m_TargetY = 200;
+	Input.m_Jump = 0;
+	Input.m_Fire = 17;
+	Input.m_Hook = 0;
+	Input.m_PlayerFlags = PLAYERFLAG_PLAYING | PLAYERFLAG_INPUT_MANUAL;
+	Input.m_WantedWeapon = 2;
+	Input.m_NextWeapon = 4;
+	Input.m_PrevWeapon = 6;
+	return Input;
 }
 
-TEST(QmDummyCommand, DummyHammerIgnoresForceSendForAutomaticInputProtection)
+TEST(QmDummyCommand, MapsDummyCommandsToInputFields)
 {
-	EXPECT_FALSE(qm_dummy_command::ForceSendBlocksAutomaticDummyInput(false, false));
-	EXPECT_TRUE(qm_dummy_command::ForceSendBlocksAutomaticDummyInput(false, true));
-	EXPECT_FALSE(qm_dummy_command::ForceSendBlocksAutomaticDummyInput(true, false));
-	EXPECT_FALSE(qm_dummy_command::ForceSendBlocksAutomaticDummyInput(true, true));
+	EXPECT_EQ(qm_dummy_command::DummyInputFieldForCommand(EQmDummyInputCommand::LEFT), QM_DUMMY_INPUT_DIRECTION);
+	EXPECT_EQ(qm_dummy_command::DummyInputFieldForCommand(EQmDummyInputCommand::RIGHT), QM_DUMMY_INPUT_DIRECTION);
+	EXPECT_EQ(qm_dummy_command::DummyInputFieldForCommand(EQmDummyInputCommand::JUMP), QM_DUMMY_INPUT_JUMP);
+	EXPECT_EQ(qm_dummy_command::DummyInputFieldForCommand(EQmDummyInputCommand::HOOK), QM_DUMMY_INPUT_HOOK);
+	EXPECT_EQ(qm_dummy_command::DummyInputFieldForCommand(EQmDummyInputCommand::FIRE), QM_DUMMY_INPUT_FIRE);
+	EXPECT_EQ(qm_dummy_command::DummyInputFieldForCommand(EQmDummyInputCommand::WEAPON1), QM_DUMMY_INPUT_WANTED_WEAPON);
+	EXPECT_EQ(qm_dummy_command::DummyInputFieldForCommand(EQmDummyInputCommand::WEAPON5), QM_DUMMY_INPUT_WANTED_WEAPON);
+	EXPECT_EQ(qm_dummy_command::DummyInputFieldForCommand(EQmDummyInputCommand::NEXT_WEAPON), QM_DUMMY_INPUT_NEXT_WEAPON);
+	EXPECT_EQ(qm_dummy_command::DummyInputFieldForCommand(EQmDummyInputCommand::PREV_WEAPON), QM_DUMMY_INPUT_PREV_WEAPON);
+}
+
+TEST(QmDummyCommand, BuildsPassiveOverrideOnlyForDirectionJumpHook)
+{
+	const SQmDummyPassiveOverride Override = qm_dummy_command::BuildPassiveDummyOverride(1, 0, 1, 1);
+
+	EXPECT_TRUE(Override.m_DirectionActive);
+	EXPECT_EQ(Override.m_Direction, -1);
+	EXPECT_TRUE(Override.m_JumpActive);
+	EXPECT_EQ(Override.m_Jump, 1);
+	EXPECT_TRUE(Override.m_HookActive);
+	EXPECT_EQ(Override.m_Hook, 1);
+	EXPECT_EQ(qm_dummy_command::PassiveDummyInputMask(Override), QM_DUMMY_INPUT_DIRECTION | QM_DUMMY_INPUT_JUMP | QM_DUMMY_INPUT_HOOK);
+	EXPECT_FALSE(qm_dummy_command::HasDummyInputField(qm_dummy_command::PassiveDummyInputMask(Override), QM_DUMMY_INPUT_FIRE));
+	EXPECT_FALSE(qm_dummy_command::HasDummyInputField(qm_dummy_command::PassiveDummyInputMask(Override), QM_DUMMY_INPUT_WANTED_WEAPON));
+	EXPECT_FALSE(qm_dummy_command::HasDummyInputField(qm_dummy_command::PassiveDummyInputMask(Override), QM_DUMMY_INPUT_NEXT_WEAPON));
+	EXPECT_FALSE(qm_dummy_command::HasDummyInputField(qm_dummy_command::PassiveDummyInputMask(Override), QM_DUMMY_INPUT_PREV_WEAPON));
+}
+
+TEST(QmDummyCommand, PassiveDirectionOverridesOnlyDirection)
+{
+	const CNetObj_PlayerInput BaseInput = QmDummyCommandBaseInput();
+	CNetObj_PlayerInput FinalInput = BaseInput;
+	const SQmDummyPassiveOverride Override = qm_dummy_command::BuildPassiveDummyOverride(1, 0, 0, 0);
+
+	qm_dummy_command::ApplyPassiveDummyOverride(FinalInput, Override);
+
+	EXPECT_EQ(FinalInput.m_Direction, -1);
+	EXPECT_EQ(FinalInput.m_Jump, BaseInput.m_Jump);
+	EXPECT_EQ(FinalInput.m_Hook, BaseInput.m_Hook);
+	EXPECT_EQ(FinalInput.m_Fire, BaseInput.m_Fire);
+	EXPECT_EQ(FinalInput.m_WantedWeapon, BaseInput.m_WantedWeapon);
+	EXPECT_EQ(FinalInput.m_NextWeapon, BaseInput.m_NextWeapon);
+	EXPECT_EQ(FinalInput.m_PrevWeapon, BaseInput.m_PrevWeapon);
+	EXPECT_EQ(FinalInput.m_TargetX, BaseInput.m_TargetX);
+	EXPECT_EQ(FinalInput.m_TargetY, BaseInput.m_TargetY);
+	EXPECT_EQ(FinalInput.m_PlayerFlags, BaseInput.m_PlayerFlags);
+}
+
+TEST(QmDummyCommand, PassiveJumpOverridesOnlyJump)
+{
+	const CNetObj_PlayerInput BaseInput = QmDummyCommandBaseInput();
+	CNetObj_PlayerInput FinalInput = BaseInput;
+	const SQmDummyPassiveOverride Override = qm_dummy_command::BuildPassiveDummyOverride(0, 0, 1, 0);
+
+	qm_dummy_command::ApplyPassiveDummyOverride(FinalInput, Override);
+
+	EXPECT_EQ(FinalInput.m_Jump, 1);
+	EXPECT_EQ(FinalInput.m_Direction, BaseInput.m_Direction);
+	EXPECT_EQ(FinalInput.m_Hook, BaseInput.m_Hook);
+	EXPECT_EQ(FinalInput.m_Fire, BaseInput.m_Fire);
+	EXPECT_EQ(FinalInput.m_WantedWeapon, BaseInput.m_WantedWeapon);
+	EXPECT_EQ(FinalInput.m_TargetX, BaseInput.m_TargetX);
+	EXPECT_EQ(FinalInput.m_TargetY, BaseInput.m_TargetY);
+}
+
+TEST(QmDummyCommand, PassiveHookOverridesOnlyHook)
+{
+	const CNetObj_PlayerInput BaseInput = QmDummyCommandBaseInput();
+	CNetObj_PlayerInput FinalInput = BaseInput;
+	const SQmDummyPassiveOverride Override = qm_dummy_command::BuildPassiveDummyOverride(0, 0, 0, 1);
+
+	qm_dummy_command::ApplyPassiveDummyOverride(FinalInput, Override);
+
+	EXPECT_EQ(FinalInput.m_Hook, 1);
+	EXPECT_EQ(FinalInput.m_Direction, BaseInput.m_Direction);
+	EXPECT_EQ(FinalInput.m_Jump, BaseInput.m_Jump);
+	EXPECT_EQ(FinalInput.m_Fire, BaseInput.m_Fire);
+	EXPECT_EQ(FinalInput.m_WantedWeapon, BaseInput.m_WantedWeapon);
+	EXPECT_EQ(FinalInput.m_TargetX, BaseInput.m_TargetX);
+	EXPECT_EQ(FinalInput.m_TargetY, BaseInput.m_TargetY);
+}
+
+TEST(QmDummyCommand, InactivePassiveOverrideKeepsBaseInput)
+{
+	const CNetObj_PlayerInput BaseInput = QmDummyCommandBaseInput();
+	CNetObj_PlayerInput FinalInput = BaseInput;
+	const SQmDummyPassiveOverride Override = qm_dummy_command::BuildPassiveDummyOverride(0, 0, 0, 0);
+
+	qm_dummy_command::ApplyPassiveDummyOverride(FinalInput, Override);
+
+	EXPECT_EQ(FinalInput.m_Direction, BaseInput.m_Direction);
+	EXPECT_EQ(FinalInput.m_Jump, BaseInput.m_Jump);
+	EXPECT_EQ(FinalInput.m_Hook, BaseInput.m_Hook);
+	EXPECT_EQ(FinalInput.m_Fire, BaseInput.m_Fire);
+	EXPECT_EQ(FinalInput.m_WantedWeapon, BaseInput.m_WantedWeapon);
+	EXPECT_EQ(FinalInput.m_NextWeapon, BaseInput.m_NextWeapon);
+	EXPECT_EQ(FinalInput.m_PrevWeapon, BaseInput.m_PrevWeapon);
+	EXPECT_EQ(FinalInput.m_TargetX, BaseInput.m_TargetX);
+	EXPECT_EQ(FinalInput.m_TargetY, BaseInput.m_TargetY);
+	EXPECT_EQ(FinalInput.m_PlayerFlags, BaseInput.m_PlayerFlags);
+}
+
+TEST(QmDummyCommand, PassiveOverridePreservesHammerFireCounter)
+{
+	const CNetObj_PlayerInput HammerInput = QmDummyCommandBaseInput();
+	CNetObj_PlayerInput FinalInput = HammerInput;
+	const SQmDummyPassiveOverride Override = qm_dummy_command::BuildPassiveDummyOverride(1, 0, 1, 1);
+
+	qm_dummy_command::ApplyPassiveDummyOverride(FinalInput, Override);
+
+	EXPECT_EQ(FinalInput.m_Direction, -1);
+	EXPECT_EQ(FinalInput.m_Jump, 1);
+	EXPECT_EQ(FinalInput.m_Hook, 1);
+	EXPECT_EQ(FinalInput.m_Fire, HammerInput.m_Fire);
+	EXPECT_EQ(FinalInput.m_WantedWeapon, HammerInput.m_WantedWeapon);
+	EXPECT_EQ(FinalInput.m_NextWeapon, HammerInput.m_NextWeapon);
+	EXPECT_EQ(FinalInput.m_PrevWeapon, HammerInput.m_PrevWeapon);
+	EXPECT_EQ(FinalInput.m_TargetX, HammerInput.m_TargetX);
+	EXPECT_EQ(FinalInput.m_TargetY, HammerInput.m_TargetY);
+}
+
+TEST(QmDummyCommand, DistinguishesHeldAndTransientDummyCommands)
+{
+	EXPECT_FALSE(qm_dummy_command::IsTransientDummyInputCommand(EQmDummyInputCommand::LEFT));
+	EXPECT_FALSE(qm_dummy_command::IsTransientDummyInputCommand(EQmDummyInputCommand::FIRE));
+	EXPECT_TRUE(qm_dummy_command::IsTransientDummyInputCommand(EQmDummyInputCommand::WEAPON1));
+	EXPECT_TRUE(qm_dummy_command::IsTransientDummyInputCommand(EQmDummyInputCommand::WEAPON5));
+	EXPECT_TRUE(qm_dummy_command::IsTransientDummyInputCommand(EQmDummyInputCommand::NEXT_WEAPON));
+	EXPECT_TRUE(qm_dummy_command::IsTransientDummyInputCommand(EQmDummyInputCommand::PREV_WEAPON));
+}
+
+TEST(QmDummyCommand, RoutesPassiveOnlyInputThroughOfficialOverlay)
+{
+	const SQmDummyPassiveOverride Override = qm_dummy_command::BuildPassiveDummyOverride(1, 0, 1, 1);
+
+	EXPECT_TRUE(qm_dummy_command::HasPassiveDummyOverride(Override));
+	EXPECT_EQ(qm_dummy_command::DummyInputRouteForLegacyMask(QM_DUMMY_INPUT_NONE), EDummyInputRoute::OFFICIAL_WITH_PASSIVE_OVERLAY);
+}
+
+TEST(QmDummyCommand, RoutesHeldFireThroughLegacyExclusive)
+{
+	const SQmDummyInputOwnership Ownership = qm_dummy_command::BuildDummyInputOwnership(QM_DUMMY_INPUT_FIRE, QM_DUMMY_INPUT_NONE);
+
+	EXPECT_EQ(Ownership.m_CombinedMask, QM_DUMMY_INPUT_FIRE);
+	EXPECT_EQ(qm_dummy_command::DummyInputRouteForLegacyMask(Ownership.m_CombinedMask), EDummyInputRoute::LEGACY_EXCLUSIVE);
+}
+
+TEST(QmDummyCommand, KeepsFireReleasePendingInLegacyExclusive)
+{
+	const SQmDummyInputOwnership Ownership = qm_dummy_command::BuildDummyInputOwnership(QM_DUMMY_INPUT_NONE, QM_DUMMY_INPUT_FIRE);
+
+	EXPECT_EQ(Ownership.m_HeldMask, QM_DUMMY_INPUT_NONE);
+	EXPECT_EQ(Ownership.m_TransientMask, QM_DUMMY_INPUT_FIRE);
+	EXPECT_EQ(qm_dummy_command::DummyInputRouteForLegacyMask(Ownership.m_CombinedMask), EDummyInputRoute::LEGACY_EXCLUSIVE);
+}
+
+TEST(QmDummyCommand, KeepsWeaponRequestPendingInLegacyExclusive)
+{
+	const SQmDummyInputOwnership PendingWeapon = qm_dummy_command::BuildDummyInputOwnership(QM_DUMMY_INPUT_NONE, QM_DUMMY_INPUT_WANTED_WEAPON);
+	const SQmDummyInputOwnership SubmittedWeapon = qm_dummy_command::BuildDummyInputOwnership(QM_DUMMY_INPUT_NONE, QM_DUMMY_INPUT_NONE);
+
+	EXPECT_EQ(qm_dummy_command::DummyInputRouteForLegacyMask(PendingWeapon.m_CombinedMask), EDummyInputRoute::LEGACY_EXCLUSIVE);
+	EXPECT_EQ(qm_dummy_command::DummyInputRouteForLegacyMask(SubmittedWeapon.m_CombinedMask), EDummyInputRoute::OFFICIAL_WITH_PASSIVE_OVERLAY);
+}
+
+TEST(QmDummyCommand, BuildsLegacyExclusiveOwnershipMask)
+{
+	const SQmDummyInputOwnership Ownership = qm_dummy_command::BuildDummyInputOwnership(
+		QM_DUMMY_INPUT_FIRE,
+		QM_DUMMY_INPUT_WANTED_WEAPON | QM_DUMMY_INPUT_NEXT_WEAPON);
+
+	EXPECT_EQ(Ownership.m_HeldMask, QM_DUMMY_INPUT_FIRE);
+	EXPECT_EQ(Ownership.m_TransientMask, QM_DUMMY_INPUT_WANTED_WEAPON | QM_DUMMY_INPUT_NEXT_WEAPON);
+	EXPECT_EQ(Ownership.m_CombinedMask, QM_DUMMY_INPUT_FIRE | QM_DUMMY_INPUT_WANTED_WEAPON | QM_DUMMY_INPUT_NEXT_WEAPON);
+	EXPECT_TRUE(qm_dummy_command::HasDummyInputField(Ownership.m_CombinedMask, QM_DUMMY_INPUT_FIRE));
+	EXPECT_TRUE(qm_dummy_command::HasDummyInputField(Ownership.m_CombinedMask, QM_DUMMY_INPUT_WANTED_WEAPON));
+	EXPECT_TRUE(qm_dummy_command::HasDummyInputField(Ownership.m_CombinedMask, QM_DUMMY_INPUT_NEXT_WEAPON));
+	EXPECT_FALSE(qm_dummy_command::HasDummyInputField(Ownership.m_CombinedMask, QM_DUMMY_INPUT_DIRECTION));
+	EXPECT_FALSE(qm_dummy_command::HasDummyInputField(Ownership.m_CombinedMask, QM_DUMMY_INPUT_HOOK));
+}
+
+TEST(QmDummyCommand, OfficialRouteKeepsCadenceUnlessForced)
+{
+	EXPECT_FALSE(qm_dummy_command::ShouldSendOfficialDummyInput(false, false, false));
+	EXPECT_TRUE(qm_dummy_command::ShouldSendOfficialDummyInput(false, false, true));
+	EXPECT_TRUE(qm_dummy_command::ShouldSendOfficialDummyInput(false, true, false));
+	EXPECT_TRUE(qm_dummy_command::ShouldSendOfficialDummyInput(true, false, false));
 }

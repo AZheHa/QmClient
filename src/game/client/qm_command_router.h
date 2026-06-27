@@ -36,6 +36,41 @@ enum class EQmDummyInputCommand
 	PREV_WEAPON,
 };
 
+enum class EDummyInputRoute
+{
+	OFFICIAL_WITH_PASSIVE_OVERLAY,
+	LEGACY_EXCLUSIVE,
+};
+
+enum EQmDummyInputField
+{
+	QM_DUMMY_INPUT_NONE = 0,
+	QM_DUMMY_INPUT_DIRECTION = 1 << 0,
+	QM_DUMMY_INPUT_JUMP = 1 << 1,
+	QM_DUMMY_INPUT_HOOK = 1 << 2,
+	QM_DUMMY_INPUT_FIRE = 1 << 3,
+	QM_DUMMY_INPUT_WANTED_WEAPON = 1 << 4,
+	QM_DUMMY_INPUT_NEXT_WEAPON = 1 << 5,
+	QM_DUMMY_INPUT_PREV_WEAPON = 1 << 6,
+};
+
+struct SQmDummyInputOwnership
+{
+	int m_HeldMask = QM_DUMMY_INPUT_NONE;
+	int m_TransientMask = QM_DUMMY_INPUT_NONE;
+	int m_CombinedMask = QM_DUMMY_INPUT_NONE;
+};
+
+struct SQmDummyPassiveOverride
+{
+	bool m_DirectionActive = false;
+	int m_Direction = 0;
+	bool m_JumpActive = false;
+	int m_Jump = 0;
+	bool m_HookActive = false;
+	int m_Hook = 0;
+};
+
 struct SQmDummyCommand
 {
 	class CQmCommandRouter *m_pRouter = nullptr;
@@ -66,14 +101,128 @@ namespace qm_dummy_command
 		return ActiveConn ^ 1;
 	}
 
-	inline bool ShouldSendDirectDummyInput(bool DummyHammer, bool HeldManualDummyInput)
+	inline SQmDummyPassiveOverride BuildPassiveDummyOverride(int Left, int Right, int Jump, int Hook)
 	{
-		return !DummyHammer || HeldManualDummyInput;
+		SQmDummyPassiveOverride Override;
+		if(Left != 0 || Right != 0)
+		{
+			Override.m_DirectionActive = true;
+			Override.m_Direction = Right - Left;
+		}
+		if(Jump != 0)
+		{
+			Override.m_JumpActive = true;
+			Override.m_Jump = 1;
+		}
+		if(Hook != 0)
+		{
+			Override.m_HookActive = true;
+			Override.m_Hook = 1;
+		}
+		return Override;
 	}
 
-	inline bool ForceSendBlocksAutomaticDummyInput(bool DummyHammer, bool ForceSend)
+	inline int PassiveDummyInputMask(const SQmDummyPassiveOverride &Override)
 	{
-		return ForceSend && !DummyHammer;
+		int Mask = QM_DUMMY_INPUT_NONE;
+		if(Override.m_DirectionActive)
+			Mask |= QM_DUMMY_INPUT_DIRECTION;
+		if(Override.m_JumpActive)
+			Mask |= QM_DUMMY_INPUT_JUMP;
+		if(Override.m_HookActive)
+			Mask |= QM_DUMMY_INPUT_HOOK;
+		return Mask;
+	}
+
+	inline bool HasPassiveDummyOverride(const SQmDummyPassiveOverride &Override)
+	{
+		return PassiveDummyInputMask(Override) != QM_DUMMY_INPUT_NONE;
+	}
+
+	inline bool IsPassiveDummyInputCommand(EQmDummyInputCommand Command)
+	{
+		return Command == EQmDummyInputCommand::LEFT ||
+		       Command == EQmDummyInputCommand::RIGHT ||
+		       Command == EQmDummyInputCommand::JUMP ||
+		       Command == EQmDummyInputCommand::HOOK;
+	}
+
+	inline void ApplyPassiveDummyOverride(CNetObj_PlayerInput &Input, const SQmDummyPassiveOverride &Override)
+	{
+		if(Override.m_DirectionActive)
+			Input.m_Direction = Override.m_Direction;
+		if(Override.m_JumpActive)
+			Input.m_Jump = Override.m_Jump;
+		if(Override.m_HookActive)
+			Input.m_Hook = Override.m_Hook;
+	}
+
+	inline SQmDummyInputOwnership BuildDummyInputOwnership(int HeldMask, int TransientMask)
+	{
+		return {HeldMask, TransientMask, HeldMask | TransientMask};
+	}
+
+	inline bool HasDummyInputField(int OwnershipMask, int FieldMask)
+	{
+		return (OwnershipMask & FieldMask) != 0;
+	}
+
+	inline int DummyInputFieldForCommand(EQmDummyInputCommand Command)
+	{
+		switch(Command)
+		{
+		case EQmDummyInputCommand::LEFT:
+		case EQmDummyInputCommand::RIGHT:
+			return QM_DUMMY_INPUT_DIRECTION;
+		case EQmDummyInputCommand::JUMP:
+			return QM_DUMMY_INPUT_JUMP;
+		case EQmDummyInputCommand::HOOK:
+			return QM_DUMMY_INPUT_HOOK;
+		case EQmDummyInputCommand::FIRE:
+			return QM_DUMMY_INPUT_FIRE;
+		case EQmDummyInputCommand::WEAPON1:
+		case EQmDummyInputCommand::WEAPON2:
+		case EQmDummyInputCommand::WEAPON3:
+		case EQmDummyInputCommand::WEAPON4:
+		case EQmDummyInputCommand::WEAPON5:
+			return QM_DUMMY_INPUT_WANTED_WEAPON;
+		case EQmDummyInputCommand::NEXT_WEAPON:
+			return QM_DUMMY_INPUT_NEXT_WEAPON;
+		case EQmDummyInputCommand::PREV_WEAPON:
+			return QM_DUMMY_INPUT_PREV_WEAPON;
+		}
+		return QM_DUMMY_INPUT_NONE;
+	}
+
+	inline bool IsTransientDummyInputCommand(EQmDummyInputCommand Command)
+	{
+		return Command == EQmDummyInputCommand::WEAPON1 ||
+		       Command == EQmDummyInputCommand::WEAPON2 ||
+		       Command == EQmDummyInputCommand::WEAPON3 ||
+		       Command == EQmDummyInputCommand::WEAPON4 ||
+		       Command == EQmDummyInputCommand::WEAPON5 ||
+		       Command == EQmDummyInputCommand::NEXT_WEAPON ||
+		       Command == EQmDummyInputCommand::PREV_WEAPON;
+	}
+
+	inline int AlignedLegacyFireCounter(int HammerFire)
+	{
+		return ((HammerFire + 1) & ~1) & INPUT_STATE_MASK;
+	}
+
+	inline bool ShouldAlignLegacyFireCounter(bool WasFireActive, bool FireActive, int PendingMask)
+	{
+		return !WasFireActive && FireActive && !HasDummyInputField(PendingMask, QM_DUMMY_INPUT_FIRE);
+	}
+
+	inline EDummyInputRoute DummyInputRouteForLegacyMask(int LegacyMask)
+	{
+		return LegacyMask != QM_DUMMY_INPUT_NONE ? EDummyInputRoute::LEGACY_EXCLUSIVE : EDummyInputRoute::OFFICIAL_WITH_PASSIVE_OVERLAY;
+	}
+
+	inline bool ShouldSendOfficialDummyInput(bool Force, bool ForceSend, bool OfficialTick)
+	{
+		return Force || ForceSend || OfficialTick;
 	}
 
 	inline void BuildSlashCommand(char *pBuf, int BufSize, const char *pCommand, const char *pArgs)
@@ -101,8 +250,18 @@ public:
 	void OnConsoleInit();
 	void OnDummySwap();
 	void ResetDummyInputState();
-	bool HasManualDummyInput() const;
-	bool HasHeldManualDummyInput() const;
+	EDummyInputRoute DummyInputRoute() const;
+	SQmDummyInputOwnership GetLegacyExclusiveInputOwnership() const;
+	int LegacyExclusiveInputMask() const;
+	bool HasActiveOrPendingLegacyExclusiveInput() const;
+	bool HasActiveLegacyExclusiveInput() const;
+	bool NeedsDummyInputForceSend() const;
+	bool HasPendingLegacyExclusiveInput() const;
+	void ConsumeLegacyExclusiveInputAfterSend();
+	SQmDummyPassiveOverride GetPassiveDummyOverride() const;
+	int PassiveDummyInputMask() const;
+	bool HasPassiveDummyOverride() const;
+	void ApplyPassiveDummyOverrides(CNetObj_PlayerInput &Input) const;
 
 private:
 	static void ConDummyInput(IConsole::IResult *pResult, void *pUserData);
@@ -119,10 +278,11 @@ private:
 	int ConnForTarget(EQmCommandTarget Target) const;
 	bool EnsureConnAvailable(int Conn, bool Verbose);
 	void ReportDummyUnavailable();
-	bool HasHeldDummyInputState() const;
+	int ActiveLegacyExclusiveInputMask() const;
+	void ClearDummyInputState();
+	void AlignManualFireCounter(CNetObj_PlayerInput &Input) const;
 	void ReleaseDummyInput(CNetObj_PlayerInput &Input) const;
 	void PrepareDummyInput(CNetObj_PlayerInput &Input, int TargetConn) const;
-	void ApplyHeldDummyInput(CNetObj_PlayerInput &Input) const;
 	void ApplyDummyInput(EQmDummyInputCommand Command, int State);
 	void SendDummyChat(int Team, const char *pLine);
 	void SendDummySlashCommand(const char *pCommand, const char *pArgs);
@@ -133,8 +293,7 @@ private:
 	int m_DummyJump = 0;
 	int m_DummyHook = 0;
 	int m_DummyFire = 0;
-	int m_DummyNextWeapon = 0;
-	int m_DummyPrevWeapon = 0;
+	int m_DummyTransientInputMask = QM_DUMMY_INPUT_NONE;
 	int64_t m_LastDummyUnavailableLogTime = 0;
 
 	SQmDummyCommand m_DummyLeftCommand{this, EQmDummyInputCommand::LEFT};
