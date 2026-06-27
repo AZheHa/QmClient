@@ -1279,6 +1279,9 @@ Click to remove this community from favorites
 Click to remove this player from your friends list.
 == 點擊從你的好友列表中移除此玩家
 
+Click to restore full match
+== 點擊恢復完整比賽
+
 Click to select server. Double click to join your friend.
 == 按一下以選擇此伺服器。按兩下加入好友所在的伺服器。
 
@@ -1872,6 +1875,9 @@ disable
 
 Disable after picking up other weapons
 == 拿到其他武器時停用
+
+Disable QmLive team preview/render filter
+== 關閉 QmLive 隊伍預覽/渲染過濾
 
 Disabled
 == 已停用
@@ -2551,6 +2557,15 @@ File already exists, do you want to overwrite it?
 Filter connecting players
 == 篩選正在連線的玩家
 
+Filter off
+== 關閉過濾
+
+Filter Team %d
+== 過濾隊伍 %d
+
+Filter: Team %d
+== 過濾：隊伍 %d
+
 Find all ban records for the specified IP address
 == 查詢指定 IP 的全部封禁記錄
 
@@ -2691,6 +2706,9 @@ FTAPI
 
 FTAPI auto-translate is disabled to prevent overload. Enable in settings if needed.
 == FTAPI 自動翻譯已禁用以防止過載。如需啟用請在設定中配置。
+
+Full demo + sidecar
+== 完整 demo + sidecar
 
 Full map listen in same room
 == 同房間全圖收聽
@@ -4801,6 +4819,12 @@ Preview player nameplate
 Preview selected file
 == 試聽已選檔案
 
+Preview/render only one DDRace team from a full match demo
+== 從完整比賽 demo 中只預覽/渲染一個 DDRace 隊伍
+
+Preview/render only this team
+== 僅預覽/渲染此隊伍
+
 Previous
 == 上一個
 
@@ -5019,6 +5043,9 @@ Reconnect in %d sec
 
 Record demo
 == 錄製回放
+
+Record match
+== 錄製比賽
 
 Record to a file
 == 記錄到檔案
@@ -6559,6 +6586,9 @@ Start holding the hook before loading the savegame to keep the hook
 Start playback of ghosts
 == 開始播放鬼影
 
+Start QmLive full match demo recording
+== 開始 QmLive 完整比賽 demo 錄製
+
 Start recording a demo
 == 開始錄製回放
 
@@ -6598,8 +6628,14 @@ Status normal, check details below if still experiencing issues
 Status Scheme:
 == 狀態方案：
 
+Stop match record
+== 停止比賽錄製
+
 Stop practice
 == 停止練習
+
+Stop QmLive full match demo recording
+== 停止 QmLive 完整比賽 demo 錄製
 
 Stop record
 == 停止錄製

@@ -282,9 +282,36 @@ namespace qm_dummy_command
 		return LegacyMask != QM_DUMMY_INPUT_NONE ? EDummyInputRoute::LEGACY_EXCLUSIVE : EDummyInputRoute::OFFICIAL_WITH_PASSIVE_OVERLAY;
 	}
 
-	inline bool ShouldSendOfficialDummyInput(bool Force, bool ForceSend, bool OfficialTick)
+	inline bool ReleaseOfficialDummyHammerInput(CNetObj_PlayerInput &DummyInput, const CNetObj_PlayerInput &HammerInput, unsigned int &DummyFire)
 	{
-		return Force || ForceSend || OfficialTick;
+		if(DummyFire == 0)
+			return false;
+
+		DummyInput.m_Fire = (HammerInput.m_Fire + 1) & ~1;
+		DummyFire = 0;
+		return true;
+	}
+
+	inline bool ShouldSendOfficialDirectDummyInput(bool Force, bool ForceSend, bool HasPassiveOverride, bool ReleasedOfficialHammer, const CNetObj_PlayerInput &Input)
+	{
+		return Force || ForceSend || HasPassiveOverride || ReleasedOfficialHammer || HasHeldInput(Input);
+	}
+
+	inline bool AdvanceOfficialDummyHammerCadence(unsigned int &DummyFire)
+	{
+		if(DummyFire % 25 != 0)
+		{
+			DummyFire++;
+			return false;
+		}
+		DummyFire++;
+		return true;
+	}
+
+	inline void PrepareOfficialDummyHammerInput(CNetObj_PlayerInput &HammerInput)
+	{
+		HammerInput.m_Fire = (HammerInput.m_Fire + 1) | 1;
+		HammerInput.m_WantedWeapon = WEAPON_HAMMER + 1;
 	}
 
 	inline void BuildSlashCommand(char *pBuf, int BufSize, const char *pCommand, const char *pArgs)

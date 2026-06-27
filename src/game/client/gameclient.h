@@ -113,7 +113,10 @@
 #include "components/voting.h"
 #if defined(CONF_QM_LIVE_CLIENT)
 #include "live/live_director.h"
+#include "live/live_finish_ranking.h"
+#include "live/live_match_replay.h"
 #include "live/live_replay_buffer.h"
+#include "live/live_team_render_filter.h"
 #endif
 
 #include <chrono>
@@ -385,6 +388,16 @@ private:
 	void SetLiveObserverTeamPlayer(int Team, int ClientId);
 	void SetLiveObserverPlayer(int ClientId);
 	void SetLiveObserverFreeview();
+	void HandleLiveFinishMessage(int MsgId, void *pRawMsg, int Conn);
+	void QueueLiveFinishResult(const CLiveFinishRanking::CResult &Result);
+	void ResolveLiveFinishPending(int CurrentTick);
+	void UpdateLiveFinishTimeline();
+	bool TryRebuildLiveFinishRankingFromSidecar(int CurrentTick);
+	void ResetLiveFinishRanking();
+	void RenderLiveFinishRankHud();
+	void UpdateLiveTeamFilterConfig();
+	void ResetLiveTeamFilterTransientState();
+	bool ShouldFilterLiveTeamMessage(int MsgId, void *pRawMsg) const;
 #endif
 
 	int m_PredictedTick;
@@ -417,6 +430,12 @@ private:
 	static void ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneZone(IConsole::IResult *pResult, void *pUserData);
 	static void ConMapbug(IConsole::IResult *pResult, void *pUserData);
+#if defined(CONF_QM_LIVE_CLIENT)
+	static void ConQmLiveMatchRecordStart(IConsole::IResult *pResult, void *pUserData);
+	static void ConQmLiveMatchRecordStop(IConsole::IResult *pResult, void *pUserData);
+	static void ConQmLiveTeamFilter(IConsole::IResult *pResult, void *pUserData);
+	static void ConQmLiveTeamFilterOff(IConsole::IResult *pResult, void *pUserData);
+#endif
 
 	static void ConchainMenuMap(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
@@ -994,6 +1013,13 @@ public:
 #if defined(CONF_QM_LIVE_CLIENT)
 	bool LiveObserverDimClient(int ClientId) const;
 	float LiveObserverClientAlpha(int ClientId) const;
+	bool LiveTeamFilterActive() const { return m_LiveTeamRenderFilter.Active(); }
+	int LiveTeamFilterTeam() const { return m_LiveTeamRenderFilter.Team(); }
+	bool LiveTeamFilterAllowsTeam(int Team) const { return m_LiveTeamRenderFilter.AllowsTeam(Team); }
+	bool LiveTeamFilterAllowsClient(int ClientId) const { return m_LiveTeamRenderFilter.AllowsClient(ClientId); }
+	bool LiveTeamFilterAllowsKnownOwner(int ClientId) const { return m_LiveTeamRenderFilter.AllowsKnownOwner(ClientId); }
+	bool LiveTeamFilterAllowsUnknownPlayerEvent() const { return m_LiveTeamRenderFilter.AllowsUnknownPlayerEvent(); }
+	bool LiveTeamFilterAudioEnabled() const { return !m_LiveTeamRenderFilter.Active() || m_LiveTeamRenderFilter.AudioEnabled(); }
 #else
 	bool LiveObserverDimClient(int ClientId) const
 	{
@@ -1005,6 +1031,25 @@ public:
 		(void)ClientId;
 		return 1.0f;
 	}
+	bool LiveTeamFilterActive() const { return false; }
+	int LiveTeamFilterTeam() const { return -1; }
+	bool LiveTeamFilterAllowsTeam(int Team) const
+	{
+		(void)Team;
+		return true;
+	}
+	bool LiveTeamFilterAllowsClient(int ClientId) const
+	{
+		(void)ClientId;
+		return true;
+	}
+	bool LiveTeamFilterAllowsKnownOwner(int ClientId) const
+	{
+		(void)ClientId;
+		return true;
+	}
+	bool LiveTeamFilterAllowsUnknownPlayerEvent() const { return true; }
+	bool LiveTeamFilterAudioEnabled() const { return true; }
 #endif
 	int SwitchStateTeam() const;
 	bool IsLocalCharSuper() const;
@@ -1213,7 +1258,10 @@ private:
 	std::vector<CSnapEntities> m_vSnapEntities;
 #if defined(CONF_QM_LIVE_CLIENT)
 	CLiveDirector m_LiveDirector;
+	CLiveFinishRanking m_LiveFinishRanking;
+	CLiveMatchReplay m_LiveMatchReplay;
 	CLiveReplayBuffer m_LiveReplayBuffer;
+	CLiveTeamRenderFilter m_LiveTeamRenderFilter;
 	std::vector<uint8_t> m_vLiveReplayScratch;
 	int m_LiveObserverCurrentTeam = -1;
 	int m_LiveObserverReturnTeam = -1;
@@ -1225,6 +1273,9 @@ private:
 	bool m_LiveObserverMouseAbsolute = false;
 	bool m_LiveObserverFreeview = true;
 	bool m_LiveObserverHoldFreeview = false;
+	bool m_LiveFinishTeamsStateKnown = false;
+	int m_LiveFinishTeamsStateTick = -1;
+	int m_LiveTeamFilterResetSerial = 0;
 #endif
 	void SnapCollectEntities();
 	int GetFastInputPredictionAmountMs();

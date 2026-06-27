@@ -173,6 +173,22 @@ MACRO_CONFIG_INT(QmHudNotificationsAnimType, qm_hud_notifications_anim_type, 0, 
 MACRO_CONFIG_INT(QmHudNotificationsAnimMs, qm_hud_notifications_anim_ms, 220, 0, 2000, CFGFLAG_CLIENT | CFGFLAG_SAVE, "通知栏动画时间（毫秒）")
 MACRO_CONFIG_INT(QmHudNotificationsMaxVisible, qm_hud_notifications_max_visible, 3, 1, 8, CFGFLAG_CLIENT | CFGFLAG_SAVE, "通知栏最大显示数量")
 MACRO_CONFIG_INT(QmHudNotificationsEdgeMargin, qm_hud_notifications_edge_margin, 8, 0, 32, CFGFLAG_CLIENT | CFGFLAG_SAVE, "通知栏贴边时预留边距")
+
+// QmLive finish ranking HUD / QmLive 完成排名 HUD
+MACRO_CONFIG_INT(QmLiveRankHud, qm_live_rank_hud, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：显示队伍完成排名卡片")
+MACRO_CONFIG_INT(QmLiveRankTeamMin, qm_live_rank_team_min, 1, 1, 63, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：排名 HUD 队伍范围下限")
+MACRO_CONFIG_INT(QmLiveRankTeamMax, qm_live_rank_team_max, 30, 1, 63, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：排名 HUD 队伍范围上限")
+MACRO_CONFIG_INT(QmLiveRankPopupSeconds, qm_live_rank_popup_seconds, 4, 1, 30, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：完成排名卡片显示秒数")
+MACRO_CONFIG_INT(QmLiveRankShowOutOfRange, qm_live_rank_show_out_of_range, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：显示配置范围外队伍的完成卡片")
+MACRO_CONFIG_INT(QmLiveRankScale, qm_live_rank_scale, 100, 50, 200, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：完成排名卡片缩放百分比")
+MACRO_CONFIG_INT(QmLiveRankAlpha, qm_live_rank_alpha, 92, 0, 100, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：完成排名卡片不透明度百分比")
+MACRO_CONFIG_INT(QmLiveMatchRecord, qm_live_match_record, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：完整比赛 demo 录制开关")
+MACRO_CONFIG_INT(QmLiveTeamFilter, qm_live_team_filter, 0, 0, 63, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：单队隔离预览/渲染队伍，0=关闭")
+MACRO_CONFIG_INT(QmLiveTeamFilterPreview, qm_live_team_filter_preview, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：启用单队隔离画面过滤")
+MACRO_CONFIG_INT(QmLiveTeamFilterAudio, qm_live_team_filter_audio, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：启用单队隔离音效过滤")
+MACRO_CONFIG_INT(QmLiveTeamFilterHideExternalFinish, qm_live_team_filter_hide_external_finish, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：隐藏非目标队伍完成提示")
+MACRO_CONFIG_INT(QmLiveTeamFilterStrictUnknownEvents, qm_live_team_filter_strict_unknown_events, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "QmLiveClient：无法识别来源的玩家型事件默认过滤")
+
 MACRO_CONFIG_INT(QmMonitoringHudOpacity, qm_monitoring_hud_opacity, 66, 0, 100, CFGFLAG_CLIENT | CFGFLAG_SAVE, "调试图表面板不透明度（百分比）")
 
 // Voice / 语音

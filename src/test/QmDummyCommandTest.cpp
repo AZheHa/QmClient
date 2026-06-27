@@ -3,6 +3,7 @@
 #include <engine/client.h>
 
 #include <game/client/qm_command_router.h>
+#include <game/gamecore.h>
 
 #include <gtest/gtest.h>
 
@@ -358,6 +359,31 @@ TEST(QmDummyCommand, PassiveOverridePreservesHammerFireCounter)
 	EXPECT_EQ(FinalInput.m_TargetY, HammerInput.m_TargetY);
 }
 
+TEST(QmDummyCommand, PassiveOverlayPreservesOfficialHammerFields)
+{
+	CNetObj_PlayerInput HammerInput = {};
+	HammerInput.m_Fire = 5;
+	HammerInput.m_WantedWeapon = WEAPON_HAMMER + 1;
+	HammerInput.m_TargetX = 320;
+	HammerInput.m_TargetY = -160;
+	HammerInput.m_NextWeapon = 8;
+	HammerInput.m_PrevWeapon = 10;
+
+	CNetObj_PlayerInput FinalInput = HammerInput;
+	const SQmDummyPassiveOverride Override = qm_dummy_command::BuildPassiveDummyOverride(1, 0, 1, 1);
+	qm_dummy_command::ApplyPassiveDummyOverride(FinalInput, Override);
+
+	EXPECT_EQ(FinalInput.m_Direction, -1);
+	EXPECT_EQ(FinalInput.m_Jump, 1);
+	EXPECT_EQ(FinalInput.m_Hook, 1);
+	EXPECT_EQ(FinalInput.m_Fire, HammerInput.m_Fire);
+	EXPECT_EQ(FinalInput.m_WantedWeapon, HammerInput.m_WantedWeapon);
+	EXPECT_EQ(FinalInput.m_NextWeapon, HammerInput.m_NextWeapon);
+	EXPECT_EQ(FinalInput.m_PrevWeapon, HammerInput.m_PrevWeapon);
+	EXPECT_EQ(FinalInput.m_TargetX, HammerInput.m_TargetX);
+	EXPECT_EQ(FinalInput.m_TargetY, HammerInput.m_TargetY);
+}
+
 TEST(QmDummyCommand, DistinguishesHeldAndTransientDummyCommands)
 {
 	EXPECT_FALSE(qm_dummy_command::IsTransientDummyInputCommand(EQmDummyInputCommand::LEFT));
@@ -418,10 +444,147 @@ TEST(QmDummyCommand, BuildsLegacyExclusiveOwnershipMask)
 	EXPECT_FALSE(qm_dummy_command::HasDummyInputField(Ownership.m_CombinedMask, QM_DUMMY_INPUT_HOOK));
 }
 
-TEST(QmDummyCommand, OfficialRouteKeepsCadenceUnlessForced)
+TEST(QmDummyCommand, HammerCadenceIgnoresForceSendBeforeOfficialTick)
 {
-	EXPECT_FALSE(qm_dummy_command::ShouldSendOfficialDummyInput(false, false, false));
-	EXPECT_TRUE(qm_dummy_command::ShouldSendOfficialDummyInput(false, false, true));
-	EXPECT_TRUE(qm_dummy_command::ShouldSendOfficialDummyInput(false, true, false));
-	EXPECT_TRUE(qm_dummy_command::ShouldSendOfficialDummyInput(true, false, false));
+	unsigned int DummyFire = 7;
+	CNetObj_PlayerInput HammerInput = {};
+	HammerInput.m_Fire = 5;
+	const bool QmForceSend = true;
+
+	EXPECT_TRUE(QmForceSend);
+	EXPECT_FALSE(qm_dummy_command::AdvanceOfficialDummyHammerCadence(DummyFire));
+	EXPECT_EQ(DummyFire, 8u);
+	EXPECT_EQ(HammerInput.m_Fire, 5);
+}
+
+TEST(QmDummyCommand, FirstHammerTickProducesSinglePress)
+{
+	unsigned int DummyFire = 0;
+	CNetObj_PlayerInput HammerInput = {};
+
+	EXPECT_TRUE(qm_dummy_command::AdvanceOfficialDummyHammerCadence(DummyFire));
+	qm_dummy_command::PrepareOfficialDummyHammerInput(HammerInput);
+	EXPECT_EQ(DummyFire, 1u);
+	EXPECT_EQ(HammerInput.m_Fire, 1);
+
+	CInputCount Counts = CountInput(0, HammerInput.m_Fire);
+	EXPECT_EQ(Counts.m_Presses, 1);
+	EXPECT_EQ(Counts.m_Releases, 0);
+
+	for(int i = 0; i < 24; i++)
+	{
+		EXPECT_FALSE(qm_dummy_command::AdvanceOfficialDummyHammerCadence(DummyFire));
+		EXPECT_EQ(HammerInput.m_Fire, 1);
+	}
+	EXPECT_EQ(DummyFire, 25u);
+}
+
+TEST(QmDummyCommand, HammerExitConvertsOddFireToDirectRelease)
+{
+	unsigned int DummyFire = 8;
+	CNetObj_PlayerInput DummyInput = {};
+	CNetObj_PlayerInput HammerInput = {};
+	HammerInput.m_Fire = 5;
+
+	EXPECT_TRUE(qm_dummy_command::ReleaseOfficialDummyHammerInput(DummyInput, HammerInput, DummyFire));
+
+	EXPECT_EQ(DummyInput.m_Fire, 6);
+	EXPECT_EQ(DummyFire, 0u);
+	const CInputCount Counts = CountInput(5, DummyInput.m_Fire);
+	EXPECT_EQ(Counts.m_Presses, 0);
+	EXPECT_EQ(Counts.m_Releases, 1);
+}
+
+TEST(QmDummyCommand, HammerRestartContinuesAfterDirectRelease)
+{
+	unsigned int DummyFire = 8;
+	CNetObj_PlayerInput DummyInput = {};
+	CNetObj_PlayerInput HammerInput = {};
+	HammerInput.m_Fire = 5;
+
+	EXPECT_TRUE(qm_dummy_command::ReleaseOfficialDummyHammerInput(DummyInput, HammerInput, DummyFire));
+	EXPECT_EQ(DummyInput.m_Fire, 6);
+	EXPECT_EQ(DummyFire, 0u);
+
+	EXPECT_TRUE(qm_dummy_command::AdvanceOfficialDummyHammerCadence(DummyFire));
+	qm_dummy_command::PrepareOfficialDummyHammerInput(HammerInput);
+	EXPECT_EQ(HammerInput.m_Fire, 7);
+
+	CInputCount Counts = CountInput(5, DummyInput.m_Fire);
+	EXPECT_EQ(Counts.m_Presses, 0);
+	EXPECT_EQ(Counts.m_Releases, 1);
+	Counts = CountInput(DummyInput.m_Fire, HammerInput.m_Fire);
+	EXPECT_EQ(Counts.m_Presses, 1);
+	EXPECT_EQ(Counts.m_Releases, 0);
+}
+
+TEST(QmDummyCommand, OfficialDirectRouteSendsHammerReleaseWithoutForce)
+{
+	unsigned int DummyFire = 8;
+	CNetObj_PlayerInput DummyInput = {};
+	CNetObj_PlayerInput HammerInput = {};
+	HammerInput.m_Fire = 5;
+
+	const bool ReleasedOfficialHammer = qm_dummy_command::ReleaseOfficialDummyHammerInput(DummyInput, HammerInput, DummyFire);
+
+	EXPECT_TRUE(ReleasedOfficialHammer);
+	EXPECT_EQ(DummyInput.m_Fire, 6);
+	EXPECT_FALSE(qm_dummy_command::HasHeldInput(DummyInput));
+	EXPECT_TRUE(qm_dummy_command::ShouldSendOfficialDirectDummyInput(false, false, false, ReleasedOfficialHammer, DummyInput));
+}
+
+TEST(QmDummyCommand, DeepflyBindSequenceKeepsOfficialHammerCadence)
+{
+	unsigned int DummyFire = 0;
+	CNetObj_PlayerInput DummyInput = {};
+	CNetObj_PlayerInput HammerInput = {};
+	int LastSentFire = 0;
+
+	EXPECT_TRUE(qm_dummy_command::AdvanceOfficialDummyHammerCadence(DummyFire));
+	qm_dummy_command::PrepareOfficialDummyHammerInput(HammerInput);
+	CInputCount Counts = CountInput(LastSentFire, HammerInput.m_Fire);
+	EXPECT_EQ(Counts.m_Presses, 1);
+	EXPECT_EQ(Counts.m_Releases, 0);
+	LastSentFire = HammerInput.m_Fire;
+
+	for(int i = 0; i < 24; i++)
+	{
+		EXPECT_FALSE(qm_dummy_command::AdvanceOfficialDummyHammerCadence(DummyFire));
+		EXPECT_EQ(HammerInput.m_Fire, LastSentFire);
+	}
+
+	EXPECT_TRUE(qm_dummy_command::AdvanceOfficialDummyHammerCadence(DummyFire));
+	qm_dummy_command::PrepareOfficialDummyHammerInput(HammerInput);
+	Counts = CountInput(LastSentFire, HammerInput.m_Fire);
+	EXPECT_EQ(Counts.m_Presses, 1);
+	LastSentFire = HammerInput.m_Fire;
+
+	EXPECT_TRUE(qm_dummy_command::ReleaseOfficialDummyHammerInput(DummyInput, HammerInput, DummyFire));
+	EXPECT_EQ(DummyInput.m_Fire, 4);
+	EXPECT_EQ(DummyFire, 0u);
+	Counts = CountInput(LastSentFire, DummyInput.m_Fire);
+	EXPECT_EQ(Counts.m_Presses, 0);
+	EXPECT_EQ(Counts.m_Releases, 1);
+	LastSentFire = DummyInput.m_Fire;
+
+	EXPECT_TRUE(qm_dummy_command::AdvanceOfficialDummyHammerCadence(DummyFire));
+	qm_dummy_command::PrepareOfficialDummyHammerInput(HammerInput);
+	EXPECT_EQ(HammerInput.m_Fire, 5);
+	Counts = CountInput(LastSentFire, HammerInput.m_Fire);
+	EXPECT_EQ(Counts.m_Presses, 1);
+	EXPECT_EQ(Counts.m_Releases, 0);
+	LastSentFire = HammerInput.m_Fire;
+
+	for(int i = 0; i < 24; i++)
+	{
+		EXPECT_FALSE(qm_dummy_command::AdvanceOfficialDummyHammerCadence(DummyFire));
+		EXPECT_EQ(HammerInput.m_Fire, LastSentFire);
+	}
+
+	EXPECT_TRUE(qm_dummy_command::ReleaseOfficialDummyHammerInput(DummyInput, HammerInput, DummyFire));
+	EXPECT_EQ(DummyInput.m_Fire, 6);
+	EXPECT_EQ(DummyFire, 0u);
+	Counts = CountInput(LastSentFire, DummyInput.m_Fire);
+	EXPECT_EQ(Counts.m_Presses, 0);
+	EXPECT_EQ(Counts.m_Releases, 1);
 }

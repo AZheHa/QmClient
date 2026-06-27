@@ -1673,7 +1673,8 @@ void CPlayers::RenderPlayerGhost(
 
 inline bool CPlayers::IsPlayerInfoAvailable(int ClientId) const
 {
-	return GameClient()->m_Snap.m_aCharacters[ClientId].m_Active &&
+	return GameClient()->LiveTeamFilterAllowsClient(ClientId) &&
+	       GameClient()->m_Snap.m_aCharacters[ClientId].m_Active &&
 	       GameClient()->m_Snap.m_apPrevPlayerInfos[ClientId] != nullptr &&
 	       GameClient()->m_Snap.m_apPlayerInfos[ClientId] != nullptr;
 }
@@ -1823,6 +1824,8 @@ void CPlayers::OnRender()
 			continue;
 
 		float Alpha = GameClient()->LiveObserverClientAlpha(ClientId);
+		if(Alpha <= 0.0f)
+			continue;
 		if(Alpha >= 1.0f)
 		{
 			const bool LocalSpecChar = GameClient()->IsLocalClientId(ClientId);

@@ -13,12 +13,12 @@
 
 namespace
 {
-constexpr int TRAIL_HISTORY_SIZE = 200;
+	constexpr int TRAIL_HISTORY_SIZE = 200;
 
-int TrailHistoryIndex(int Tick)
-{
-	return ((Tick % TRAIL_HISTORY_SIZE) + TRAIL_HISTORY_SIZE) % TRAIL_HISTORY_SIZE;
-}
+	int TrailHistoryIndex(int Tick)
+	{
+		return ((Tick % TRAIL_HISTORY_SIZE) + TRAIL_HISTORY_SIZE) % TRAIL_HISTORY_SIZE;
+	}
 } // namespace
 
 bool CTrails::ShouldPredictPlayer(int ClientId)
@@ -71,6 +71,8 @@ void CTrails::OnRender()
 
 			if(!GameClient()->m_Snap.m_aCharacters[ClientId].m_Active)
 				continue;
+			if(!GameClient()->LiveTeamFilterAllowsClient(ClientId))
+				continue;
 
 			// Render for both local players (main + dummy when connected).
 			if(!IsLocalClient)
@@ -100,6 +102,8 @@ void CTrails::OnRender()
 			const bool IsLocalClient = GameClient()->IsLocalClientId(ClientId);
 
 			if(!GameClient()->m_Snap.m_aCharacters[ClientId].m_Active)
+				continue;
+			if(!GameClient()->LiveTeamFilterAllowsClient(ClientId))
 				continue;
 
 			if(IsLocalClient)
@@ -146,6 +150,12 @@ void CTrails::OnRender()
 			continue;
 
 		if(!GameClient()->m_Snap.m_aCharacters[ClientId].m_Active)
+		{
+			if(m_HistoryValid[ClientId])
+				ClearHistory(ClientId);
+			continue;
+		}
+		if(!GameClient()->LiveTeamFilterAllowsClient(ClientId))
 		{
 			if(m_HistoryValid[ClientId])
 				ClearHistory(ClientId);

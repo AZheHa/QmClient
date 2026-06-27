@@ -2465,6 +2465,12 @@ void CNamePlates::OnRender()
 				m_pData->m_aCoordXAlign[i] = SCoordXAlignState();
 				continue;
 			}
+			if(!GameClient()->LiveTeamFilterAllowsClient(i))
+			{
+				ResetChatBubbleAnimState(i);
+				m_pData->m_aCoordXAlign[i] = SCoordXAlignState();
+				continue;
+			}
 
 			// Each player can also have a spectator char whose name plate is displayed independently
 			const bool FollowedCharacterWillRender =

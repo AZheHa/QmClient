@@ -1279,6 +1279,9 @@ Click to remove this community from favorites
 Click to remove this player from your friends list.
 == Klicke, um diesen Spieler aus deiner Freundesliste zu entfernen.
 
+Click to restore full match
+== Click to restore full match
+
 Click to select server. Double click to join your friend.
 == Klicke, um den Server auszuwählen. Doppelklicke, um deinem Freund beizutreten.
 
@@ -1872,6 +1875,9 @@ disable
 
 Disable after picking up other weapons
 == Deaktivieren nach Aufnehmen anderer Waffen
+
+Disable QmLive team preview/render filter
+== Disable QmLive team preview/render filter
 
 Disabled
 == Deaktiviert
@@ -2551,6 +2557,15 @@ File already exists, do you want to overwrite it?
 Filter connecting players
 == Verbindende Spieler filtern
 
+Filter off
+== Filter off
+
+Filter Team %d
+== Filter Team %d
+
+Filter: Team %d
+== Filter: Team %d
+
 Find all ban records for the specified IP address
 == Alle Bann-Einträge für die angegebene IP-Adresse finden
 
@@ -2691,6 +2706,9 @@ FTAPI
 
 FTAPI auto-translate is disabled to prevent overload. Enable in settings if needed.
 == FTAPI-Automatikübersetzung ist deaktiviert, um Überlastung zu vermeiden. Bei Bedarf in den Einstellungen aktivieren.
+
+Full demo + sidecar
+== Full demo + sidecar
 
 Full map listen in same room
 == Vollkartenhören im selben Raum
@@ -4801,6 +4819,12 @@ Preview player nameplate
 Preview selected file
 == Ausgewählte Datei vorschauen
 
+Preview/render only one DDRace team from a full match demo
+== Preview/render only one DDRace team from a full match demo
+
+Preview/render only this team
+== Preview/render only this team
+
 Previous
 == Vorherige
 
@@ -5019,6 +5043,9 @@ Reconnect in %d sec
 
 Record demo
 == Demo aufnehmen
+
+Record match
+== Record match
 
 Record to a file
 == In eine Datei aufzeichnen
@@ -6559,6 +6586,9 @@ Start holding the hook before loading the savegame to keep the hook
 Start playback of ghosts
 == Wiedergabe von Geistern starten
 
+Start QmLive full match demo recording
+== Start QmLive full match demo recording
+
 Start recording a demo
 == Aufnahme einer Demo starten
 
@@ -6598,8 +6628,14 @@ Status normal, check details below if still experiencing issues
 Status Scheme:
 == Status-Schema:
 
+Stop match record
+== Stop match record
+
 Stop practice
 == Üben beenden
+
+Stop QmLive full match demo recording
+== Stop QmLive full match demo recording
 
 Stop record
 == Aufnahme beenden

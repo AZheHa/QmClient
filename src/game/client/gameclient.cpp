@@ -135,6 +135,8 @@ namespace
 	constexpr float LIVE_OBSERVER_PANEL_HEADER_H = 72.0f;
 	constexpr float LIVE_OBSERVER_FREEVIEW_W = 150.0f;
 	constexpr float LIVE_OBSERVER_FREEVIEW_H = 42.0f;
+	constexpr float LIVE_OBSERVER_ACTION_W = 198.0f;
+	constexpr float LIVE_OBSERVER_ACTION_H = 38.0f;
 	constexpr float LIVE_OBSERVER_CHAT_TOGGLE_W = 122.0f;
 	constexpr float LIVE_OBSERVER_CHAT_TOGGLE_H = 34.0f;
 	constexpr float LIVE_OBSERVER_DIM_ALPHA = 0.10f;
@@ -146,6 +148,25 @@ namespace
 			Height - LIVE_OBSERVER_PANEL_MARGIN - LIVE_OBSERVER_CHAT_TOGGLE_H,
 			LIVE_OBSERVER_CHAT_TOGGLE_W,
 			LIVE_OBSERVER_CHAT_TOGGLE_H};
+	}
+
+	CUIRect LiveObserverRecordRect()
+	{
+		return {
+			LIVE_OBSERVER_PANEL_MARGIN,
+			LIVE_OBSERVER_PANEL_MARGIN + LIVE_OBSERVER_FREEVIEW_H + LIVE_OBSERVER_ROW_GAP,
+			LIVE_OBSERVER_ACTION_W,
+			LIVE_OBSERVER_ACTION_H};
+	}
+
+	CUIRect LiveObserverFilterRect()
+	{
+		const CUIRect Record = LiveObserverRecordRect();
+		return {
+			LIVE_OBSERVER_PANEL_MARGIN,
+			Record.y + Record.h + LIVE_OBSERVER_ROW_GAP,
+			LIVE_OBSERVER_ACTION_W,
+			LIVE_OBSERVER_ACTION_H};
 	}
 #endif
 
@@ -369,6 +390,12 @@ void CGameClient::OnConsoleInit()
 	Console()->Register("team", "i[team-id]", CFGFLAG_CLIENT, ConTeam, this, "Switch team");
 	Console()->Register("kill", "", CFGFLAG_CLIENT, ConKill, this, "Kill yourself to restart");
 	Console()->Register("ready_change", "", CFGFLAG_CLIENT, ConReadyChange7, this, "Change ready state (0.7 only)");
+#if defined(CONF_QM_LIVE_CLIENT)
+	Console()->Register("qm_live_match_record_start", "", CFGFLAG_CLIENT, ConQmLiveMatchRecordStart, this, "Start QmLive full match demo recording");
+	Console()->Register("qm_live_match_record_stop", "", CFGFLAG_CLIENT, ConQmLiveMatchRecordStop, this, "Stop QmLive full match demo recording");
+	Console()->Register("qm_live_team_filter", "i[team]", CFGFLAG_CLIENT, ConQmLiveTeamFilter, this, "Preview/render only one DDRace team from a full match demo");
+	Console()->Register("qm_live_team_filter_off", "", CFGFLAG_CLIENT, ConQmLiveTeamFilterOff, this, "Disable QmLive team preview/render filter");
+#endif
 
 	// register game commands to allow the client prediction to load settings from the map
 	Console()->Register("tune", "s[tuning] ?f[value]", CFGFLAG_GAME, ConTuneParam, this, "Tune variable to value");
@@ -978,9 +1005,11 @@ int CGameClient::OnSnapInput(int *pData, bool Dummy, bool Force)
 
 	if(!g_Config.m_ClDummyHammer)
 	{
+		const bool ReleasedOfficialHammer = qm_dummy_command::ReleaseOfficialDummyHammerInput(m_DummyInput, m_HammerInput, m_DummyFire);
+
 		CNetObj_PlayerInput FinalDummyInput = m_DummyInput;
 		m_QmCommandRouter.ApplyPassiveDummyOverrides(FinalDummyInput);
-		if(!Force && !QmForceSend && !QmHasPassiveOverride && !qm_dummy_command::HasHeldInput(FinalDummyInput))
+		if(!qm_dummy_command::ShouldSendOfficialDirectDummyInput(Force, QmForceSend, QmHasPassiveOverride, ReleasedOfficialHammer, FinalDummyInput))
 		{
 			return 0;
 		}
@@ -990,28 +1019,21 @@ int CGameClient::OnSnapInput(int *pData, bool Dummy, bool Force)
 		return sizeof(FinalDummyInput);
 	}
 
-	const bool HammerTick = m_DummyFire % 25 == 0;
-	m_DummyFire++;
-
-	if(!qm_dummy_command::ShouldSendOfficialDummyInput(Force, QmForceSend, HammerTick))
+	if(!qm_dummy_command::AdvanceOfficialDummyHammerCadence(m_DummyFire))
 	{
 		m_QmDummyInputForceSend = false;
 		return 0;
 	}
 
-	if(HammerTick)
+	qm_dummy_command::PrepareOfficialDummyHammerInput(m_HammerInput);
+	if(!g_Config.m_ClDummyRestoreWeapon)
 	{
-		m_HammerInput.m_Fire = (m_HammerInput.m_Fire + 1) | 1;
-		m_HammerInput.m_WantedWeapon = WEAPON_HAMMER + 1;
-		if(!g_Config.m_ClDummyRestoreWeapon)
-		{
-			m_DummyInput.m_WantedWeapon = WEAPON_HAMMER + 1;
-		}
-
-		const vec2 Dir = m_LocalCharacterPos - m_aClients[m_aLocalIds[!g_Config.m_ClDummy]].m_Predicted.m_Pos;
-		m_HammerInput.m_TargetX = (int)Dir.x;
-		m_HammerInput.m_TargetY = (int)Dir.y;
+		m_DummyInput.m_WantedWeapon = WEAPON_HAMMER + 1;
 	}
+
+	const vec2 Dir = m_LocalCharacterPos - m_aClients[m_aLocalIds[!g_Config.m_ClDummy]].m_Predicted.m_Pos;
+	m_HammerInput.m_TargetX = (int)Dir.x;
+	m_HammerInput.m_TargetY = (int)Dir.y;
 
 	CNetObj_PlayerInput FinalDummyInput = m_HammerInput;
 	m_QmCommandRouter.ApplyPassiveDummyOverrides(FinalDummyInput);
@@ -1248,8 +1270,11 @@ void CGameClient::OnReset()
 
 #if defined(CONF_QM_LIVE_CLIENT)
 	m_LiveDirector.Reset();
+	ResetLiveFinishRanking();
+	m_LiveMatchReplay.Reset();
 	m_LiveReplayBuffer.SetMaxFrames(Client()->GameTickSpeed() * 10);
 	m_LiveReplayBuffer.Clear();
+	m_LiveTeamRenderFilter.Reset();
 	m_vLiveReplayScratch.clear();
 	m_LiveObserverCurrentTeam = -1;
 	m_LiveObserverReturnTeam = -1;
@@ -1261,6 +1286,7 @@ void CGameClient::OnReset()
 	m_LiveObserverMouseAbsolute = false;
 	m_LiveObserverFreeview = false;
 	m_LiveObserverHoldFreeview = false;
+	m_LiveTeamFilterResetSerial = 0;
 	Input()->MouseModeRelative();
 #endif
 
@@ -1561,6 +1587,315 @@ void CGameClient::SetLiveObserverFreeview()
 	m_LiveObserverMouseAbsolute = false;
 }
 
+void CGameClient::ResetLiveFinishRanking()
+{
+	m_LiveFinishRanking.Reset();
+	m_LiveFinishTeamsStateKnown = false;
+	m_LiveFinishTeamsStateTick = -1;
+}
+
+void CGameClient::QueueLiveFinishResult(const CLiveFinishRanking::CResult &Result)
+{
+	if(Result.m_Status != CLiveFinishRanking::EFinishStatus::ACCEPTED)
+		return;
+
+	m_LiveMatchReplay.OnFinishEvent(Result.m_Event);
+
+	m_LiveFinishRanking.SetTeamRange(g_Config.m_QmLiveRankTeamMin, g_Config.m_QmLiveRankTeamMax);
+	const bool InRange = m_LiveFinishRanking.IsTeamInConfiguredRange(Result.m_Event.m_Team);
+	if(!InRange && !g_Config.m_QmLiveRankShowOutOfRange)
+		return;
+
+	const int Rank = m_LiveFinishRanking.RankForTeam(Result.m_Event.m_Team, !InRange);
+	if(Rank <= 0)
+		return;
+
+	m_LiveFinishRanking.EnqueueCard(Result.m_Event, Rank, Client()->GameTick(g_Config.m_ClDummy));
+}
+
+void CGameClient::HandleLiveFinishMessage(int MsgId, void *pRawMsg, int Conn)
+{
+	if(MsgId != NETMSGTYPE_SV_RACEFINISH || pRawMsg == nullptr)
+		return;
+
+	const CNetMsg_Sv_RaceFinish *pMsg = static_cast<CNetMsg_Sv_RaceFinish *>(pRawMsg);
+	const int ClientId = pMsg->m_ClientId;
+	const int FinishTick = Client()->GameTick(Conn);
+	const bool TeamKnown = ClientId >= 0 && ClientId < MAX_CLIENTS && m_LiveFinishTeamsStateKnown && m_LiveFinishTeamsStateTick >= 0 && m_LiveFinishTeamsStateTick <= FinishTick && m_aClients[ClientId].m_Active;
+	const int Team = TeamKnown ? m_Teams.Team(ClientId) : -1;
+	m_LiveFinishRanking.SetTeamRange(g_Config.m_QmLiveRankTeamMin, g_Config.m_QmLiveRankTeamMax);
+	QueueLiveFinishResult(m_LiveFinishRanking.OnFinishMessage(ClientId, pMsg->m_Time, FinishTick, TeamKnown, Team));
+}
+
+void CGameClient::ResolveLiveFinishPending(int CurrentTick)
+{
+	int aTeams[MAX_CLIENTS];
+	for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+		aTeams[ClientId] = m_aClients[ClientId].m_Active ? m_Teams.Team(ClientId) : TEAM_FLOCK;
+
+	m_LiveFinishRanking.SetTeamRange(g_Config.m_QmLiveRankTeamMin, g_Config.m_QmLiveRankTeamMax);
+	const CLiveFinishRanking::CResolveResult Result = m_LiveFinishRanking.ResolvePending(aTeams, MAX_CLIENTS, CurrentTick);
+	if(Result.m_DroppedPending > 0)
+		dbg_msg("qmlive_rank", "dropped %d pending finish events without a valid DDRace team", Result.m_DroppedPending);
+	for(const CLiveFinishRanking::CResult &Accepted : Result.m_vAccepted)
+		QueueLiveFinishResult(Accepted);
+}
+
+bool CGameClient::TryRebuildLiveFinishRankingFromSidecar(int CurrentTick)
+{
+	if(Client()->State() != IClient::STATE_DEMOPLAYBACK || CurrentTick < 0 || DemoPlayer() == nullptr)
+		return false;
+
+	char aDemoName[IO_MAX_PATH_LENGTH];
+	DemoPlayer()->GetDemoName(aDemoName, sizeof(aDemoName));
+	if(aDemoName[0] == '\0')
+		return false;
+
+	char aaCandidates[4][IO_MAX_PATH_LENGTH];
+	char aaDemoCandidates[4][IO_MAX_PATH_LENGTH];
+	str_format(aaCandidates[0], sizeof(aaCandidates[0]), "%s.qmlive.json", aDemoName);
+	str_format(aaCandidates[1], sizeof(aaCandidates[1]), "demos/%s.qmlive.json", aDemoName);
+	str_format(aaCandidates[2], sizeof(aaCandidates[2]), "demos/replays/%s.qmlive.json", aDemoName);
+	str_format(aaCandidates[3], sizeof(aaCandidates[3]), "demos/live/%s.qmlive.json", aDemoName);
+	str_format(aaDemoCandidates[0], sizeof(aaDemoCandidates[0]), "%s.demo", aDemoName);
+	str_format(aaDemoCandidates[1], sizeof(aaDemoCandidates[1]), "demos/%s.demo", aDemoName);
+	str_format(aaDemoCandidates[2], sizeof(aaDemoCandidates[2]), "demos/replays/%s.demo", aDemoName);
+	str_format(aaDemoCandidates[3], sizeof(aaDemoCandidates[3]), "demos/live/%s.demo", aDemoName);
+
+	for(int Candidate = 0; Candidate < 4; ++Candidate)
+	{
+		const char *pPath = aaCandidates[Candidate];
+		char *pFileData = Storage()->ReadFileStr(pPath, IStorage::TYPE_ALL_OR_ABSOLUTE);
+		if(pFileData == nullptr)
+			continue;
+
+		SLiveReplaySidecarData Sidecar;
+		char aError[128];
+		const bool Parsed = CLiveReplaySidecar::LoadFromString(pFileData, Sidecar, aError, sizeof(aError));
+		free(pFileData);
+		if(!Parsed)
+		{
+			dbg_msg("qmlive_rank", "ignored damaged finish ranking sidecar '%s': %s", pPath, aError);
+			continue;
+		}
+		if(!CLiveReplaySidecar::MatchesDemo(Sidecar, aaDemoCandidates[Candidate], Client()->GetCurrentMap(), Client()->GetCurrentMapSha256(), Client()->GetCurrentMapCrc()))
+		{
+			dbg_msg("qmlive_rank", "ignored non-matching finish ranking sidecar '%s'", pPath);
+			continue;
+		}
+
+		std::vector<CLiveFinishEvent> vEvents;
+		vEvents.reserve(Sidecar.m_vFinishEvents.size());
+		for(const SLiveReplayFinishEvent &Event : Sidecar.m_vFinishEvents)
+			vEvents.push_back({Event.m_Team, Event.m_ClientId, Event.m_Time, Event.m_Tick});
+
+		m_LiveFinishRanking.SetTeamRange(g_Config.m_QmLiveRankTeamMin, g_Config.m_QmLiveRankTeamMax);
+		m_LiveFinishRanking.RebuildFromEvents(vEvents, CurrentTick);
+		dbg_msg("qmlive_rank", "rebuilt finish ranking from sidecar '%s' at tick %d", pPath, CurrentTick);
+		return true;
+	}
+	return false;
+}
+
+void CGameClient::UpdateLiveFinishTimeline()
+{
+	const int CurrentTick = Client()->GameTick(g_Config.m_ClDummy);
+	const int PreviousTick = m_LiveFinishRanking.LastObservedTick();
+	const bool DemoSeekForward = Client()->State() == IClient::STATE_DEMOPLAYBACK && PreviousTick >= 0 && CurrentTick > PreviousTick + 10 * Client()->GameTickSpeed();
+	if(DemoSeekForward)
+	{
+		ResetLiveFinishRanking();
+		m_LiveFinishRanking.OnTimelineTick(CurrentTick);
+		TryRebuildLiveFinishRankingFromSidecar(CurrentTick);
+		return;
+	}
+	if(m_LiveFinishRanking.OnTimelineTick(CurrentTick))
+	{
+		m_LiveFinishTeamsStateKnown = false;
+		m_LiveFinishTeamsStateTick = -1;
+		TryRebuildLiveFinishRankingFromSidecar(CurrentTick);
+	}
+
+	const int Dropped = m_LiveFinishRanking.DropExpiredPending(CurrentTick);
+	if(Dropped > 0)
+		dbg_msg("qmlive_rank", "dropped %d expired pending finish events", Dropped);
+}
+
+void CGameClient::RenderLiveFinishRankHud()
+{
+	const bool HudEditorPreview = m_HudEditor.IsActive();
+	if(!HudEditorPreview && (!g_Config.m_QmLiveRankHud || (Client()->State() != IClient::STATE_ONLINE && Client()->State() != IClient::STATE_DEMOPLAYBACK)))
+		return;
+
+	const int DurationTicks = std::clamp(g_Config.m_QmLiveRankPopupSeconds, 1, 30) * Client()->GameTickSpeed();
+	const int CurrentTick = Client()->GameTick(g_Config.m_ClDummy);
+	const CLiveFinishCard *pCard = m_LiveFinishRanking.VisibleCard(CurrentTick, DurationTicks);
+	CLiveFinishCard PreviewCard;
+	if(pCard == nullptr)
+	{
+		if(!HudEditorPreview)
+			return;
+		PreviewCard.m_Event = {1, 0, 151420, CurrentTick};
+		PreviewCard.m_Rank = 1;
+		PreviewCard.m_DisplayStartTick = CurrentTick;
+		pCard = &PreviewCard;
+	}
+
+	const float Height = 300.0f;
+	const float Width = Height * Graphics()->ScreenAspect();
+	float SavedScreenX0 = 0.0f;
+	float SavedScreenY0 = 0.0f;
+	float SavedScreenX1 = 0.0f;
+	float SavedScreenY1 = 0.0f;
+	Graphics()->GetScreen(&SavedScreenX0, &SavedScreenY0, &SavedScreenX1, &SavedScreenY1);
+	Graphics()->MapScreen(0.0f, 0.0f, Width, Height);
+
+	const float ConfigScale = std::clamp(g_Config.m_QmLiveRankScale, 50, 200) / 100.0f;
+	const float CardW = 154.0f * ConfigScale;
+	const float CardH = 57.0f * ConfigScale;
+	CUIRect CardRect = {Width * 0.5f - CardW * 0.5f, 38.0f, CardW, CardH};
+	const auto HudEditorScope = m_HudEditor.BeginTransform(EHudEditorElement::LiveFinishRank, CardRect);
+
+	float Alpha = std::clamp(g_Config.m_QmLiveRankAlpha, 0, 100) / 100.0f;
+	if(!HudEditorPreview && pCard->m_DisplayStartTick >= 0)
+	{
+		const int RemainingTicks = maximum(0, DurationTicks - (CurrentTick - pCard->m_DisplayStartTick));
+		const int FadeTicks = maximum(1, Client()->GameTickSpeed() / 3);
+		if(RemainingTicks < FadeTicks)
+			Alpha *= RemainingTicks / (float)FadeTicks;
+	}
+
+	char aTitle[64];
+	char aTime[64];
+	char aRank[64];
+	str_format(aTitle, sizeof(aTitle), "Team %d Finished", pCard->m_Event.m_Team);
+	str_time_float(pCard->m_Event.m_TimeMs / 1000.0f, TIME_HOURS_CENTISECS, aTime, sizeof(aTime));
+	str_format(aRank, sizeof(aRank), "Current Rank #%d", pCard->m_Rank);
+
+	const ColorRGBA BgColor(0.025f, 0.030f, 0.040f, 0.86f * Alpha);
+	const ColorRGBA BorderColor(1.0f, 1.0f, 1.0f, 0.16f * Alpha);
+	const ColorRGBA AccentColor = GetDDTeamColor(pCard->m_Event.m_Team, 0.62f).WithMultipliedAlpha(Alpha);
+	CardRect.Draw(BgColor, IGraphics::CORNER_ALL, 6.0f * ConfigScale);
+	Graphics()->DrawRect(CardRect.x, CardRect.y, 3.0f * ConfigScale, CardRect.h, AccentColor, IGraphics::CORNER_L, 6.0f * ConfigScale);
+	Graphics()->DrawRect(CardRect.x, CardRect.y, CardRect.w, 1.0f * ConfigScale, BorderColor, IGraphics::CORNER_T, 6.0f * ConfigScale);
+	Graphics()->DrawRect(CardRect.x, CardRect.y + CardRect.h - 1.0f * ConfigScale, CardRect.w, 1.0f * ConfigScale, BorderColor, IGraphics::CORNER_B, 6.0f * ConfigScale);
+
+	const float PaddingX = 12.0f * ConfigScale;
+	const float TextX = CardRect.x + PaddingX;
+	const float TitleY = CardRect.y + 7.0f * ConfigScale;
+	const float TimeY = CardRect.y + 25.0f * ConfigScale;
+	const float RankY = CardRect.y + 40.0f * ConfigScale;
+	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.96f * Alpha);
+	TextRender()->Text(TextX, TitleY, 10.0f * ConfigScale, aTitle, -1.0f);
+	TextRender()->TextColor(0.78f, 0.86f, 0.92f, 0.90f * Alpha);
+	TextRender()->Text(TextX, TimeY, 8.0f * ConfigScale, aTime, -1.0f);
+	TextRender()->TextColor(0.70f, 0.95f, 0.82f, 0.94f * Alpha);
+	TextRender()->Text(TextX, RankY, 8.0f * ConfigScale, aRank, -1.0f);
+	TextRender()->TextColor(TextRender()->DefaultTextColor());
+
+	m_HudEditor.EndTransform(HudEditorScope);
+	Graphics()->MapScreen(SavedScreenX0, SavedScreenY0, SavedScreenX1, SavedScreenY1);
+}
+
+void CGameClient::UpdateLiveTeamFilterConfig()
+{
+	const int OldResetSerial = m_LiveTeamRenderFilter.ResetSerial();
+	const bool OldActive = m_LiveTeamRenderFilter.Active();
+	const int OldTeam = m_LiveTeamRenderFilter.Team();
+	const bool OldPreview = m_LiveTeamRenderFilter.PreviewEnabled();
+	const bool OldAudio = m_LiveTeamRenderFilter.AudioEnabled();
+	const bool OldHideExternalFinish = m_LiveTeamRenderFilter.HideExternalFinish();
+	const bool OldStrictUnknownEvents = m_LiveTeamRenderFilter.StrictUnknownEvents();
+
+	m_LiveTeamRenderFilter.SetPreviewEnabled(g_Config.m_QmLiveTeamFilterPreview != 0);
+	m_LiveTeamRenderFilter.SetAudioEnabled(g_Config.m_QmLiveTeamFilterAudio != 0);
+	m_LiveTeamRenderFilter.SetHideExternalFinish(g_Config.m_QmLiveTeamFilterHideExternalFinish != 0);
+	m_LiveTeamRenderFilter.SetStrictUnknownEvents(g_Config.m_QmLiveTeamFilterStrictUnknownEvents != 0);
+
+	if(m_LiveTeamRenderFilter.PreviewEnabled() && CLiveTeamRenderFilter::IsValidDDRaceTeam(g_Config.m_QmLiveTeamFilter))
+		m_LiveTeamRenderFilter.SetTeam(g_Config.m_QmLiveTeamFilter);
+	else
+		m_LiveTeamRenderFilter.Disable();
+
+	if(OldActive != m_LiveTeamRenderFilter.Active() ||
+		OldTeam != m_LiveTeamRenderFilter.Team() ||
+		OldPreview != m_LiveTeamRenderFilter.PreviewEnabled() ||
+		OldAudio != m_LiveTeamRenderFilter.AudioEnabled() ||
+		OldHideExternalFinish != m_LiveTeamRenderFilter.HideExternalFinish() ||
+		OldStrictUnknownEvents != m_LiveTeamRenderFilter.StrictUnknownEvents())
+	{
+		m_LiveTeamRenderFilter.MarkTransientReset();
+	}
+
+	if(OldResetSerial != m_LiveTeamRenderFilter.ResetSerial())
+		ResetLiveTeamFilterTransientState();
+}
+
+void CGameClient::ResetLiveTeamFilterTransientState()
+{
+	if(m_LiveTeamFilterResetSerial == m_LiveTeamRenderFilter.ResetSerial())
+		return;
+
+	m_InfoMessages.OnReset();
+	m_Particles.OnReset();
+	m_DamageInd.OnReset();
+	m_Sounds.OnReset();
+	for(CClientData &Client : m_aClients)
+	{
+		Client.m_Emoticon = -1;
+		Client.m_EmoticonStartTick = -1;
+		Client.m_EmoticonStartFraction = 0.0f;
+		Client.m_aChatBubbleText[0] = '\0';
+		Client.m_ChatBubbleStartTick = 0;
+		Client.m_ChatBubbleExpireTick = 0;
+	}
+	m_LiveTeamFilterResetSerial = m_LiveTeamRenderFilter.ResetSerial();
+}
+
+bool CGameClient::ShouldFilterLiveTeamMessage(int MsgId, void *pRawMsg) const
+{
+	if(!m_LiveTeamRenderFilter.Active() || pRawMsg == nullptr)
+		return false;
+
+	if(MsgId == NETMSGTYPE_SV_EMOTICON)
+	{
+		const CNetMsg_Sv_Emoticon *pMsg = static_cast<const CNetMsg_Sv_Emoticon *>(pRawMsg);
+		return !m_LiveTeamRenderFilter.AllowsClient(pMsg->m_ClientId);
+	}
+	if(MsgId == NETMSGTYPE_SV_CHAT)
+	{
+		const CNetMsg_Sv_Chat *pMsg = static_cast<const CNetMsg_Sv_Chat *>(pRawMsg);
+		if(pMsg->m_ClientId >= 0)
+			return !m_LiveTeamRenderFilter.AllowsClient(pMsg->m_ClientId);
+		return false;
+	}
+	if(MsgId == NETMSGTYPE_SV_RACEFINISH)
+	{
+		const CNetMsg_Sv_RaceFinish *pMsg = static_cast<const CNetMsg_Sv_RaceFinish *>(pRawMsg);
+		return m_LiveTeamRenderFilter.HideExternalFinish() && !m_LiveTeamRenderFilter.AllowsClient(pMsg->m_ClientId);
+	}
+	if(MsgId == NETMSGTYPE_SV_KILLMSG)
+	{
+		const CNetMsg_Sv_KillMsg *pMsg = static_cast<const CNetMsg_Sv_KillMsg *>(pRawMsg);
+		if(pMsg->m_Victim >= 0 && pMsg->m_Victim < MAX_CLIENTS && !m_LiveTeamRenderFilter.AllowsClient(pMsg->m_Victim))
+			return true;
+		if(pMsg->m_Killer >= 0 && pMsg->m_Killer < MAX_CLIENTS && !m_LiveTeamRenderFilter.AllowsClient(pMsg->m_Killer))
+			return true;
+		return false;
+	}
+	if(MsgId == NETMSGTYPE_SV_KILLMSGTEAM)
+	{
+		const CNetMsg_Sv_KillMsgTeam *pMsg = static_cast<const CNetMsg_Sv_KillMsgTeam *>(pRawMsg);
+		return !m_LiveTeamRenderFilter.AllowsTeam(pMsg->m_Team);
+	}
+	if(MsgId == NETMSGTYPE_SV_PREINPUT)
+	{
+		const CNetMsg_Sv_PreInput *pMsg = static_cast<const CNetMsg_Sv_PreInput *>(pRawMsg);
+		return !m_LiveTeamRenderFilter.AllowsKnownOwner(pMsg->m_Owner);
+	}
+	return false;
+}
+
 void CGameClient::FinishLiveObserverHoldFreeview()
 {
 	if(!m_LiveObserverHoldFreeview)
@@ -1755,6 +2090,10 @@ bool CGameClient::LiveObserverOverlayContains(vec2 MousePos) const
 	const CUIRect Freeview = {LIVE_OBSERVER_PANEL_MARGIN, LIVE_OBSERVER_PANEL_MARGIN, LIVE_OBSERVER_FREEVIEW_W, LIVE_OBSERVER_FREEVIEW_H};
 	if(Freeview.Inside(MousePos))
 		return true;
+	if(LiveObserverRecordRect().Inside(MousePos))
+		return true;
+	if(LiveObserverFilterRect().Inside(MousePos))
+		return true;
 	if(LiveObserverChatToggleRect(LIVE_OBSERVER_UI_HEIGHT).Inside(MousePos))
 		return true;
 
@@ -1813,6 +2152,34 @@ bool CGameClient::HandleLiveObserverInput(const IInput::CEvent &Event)
 	if(LiveObserverChatToggleRect(LIVE_OBSERVER_UI_HEIGHT).Inside(MousePos))
 	{
 		g_Config.m_ClShowChat = g_Config.m_ClShowChat == 0 ? 1 : 0;
+		Input()->MouseModeAbsolute();
+		m_LiveObserverMouseAbsolute = true;
+		return true;
+	}
+
+	if(LiveObserverRecordRect().Inside(MousePos))
+	{
+		if(m_LiveMatchReplay.Recording(this))
+		{
+			g_Config.m_QmLiveMatchRecord = 0;
+			m_LiveMatchReplay.Stop(this);
+		}
+		else if(m_LiveMatchReplay.Start(this))
+		{
+			g_Config.m_QmLiveMatchRecord = 1;
+		}
+		Input()->MouseModeAbsolute();
+		m_LiveObserverMouseAbsolute = true;
+		return true;
+	}
+
+	if(LiveObserverFilterRect().Inside(MousePos))
+	{
+		if(m_LiveTeamRenderFilter.Active())
+			g_Config.m_QmLiveTeamFilter = 0;
+		else if(LiveObserverTeamActive(m_LiveObserverCurrentTeam))
+			g_Config.m_QmLiveTeamFilter = m_LiveObserverCurrentTeam;
+		UpdateLiveTeamFilterConfig();
 		Input()->MouseModeAbsolute();
 		m_LiveObserverMouseAbsolute = true;
 		return true;
@@ -1903,6 +2270,54 @@ void CGameClient::RenderLiveObserverOverlay()
 	Freeview.Draw(FreeviewColor, IGraphics::CORNER_ALL, 8.0f);
 	TextRender()->TextColor(1.0f, 1.0f, 1.0f, m_LiveObserverFreeview ? 1.0f : 0.72f);
 	TextRender()->Text(Freeview.x + 14.0f, Freeview.y + 11.0f, 16.0f, m_LiveObserverHoldFreeview ? Localize("Temporary free camera") : Localize("Hold left click for free camera"), -1.0f);
+
+	const CUIRect RecordButton = LiveObserverRecordRect();
+	const bool Recording = m_LiveMatchReplay.Recording(this);
+	const bool RecordHovered = RecordButton.Inside(MousePos);
+	const ColorRGBA RecordColor = Recording ?
+					      (RecordHovered ? ColorRGBA(0.58f, 0.16f, 0.16f, 0.88f) : ColorRGBA(0.42f, 0.10f, 0.10f, 0.78f)) :
+					      (RecordHovered ? ColorRGBA(0.12f, 0.38f, 0.34f, 0.86f) : ColorRGBA(0.08f, 0.24f, 0.23f, 0.74f));
+	RecordButton.Draw(RecordColor, IGraphics::CORNER_ALL, 8.0f);
+	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.94f);
+	TextRender()->Text(RecordButton.x + 10.0f, RecordButton.y + 6.0f, 13.0f, Recording ? Localize("Stop match record") : Localize("Record match"), RecordButton.w - 20.0f);
+	char aActionBuf[128];
+	if(Recording)
+	{
+		const int Seconds = m_LiveMatchReplay.LengthTicks(this) / maximum(1, Client()->GameTickSpeed());
+		const char *pFilename = m_LiveMatchReplay.DemoFilename();
+		const char *pSlash = str_rchr(pFilename, '/');
+		pFilename = pSlash == nullptr ? pFilename : pSlash + 1;
+		str_format(aActionBuf, sizeof(aActionBuf), "%02d:%02d  %s", Seconds / 60, Seconds % 60, pFilename);
+	}
+	else if(m_LiveMatchReplay.StatusMessage()[0] != '\0')
+	{
+		str_copy(aActionBuf, m_LiveMatchReplay.StatusMessage(), sizeof(aActionBuf));
+	}
+	else
+	{
+		str_copy(aActionBuf, Localize("Full demo + sidecar"), sizeof(aActionBuf));
+	}
+	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.66f);
+	TextRender()->Text(RecordButton.x + 10.0f, RecordButton.y + 22.0f, 9.0f, aActionBuf, RecordButton.w - 20.0f);
+
+	const CUIRect FilterButton = LiveObserverFilterRect();
+	const bool FilterHovered = FilterButton.Inside(MousePos);
+	const bool FilterActive = m_LiveTeamRenderFilter.Active();
+	const bool CanFilterCurrentTeam = LiveObserverTeamActive(m_LiveObserverCurrentTeam);
+	const ColorRGBA FilterColor = FilterActive ?
+					      (FilterHovered ? ColorRGBA(0.16f, 0.30f, 0.58f, 0.88f) : ColorRGBA(0.10f, 0.20f, 0.42f, 0.78f)) :
+					      (FilterHovered ? ColorRGBA(0.18f, 0.18f, 0.20f, 0.72f) : ColorRGBA(0.05f, 0.05f, 0.055f, 0.58f));
+	FilterButton.Draw(FilterColor, IGraphics::CORNER_ALL, 8.0f);
+	if(FilterActive)
+		str_format(aActionBuf, sizeof(aActionBuf), Localize("Filter: Team %d"), m_LiveTeamRenderFilter.Team());
+	else if(CanFilterCurrentTeam)
+		str_format(aActionBuf, sizeof(aActionBuf), Localize("Filter Team %d"), m_LiveObserverCurrentTeam);
+	else
+		str_copy(aActionBuf, Localize("Filter off"), sizeof(aActionBuf));
+	TextRender()->TextColor(1.0f, 1.0f, 1.0f, FilterActive || CanFilterCurrentTeam ? 0.92f : 0.55f);
+	TextRender()->Text(FilterButton.x + 10.0f, FilterButton.y + 7.0f, 13.0f, aActionBuf, FilterButton.w - 20.0f);
+	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.58f);
+	TextRender()->Text(FilterButton.x + 10.0f, FilterButton.y + 22.0f, 9.0f, FilterActive ? Localize("Click to restore full match") : Localize("Preview/render only this team"), FilterButton.w - 20.0f);
 
 	const CUIRect ChatToggle = LiveObserverChatToggleRect(Height);
 	const bool ChatVisible = g_Config.m_ClShowChat != 0;
@@ -2163,6 +2578,10 @@ void CGameClient::OnRender()
 	CPerfTimer ComponentsTimer;
 	for(auto &pComponent : m_vpAll)
 	{
+#if defined(CONF_QM_LIVE_CLIENT)
+		if(pComponent == &m_HudEditor)
+			RenderLiveFinishRankHud();
+#endif
 		if(pComponent == &m_Menus)
 		{
 			CPerfTimer StageTimer;
@@ -2700,6 +3119,13 @@ void CGameClient::OnMessage(int MsgId, CUnpacker *pUnpacker, int Conn, bool Dumm
 		return; // no need of all that stuff for the dummy
 	}
 
+#if defined(CONF_QM_LIVE_CLIENT)
+	m_LiveMatchReplay.OnMessage(this, MsgId, pRawMsg);
+	HandleLiveFinishMessage(MsgId, pRawMsg, Conn);
+	if(ShouldFilterLiveTeamMessage(MsgId, pRawMsg))
+		return;
+#endif
+
 	// TODO: this should be done smarter
 	for(auto &pComponent : m_vpAll)
 		pComponent->OnMessage(MsgId, pRawMsg);
@@ -2760,6 +3186,11 @@ void CGameClient::OnMessage(int MsgId, CUnpacker *pUnpacker, int Conn, bool Dumm
 
 		m_Ghost.m_AllowRestart = true;
 		m_RaceDemo.m_AllowRestart = true;
+#if defined(CONF_QM_LIVE_CLIENT)
+		m_LiveFinishTeamsStateKnown = true;
+		m_LiveFinishTeamsStateTick = Client()->GameTick(Conn);
+		ResolveLiveFinishPending(Client()->GameTick(Conn));
+#endif
 	}
 	else if(MsgId == NETMSGTYPE_SV_KILLMSG)
 	{
@@ -2934,13 +3365,24 @@ void CGameClient::ResetDemoPlaybackState()
 {
 	m_DemoHudPlaybackState = {};
 	m_DemoInputPlaybackState = {};
+#if defined(CONF_QM_LIVE_CLIENT)
+	ResetLiveFinishRanking();
+#endif
 }
 
 void CGameClient::OnStateChange(int NewState, int OldState)
 {
+#if defined(CONF_QM_LIVE_CLIENT)
+	m_LiveMatchReplay.OnStateChange(this, NewState, OldState);
+#endif
 	// reset everything when not already connected (to keep gathered stuff)
 	if(NewState < IClient::STATE_ONLINE)
 		OnReset();
+
+#if defined(CONF_QM_LIVE_CLIENT)
+	if(NewState != OldState && (NewState == IClient::STATE_ONLINE || NewState == IClient::STATE_DEMOPLAYBACK))
+		ResetLiveFinishRanking();
+#endif
 
 	// then change the state
 	for(auto &pComponent : m_vpAll)
@@ -2954,6 +3396,9 @@ void CGameClient::OnScreenshotTaken(CImageInfo &&Image)
 
 void CGameClient::OnShutdown()
 {
+#if defined(CONF_QM_LIVE_CLIENT)
+	m_LiveMatchReplay.OnShutdown(this);
+#endif
 	for(auto &pComponent : m_vpAll)
 		pComponent->OnShutdown();
 
@@ -2983,6 +3428,9 @@ void CGameClient::OnStartRound()
 	// hence no need to reset stats until player leaves GameOver
 	// and it would be a mistake to reset stats after or during the pause
 	m_Statboard.OnReset();
+#if defined(CONF_QM_LIVE_CLIENT)
+	ResetLiveFinishRanking();
+#endif
 
 	// Restart automatic race demo recording
 	m_RaceDemo.OnReset();
@@ -3094,6 +3542,10 @@ void CGameClient::ProcessEvents()
 	for(int Index = 0; Index < Num; Index++)
 	{
 		const IClient::CSnapItem Item = Client()->SnapGetItem(SnapType, Index);
+#if defined(CONF_QM_LIVE_CLIENT)
+		const bool LiveRejectUnknownVisualEvent = m_LiveTeamRenderFilter.Active() && !m_LiveTeamRenderFilter.AllowsUnknownPlayerEvent();
+		const bool LiveRejectUnknownAudioEvent = m_LiveTeamRenderFilter.Active() && m_LiveTeamRenderFilter.AudioEnabled() && !m_LiveTeamRenderFilter.AllowsUnknownPlayerEvent();
+#endif
 
 		// TODO: We don't have enough info about us, others, to know a correct alpha or volume value.
 		const float Alpha = 1.0f;
@@ -3101,16 +3553,28 @@ void CGameClient::ProcessEvents()
 
 		if(Item.m_Type == NETEVENTTYPE_DAMAGEIND)
 		{
+#if defined(CONF_QM_LIVE_CLIENT)
+			if(LiveRejectUnknownVisualEvent)
+				continue;
+#endif
 			const CNetEvent_DamageInd *pEvent = (const CNetEvent_DamageInd *)Item.m_pData;
 			m_Effects.DamageIndicator(vec2(pEvent->m_X, pEvent->m_Y), direction(pEvent->m_Angle / 256.0f), Alpha);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_EXPLOSION)
 		{
+#if defined(CONF_QM_LIVE_CLIENT)
+			if(LiveRejectUnknownVisualEvent)
+				continue;
+#endif
 			const CNetEvent_Explosion *pEvent = (const CNetEvent_Explosion *)Item.m_pData;
 			m_Effects.Explosion(vec2(pEvent->m_X, pEvent->m_Y), Alpha);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_HAMMERHIT)
 		{
+#if defined(CONF_QM_LIVE_CLIENT)
+			if(LiveRejectUnknownVisualEvent)
+				continue;
+#endif
 			const CNetEvent_HammerHit *pEvent = (const CNetEvent_HammerHit *)Item.m_pData;
 			const vec2 HammerHitPos = vec2(pEvent->m_X, pEvent->m_Y);
 			m_Effects.HammerHit(HammerHitPos, Alpha, Volume);
@@ -3133,27 +3597,47 @@ void CGameClient::ProcessEvents()
 		}
 		else if(Item.m_Type == NETEVENTTYPE_BIRTHDAY)
 		{
+#if defined(CONF_QM_LIVE_CLIENT)
+			if(LiveRejectUnknownVisualEvent)
+				continue;
+#endif
 			const CNetEvent_Birthday *pEvent = (const CNetEvent_Birthday *)Item.m_pData;
 			m_Effects.Confetti(vec2(pEvent->m_X, pEvent->m_Y), Alpha);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_FINISH)
 		{
+#if defined(CONF_QM_LIVE_CLIENT)
+			if(LiveRejectUnknownVisualEvent)
+				continue;
+#endif
 			const CNetEvent_Finish *pEvent = (const CNetEvent_Finish *)Item.m_pData;
 			m_Effects.Confetti(vec2(pEvent->m_X, pEvent->m_Y), Alpha);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_SPAWN)
 		{
+#if defined(CONF_QM_LIVE_CLIENT)
+			if(LiveRejectUnknownVisualEvent)
+				continue;
+#endif
 			const CNetEvent_Spawn *pEvent = (const CNetEvent_Spawn *)Item.m_pData;
 			m_Effects.PlayerSpawn(vec2(pEvent->m_X, pEvent->m_Y), Alpha, Volume);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_DEATH)
 		{
 			const CNetEvent_Death *pEvent = (const CNetEvent_Death *)Item.m_pData;
+#if defined(CONF_QM_LIVE_CLIENT)
+			if(!m_LiveTeamRenderFilter.AllowsClient(pEvent->m_ClientId))
+				continue;
+#endif
 			m_Effects.PlayerDeath(vec2(pEvent->m_X, pEvent->m_Y), pEvent->m_ClientId, Alpha);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_SOUNDWORLD)
 		{
 			const CNetEvent_SoundWorld *pEvent = (const CNetEvent_SoundWorld *)Item.m_pData;
+#if defined(CONF_QM_LIVE_CLIENT)
+			if(LiveRejectUnknownAudioEvent)
+				continue;
+#endif
 			if(Client()->IsSixup() && pEvent->m_SoundId == SOUND_PLAYER_AIRJUMP)
 			{
 				m_Effects.AirJump(vec2(pEvent->m_X, pEvent->m_Y), Alpha, Volume);
@@ -3400,6 +3884,10 @@ void CGameClient::OnNewSnapshot()
 		const int DemoTick = Client()->GameTick(g_Config.m_ClDummy);
 		if(m_LastDemoPlaybackStateTick != -1 && DemoTick <= m_LastDemoPlaybackStateTick)
 			ResetDemoPlaybackState();
+#if defined(CONF_QM_LIVE_CLIENT)
+		if(m_LiveTeamRenderFilter.ObservePlaybackTick(DemoTick))
+			ResetLiveTeamFilterTransientState();
+#endif
 		m_LastDemoPlaybackStateTick = DemoTick;
 	}
 	else
@@ -3933,7 +4421,23 @@ void CGameClient::OnNewSnapshot()
 	}
 
 #if defined(CONF_QM_LIVE_CLIENT)
+	UpdateLiveTeamFilterConfig();
+	{
+		std::array<int, MAX_CLIENTS> aTeams{};
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+			aTeams[ClientId] = m_Teams.Team(ClientId);
+		m_LiveTeamRenderFilter.UpdateTeams(aTeams);
+	}
+	if(g_Config.m_QmLiveMatchRecord && !m_LiveMatchReplay.OwnsManualRecorder())
+	{
+		if(!m_LiveMatchReplay.Start(this))
+			g_Config.m_QmLiveMatchRecord = 0;
+	}
+	else if(!g_Config.m_QmLiveMatchRecord && m_LiveMatchReplay.OwnsManualRecorder())
+		m_LiveMatchReplay.Stop(this);
+	m_LiveMatchReplay.OnSnapshot(this);
 	UpdateLiveObserverSnapshot();
+	UpdateLiveFinishTimeline();
 #endif
 
 	if(ServerInfo.m_aGameType[0] != '0')
@@ -4131,6 +4635,10 @@ void CGameClient::OnNewSnapshot()
 		const auto &Character = m_Snap.m_aCharacters[i];
 		if(!Character.m_Active)
 			continue;
+#if defined(CONF_QM_LIVE_CLIENT)
+		if(!LiveTeamFilterAllowsClient(i))
+			continue;
+#endif
 
 		const bool AirJumpByJumpedState = (Character.m_Cur.m_Jumped & 2) && !(Character.m_Prev.m_Jumped & 2);
 		bool AirJumpByJumpCount = false;
@@ -4191,8 +4699,13 @@ void CGameClient::OnNewSnapshot()
 	}
 	if(g_Config.m_ClFreezeStars && !m_SuppressEvents)
 	{
-		for(auto &Character : m_Snap.m_aCharacters)
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 		{
+			auto &Character = m_Snap.m_aCharacters[ClientId];
+#if defined(CONF_QM_LIVE_CLIENT)
+			if(!LiveTeamFilterAllowsClient(ClientId))
+				continue;
+#endif
 			if(Character.m_Active && Character.m_HasExtendedData && Character.m_pPrevExtendedData)
 			{
 				int FreezeTimeNow = Character.m_ExtendedData.m_FreezeEnd - Client()->GameTick(g_Config.m_ClDummy);
@@ -5954,6 +6467,57 @@ void CGameClient::ConReadyChange7(IConsole::IResult *pResult, void *pUserData)
 		pClient->SendReadyChange7();
 }
 
+#if defined(CONF_QM_LIVE_CLIENT)
+void CGameClient::ConQmLiveMatchRecordStart(IConsole::IResult *pResult, void *pUserData)
+{
+	(void)pResult;
+	CGameClient *pClient = static_cast<CGameClient *>(pUserData);
+	if(pClient->m_LiveMatchReplay.Start(pClient))
+	{
+		g_Config.m_QmLiveMatchRecord = 1;
+		pClient->Echo("QmLive full match recording started");
+	}
+	else
+	{
+		pClient->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "qmlive/match", pClient->m_LiveMatchReplay.StatusMessage());
+	}
+}
+
+void CGameClient::ConQmLiveMatchRecordStop(IConsole::IResult *pResult, void *pUserData)
+{
+	(void)pResult;
+	CGameClient *pClient = static_cast<CGameClient *>(pUserData);
+	g_Config.m_QmLiveMatchRecord = 0;
+	if(pClient->m_LiveMatchReplay.Stop(pClient))
+		pClient->Echo("QmLive full match recording stopped");
+}
+
+void CGameClient::ConQmLiveTeamFilter(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameClient *pClient = static_cast<CGameClient *>(pUserData);
+	const int Team = pResult->GetInteger(0);
+	if(!CLiveTeamRenderFilter::IsValidDDRaceTeam(Team))
+	{
+		pClient->Echo("QmLive team filter expects a DDRace team from 1 to 63");
+		return;
+	}
+	g_Config.m_QmLiveTeamFilter = Team;
+	pClient->UpdateLiveTeamFilterConfig();
+	char aBuf[64];
+	str_format(aBuf, sizeof(aBuf), "QmLive team filter: Team %d", Team);
+	pClient->Echo(aBuf);
+}
+
+void CGameClient::ConQmLiveTeamFilterOff(IConsole::IResult *pResult, void *pUserData)
+{
+	(void)pResult;
+	CGameClient *pClient = static_cast<CGameClient *>(pUserData);
+	g_Config.m_QmLiveTeamFilter = 0;
+	pClient->UpdateLiveTeamFilterConfig();
+	pClient->Echo("QmLive team filter disabled");
+}
+#endif
+
 void CGameClient::ConchainLanguageUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
 	CGameClient *pThis = static_cast<CGameClient *>(pUserData);
@@ -6765,6 +7329,10 @@ bool CGameClient::IsOtherTeam(int ClientId) const
 #if defined(CONF_QM_LIVE_CLIENT)
 bool CGameClient::LiveObserverDimClient(int ClientId) const
 {
+#if defined(CONF_QM_LIVE_CLIENT)
+	if(m_LiveTeamRenderFilter.Active())
+		return !m_LiveTeamRenderFilter.AllowsClient(ClientId);
+#endif
 	if(!Client()->QmLiveDirectorActive())
 		return false;
 	if(m_LiveObserverFreeview || !LiveObserverTeamActive(m_LiveObserverCurrentTeam))
@@ -6782,6 +7350,10 @@ bool CGameClient::LiveObserverDimClient(int ClientId) const
 
 float CGameClient::LiveObserverClientAlpha(int ClientId) const
 {
+#if defined(CONF_QM_LIVE_CLIENT)
+	if(m_LiveTeamRenderFilter.Active())
+		return m_LiveTeamRenderFilter.AllowsClient(ClientId) ? 1.0f : 0.0f;
+#endif
 	return LiveObserverDimClient(ClientId) ? LIVE_OBSERVER_DIM_ALPHA : 1.0f;
 }
 #endif
