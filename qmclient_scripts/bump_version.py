@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 
@@ -16,6 +17,13 @@ VERSION_RE = re.compile(r"^\d+\.\d+(?:\.\d+)?$")
 VERSION_DEFINE_RE = re.compile(
     r'^(#define\s+QMCLIENT_VERSION\s+)"[^"]+"$', re.MULTILINE
 )
+
+
+def configure_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
 
 
 def normalize_version(version: str | None, tag: str | None) -> str:
@@ -49,6 +57,8 @@ def update_docs_info(version: str) -> None:
 
 
 def main() -> int:
+    configure_stdio()
+
     parser = argparse.ArgumentParser(description="统一更新 QmClient 版本号")
     parser.add_argument("--version", help="目标版本号，如 2.58.1")
     parser.add_argument("--tag", help="目标 tag，如 v2.58.1")
