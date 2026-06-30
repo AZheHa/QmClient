@@ -3,7 +3,6 @@
 #ifndef GAME_CLIENT_GAMECLIENT_H
 #define GAME_CLIENT_GAMECLIENT_H
 
-#include "qm_command_router.h"
 #include "qm_icon_manager.h"
 #include "qm_ime_manager.h"
 #include "render.h"
@@ -352,7 +351,6 @@ private:
 	CCollision m_Collision;
 	CUi m_UI;
 	CUiRuntimeV2 m_UiRuntimeV2;
-	CQmCommandRouter m_QmCommandRouter;
 	CQmIconManager m_QmIconManager;
 	CQmImeManager m_QmImeManager;
 	CRaceHelper m_RaceHelper;
@@ -490,8 +488,6 @@ public:
 	class CUi *Ui() { return &m_UI; }
 	class CUiRuntimeV2 *UiRuntimeV2() { return &m_UiRuntimeV2; }
 	const class CUiRuntimeV2 *UiRuntimeV2() const { return &m_UiRuntimeV2; }
-	class CQmCommandRouter *QmCommandRouter() { return &m_QmCommandRouter; }
-	const class CQmCommandRouter *QmCommandRouter() const { return &m_QmCommandRouter; }
 	class CQmIconManager *QmIconManager() { return &m_QmIconManager; }
 	const class CQmIconManager *QmIconManager() const { return &m_QmIconManager; }
 	class ISound *Sound() const { return m_pSound; }
@@ -978,7 +974,6 @@ public:
 	CNetObj_PlayerInput m_DummyInput;
 	CNetObj_PlayerInput m_HammerInput;
 	unsigned int m_DummyFire;
-	bool m_QmDummyInputForceSend = false;
 	bool m_ReceivedDDNetPlayer;
 
 	class CTeamsCore m_Teams;

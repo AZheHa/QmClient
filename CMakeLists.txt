@@ -2916,8 +2916,6 @@ if(CLIENT)
     prediction/gameworld.h
     projectile_data.cpp
     projectile_data.h
-    qm_command_router.cpp
-    qm_command_router.h
     qm_icon_manager.cpp
     qm_icon_manager.h
     qm_ime_candidate_popup.cpp
@@ -3678,7 +3676,6 @@ add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/generated/checksum.cpp
 if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
   set_src(TESTS GLOB src/test
     QmAnimTest.cpp
-    QmDummyCommandTest.cpp
     QmIconAtlasTest.cpp
     QmLayoutTest.cpp
     QmUiTokensTest.cpp

@@ -57,7 +57,7 @@ TEST(Binds, AllowsWhitelistedDeepflyAuxiliaryCommands)
 TEST(Binds, KeepsInputAndScriptCommandsCustomForDeepflyModes)
 {
 	EXPECT_EQ(DetectDeepflyModeFromBindCommand("+fire;+toggle cl_dummy_hammer 1 0;+left"), DEEPFLY_MODE_CUSTOM);
-	EXPECT_EQ(DetectDeepflyModeFromBindCommand("+fire;+toggle cl_dummy_hammer 1 0;+dummy_hook"), DEEPFLY_MODE_CUSTOM);
+	EXPECT_EQ(DetectDeepflyModeFromBindCommand("+fire;+toggle cl_dummy_hammer 1 0;+jump"), DEEPFLY_MODE_CUSTOM);
 	EXPECT_EQ(DetectDeepflyModeFromBindCommand("+fire;+toggle cl_dummy_hammer 1 0;exec cfg/deepfly.cfg"), DEEPFLY_MODE_CUSTOM);
 	EXPECT_EQ(DetectDeepflyModeFromBindCommand("+fire;+toggle cl_dummy_hammer 1 0;bind mouse1 +fire"), DEEPFLY_MODE_CUSTOM);
 	EXPECT_EQ(DetectDeepflyModeFromBindCommand("+fire;+toggle cl_dummy_hammer 1 0;unbind mouse1"), DEEPFLY_MODE_CUSTOM);
