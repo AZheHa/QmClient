@@ -345,7 +345,7 @@ int CControls::SnapInput(int *pData)
 			m_aInputData[!g_Config.m_ClDummy] = *pDummyInput;
 		}
 
-		if(g_Config.m_ClDummyControl && !QmLegacyExclusiveDummyInput)
+		if(g_Config.m_ClDummyControl)
 		{
 			pDummyInput->m_Jump = g_Config.m_ClDummyJump;
 
