@@ -2884,6 +2884,8 @@ if(CLIENT)
     lineinput.h
     live/live_director.cpp
     live/live_director.h
+    live/live_finish_ranking.cpp
+    live/live_finish_ranking.h
     live/live_match_replay.cpp
     live/live_match_replay.h
     live/live_replay_buffer.cpp

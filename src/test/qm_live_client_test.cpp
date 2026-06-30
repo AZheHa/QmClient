@@ -8,6 +8,7 @@
 #include <game/teamscore.h>
 
 #include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <array>
 #include <cstdint>
@@ -116,6 +117,32 @@ TEST(QmLiveDirector, SelectRandomTeamUsesStableModulo)
 	EXPECT_EQ(Director.SelectRandomTeam(0), 2);
 	EXPECT_EQ(Director.SelectRandomTeam(1), 5);
 	EXPECT_EQ(Director.SelectRandomTeam(2), 2);
+}
+
+TEST(QmLivePresentationMode, LiveObserverKeepsCompatDirectorPresentation)
+{
+	const std::string Source = ReadTestSourceFile("src/game/client/gameclient.cpp");
+	const size_t ModeStart = Source.find("CGameClient::EQmLivePresentationMode CGameClient::LivePresentationMode() const");
+	ASSERT_NE(ModeStart, std::string::npos);
+	const size_t ModeEnd = Source.find("void CGameClient::OnConsoleInit()", ModeStart);
+	ASSERT_NE(ModeEnd, std::string::npos);
+	const std::string Body = Source.substr(ModeStart, ModeEnd - ModeStart);
+
+	EXPECT_NE(Body.find("Client()->QmLiveDirectorActive()"), std::string::npos);
+}
+
+TEST(QmLiveMatchReplay, StartKeepsOrdinaryDDNetRecordingCompatible)
+{
+	const std::string Source = ReadTestSourceFile("src/game/client/live/live_match_replay.cpp");
+	const size_t StartPos = Source.find("bool CLiveMatchReplay::Start(CGameClient *pGameClient)");
+	ASSERT_NE(StartPos, std::string::npos);
+	const size_t StopPos = Source.find("bool CLiveMatchReplay::Stop(CGameClient *pGameClient, bool WriteSidecarFile)", StartPos);
+	ASSERT_NE(StopPos, std::string::npos);
+	const std::string Body = Source.substr(StartPos, StopPos - StartPos);
+
+	EXPECT_EQ(Body.find("QmLiveObserverActive"), std::string::npos);
+	EXPECT_NE(Body.find("DemoRecorder_Start"), std::string::npos);
+	EXPECT_NE(Source.find("demos/qm_live/matches"), std::string::npos);
 }
 
 TEST(QmLiveDirector, SelectRandomPlayerUsesStableModulo)
@@ -291,9 +318,48 @@ TEST(QmLiveReplaySidecar, RejectsDamagedAndMismatchedSidecars)
 	ASSERT_TRUE(CLiveReplaySidecar::LoadFromString(Json.c_str(), Parsed, aError, sizeof(aError)));
 
 	EXPECT_TRUE(CLiveReplaySidecar::MatchesDemo(Parsed, "demos/live/Map_match.demo", "Map", SHA256_ZEROED, 1234));
+	EXPECT_TRUE(CLiveReplaySidecar::MatchesDemo(Parsed, "Map_match.demo", "Map", SHA256_ZEROED, 1234));
+	EXPECT_TRUE(CLiveReplaySidecar::MatchesDemo(Parsed, "archive/Map_match.demo", "Map", SHA256_ZEROED, 1234));
 	EXPECT_FALSE(CLiveReplaySidecar::MatchesDemo(Parsed, "demos/live/Other.demo", "Map", SHA256_ZEROED, 1234));
 	EXPECT_FALSE(CLiveReplaySidecar::MatchesDemo(Parsed, "demos/live/Map_match.demo", "Other", SHA256_ZEROED, 1234));
 	EXPECT_FALSE(CLiveReplaySidecar::MatchesDemo(Parsed, "demos/live/Map_match.demo", "Map", SHA256_ZEROED, 4321));
+}
+
+TEST(QmLiveReplaySidecar, RejectsInvalidTimelineFields)
+{
+	CLiveReplaySidecar Sidecar;
+	Sidecar.Start("demos/live/Map_match.demo", "Map", SHA256_ZEROED, 1234, 10);
+	Sidecar.SetEndTick(90);
+	ASSERT_TRUE(Sidecar.AddFinishEvent(80, 4, 151420, 7));
+	ASSERT_TRUE(Sidecar.AddTeamEvent(20, 7, TEAM_FLOCK, 4));
+	const std::string Json = Sidecar.BuildJson();
+
+	SLiveReplaySidecarData Parsed;
+	char aError[128];
+
+	std::string InvalidRecording = Json;
+	size_t Pos = InvalidRecording.find("\"end_tick\": 90");
+	ASSERT_NE(Pos, std::string::npos);
+	InvalidRecording.replace(Pos, std::string("\"end_tick\": 90").size(), "\"end_tick\": 9");
+	EXPECT_FALSE(CLiveReplaySidecar::LoadFromString(InvalidRecording.c_str(), Parsed, aError, sizeof(aError)));
+	EXPECT_STREQ(aError, "invalid recording tick range");
+
+	std::string InvalidFinishTeam = Json;
+	Pos = InvalidFinishTeam.find("\"team\": 4");
+	ASSERT_NE(Pos, std::string::npos);
+	InvalidFinishTeam.replace(Pos, std::string("\"team\": 4").size(), "\"team\": 0");
+	EXPECT_FALSE(CLiveReplaySidecar::LoadFromString(InvalidFinishTeam.c_str(), Parsed, aError, sizeof(aError)));
+	EXPECT_STREQ(aError, "invalid finish event");
+
+	std::string InvalidTeamClient = Json;
+	const size_t TeamEventsPos = InvalidTeamClient.find("\"team_events\"");
+	ASSERT_NE(TeamEventsPos, std::string::npos);
+	Pos = InvalidTeamClient.find("\"client_id\": 7", TeamEventsPos);
+	ASSERT_NE(Pos, std::string::npos);
+	const std::string InvalidClient = "\"client_id\": " + std::to_string(MAX_CLIENTS);
+	InvalidTeamClient.replace(Pos, std::string("\"client_id\": 7").size(), InvalidClient);
+	EXPECT_FALSE(CLiveReplaySidecar::LoadFromString(InvalidTeamClient.c_str(), Parsed, aError, sizeof(aError)));
+	EXPECT_STREQ(aError, "invalid team event");
 }
 
 TEST(QmLiveFinishRanking, ResolvesPendingFinishTeamAttribution)
@@ -312,6 +378,22 @@ TEST(QmLiveFinishRanking, ResolvesPendingFinishTeamAttribution)
 	EXPECT_EQ(Resolved.m_vAccepted[0].m_Event.m_ClientId, 5);
 	EXPECT_EQ(Resolved.m_vAccepted[0].m_Event.m_TimeMs, 151420);
 	EXPECT_EQ(Resolved.m_vAccepted[0].m_Rank, 1);
+}
+
+TEST(QmLiveFinishRanking, KeepsPendingFinishUntilTeamBecomesReliable)
+{
+	CLiveFinishRanking Ranking;
+	Ranking.OnFinishMessage(5, 151420, 100, false, -1);
+
+	std::array<int, MAX_CLIENTS> aTeams = DefaultTeams();
+	CLiveFinishRanking::CResolveResult Unresolved = Ranking.ResolvePending(aTeams.data(), aTeams.size(), 101);
+	EXPECT_TRUE(Unresolved.m_vAccepted.empty());
+	EXPECT_EQ(Unresolved.m_DroppedPending, 0);
+
+	aTeams[5] = 4;
+	CLiveFinishRanking::CResolveResult Resolved = Ranking.ResolvePending(aTeams.data(), aTeams.size(), 102);
+	ASSERT_EQ(Resolved.m_vAccepted.size(), 1u);
+	EXPECT_EQ(Resolved.m_vAccepted[0].m_Event.m_Team, 4);
 }
 
 TEST(QmLiveFinishRanking, IgnoresInvalidTeamsAfterTeamStateIsKnown)
@@ -372,7 +454,7 @@ TEST(QmLiveFinishRanking, FiltersConfiguredTeamRangeWithoutChangingInternalLog)
 	ASSERT_EQ(Ranking.Events().size(), 2u);
 	EXPECT_FALSE(Ranking.IsTeamInConfiguredRange(5));
 	EXPECT_EQ(Ranking.RankForTeam(5, false), 0);
-	EXPECT_EQ(Ranking.RankForTeam(2, false), 1);
+	EXPECT_EQ(Ranking.RankForTeam(2, false), 2);
 	EXPECT_EQ(Ranking.RankForTeam(5, true), 1);
 }
 

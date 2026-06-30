@@ -6,6 +6,8 @@
 #include <engine/shared/json.h>
 #include <engine/shared/jsonwriter.h>
 
+#include <game/teamscore.h>
+
 namespace
 {
 
@@ -38,6 +40,50 @@ namespace
 	{
 		if(pError != nullptr && ErrorSize > 0)
 			str_copy(pError, pMessage, ErrorSize);
+	}
+
+	bool ValidClientId(int ClientId)
+	{
+		return ClientId >= 0 && ClientId < MAX_CLIENTS;
+	}
+
+	bool ValidRecordedTeam(int Team)
+	{
+		return Team >= TEAM_FLOCK && Team <= TEAM_SUPER;
+	}
+
+	bool ValidFinishEvent(const SLiveReplayFinishEvent &Event)
+	{
+		return Event.m_Tick >= 0 &&
+		       Event.m_Team > TEAM_FLOCK && Event.m_Team < TEAM_SUPER &&
+		       Event.m_Time >= 0 &&
+		       ValidClientId(Event.m_ClientId);
+	}
+
+	bool ValidTeamEvent(const SLiveReplayTeamEvent &Event)
+	{
+		return Event.m_Tick >= 0 &&
+		       ValidClientId(Event.m_ClientId) &&
+		       ValidRecordedTeam(Event.m_OldTeam) &&
+		       ValidRecordedTeam(Event.m_NewTeam);
+	}
+
+	bool DemoFilenameMatches(const char *pRecordedFilename, const char *pCurrentFilename)
+	{
+		if(pCurrentFilename == nullptr || pCurrentFilename[0] == '\0')
+			return true;
+		if(pRecordedFilename == nullptr || pRecordedFilename[0] == '\0')
+			return false;
+		if(str_comp(pRecordedFilename, pCurrentFilename) == 0)
+			return true;
+
+		char aRecordedName[IO_MAX_PATH_LENGTH];
+		char aCurrentName[IO_MAX_PATH_LENGTH];
+		IStorage::StripPathAndExtension(pRecordedFilename, aRecordedName, sizeof(aRecordedName));
+		IStorage::StripPathAndExtension(pCurrentFilename, aCurrentName, sizeof(aCurrentName));
+		return aRecordedName[0] != '\0' &&
+		       aCurrentName[0] != '\0' &&
+		       str_comp(aRecordedName, aCurrentName) == 0;
 	}
 
 	void WriteFinishEvent(CJsonWriter &JsonWriter, const SLiveReplayFinishEvent &Event)
@@ -290,6 +336,11 @@ bool CLiveReplaySidecar::LoadFromString(const char *pJson, SLiveReplaySidecarDat
 			SetError(pError, ErrorSize, "invalid recording object");
 			break;
 		}
+		if(Out.m_StartTick < 0 || Out.m_EndTick < Out.m_StartTick)
+		{
+			SetError(pError, ErrorSize, "invalid recording tick range");
+			break;
+		}
 
 		const json_value *pFinishEvents = JsonObjectField(pRoot, "finish_events");
 		if(pFinishEvents != &json_value_none)
@@ -303,7 +354,7 @@ bool CLiveReplaySidecar::LoadFromString(const char *pJson, SLiveReplaySidecarDat
 			for(int i = 0; i < json_array_length(pFinishEvents); ++i)
 			{
 				SLiveReplayFinishEvent Event;
-				if(!ParseFinishEvent(json_array_get(pFinishEvents, i), Event))
+				if(!ParseFinishEvent(json_array_get(pFinishEvents, i), Event) || !ValidFinishEvent(Event))
 				{
 					SetError(pError, ErrorSize, "invalid finish event");
 					EventsOk = false;
@@ -327,7 +378,7 @@ bool CLiveReplaySidecar::LoadFromString(const char *pJson, SLiveReplaySidecarDat
 			for(int i = 0; i < json_array_length(pTeamEvents); ++i)
 			{
 				SLiveReplayTeamEvent Event;
-				if(!ParseTeamEvent(json_array_get(pTeamEvents, i), Event))
+				if(!ParseTeamEvent(json_array_get(pTeamEvents, i), Event) || !ValidTeamEvent(Event))
 				{
 					SetError(pError, ErrorSize, "invalid team event");
 					EventsOk = false;
@@ -352,7 +403,7 @@ bool CLiveReplaySidecar::MatchesDemo(const SLiveReplaySidecarData &Data, const c
 {
 	if(Data.m_FormatVersion != SLiveReplaySidecarData::FORMAT_VERSION)
 		return false;
-	if(pDemoFilename != nullptr && pDemoFilename[0] != '\0' && str_comp(Data.m_aDemoFilename, pDemoFilename) != 0)
+	if(!DemoFilenameMatches(Data.m_aDemoFilename, pDemoFilename))
 		return false;
 	if(pMapName != nullptr && pMapName[0] != '\0' && str_comp(Data.m_aMapName, pMapName) != 0)
 		return false;

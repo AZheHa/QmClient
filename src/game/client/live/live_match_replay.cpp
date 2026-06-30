@@ -19,7 +19,7 @@
 namespace
 {
 	constexpr const char *LIVE_MATCH_REPLAY_CONSOLE = "qmlive/match";
-	constexpr const char *LIVE_MATCH_REPLAY_DEMO_DIR = "demos/live";
+	constexpr const char *LIVE_MATCH_REPLAY_DEMO_DIR = "demos/qm_live/matches";
 
 	bool ValidClientId(int ClientId)
 	{
@@ -36,7 +36,19 @@ namespace
 
 		char aTimestamp[20];
 		str_timestamp(aTimestamp, sizeof(aTimestamp));
-		str_format(pBuffer, BufferSize, "live/%s_match_%s", aMap, aTimestamp);
+		str_format(pBuffer, BufferSize, "qm_live/matches/%s_match_%s", aMap, aTimestamp);
+	}
+
+	bool EnsureSaveFolder(IStorage *pStorage, const char *pFolder)
+	{
+		return pStorage->CreateFolder(pFolder, IStorage::TYPE_SAVE) || pStorage->FolderExists(pFolder, IStorage::TYPE_SAVE);
+	}
+
+	bool EnsureMatchDemoFolder(IStorage *pStorage)
+	{
+		return EnsureSaveFolder(pStorage, "demos") &&
+		       EnsureSaveFolder(pStorage, "demos/qm_live") &&
+		       EnsureSaveFolder(pStorage, LIVE_MATCH_REPLAY_DEMO_DIR);
 	}
 } // namespace
 
@@ -85,10 +97,9 @@ bool CLiveMatchReplay::Start(CGameClient *pGameClient)
 		SetStatus("manual demo recorder is already recording");
 		return false;
 	}
-	if(!pGameClient->Storage()->CreateFolder(LIVE_MATCH_REPLAY_DEMO_DIR, IStorage::TYPE_SAVE) &&
-		!pGameClient->Storage()->FolderExists(LIVE_MATCH_REPLAY_DEMO_DIR, IStorage::TYPE_SAVE))
+	if(!EnsureMatchDemoFolder(pGameClient->Storage()))
 	{
-		SetStatus("failed to create demos/live");
+		SetStatus("failed to create demos/qm_live/matches");
 		return false;
 	}
 

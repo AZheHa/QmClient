@@ -119,6 +119,7 @@
 #include "live/live_team_render_filter.h"
 #endif
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <optional>
@@ -213,6 +214,13 @@ public:
 		int m_TargetY = 0;
 		unsigned m_WheelMask = 0;
 		uint64_t m_WheelSequence = 0;
+	};
+
+	enum class EQmLivePresentationMode
+	{
+		NORMAL,
+		LIVE_OBSERVER,
+		QMLIVE_DEMO,
 	};
 
 	friend class CTClient;
@@ -361,7 +369,22 @@ private:
 	void UpdateEditorIngameMoved();
 	void HandleHammerSkinSwap(CCharacter *pChar);
 	void HandleRandomEmoteOnHit(CCharacter *pLocalChar, int DummyIndex);
+	bool LivePresentationUsesLiveObserverOverlay() const;
+	bool LivePresentationUsesQmLiveDemo() const;
+	bool LivePresentationUsesOnlineDirector() const;
 #if defined(CONF_QM_LIVE_CLIENT)
+	void ResetQmLiveDemoPlaybackState();
+	void SaveLiveObserverStateForQmLiveDemo();
+	void RestoreLiveObserverStateAfterQmLiveDemo();
+	bool TryLoadQmLiveDemoSidecar();
+	void UpdateQmLiveDemoPlaybackState();
+	void RebuildQmLiveDemoTeams(int CurrentTick);
+	int QmLiveDemoPlaybackTick() const;
+	int QmLiveDemoTeamForClient(int ClientId) const;
+	int LiveObserverDDRaceTeam(int ClientId) const;
+	int LiveFinishTimeForTeam(int Team) const;
+	int QmLiveDemoPrimaryTargetForTeam(int Team, int CurrentTick) const;
+	int QmLiveDemoFallbackPlayerForTeam(int Team, int CurrentTick) const;
 	void UpdateLiveObserverSnapshot();
 	void PushLiveReplaySnapshot();
 	void RenderLiveObserverOverlay();
@@ -398,6 +421,7 @@ private:
 	void UpdateLiveTeamFilterConfig();
 	void ResetLiveTeamFilterTransientState();
 	bool ShouldFilterLiveTeamMessage(int MsgId, void *pRawMsg) const;
+	bool ShouldSuppressComponentForQmLiveDemo(const CComponent *pComponent) const;
 #endif
 
 	int m_PredictedTick;
@@ -920,6 +944,9 @@ public:
 	int ClientVersion7() const override;
 	const SDemoHudPlaybackState *DemoHudPlaybackState() const { return m_DemoHudPlaybackState.m_Valid ? &m_DemoHudPlaybackState : nullptr; }
 	const SDemoInputPlaybackState *DemoInputPlaybackState() const { return m_DemoInputPlaybackState.m_Valid ? &m_DemoInputPlaybackState : nullptr; }
+	EQmLivePresentationMode LivePresentationMode() const;
+	bool IsQmLiveDemoPlayback() const { return LivePresentationMode() == EQmLivePresentationMode::QMLIVE_DEMO; }
+	bool ShouldSuppressStandardHud() const { return IsQmLiveDemoPlayback(); }
 
 	void DoTeamChangeMessage7(const char *pName, int ClientId, int Team, const char *pPrefix = "");
 
@@ -1262,17 +1289,35 @@ private:
 	CLiveMatchReplay m_LiveMatchReplay;
 	CLiveReplayBuffer m_LiveReplayBuffer;
 	CLiveTeamRenderFilter m_LiveTeamRenderFilter;
+	SLiveReplaySidecarData m_QmLiveDemoSidecar;
+	std::array<int, MAX_CLIENTS> m_aQmLiveDemoTeams{};
 	std::vector<uint8_t> m_vLiveReplayScratch;
+	char m_aQmLiveDemoSidecarPath[IO_MAX_PATH_LENGTH] = "";
 	int m_LiveObserverCurrentTeam = -1;
 	int m_LiveObserverReturnTeam = -1;
 	int m_LiveObserverFollowClientId = SPEC_FREEVIEW;
 	int m_LiveObserverExpandedTeam = -1;
+	int m_QmLiveDemoLastTick = -1;
+	int m_QmLiveDemoWantedTeam = -1;
+	int m_QmLiveDemoFilterTeam = -1;
+	int m_QmLiveDemoFollowClientId = SPEC_FREEVIEW;
+	int m_QmLiveDemoSavedCurrentTeam = -1;
+	int m_QmLiveDemoSavedReturnTeam = -1;
+	int m_QmLiveDemoSavedFollowClientId = SPEC_FREEVIEW;
+	int m_QmLiveDemoSavedExpandedTeam = -1;
 	vec2 m_LiveObserverLastMousePos = vec2(0.0f, 0.0f);
 	int64_t m_LiveCompatLastSpectatorRequestTime = 0;
 	float m_LiveObserverPanelScroll = 0.0f;
+	float m_QmLiveDemoSavedPanelScroll = 0.0f;
 	bool m_LiveObserverMouseAbsolute = false;
 	bool m_LiveObserverFreeview = true;
 	bool m_LiveObserverHoldFreeview = false;
+	bool m_QmLiveDemoSidecarLoadAttempted = false;
+	bool m_QmLiveDemoSidecarValid = false;
+	bool m_QmLiveDemoManualFollow = false;
+	bool m_QmLiveDemoSavedObserverState = false;
+	bool m_QmLiveDemoSavedFreeview = true;
+	bool m_QmLiveDemoSavedHoldFreeview = false;
 	bool m_LiveFinishTeamsStateKnown = false;
 	int m_LiveFinishTeamsStateTick = -1;
 	int m_LiveTeamFilterResetSerial = 0;

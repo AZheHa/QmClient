@@ -1299,7 +1299,7 @@ void CSkins::UpdateForSettingsWarmup()
 size_t CSkins::LoadedSkinLimit() const
 {
 #if defined(CONF_QM_LIVE_CLIENT)
-	if(Client()->QmLiveDirectorActive())
+	if(GameClient()->LivePresentationMode() == CGameClient::EQmLivePresentationMode::LIVE_OBSERVER)
 		return minimum((size_t)g_Config.m_ClSkinsLoadedMax, LIVE_OBSERVER_SKINS_LOADED_MAX);
 #endif
 	return (size_t)g_Config.m_ClSkinsLoadedMax;

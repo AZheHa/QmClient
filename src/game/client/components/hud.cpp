@@ -5620,7 +5620,7 @@ void CHud::OnRender()
 		return;
 
 #if defined(CONF_QM_LIVE_CLIENT)
-	if(Client()->QmLiveDirectorActive())
+	if(GameClient()->LivePresentationMode() == CGameClient::EQmLivePresentationMode::LIVE_OBSERVER || GameClient()->ShouldSuppressStandardHud())
 		return;
 #endif
 

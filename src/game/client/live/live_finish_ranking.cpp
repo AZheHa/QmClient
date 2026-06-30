@@ -181,7 +181,7 @@ CLiveFinishRanking::CResolveResult CLiveFinishRanking::ResolvePending(const int 
 		const int Team = pTeams[Pending.m_ClientId];
 		if(!IsValidDDRaceTeam(Team))
 		{
-			++ResolveResult.m_DroppedPending;
+			vRemaining.push_back(Pending);
 			continue;
 		}
 
@@ -235,8 +235,6 @@ int CLiveFinishRanking::RankForTeam(int Team, bool IncludeOutOfRange) const
 	int Rank = 1;
 	for(const CLiveFinishEvent &Event : m_vEvents)
 	{
-		if(!IncludeOutOfRange && !IsTeamInConfiguredRange(Event.m_Team))
-			continue;
 		if(Event.m_Team != Team && EventLess(Event, *pTarget))
 			++Rank;
 	}
