@@ -154,9 +154,9 @@ namespace qm_dummy_command
 		       Command == EQmDummyInputCommand::HOOK;
 	}
 
-	inline void ApplyPassiveDummyOverride(CNetObj_PlayerInput &Input, const SQmDummyPassiveOverride &Override)
+	inline void ApplyPassiveDummyOverride(CNetObj_PlayerInput &Input, const SQmDummyPassiveOverride &Override, bool ApplyDirection = true)
 	{
-		if(Override.m_DirectionActive)
+		if(ApplyDirection && Override.m_DirectionActive)
 			Input.m_Direction = Override.m_Direction;
 		if(Override.m_JumpActive)
 			Input.m_Jump = Override.m_Jump;
@@ -351,7 +351,7 @@ public:
 	SQmDummyPassiveOverride GetPassiveDummyOverride() const;
 	int PassiveDummyInputMask() const;
 	bool HasPassiveDummyOverride() const;
-	void ApplyPassiveDummyOverrides(CNetObj_PlayerInput &Input) const;
+	void ApplyPassiveDummyOverrides(CNetObj_PlayerInput &Input, bool ApplyDirection = true) const;
 
 private:
 	static void ConDummyInput(IConsole::IResult *pResult, void *pUserData);

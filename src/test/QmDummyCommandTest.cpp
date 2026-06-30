@@ -362,6 +362,7 @@ TEST(QmDummyCommand, PassiveOverridePreservesHammerFireCounter)
 TEST(QmDummyCommand, PassiveOverlayPreservesOfficialHammerFields)
 {
 	CNetObj_PlayerInput HammerInput = {};
+	HammerInput.m_Direction = 0;
 	HammerInput.m_Fire = 5;
 	HammerInput.m_WantedWeapon = WEAPON_HAMMER + 1;
 	HammerInput.m_TargetX = 320;
@@ -371,9 +372,9 @@ TEST(QmDummyCommand, PassiveOverlayPreservesOfficialHammerFields)
 
 	CNetObj_PlayerInput FinalInput = HammerInput;
 	const SQmDummyPassiveOverride Override = qm_dummy_command::BuildPassiveDummyOverride(1, 0, 1, 1);
-	qm_dummy_command::ApplyPassiveDummyOverride(FinalInput, Override);
+	qm_dummy_command::ApplyPassiveDummyOverride(FinalInput, Override, false);
 
-	EXPECT_EQ(FinalInput.m_Direction, -1);
+	EXPECT_EQ(FinalInput.m_Direction, HammerInput.m_Direction);
 	EXPECT_EQ(FinalInput.m_Jump, 1);
 	EXPECT_EQ(FinalInput.m_Hook, 1);
 	EXPECT_EQ(FinalInput.m_Fire, HammerInput.m_Fire);

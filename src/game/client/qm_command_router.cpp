@@ -216,9 +216,9 @@ bool CQmCommandRouter::HasPassiveDummyOverride() const
 	return m_pGameClient != nullptr && qm_dummy_command::HasPassiveDummyOverride(GetPassiveDummyOverride());
 }
 
-void CQmCommandRouter::ApplyPassiveDummyOverrides(CNetObj_PlayerInput &Input) const
+void CQmCommandRouter::ApplyPassiveDummyOverrides(CNetObj_PlayerInput &Input, bool ApplyDirection) const
 {
-	qm_dummy_command::ApplyPassiveDummyOverride(Input, GetPassiveDummyOverride());
+	qm_dummy_command::ApplyPassiveDummyOverride(Input, GetPassiveDummyOverride(), ApplyDirection);
 }
 
 int CQmCommandRouter::ConnForTarget(EQmCommandTarget Target) const

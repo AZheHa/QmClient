@@ -1048,7 +1048,7 @@ int CGameClient::OnSnapInput(int *pData, bool Dummy, bool Force)
 	m_HammerInput.m_TargetY = (int)Dir.y;
 
 	CNetObj_PlayerInput FinalDummyInput = m_HammerInput;
-	m_QmCommandRouter.ApplyPassiveDummyOverrides(FinalDummyInput);
+	m_QmCommandRouter.ApplyPassiveDummyOverrides(FinalDummyInput, false);
 	mem_copy(pData, &FinalDummyInput, sizeof(FinalDummyInput));
 	m_QmDummyInputForceSend = false;
 	return sizeof(FinalDummyInput);
@@ -1069,7 +1069,7 @@ bool CGameClient::GetDummyFastInput(CNetObj_PlayerInput &DummyFastInput, const C
 	if(g_Config.m_ClDummyHammer)
 	{
 		DummyFastInput = m_HammerInput;
-		m_QmCommandRouter.ApplyPassiveDummyOverrides(DummyFastInput);
+		m_QmCommandRouter.ApplyPassiveDummyOverrides(DummyFastInput, false);
 		return true;
 	}
 
