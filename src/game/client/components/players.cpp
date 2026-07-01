@@ -1899,6 +1899,7 @@ void CPlayers::CreateSpectatorTeeRenderInfo()
 {
 	CTeeRenderInfo SpectatorTeeRenderInfo;
 	SpectatorTeeRenderInfo.m_Size = 64.0f;
+	SpectatorTeeRenderInfo.m_TeeRenderFlags = TEE_PREVIEW_LAYER_BODY_OUTLINE;
 	CSkinDescriptor SpectatorSkinDescriptor;
 	SpectatorSkinDescriptor.m_Flags |= CSkinDescriptor::FLAG_SIX;
 	str_copy(SpectatorSkinDescriptor.m_aSkinName, "x_spec");

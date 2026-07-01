@@ -2305,8 +2305,20 @@ void CSkins::Refresh(TSkinLoadedCallback &&SkinLoadedCallback)
 	m_SkinList.m_UnfilteredCount = 0;
 	m_SkinList.m_NeedsUpdate = true;
 
+	const auto LoadSpecialSkinDirect = [&](const char *pName) {
+		LoadSkinDirect(pName);
+		const auto Skin = m_Skins.find(pName);
+		if(Skin != m_Skins.end() && Skin->second->State() == CSkinContainer::EState::LOADED)
+		{
+			GameClient()->OnSkinUpdate(pName);
+		}
+		SkinLoadedCallback();
+	};
+
 	LoadSkinDirect("default");
 	SkinLoadedCallback();
+	LoadSpecialSkinDirect("x_ninja");
+	LoadSpecialSkinDirect("x_spec");
 	QueueSkinDirectoryScanJob();
 }
 
