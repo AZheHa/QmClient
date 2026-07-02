@@ -2,6 +2,8 @@
 #include <test/test.h>
 
 #include <algorithm>
+#include <regex>
+#include <sstream>
 #include <string>
 
 namespace
@@ -480,6 +482,25 @@ TEST(QmNewUiMenuBranches, DefaultUiSurfacesUseBlackThirtyPercent)
 	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_INT(ClSettingsTabbarOpacity, cl_settings_tabbar_opacity, 30"), std::string::npos);
 }
 
+TEST(QmNewUiMenuBranches, QmFeatureDefaultsAreDisabled)
+{
+	const std::string ConfigSource = ReadTextFile("src/engine/shared/config_variables_qmclient.h");
+	const std::regex BinaryQmDefaultOn(R"(MACRO_CONFIG_INT\([^,]+,\s*qm_[^,]+,\s*1,\s*0,\s*1,)");
+	std::istringstream Lines(ConfigSource);
+	std::string Line;
+	while(std::getline(Lines, Line))
+	{
+		EXPECT_FALSE(std::regex_search(Line, BinaryQmDefaultOn)) << Line;
+	}
+
+	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_INT(QmUiMotionLevel, qm_ui_motion_level, 0, 0, 2"), std::string::npos);
+	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_INT(QmWeaponTrajectory, qm_weapon_trajectory, 0, 0, 2"), std::string::npos);
+	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_INT(QmVoiceNoiseSuppressEnable, qm_voice_noise_suppress_enable, 0, 0, 2"), std::string::npos);
+	EXPECT_EQ(ConfigSource.find("MACRO_CONFIG_INT(QmUiMotionLevel, qm_ui_motion_level, 2, 0, 2"), std::string::npos);
+	EXPECT_EQ(ConfigSource.find("MACRO_CONFIG_INT(QmWeaponTrajectory, qm_weapon_trajectory, 1, 0, 2"), std::string::npos);
+	EXPECT_EQ(ConfigSource.find("MACRO_CONFIG_INT(QmVoiceNoiseSuppressEnable, qm_voice_noise_suppress_enable, 2, 0, 2"), std::string::npos);
+}
+
 TEST(QmNewUiMenuBranches, SkinTransitionAnimationToggleOwnsAdvancedControls)
 {
 	const std::string ConfigSource = ReadTextFile("src/engine/shared/config_variables_qmclient.h");
@@ -488,7 +509,7 @@ TEST(QmNewUiMenuBranches, SkinTransitionAnimationToggleOwnsAdvancedControls)
 	const std::string SettingsSource = ReadTextFile("src/game/client/components/menus_settings.cpp");
 	const std::string LanguageSource = ReadTextFile("data/languages/simplified_chinese.txt");
 
-	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_INT(QmSkinChangeTransition, qm_skin_change_transition, 1, 0, 1"), std::string::npos);
+	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_INT(QmSkinChangeTransition, qm_skin_change_transition, 0, 0, 1"), std::string::npos);
 	EXPECT_NE(MenusSource.find("pSkinTransitionAnimationFeatureId = \"qm_2_72_0_skin_transition_animation_toggle\""), std::string::npos);
 	EXPECT_NE(MenusSource.find("pSkinTransitionAnimationFeatureId,\n\t\t\t\t\t\t\"qm_2_62_8_weapon_animation\""), std::string::npos);
 	EXPECT_NE(MenusSource.find("return \"皮肤切换 pifu qiehuan skin transition 换皮 huanpi 动画 donghua 开关 kaiguan 类型 leixing 时长 shichang 锤中偷皮 chuizhong toupi\";"), std::string::npos);
