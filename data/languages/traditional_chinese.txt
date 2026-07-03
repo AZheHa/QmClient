@@ -1645,6 +1645,9 @@ Cut segments
 Cute:
 == 可愛：
 
+Cycle custom Tee hue
+== 循環自訂 Tee 色調
+
 Cycle through emotes
 == 循環顯示表情
 
@@ -3082,6 +3085,9 @@ HUD rainbow colors
 Hue
 == 色調
 
+Hue speed
+== 變色速度
+
 i = Receive rate
 == i = 接收速率
 
@@ -3715,15 +3721,6 @@ Main Asset
 Main menu
 == 主選單
 
-Make inactive tee fire
-== 控制非活動 Tee 開火
-
-Make inactive tee hook
-== 控制非活動 Tee 出鉤
-
-Make inactive tee jump
-== 控制非活動 Tee 跳躍
-
 Make sure the backend supports OpenAI-compatible thinking parameters
 == 確保後端支援 OpenAI 相容的思考參數
 
@@ -3927,12 +3924,6 @@ MOTD
 
 Mouse
 == 滑鼠
-
-Move inactive tee left
-== 控制非活動 Tee 左移
-
-Move inactive tee right
-== 控制非活動 Tee 右移
 
 Move left
 == 向左移動
@@ -4347,6 +4338,9 @@ Online Players
 
 Only .wv files are supported right now.
 == 目前僅支援 .wv 檔案。
+
+Only affects custom Tee colors.
+== 僅對自訂 Tee 顏色生效。
 
 Only Apple Can Do
 == 只有 Apple 才能做到
@@ -5590,14 +5584,8 @@ Saves file
 Say in chat
 == 在聊天中說
 
-Say in chat as inactive tee
-== 以非活動 Tee 傳送聊天
-
 Say in team chat
 == 在隊伍聊天中說
-
-Say in team chat as inactive tee
-== 以非活動 Tee 傳送團隊聊天
 
 Scanning current server
 == 正在掃描目前伺服器
@@ -5727,27 +5715,6 @@ Send
 
 Send & Receive
 == 收發
-
-Send /load as inactive tee
-== 以非活動 Tee 傳送 /load
-
-Send /lock as inactive tee
-== 以非活動 Tee 傳送 /lock
-
-Send /pause as inactive tee
-== 以非活動 Tee 傳送 /pause
-
-Send /rescue as inactive tee
-== 以非活動 Tee 傳送 /rescue
-
-Send /save as inactive tee
-== 以非活動 Tee 傳送 /save
-
-Send /spec as inactive tee
-== 以非活動 Tee 傳送 /spec
-
-Send /team as inactive tee
-== 以非活動 Tee 傳送 /team
 
 Send a moderator alert message to player
 == 向玩家傳送管理員提醒訊息
@@ -6709,27 +6676,6 @@ Switch
 Switch failed
 == 切換失敗
 
-Switch inactive tee to grenade
-== 將非活動 Tee 切換到榴彈
-
-Switch inactive tee to gun
-== 將非活動 Tee 切換到手槍
-
-Switch inactive tee to hammer
-== 將非活動 Tee 切換到槌子
-
-Switch inactive tee to laser
-== 將非活動 Tee 切換到雷射
-
-Switch inactive tee to next weapon
-== 將非活動 Tee 切換到下一個武器
-
-Switch inactive tee to previous weapon
-== 將非活動 Tee 切換到上一個武器
-
-Switch inactive tee to shotgun
-== 將非活動 Tee 切換到霰彈槍
-
 Switch interval
 == 切換間隔
 
@@ -6903,6 +6849,9 @@ Tee
 
 Tee 0.7
 == Tee 0.7
+
+Tee appearance
+== Tee 外觀
 
 Tee hitbox
 == Tee 碰撞箱
@@ -7833,6 +7782,9 @@ What's done is done, no use saying more
 
 Wheel animate
 == 滾輪動畫
+
+When TClient rainbow Tee is enabled, this feature has no effect.
+== 已啟用 TClient 彩虹 Tee 時，本功能不會生效。
 
 When you cross the start line, show a ghost tee replicating the movements of your best time
 == 當越過起跑線時，遊戲中將有幽靈重播你的最佳成績

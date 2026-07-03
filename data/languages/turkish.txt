@@ -1645,6 +1645,9 @@ Cut segments
 Cute:
 == Sevimli:
 
+Cycle custom Tee hue
+== Özel Tee tonunu döngüye al
+
 Cycle through emotes
 == Emojiler arasında döngü yap
 
@@ -3082,6 +3085,9 @@ HUD rainbow colors
 Hue
 == Renk tonu
 
+Hue speed
+== Ton hızı
+
 i = Receive rate
 == i = Alma hızı
 
@@ -3715,15 +3721,6 @@ Main Asset
 Main menu
 == Ana menü
 
-Make inactive tee fire
-== Make inactive tee fire
-
-Make inactive tee hook
-== Make inactive tee hook
-
-Make inactive tee jump
-== Make inactive tee jump
-
 Make sure the backend supports OpenAI-compatible thinking parameters
 == Arka uçun OpenAI uyumlu düşünme parametrelerini desteklediğinden emin olun
 
@@ -3927,12 +3924,6 @@ MOTD
 
 Mouse
 == Fare
-
-Move inactive tee left
-== Move inactive tee left
-
-Move inactive tee right
-== Move inactive tee right
 
 Move left
 == Sola hareket et
@@ -4347,6 +4338,9 @@ Online Players
 
 Only .wv files are supported right now.
 == Şu anda yalnızca .wv dosyaları desteklenmektedir.
+
+Only affects custom Tee colors.
+== Yalnızca özel Tee renklerini etkiler.
 
 Only Apple Can Do
 == Yalnızca Apple Yapabilir
@@ -5590,14 +5584,8 @@ Saves file
 Say in chat
 == Sohbette söyle
 
-Say in chat as inactive tee
-== Say in chat as inactive tee
-
 Say in team chat
 == Takım sohbetinde söyle
-
-Say in team chat as inactive tee
-== Say in team chat as inactive tee
 
 Scanning current server
 == Geçerli sunucu taranıyor
@@ -5727,27 +5715,6 @@ Send
 
 Send & Receive
 == Gönder ve Al
-
-Send /load as inactive tee
-== Send /load as inactive tee
-
-Send /lock as inactive tee
-== Send /lock as inactive tee
-
-Send /pause as inactive tee
-== Send /pause as inactive tee
-
-Send /rescue as inactive tee
-== Send /rescue as inactive tee
-
-Send /save as inactive tee
-== Send /save as inactive tee
-
-Send /spec as inactive tee
-== Send /spec as inactive tee
-
-Send /team as inactive tee
-== Send /team as inactive tee
 
 Send a moderator alert message to player
 == Oyuncuya bir moderatör uyarı mesajı gönder
@@ -6709,27 +6676,6 @@ Switch
 Switch failed
 == Değiştirme başarısız
 
-Switch inactive tee to grenade
-== Switch inactive tee to grenade
-
-Switch inactive tee to gun
-== Switch inactive tee to gun
-
-Switch inactive tee to hammer
-== Switch inactive tee to hammer
-
-Switch inactive tee to laser
-== Switch inactive tee to laser
-
-Switch inactive tee to next weapon
-== Switch inactive tee to next weapon
-
-Switch inactive tee to previous weapon
-== Switch inactive tee to previous weapon
-
-Switch inactive tee to shotgun
-== Switch inactive tee to shotgun
-
 Switch interval
 == Geçiş aralığı
 
@@ -6903,6 +6849,9 @@ Tee
 
 Tee 0.7
 == Tee 0.7
+
+Tee appearance
+== Tee görünümü
 
 Tee hitbox
 == Tee hitbox'ı
@@ -7833,6 +7782,9 @@ What's done is done, no use saying more
 
 Wheel animate
 == Tekerlek animasyonu
+
+When TClient rainbow Tee is enabled, this feature has no effect.
+== TClient gökkuşağı Tee açıkken bu özellik etkili olmaz.
 
 When you cross the start line, show a ghost tee replicating the movements of your best time
 == Başlangıç çizgisini geçtiğinde, en iyi zamanının hareketlerini gösteren bir hayalet oyuncu belirir

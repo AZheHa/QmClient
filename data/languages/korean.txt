@@ -1645,6 +1645,9 @@ Cut segments
 Cute:
 == 귀여움:
 
+Cycle custom Tee hue
+== 사용자 지정 Tee 색조 순환
+
 Cycle through emotes
 == 이모트 순환
 
@@ -3082,6 +3085,9 @@ HUD rainbow colors
 Hue
 == 색조
 
+Hue speed
+== 색조 속도
+
 i = Receive rate
 == i = 수신 속도
 
@@ -3715,15 +3721,6 @@ Main Asset
 Main menu
 == 메인 메뉴
 
-Make inactive tee fire
-== Make inactive tee fire
-
-Make inactive tee hook
-== Make inactive tee hook
-
-Make inactive tee jump
-== Make inactive tee jump
-
 Make sure the backend supports OpenAI-compatible thinking parameters
 == 백엔드가 OpenAI 호환 사고 매개변수를 지원하는지 확인하세요
 
@@ -3927,12 +3924,6 @@ MOTD
 
 Mouse
 == 마우스
-
-Move inactive tee left
-== Move inactive tee left
-
-Move inactive tee right
-== Move inactive tee right
 
 Move left
 == 왼쪽으로 이동
@@ -4347,6 +4338,9 @@ Online Players
 
 Only .wv files are supported right now.
 == 현재 .wv 파일만 지원됩니다.
+
+Only affects custom Tee colors.
+== 사용자 지정 Tee 색상에만 적용됩니다.
 
 Only Apple Can Do
 == 오직 Apple만 할 수 있는
@@ -5590,14 +5584,8 @@ Saves file
 Say in chat
 == 채팅으로 말하기
 
-Say in chat as inactive tee
-== Say in chat as inactive tee
-
 Say in team chat
 == 팀 채팅으로 말하기
-
-Say in team chat as inactive tee
-== Say in team chat as inactive tee
 
 Scanning current server
 == 현재 서버를 스캔 중
@@ -5727,27 +5715,6 @@ Send
 
 Send & Receive
 == 보내기 및 받기
-
-Send /load as inactive tee
-== Send /load as inactive tee
-
-Send /lock as inactive tee
-== Send /lock as inactive tee
-
-Send /pause as inactive tee
-== Send /pause as inactive tee
-
-Send /rescue as inactive tee
-== Send /rescue as inactive tee
-
-Send /save as inactive tee
-== Send /save as inactive tee
-
-Send /spec as inactive tee
-== Send /spec as inactive tee
-
-Send /team as inactive tee
-== Send /team as inactive tee
 
 Send a moderator alert message to player
 == 플레이어에게 중재자 경고 메시지 보내기
@@ -6709,27 +6676,6 @@ Switch
 Switch failed
 == 전환 실패
 
-Switch inactive tee to grenade
-== Switch inactive tee to grenade
-
-Switch inactive tee to gun
-== Switch inactive tee to gun
-
-Switch inactive tee to hammer
-== Switch inactive tee to hammer
-
-Switch inactive tee to laser
-== Switch inactive tee to laser
-
-Switch inactive tee to next weapon
-== Switch inactive tee to next weapon
-
-Switch inactive tee to previous weapon
-== Switch inactive tee to previous weapon
-
-Switch inactive tee to shotgun
-== Switch inactive tee to shotgun
-
 Switch interval
 == 전환 간격
 
@@ -6903,6 +6849,9 @@ Tee
 
 Tee 0.7
 == 티 0.7
+
+Tee appearance
+== Tee 외형
 
 Tee hitbox
 == 티 히트박스
@@ -7833,6 +7782,9 @@ What's done is done, no use saying more
 
 Wheel animate
 == 휠 애니메이션
+
+When TClient rainbow Tee is enabled, this feature has no effect.
+== TClient 무지개 Tee가 켜져 있으면 이 기능은 적용되지 않습니다.
 
 When you cross the start line, show a ghost tee replicating the movements of your best time
 == 시작선을 넘으면 최고 기록의 움직임을 재현하는 고스트 티를 표시

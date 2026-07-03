@@ -547,6 +547,7 @@ Cut interval
 Cut length
 Cut segments
 Cute:
+Cycle custom Tee hue
 Cycle through emotes
 d = Prediction latency
 Damn grenadiers, all go to spa!
@@ -1026,6 +1027,7 @@ HUD
 HUD editor preview
 HUD rainbow colors
 Hue
+Hue speed
 i = Receive rate
 I am a robot
 I am away from the game window
@@ -1237,9 +1239,6 @@ Lyrics: no media playing
 Lyrics: searching...
 Main Asset
 Main menu
-Make inactive tee fire
-Make inactive tee hook
-Make inactive tee jump
 Make sure the backend supports OpenAI-compatible thinking parameters
 Makes you a ninja
 Makes you live frozen
@@ -1308,8 +1307,6 @@ Modified
 Modules snap to screen edges, center lines and other HUD modules while dragging
 MOTD
 Mouse
-Move inactive tee left
-Move inactive tee right
 Move left
 Move player to spectators
 Move right
@@ -1448,6 +1445,7 @@ On
 Online friends
 Online Players
 Only .wv files are supported right now.
+Only affects custom Tee colors.
 Only Apple Can Do
 Only save improvements
 Only show after joining a team
@@ -1862,9 +1860,7 @@ Save/Load Name
 Save/Load Skin
 Saves file
 Say in chat
-Say in chat as inactive tee
 Say in team chat
-Say in team chat as inactive tee
 Scanning current server
 Scanning current server...
 Score
@@ -1908,13 +1904,6 @@ Self
 Self only
 Send
 Send & Receive
-Send /load as inactive tee
-Send /lock as inactive tee
-Send /pause as inactive tee
-Send /rescue as inactive tee
-Send /save as inactive tee
-Send /spec as inactive tee
-Send /team as inactive tee
 Send a moderator alert message to player
 Send a server alert message to all players
 Send emoticon in water
@@ -2235,13 +2224,6 @@ Swap is disabled on this server.
 Swap is not available on forced solo servers.
 Switch
 Switch failed
-Switch inactive tee to grenade
-Switch inactive tee to gun
-Switch inactive tee to hammer
-Switch inactive tee to laser
-Switch inactive tee to next weapon
-Switch inactive tee to previous weapon
-Switch inactive tee to shotgun
 Switch interval
 Switch opacity
 Switch spectator mode
@@ -2300,6 +2282,7 @@ Teams are disabled
 Teams are not available on this server; if the team is locked, any team member dying will kill the whole team
 Tee
 Tee 0.7
+Tee appearance
 Tee hitbox
 Tee hitbox color
 Tee size
@@ -2610,6 +2593,7 @@ What kind of laser do you want?
 What kind of life do you want to run?
 What's done is done, no use saying more
 Wheel animate
+When TClient rainbow Tee is enabled, this feature has no effect.
 When you cross the start line, show a ghost tee replicating the movements of your best time
 Whether a switch is deactivated by default (otherwise activated)
 Whether to show players at any distance (off by default), optional i = 0 for off else for on

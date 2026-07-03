@@ -28,6 +28,7 @@
 #include <game/client/components/message_gradient.h>
 #include <game/client/components/qmclient/perf_logging.h>
 #include <game/client/components/qmclient/settings_resource_preview.h>
+#include <game/client/components/qmclient/tee_hue_cycle.h>
 #include <game/client/components/sounds.h>
 #include <game/client/gameclient.h>
 #include <game/client/skin.h>
@@ -1438,13 +1439,25 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	PreviewKey.m_ColorFeet = (int)*pColorFeet;
 	static std::array<SSettingsPreviewSkinTransitionState, NUM_DUMMIES> s_aPreviewTransitionStates;
 	const std::chrono::nanoseconds PreviewNow = time_get_nanoseconds();
+	SQmTeeHueCycleConfig HueCycleConfig;
+	if(!m_Dummy)
+	{
+		HueCycleConfig.m_Enabled = g_Config.m_QmCycleTeeHue != 0;
+		HueCycleConfig.m_PlayerUsesCustomColors = *pUseCustomColor != 0 || g_Config.m_ClPlayer7UseCustomColorBody != 0 || g_Config.m_ClPlayer7UseCustomColorFeet != 0;
+		HueCycleConfig.m_TClientRainbowTees = g_Config.m_TcRainbowTees != 0;
+		HueCycleConfig.m_SpeedDegreesPerSecond = g_Config.m_QmCycleTeeHueSpeed;
+		HueCycleConfig.m_TimeSeconds = PreviewNow.count() / 1000000000.0;
+		HueCycleConfig.m_SixupIndex = 0;
+	}
+	CTeeRenderInfo PreviewSkinInfo = OwnSkinInfo;
+	const bool PreviewHueCycleApplied = !m_Dummy && QmApplyTeeHueCycle(PreviewSkinInfo, HueCycleConfig);
 	SSettingsPreviewSkinTransitionState &PreviewTransitionState = s_aPreviewTransitionStates[m_Dummy];
 	PreviewTransitionState.Update(PreviewKey, OwnSkinInfo, PreviewNow);
 
 	// Tee
 	{
 		vec2 OffsetToMid;
-		CRenderTools::GetRenderTeeOffsetToRenderedTee(CAnimState::GetIdle(), &OwnSkinInfo, OffsetToMid);
+		CRenderTools::GetRenderTeeOffsetToRenderedTee(CAnimState::GetIdle(), &PreviewSkinInfo, OffsetToMid);
 		const vec2 TeeRenderPos = vec2(YourSkin.x + YourSkin.w / 2.0f, YourSkin.y + YourSkin.h / 2.0f + OffsetToMid.y);
 		// tee looking towards cursor, and it is happy when you touch it
 		const vec2 DeltaPosition = Ui()->MousePos() - TeeRenderPos;
@@ -1452,7 +1465,15 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 		const float InteractionDistance = 20.0f;
 		const vec2 TeeDirection = Distance < InteractionDistance ? normalize(vec2(DeltaPosition.x, maximum(DeltaPosition.y, 0.5f))) : normalize(DeltaPosition);
 		const int TeeEmote = Distance < InteractionDistance ? EMOTE_HAPPY : *pEmote;
-		RenderTools()->RenderTeeWithSkinChangeTransition(CAnimState::GetIdle(), PreviewTransitionState.PreviousInfo(PreviewNow), &OwnSkinInfo, TeeEmote, TeeDirection, TeeRenderPos, PreviewTransitionState.Progress(PreviewNow));
+		CTeeRenderInfo PreviousPreviewSkinInfo;
+		const CTeeRenderInfo *pPreviousPreviewSkinInfo = PreviewTransitionState.PreviousInfo(PreviewNow);
+		if(PreviewHueCycleApplied && pPreviousPreviewSkinInfo != nullptr)
+		{
+			PreviousPreviewSkinInfo = *pPreviousPreviewSkinInfo;
+			QmApplyTeeHueCycle(PreviousPreviewSkinInfo, HueCycleConfig);
+			pPreviousPreviewSkinInfo = &PreviousPreviewSkinInfo;
+		}
+		RenderTools()->RenderTeeWithSkinChangeTransition(CAnimState::GetIdle(), pPreviousPreviewSkinInfo, &PreviewSkinInfo, TeeEmote, TeeDirection, TeeRenderPos, PreviewTransitionState.Progress(PreviewNow));
 	}
 
 	// Skin loading status

@@ -1645,6 +1645,9 @@ Cut segments
 Cute:
 == Fofo:
 
+Cycle custom Tee hue
+== Alternar matiz personalizada do Tee
+
 Cycle through emotes
 == Percorrer emotes
 
@@ -3082,6 +3085,9 @@ HUD rainbow colors
 Hue
 == Matiz
 
+Hue speed
+== Velocidade da matiz
+
 i = Receive rate
 == i = Taxa de receção
 
@@ -3715,15 +3721,6 @@ Main Asset
 Main menu
 == Menu principal
 
-Make inactive tee fire
-== Make inactive tee fire
-
-Make inactive tee hook
-== Make inactive tee hook
-
-Make inactive tee jump
-== Make inactive tee jump
-
 Make sure the backend supports OpenAI-compatible thinking parameters
 == Certifique-se de que o backend suporta parâmetros de pensamento compatíveis com OpenAI
 
@@ -3927,12 +3924,6 @@ MOTD
 
 Mouse
 == Rato
-
-Move inactive tee left
-== Move inactive tee left
-
-Move inactive tee right
-== Move inactive tee right
 
 Move left
 == Mover para a esquerda
@@ -4347,6 +4338,9 @@ Online Players
 
 Only .wv files are supported right now.
 == Apenas ficheiros .wv são suportados de momento.
+
+Only affects custom Tee colors.
+== Afeta apenas as cores personalizadas do Tee.
 
 Only Apple Can Do
 == Só a Apple Consegue Fazer
@@ -5590,14 +5584,8 @@ Saves file
 Say in chat
 == Dizer no chat
 
-Say in chat as inactive tee
-== Say in chat as inactive tee
-
 Say in team chat
 == Dizer no chat de equipa
-
-Say in team chat as inactive tee
-== Say in team chat as inactive tee
 
 Scanning current server
 == A analisar o servidor atual
@@ -5727,27 +5715,6 @@ Send
 
 Send & Receive
 == Enviar e Receber
-
-Send /load as inactive tee
-== Send /load as inactive tee
-
-Send /lock as inactive tee
-== Send /lock as inactive tee
-
-Send /pause as inactive tee
-== Send /pause as inactive tee
-
-Send /rescue as inactive tee
-== Send /rescue as inactive tee
-
-Send /save as inactive tee
-== Send /save as inactive tee
-
-Send /spec as inactive tee
-== Send /spec as inactive tee
-
-Send /team as inactive tee
-== Send /team as inactive tee
 
 Send a moderator alert message to player
 == Enviar uma mensagem de alerta de moderador para o jogador
@@ -6709,27 +6676,6 @@ Switch
 Switch failed
 == Falha na alternância
 
-Switch inactive tee to grenade
-== Switch inactive tee to grenade
-
-Switch inactive tee to gun
-== Switch inactive tee to gun
-
-Switch inactive tee to hammer
-== Switch inactive tee to hammer
-
-Switch inactive tee to laser
-== Switch inactive tee to laser
-
-Switch inactive tee to next weapon
-== Switch inactive tee to next weapon
-
-Switch inactive tee to previous weapon
-== Switch inactive tee to previous weapon
-
-Switch inactive tee to shotgun
-== Switch inactive tee to shotgun
-
 Switch interval
 == Intervalo de troca
 
@@ -6903,6 +6849,9 @@ Tee
 
 Tee 0.7
 == Tee 0.7
+
+Tee appearance
+== Aparência do Tee
 
 Tee hitbox
 == Caixa de colisão do Tee
@@ -7833,6 +7782,9 @@ What's done is done, no use saying more
 
 Wheel animate
 == Animação da roda
+
+When TClient rainbow Tee is enabled, this feature has no effect.
+== Quando o Tee arco-íris do TClient está ativado, esta funcionalidade não tem efeito.
 
 When you cross the start line, show a ghost tee replicating the movements of your best time
 == Quando cruzares a linha de partida, mostra um fantasma a replicar os movimentos do teu melhor tempo

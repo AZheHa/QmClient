@@ -2782,6 +2782,8 @@ if(CLIENT)
     components/qmclient/settings_resource_preview.h
     components/qmclient/scripting.cpp
     components/qmclient/scripting.h
+    components/qmclient/tee_hue_cycle.cpp
+    components/qmclient/tee_hue_cycle.h
     components/qmclient/scripting/impl.cpp
     components/qmclient/scripting/impl.h
     components/qmclient/translate/translate.cpp
@@ -3735,6 +3737,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     qm_lyrics_source_lrclib_test.cpp
     qm_lyrics_song_search_map_test.cpp
     qm_modes_test.cpp
+    qm_tee_hue_cycle_test.cpp
     qmclient_update_version_test.cpp
     QmUiTokensTest.cpp
     qmclient_monitoring_test.cpp
@@ -3815,6 +3818,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     src/game/client/live/live_team_render_filter.cpp
     src/game/client/components/qmclient/modes.cpp
     src/game/client/components/qmclient/settings_resource_preview.cpp
+    src/game/client/components/qmclient/tee_hue_cycle.cpp
     src/game/client/components/qmclient/update_version.cpp
     src/game/client/components/qmclient/qmclient_utils.cpp
     src/game/client/components/qmclient/translate/translate_parse.cpp

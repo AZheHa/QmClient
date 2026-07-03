@@ -1993,6 +1993,22 @@ turkish = "Çekiç deri çalma ve deri geçiş animasyonlarını yapılandır"
 polish = "Skonfiguruj kradzież skóry młotkiem i animacje przejścia skóry"
 
 [[message]]
+key = "Cycle custom Tee hue"
+[message.translations]
+japanese = "カスタムTeeの色相を循環"
+korean = "사용자 지정 Tee 색조 순환"
+simplified_chinese = "循环自定义 Tee 色调"
+traditional_chinese = "循環自訂 Tee 色調"
+russian = "Циклически менять оттенок пользовательского Tee"
+german = "Benutzerdefinierten Tee-Farbton wechseln"
+spanish = "Ciclar tono personalizado del Tee"
+french = "Faire tourner la teinte personnalisée du Tee"
+brazilian_portuguese = "Alternar matiz personalizada do Tee"
+portuguese = "Alternar matiz personalizada do Tee"
+turkish = "Özel Tee tonunu döngüye al"
+polish = "Cyklicznie zmieniaj odcień własnego Tee"
+
+[[message]]
 key = "Confirm both are on same server, same room, and support voice"
 [message.translations]
 japanese = "両方が同じサーバー、同じ部屋にいて、ボイスをサポートしていることを確認"
@@ -3950,6 +3966,22 @@ brazilian_portuguese = "Cor da linha guia"
 portuguese = "Cor da linha de guia"
 turkish = "Kılavuz çizgisi rengi"
 polish = "Kolor linii prowadzącej"
+
+[[message]]
+key = "Hue speed"
+[message.translations]
+japanese = "色相速度"
+korean = "색조 속도"
+simplified_chinese = "变色速度"
+traditional_chinese = "變色速度"
+russian = "Скорость оттенка"
+german = "Farbton-Geschwindigkeit"
+spanish = "Velocidad de tono"
+french = "Vitesse de teinte"
+brazilian_portuguese = "Velocidade da matiz"
+portuguese = "Velocidade da matiz"
+turkish = "Ton hızı"
+polish = "Szybkość odcienia"
 
 [[message]]
 key = "Hammer skin steal"
@@ -6178,6 +6210,22 @@ brazilian_portuguese = "Só a Apple Consegue Fazer"
 portuguese = "Só a Apple Consegue Fazer"
 turkish = "Yalnızca Apple Yapabilir"
 polish = "Tylko Apple może to zrobić"
+
+[[message]]
+key = "Only affects custom Tee colors."
+[message.translations]
+japanese = "カスタムTee色にのみ適用されます。"
+korean = "사용자 지정 Tee 색상에만 적용됩니다."
+simplified_chinese = "仅对自定义 Tee 颜色生效。"
+traditional_chinese = "僅對自訂 Tee 顏色生效。"
+russian = "Действует только на пользовательские цвета Tee."
+german = "Gilt nur für benutzerdefinierte Tee-Farben."
+spanish = "Solo afecta los colores personalizados del Tee."
+french = "N'affecte que les couleurs personnalisées du Tee."
+brazilian_portuguese = "Afeta apenas as cores personalizadas do Tee."
+portuguese = "Afeta apenas as cores personalizadas do Tee."
+turkish = "Yalnızca özel Tee renklerini etkiler."
+polish = "Dotyczy tylko własnych kolorów Tee."
 
 [[message]]
 key = "Only show when the other Tee is not on screen"
@@ -10023,6 +10071,22 @@ turkish = "Bu sunucuda takımlar mevcut değil; takım kilitliyse, herhangi bir 
 polish = "Drużyny nie są dostępne na tym serwerze; jeśli drużyna jest zablokowana, śmierć dowolnego członka zabije całą drużynę"
 
 [[message]]
+key = "Tee appearance"
+[message.translations]
+japanese = "Teeの外観"
+korean = "Tee 외형"
+simplified_chinese = "Tee 外观"
+traditional_chinese = "Tee 外觀"
+russian = "Внешний вид Tee"
+german = "Tee-Aussehen"
+spanish = "Apariencia del Tee"
+french = "Apparence du Tee"
+brazilian_portuguese = "Aparência do Tee"
+portuguese = "Aparência do Tee"
+turkish = "Tee görünümü"
+polish = "Wygląd Tee"
+
+[[message]]
 key = "Tee hitbox"
 [message.translations]
 japanese = "Teeヒットボックス"
@@ -11505,6 +11569,23 @@ brazilian_portuguese = "Que tipo de vida você quer correr?"
 portuguese = "Que tipo de vida queres correr?"
 turkish = "Ne tür bir hayat koşmak istiyorsunuz?"
 polish = "Jakie życie chcesz biegać?"
+
+[[message]]
+key = "When TClient rainbow Tee is enabled, this feature has no effect."
+[message.translations]
+japanese = "TClientのレインボーTeeが有効な場合、この機能は適用されません。"
+korean = "TClient 무지개 Tee가 켜져 있으면 이 기능은 적용되지 않습니다."
+simplified_chinese = "已启用 TClient 彩虹 Tee 时，本功能不会生效。"
+traditional_chinese = "已啟用 TClient 彩虹 Tee 時，本功能不會生效。"
+russian = "Если включен радужный Tee TClient, эта функция не действует."
+german = "Wenn TClient-Regenbogen-Tee aktiviert ist, hat diese Funktion keine Wirkung."
+spanish = "Cuando el Tee arcoíris de TClient está activado, esta función no tiene efecto."
+french = "Quand le Tee arc-en-ciel de TClient est activé, cette fonction n'a aucun effet."
+brazilian_portuguese = "Quando o Tee arco-íris do TClient está ativado, este recurso não tem efeito."
+portuguese = "Quando o Tee arco-íris do TClient está ativado, esta funcionalidade não tem efeito."
+turkish = "TClient gökkuşağı Tee açıkken bu özellik etkili olmaz."
+polish = "Gdy tęczowy Tee TClienta jest włączony, ta funkcja nie działa."
+
 [[message]]
 key = "What's done is done, no use saying more"
 [message.translations]

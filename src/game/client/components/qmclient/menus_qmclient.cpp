@@ -2322,7 +2322,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		case EQmModuleId::MiniFeatures: return "梦的小功能 meng xiaogongneng 粒子拖尾 lizi tuowei 远程粒子 yuancheng lizi 计分板查分 chafen 聊天框淡出 liaotian danchu 表情选择 biaoqing xuanze 动画优化 donghua youhua 复读 fudu 锤人换皮 chuiren huanpi 随机表情 suiji biaoqing 连击 lianji combo 说话不弹表情 shuo hua biaoqing 本地彩虹名字 caihong mingzi 计分板Qm标识 qm biaoshi scoreboard badge 更新 gengxin 版本 banben 过旧 guojiu 提示 tishi outdated version warning 新版UI xinban ui settings page shezhi yemian 新版IME xinban ime 输入法 shurufa 候选栏 houxuanlan 协作制图 xiezuo zhitu 多人制图 duoren zhitu";
 		case EQmModuleId::JumpHint: return "位置跳跃提示 tiaoyue tishi jump hint position edge jump color yanse 颜色 horizontal position shuiping weizhi vertical position chuizhi weizhi font size ziti";
 		case EQmModuleId::SkinTransition:
-			return "皮肤切换 pifu qiehuan skin transition 换皮 huanpi 动画 donghua 开关 kaiguan 类型 leixing 时长 shichang 锤中偷皮 chuizhong toupi";
+			return "皮肤切换 pifu qiehuan skin transition 换皮 huanpi 动画 donghua 开关 kaiguan 类型 leixing 时长 shichang 锤中偷皮 chuizhong toupi Tee外观 tee waiguan 循环色调 xunhuan sediao hue 速度 sudu";
 		case EQmModuleId::WeaponTrajectory: return "武器辅助线 wuqi fuzhuxian weapon trajectory 弹道辅助线 dandao fuzhuxian 线宽 xian kuan 透明度 toumingdu 始终显示 shizhong xianshi 按键显示 anjian xianshi";
 		case EQmModuleId::WeaponAnimation: return "武器动画 wuqi donghua weapon animation 切换武器动画 qiehuan wuqi donghua weapon switch animation 滑入 huaru 旋转 xuanzhuan";
 		case EQmModuleId::CameraView: return "镜头 jingtou camera drift 漂移 piaoyi dynamic fov 动态视野 dongtai shiye 纵横比 zonghengbi aspect ratio preset 预设 yushe 自定义 zidinyi 视野视角 shijiao";
@@ -3873,6 +3873,47 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 				Column.VSplitLeft(LgCardPadding, nullptr, &CardContent);
 				CardContent.VSplitRight(LgCardPadding, &CardContent, nullptr);
 				RenderQmModuleHeadline(CardContent, 5, Localize("Skin transition"), Localize("Configure hammer skin steal and skin transition animations"));
+
+				CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
+				TextRender()->TextColor(ColorRGBA(0.9f, 0.9f, 0.9f, 0.9f));
+				DoQmSettingsLabel("qmclient-tee-appearance-title", &Row, Localize("Tee appearance"), LgBodySize * 0.9f);
+				TextRender()->TextColor(TextRender()->DefaultTextColor());
+				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
+
+				CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
+				DoQmSettingsCheckboxAuto(&g_Config.m_QmCycleTeeHue, "Cycle custom Tee hue", Localize("Cycle custom Tee hue"), &g_Config.m_QmCycleTeeHue, &Row, LgLineHeight);
+				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
+
+				CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
+				{
+					CUIRect LabelColValue, ControlColValue;
+					Row.VSplitLeft(LgLabelWidth, &LabelColValue, &ControlColValue);
+					SLabelProperties CycleHueSpeedLabelProps;
+					CycleHueSpeedLabelProps.m_DisallowNewline = true;
+					CycleHueSpeedLabelProps.m_StopAtEnd = true;
+					CycleHueSpeedLabelProps.m_MinimumFontSize = 6.0f;
+					if(!g_Config.m_QmCycleTeeHue)
+						TextRender()->TextColor(ColorRGBA(0.8f, 0.8f, 0.8f, 0.55f));
+					DoQmSettingsLabel("qmclient-cycle-tee-hue-speed", &LabelColValue, Localize("Hue speed"), LgBodySize, TEXTALIGN_ML, CycleHueSpeedLabelProps);
+					static int s_QmCycleTeeHueSpeedInputId;
+					int DisabledSpeedPreview = g_Config.m_QmCycleTeeHueSpeed;
+					RenderSliderWithValueInput(&s_QmCycleTeeHueSpeedInputId, ControlColValue, g_Config.m_QmCycleTeeHue ? &g_Config.m_QmCycleTeeHueSpeed : &DisabledSpeedPreview, 0, 360, "°/s");
+					if(!g_Config.m_QmCycleTeeHue)
+						TextRender()->TextColor(TextRender()->DefaultTextColor());
+				}
+				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
+
+				CardContent.HSplitTop(LgBodySize, &Row, &CardContent);
+				TextRender()->TextColor(ColorRGBA(0.85f, 0.85f, 0.85f, 0.72f));
+				DoQmSettingsLabel("qmclient-cycle-tee-hue-custom-note", &Row, Localize("Only affects custom Tee colors."), LgBodySize * 0.82f);
+				TextRender()->TextColor(TextRender()->DefaultTextColor());
+				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
+
+				CardContent.HSplitTop(LgBodySize, &Row, &CardContent);
+				TextRender()->TextColor(g_Config.m_TcRainbowTees ? ColorRGBA(1.0f, 0.78f, 0.45f, 0.9f) : ColorRGBA(0.85f, 0.85f, 0.85f, 0.72f));
+				DoQmSettingsLabel("qmclient-cycle-tee-hue-tclient-note", &Row, Localize("When TClient rainbow Tee is enabled, this feature has no effect."), LgBodySize * 0.82f);
+				TextRender()->TextColor(TextRender()->DefaultTextColor());
+				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 
 				CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
 				DoQmSettingsCheckboxAuto(&g_Config.m_QmHammerSwapSkin, "Hammer skin steal", Localize("Hammer skin steal"), &g_Config.m_QmHammerSwapSkin, &Row, LgLineHeight);

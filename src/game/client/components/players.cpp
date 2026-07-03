@@ -22,6 +22,7 @@
 #include <game/client/components/flow.h>
 #include <game/client/components/qmclient/jelly_tee.h>
 #include <game/client/components/qmclient/modes.h>
+#include <game/client/components/qmclient/tee_hue_cycle.h>
 #include <game/client/components/skins.h>
 #include <game/client/components/sounds.h>
 #include <game/client/gameclient.h>
@@ -1143,6 +1144,23 @@ void CPlayers::RenderPlayer(
 	const std::chrono::nanoseconds Now = time_get_nanoseconds();
 	const CTeeRenderInfo *pPreviousSkinInfo = ClientId >= 0 ? GameClient()->m_aClients[ClientId].SkinChangePreviousRenderInfo(Now) : nullptr;
 	const float SkinTransitionProgress = ClientId >= 0 ? GameClient()->m_aClients[ClientId].SkinChangeTransitionProgress(Now) : 1.0f;
+	CTeeRenderInfo PreviousSkinInfoHueCycle;
+	if(ClientId >= 0 && ClientId == GameClient()->m_aLocalIds[0])
+	{
+		SQmTeeHueCycleConfig HueCycleConfig;
+		HueCycleConfig.m_Enabled = g_Config.m_QmCycleTeeHue != 0;
+		HueCycleConfig.m_PlayerUsesCustomColors = g_Config.m_ClPlayerUseCustomColor != 0 || g_Config.m_ClPlayer7UseCustomColorBody != 0 || g_Config.m_ClPlayer7UseCustomColorFeet != 0;
+		HueCycleConfig.m_TClientRainbowTees = g_Config.m_TcRainbowTees != 0;
+		HueCycleConfig.m_SpeedDegreesPerSecond = g_Config.m_QmCycleTeeHueSpeed;
+		HueCycleConfig.m_TimeSeconds = Now.count() / 1000000000.0;
+		HueCycleConfig.m_SixupIndex = g_Config.m_ClDummy;
+		if(QmApplyTeeHueCycle(RenderInfo, HueCycleConfig) && pPreviousSkinInfo != nullptr)
+		{
+			PreviousSkinInfoHueCycle = *pPreviousSkinInfo;
+			QmApplyTeeHueCycle(PreviousSkinInfoHueCycle, HueCycleConfig);
+			pPreviousSkinInfo = &PreviousSkinInfoHueCycle;
+		}
+	}
 	RenderTools()->RenderTeeWithSkinChangeTransition(&State, pPreviousSkinInfo, &RenderInfo, Player.m_Emote, Direction, Position, SkinTransitionProgress, Alpha, JellyDeform.m_BodyScale, JellyDeform.m_FeetScale, JellyDeform.m_BodyAngle, JellyDeform.m_FeetAngle);
 
 	float TeeAnimScale, TeeBaseSize;

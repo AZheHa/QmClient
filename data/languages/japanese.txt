@@ -1645,6 +1645,9 @@ Cut segments
 Cute:
 == かわいい:
 
+Cycle custom Tee hue
+== カスタムTeeの色相を循環
+
 Cycle through emotes
 == エモートを順に表示
 
@@ -3082,6 +3085,9 @@ HUD rainbow colors
 Hue
 == 色相
 
+Hue speed
+== 色相速度
+
 i = Receive rate
 == i = 受信レート
 
@@ -3715,15 +3721,6 @@ Main Asset
 Main menu
 == メインメニュー
 
-Make inactive tee fire
-== Make inactive tee fire
-
-Make inactive tee hook
-== Make inactive tee hook
-
-Make inactive tee jump
-== Make inactive tee jump
-
 Make sure the backend supports OpenAI-compatible thinking parameters
 == バックエンドがOpenAI互換の思考パラメーターをサポートしていることを確認してください
 
@@ -3927,12 +3924,6 @@ MOTD
 
 Mouse
 == マウス
-
-Move inactive tee left
-== Move inactive tee left
-
-Move inactive tee right
-== Move inactive tee right
 
 Move left
 == 左に移動
@@ -4347,6 +4338,9 @@ Online Players
 
 Only .wv files are supported right now.
 == 現在は .wv ファイルのみ対応しています。
+
+Only affects custom Tee colors.
+== カスタムTee色にのみ適用されます。
 
 Only Apple Can Do
 == Appleにしかできない
@@ -5590,14 +5584,8 @@ Saves file
 Say in chat
 == チャットで発言
 
-Say in chat as inactive tee
-== Say in chat as inactive tee
-
 Say in team chat
 == チームチャットで発言
-
-Say in team chat as inactive tee
-== Say in team chat as inactive tee
 
 Scanning current server
 == 現在のサーバーをスキャン中
@@ -5727,27 +5715,6 @@ Send
 
 Send & Receive
 == 送受信
-
-Send /load as inactive tee
-== Send /load as inactive tee
-
-Send /lock as inactive tee
-== Send /lock as inactive tee
-
-Send /pause as inactive tee
-== Send /pause as inactive tee
-
-Send /rescue as inactive tee
-== Send /rescue as inactive tee
-
-Send /save as inactive tee
-== Send /save as inactive tee
-
-Send /spec as inactive tee
-== Send /spec as inactive tee
-
-Send /team as inactive tee
-== Send /team as inactive tee
 
 Send a moderator alert message to player
 == プレイヤーにモデレーターアラートメッセージを送信
@@ -6709,27 +6676,6 @@ Switch
 Switch failed
 == 切り替えに失敗しました
 
-Switch inactive tee to grenade
-== Switch inactive tee to grenade
-
-Switch inactive tee to gun
-== Switch inactive tee to gun
-
-Switch inactive tee to hammer
-== Switch inactive tee to hammer
-
-Switch inactive tee to laser
-== Switch inactive tee to laser
-
-Switch inactive tee to next weapon
-== Switch inactive tee to next weapon
-
-Switch inactive tee to previous weapon
-== Switch inactive tee to previous weapon
-
-Switch inactive tee to shotgun
-== Switch inactive tee to shotgun
-
 Switch interval
 == 切り替え間隔
 
@@ -6903,6 +6849,9 @@ Tee
 
 Tee 0.7
 == Tee 0.7
+
+Tee appearance
+== Teeの外観
 
 Tee hitbox
 == Teeヒットボックス
@@ -7833,6 +7782,9 @@ What's done is done, no use saying more
 
 Wheel animate
 == ホイールアニメーション
+
+When TClient rainbow Tee is enabled, this feature has no effect.
+== TClientのレインボーTeeが有効な場合、この機能は適用されません。
 
 When you cross the start line, show a ghost tee replicating the movements of your best time
 == スタートラインを越えたとき、ベストタイムの動きを再現するゴーストTeeを表示

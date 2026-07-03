@@ -126,6 +126,8 @@ MACRO_CONFIG_INT(QmHammerSwapSkin, qm_hammer_swap_skin, 0, 0, 1, CFGFLAG_CLIENT 
 MACRO_CONFIG_INT(QmSkinChangeTransition, qm_skin_change_transition, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用皮肤切换动画")
 MACRO_CONFIG_INT(QmSkinChangeTransitionType, qm_skin_change_transition_type, 0, 0, 4, CFGFLAG_CLIENT | CFGFLAG_SAVE, "皮肤切换动画类型（0=残影弹出 1=柔和淡变 2=向左滑切 3=旋转弹出 4=明暗切换）")
 MACRO_CONFIG_INT(QmSkinChangeTransitionMs, qm_skin_change_transition_ms, 500, 0, 2000, CFGFLAG_CLIENT | CFGFLAG_SAVE, "皮肤切换动画持续时间（毫秒，0=无动画）")
+MACRO_CONFIG_INT(QmCycleTeeHue, qm_cycle_tee_hue, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "循环本体自定义 Tee 色调")
+MACRO_CONFIG_INT(QmCycleTeeHueSpeed, qm_cycle_tee_hue_speed, 72, 0, 360, CFGFLAG_CLIENT | CFGFLAG_SAVE, "循环本体自定义 Tee 色调速度（度/秒）")
 MACRO_CONFIG_INT(QmRandomEmoteOnHit, qm_random_emote_on_hit, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "被锤/榴弹击中时随机表情")
 MACRO_CONFIG_INT(QmWeaponTrajectory, qm_weapon_trajectory, 0, 0, 2, CFGFLAG_CLIENT | CFGFLAG_SAVE, "武器弹道辅助线显示模式（0=关闭，1=按键显示，2=始终显示）")
 MACRO_CONFIG_COL(QmWeaponTrajectoryColor, qm_weapon_trajectory_color, 16750899, CFGFLAG_CLIENT | CFGFLAG_SAVE, "武器弹道辅助线颜色")
