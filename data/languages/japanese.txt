@@ -541,6 +541,9 @@ Allows maps to render with more detail
 Alpha
 == アルファ
 
+Also apply to dummy
+== ダミーにも適用
+
 Always show
 == 常に表示
 

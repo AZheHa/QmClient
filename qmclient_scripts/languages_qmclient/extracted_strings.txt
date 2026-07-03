@@ -179,6 +179,7 @@ Allow Duplicate Entries
 Allow mic permission in system settings, then reopen voice
 Allows maps to render with more detail
 Alpha
+Also apply to dummy
 Always show
 Always show chat
 Always show other players' hook collision lines

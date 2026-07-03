@@ -161,7 +161,7 @@ void CMenus::RenderSettingsTee7(CUIRect MainView)
 		GameClient()->m_Skins7.FindSkinPart(Part, apSkinPartsPtr[Part], false)->ApplyTo(OwnSkinInfo.m_aSixup[g_Config.m_ClDummy]);
 		GameClient()->m_Skins7.ApplyColorTo(OwnSkinInfo.m_aSixup[g_Config.m_ClDummy], aUCCVars[Part], aColorVars[Part], Part);
 	}
-	if(!m_Dummy)
+	if(!m_Dummy || g_Config.m_QmCycleTeeHueDummy != 0)
 	{
 		const std::chrono::nanoseconds PreviewNow = time_get_nanoseconds();
 		SQmTeeHueCycleConfig HueCycleConfig;

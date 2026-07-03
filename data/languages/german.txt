@@ -541,6 +541,9 @@ Allows maps to render with more detail
 Alpha
 == Alpha
 
+Also apply to dummy
+== Auch auf Dummy anwenden
+
 Always show
 == Immer anzeigen
 

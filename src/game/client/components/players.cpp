@@ -1145,11 +1145,21 @@ void CPlayers::RenderPlayer(
 	const CTeeRenderInfo *pPreviousSkinInfo = ClientId >= 0 ? GameClient()->m_aClients[ClientId].SkinChangePreviousRenderInfo(Now) : nullptr;
 	const float SkinTransitionProgress = ClientId >= 0 ? GameClient()->m_aClients[ClientId].SkinChangeTransitionProgress(Now) : 1.0f;
 	CTeeRenderInfo PreviousSkinInfoHueCycle;
-	if(ClientId >= 0 && ClientId == GameClient()->m_aLocalIds[0])
+	int LocalDummy = -1;
+	if(ClientId >= 0)
 	{
+		if(ClientId == GameClient()->m_aLocalIds[0])
+			LocalDummy = 0;
+		else if(ClientId == GameClient()->m_aLocalIds[1])
+			LocalDummy = 1;
+	}
+	if(LocalDummy >= 0 && (LocalDummy == 0 || g_Config.m_QmCycleTeeHueDummy != 0))
+	{
+		const bool UseCustomColors = LocalDummy != 0 ? g_Config.m_ClDummyUseCustomColor != 0 : g_Config.m_ClPlayerUseCustomColor != 0;
+		const bool UseCustomColors7 = LocalDummy != 0 ? (g_Config.m_ClDummy7UseCustomColorBody != 0 || g_Config.m_ClDummy7UseCustomColorFeet != 0) : (g_Config.m_ClPlayer7UseCustomColorBody != 0 || g_Config.m_ClPlayer7UseCustomColorFeet != 0);
 		SQmTeeHueCycleConfig HueCycleConfig;
 		HueCycleConfig.m_Enabled = g_Config.m_QmCycleTeeHue != 0;
-		HueCycleConfig.m_PlayerUsesCustomColors = g_Config.m_ClPlayerUseCustomColor != 0 || g_Config.m_ClPlayer7UseCustomColorBody != 0 || g_Config.m_ClPlayer7UseCustomColorFeet != 0;
+		HueCycleConfig.m_PlayerUsesCustomColors = !GameClient()->IsTeamPlay() && (UseCustomColors || UseCustomColors7);
 		HueCycleConfig.m_TClientRainbowTees = g_Config.m_TcRainbowTees != 0;
 		HueCycleConfig.m_SpeedDegreesPerSecond = g_Config.m_QmCycleTeeHueSpeed;
 		HueCycleConfig.m_TimeSeconds = Now.count() / 1000000000.0;

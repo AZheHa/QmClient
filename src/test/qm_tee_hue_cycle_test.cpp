@@ -158,8 +158,13 @@ TEST(QmTeeHueCycle, SameAbsoluteTimeIsDeterministic)
 
 TEST(QmTeeHueCycle, PhaseUsesAbsoluteTimeIndependentOfFrameSteps)
 {
-	EXPECT_FLOAT_EQ(QmTeeHueCyclePhase(2.5, 72), QmTeeHueCyclePhase(2.5, 72));
-	EXPECT_NEAR(QmTeeHueCyclePhase(2.5, 72), 0.5f, HUE_EPSILON);
+	const double AbsoluteTimeSeconds = 2.5;
+	const double SixtyFpsTimeSeconds = 150.0 * (1.0 / 60.0);
+	const double ThirtyFpsTimeSeconds = 75.0 * (1.0 / 30.0);
+
+	EXPECT_NEAR(QmTeeHueCyclePhase(AbsoluteTimeSeconds, 72), 0.5f, HUE_EPSILON);
+	EXPECT_NEAR(QmTeeHueCyclePhase(SixtyFpsTimeSeconds, 72), QmTeeHueCyclePhase(AbsoluteTimeSeconds, 72), HUE_EPSILON);
+	EXPECT_NEAR(QmTeeHueCyclePhase(ThirtyFpsTimeSeconds, 72), QmTeeHueCyclePhase(AbsoluteTimeSeconds, 72), HUE_EPSILON);
 }
 
 TEST(QmTeeHueCycle, AppliesToCustomSevenBodyAndFeetOnly)

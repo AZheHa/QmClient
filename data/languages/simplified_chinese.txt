@@ -541,6 +541,9 @@ Allows maps to render with more detail
 Alpha
 == 透明度
 
+Also apply to dummy
+== 同时应用到分身
+
 Always show
 == 始终显示
 

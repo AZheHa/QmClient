@@ -1440,17 +1440,19 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 	static std::array<SSettingsPreviewSkinTransitionState, NUM_DUMMIES> s_aPreviewTransitionStates;
 	const std::chrono::nanoseconds PreviewNow = time_get_nanoseconds();
 	SQmTeeHueCycleConfig HueCycleConfig;
-	if(!m_Dummy)
+	const bool ApplyHueCycleToPreview = !m_Dummy || g_Config.m_QmCycleTeeHueDummy != 0;
+	if(ApplyHueCycleToPreview)
 	{
+		const bool UseCustomColors7 = m_Dummy ? (g_Config.m_ClDummy7UseCustomColorBody != 0 || g_Config.m_ClDummy7UseCustomColorFeet != 0) : (g_Config.m_ClPlayer7UseCustomColorBody != 0 || g_Config.m_ClPlayer7UseCustomColorFeet != 0);
 		HueCycleConfig.m_Enabled = g_Config.m_QmCycleTeeHue != 0;
-		HueCycleConfig.m_PlayerUsesCustomColors = *pUseCustomColor != 0 || g_Config.m_ClPlayer7UseCustomColorBody != 0 || g_Config.m_ClPlayer7UseCustomColorFeet != 0;
+		HueCycleConfig.m_PlayerUsesCustomColors = *pUseCustomColor != 0 || UseCustomColors7;
 		HueCycleConfig.m_TClientRainbowTees = g_Config.m_TcRainbowTees != 0;
 		HueCycleConfig.m_SpeedDegreesPerSecond = g_Config.m_QmCycleTeeHueSpeed;
 		HueCycleConfig.m_TimeSeconds = PreviewNow.count() / 1000000000.0;
 		HueCycleConfig.m_SixupIndex = 0;
 	}
 	CTeeRenderInfo PreviewSkinInfo = OwnSkinInfo;
-	const bool PreviewHueCycleApplied = !m_Dummy && QmApplyTeeHueCycle(PreviewSkinInfo, HueCycleConfig);
+	const bool PreviewHueCycleApplied = ApplyHueCycleToPreview && QmApplyTeeHueCycle(PreviewSkinInfo, HueCycleConfig);
 	SSettingsPreviewSkinTransitionState &PreviewTransitionState = s_aPreviewTransitionStates[m_Dummy];
 	PreviewTransitionState.Update(PreviewKey, OwnSkinInfo, PreviewNow);
 

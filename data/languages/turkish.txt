@@ -541,6 +541,9 @@ Allows maps to render with more detail
 Alpha
 == Alfa
 
+Also apply to dummy
+== Dummy'ye de uygula
+
 Always show
 == Her zaman göster
 

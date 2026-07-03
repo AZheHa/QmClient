@@ -1993,6 +1993,22 @@ turkish = "Çekiç deri çalma ve deri geçiş animasyonlarını yapılandır"
 polish = "Skonfiguruj kradzież skóry młotkiem i animacje przejścia skóry"
 
 [[message]]
+key = "Also apply to dummy"
+[message.translations]
+japanese = "ダミーにも適用"
+korean = "더미에도 적용"
+simplified_chinese = "同时应用到分身"
+traditional_chinese = "同時套用到分身"
+russian = "Также применять к dummy"
+german = "Auch auf Dummy anwenden"
+spanish = "Aplicar también al dummy"
+french = "Appliquer aussi au dummy"
+brazilian_portuguese = "Aplicar também ao dummy"
+portuguese = "Aplicar também ao dummy"
+turkish = "Dummy'ye de uygula"
+polish = "Zastosuj także do dummy"
+
+[[message]]
 key = "Cycle custom Tee hue"
 [message.translations]
 japanese = "カスタムTeeの色相を循環"
