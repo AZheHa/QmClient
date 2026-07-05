@@ -22,6 +22,7 @@
 class CEditor;
 class CEditorImage;
 class CEditorSound;
+class IStorage;
 class CLayerFront;
 class CLayerGroup;
 class CLayerGame;
@@ -35,17 +36,19 @@ class CQuad;
 
 class CDataFileWriterFinishJob : public IJob
 {
+	IStorage *m_pStorage;
 	char m_aRealFilename[IO_MAX_PATH_LENGTH];
 	char m_aTempFilename[IO_MAX_PATH_LENGTH];
+	char m_aErrorMessage[2 * IO_MAX_PATH_LENGTH + 128];
 	CDataFileWriter m_Writer;
 
 protected:
 	void Run() override;
 
 public:
-	CDataFileWriterFinishJob(const char *pRealFilename, const char *pTempFilename, CDataFileWriter &&Writer);
-	const char *GetRealFilename() const { return m_aRealFilename; }
-	const char *GetTempFilename() const { return m_aTempFilename; }
+	CDataFileWriterFinishJob(IStorage *pStorage, const char *pRealFilename, const char *pTempFilename, CDataFileWriter &&Writer);
+	const char *RealFilename() const { return m_aRealFilename; }
+	const char *ErrorMessage() const { return m_aErrorMessage; }
 };
 
 class CEditorMap
