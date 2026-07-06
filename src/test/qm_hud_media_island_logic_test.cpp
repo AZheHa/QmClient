@@ -163,6 +163,7 @@ TEST(QmHudMediaIslandLogic, Utf8TitlesStayNulTerminatedInFixedSnapshot)
 TEST(QmHudMediaIslandSource, RenderPathKeepsStableNodesAndEditorRect)
 {
 	const std::string Source = ReadTestSourceFile("src/game/client/components/hud.cpp");
+	const std::string AnimResolveSource = ReadTestSourceFile("src/game/client/QmUi/QmAnimResolve.cpp");
 	const size_t RenderBegin = Source.find("void CHud::RenderMediaIsland()");
 	ASSERT_NE(RenderBegin, std::string::npos);
 	const size_t RenderEnd = Source.find("float CHud::RenderLegacyMediaInfoAt", RenderBegin);
@@ -178,7 +179,7 @@ TEST(QmHudMediaIslandSource, RenderPathKeepsStableNodesAndEditorRect)
 	EXPECT_NE(RenderBody.find("StartCapsuleMorph(Now)"), std::string::npos);
 	EXPECT_NE(RenderBody.find("m_CapsuleMorphNeedsCapture"), std::string::npos);
 	EXPECT_NE(RenderBody.find("MorphCompressSec"), std::string::npos);
-	EXPECT_NE(Source.find("Request.m_Transition.m_Interrupt = EUiAnimInterruptPolicy::MERGE_TARGET;"), std::string::npos);
+	EXPECT_NE(AnimResolveSource.find("Request.m_Transition.m_Interrupt = EUiAnimInterruptPolicy::MERGE_TARGET;"), std::string::npos);
 	EXPECT_EQ(RenderBody.find("EUiAnimInterruptPolicy::QUEUE"), std::string::npos);
 	EXPECT_EQ(RenderBody.find("m_CoverRotation"), std::string::npos);
 	EXPECT_NE(RenderBody.find("m_MediaIslandLastVisibleRect = EditorVisibleRect;"), std::string::npos);

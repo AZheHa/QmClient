@@ -71,17 +71,23 @@ TEST(QmChatPresentation, InactiveOldLineKeepsFullOpacity)
 	EXPECT_NEAR(Presentation.m_RenderAlpha, 1.0f, 0.001f);
 }
 
-TEST(QmChatPresentation, LongInactiveLineDoesNotCollapseOrFade)
+TEST(QmChatPresentation, InactiveExpiredLineFadesAndCollapses)
 {
 	CChat::SPresentationState Presentation;
 	const int64_t Start = TestTicks(30.0f);
 	CChat::BeginLinePresentation(Presentation, Start, false);
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(30.0f), 0.20f, false, false);
 
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(15.0f), 0.20f, false, false);
 	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::VISIBLE);
-	EXPECT_NEAR(Presentation.m_RenderAlpha, 1.0f, 0.001f);
-	EXPECT_NEAR(Presentation.m_LayoutVisibility, 1.0f, 0.001f);
+	EXPECT_NEAR(Presentation.m_RenderAlpha, 0.5f, 0.001f);
+	EXPECT_NEAR(Presentation.m_LayoutVisibility, 0.5f, 0.001f);
 	EXPECT_NEAR(Presentation.m_RenderOffsetX, 0.0f, 0.001f);
+	EXPECT_NEAR(Presentation.m_RenderOffsetY, 1.0f, 0.001f);
+
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(16.1f), 0.20f, false, false);
+	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::COLLAPSED);
+	EXPECT_NEAR(Presentation.m_RenderAlpha, 0.0f, 0.001f);
+	EXPECT_NEAR(Presentation.m_LayoutVisibility, 0.0f, 0.001f);
 }
 
 TEST(QmChatPresentation, InputKeepsOldLineOpaque)
