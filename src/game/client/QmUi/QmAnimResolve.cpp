@@ -22,6 +22,11 @@ namespace
 		Value ^= Value >> 33;
 		return Value;
 	}
+
+	uint64_t PropertyTargetCacheKey(uint64_t NodeKey, EUiAnimProperty Property)
+	{
+		return HashAnimNode(NodeKey ^ (0x9e3779b97f4a7c15ULL * (static_cast<uint64_t>(Property) + 1ULL)));
+	}
 } // namespace
 
 uint64_t BuildUiAnimNodeKey(const uint64_t ScopeHash, const uint64_t Id)
@@ -104,4 +109,66 @@ ColorRGBA ResolveUiAnimValueColor(CUiV2AnimationRuntime &AnimRuntime, uint64_t N
 	Out.b = ResolveUiAnimValue(AnimRuntime, NodeKey, EUiAnimProperty::COLOR_B, Target.b, DurationSec, Easing);
 	Out.a = ResolveUiAnimValue(AnimRuntime, NodeKey, EUiAnimProperty::COLOR_A, Target.a, DurationSec, Easing);
 	return Out;
+}
+
+float ResolveUiPresentationStateValue(CUiV2AnimationRuntime &AnimRuntime, uint64_t NodeKey, EUiAnimProperty Property, float Target, const SUiSpringConfig &Spring, int Priority, float Epsilon)
+{
+	struct SPresentationTargetState
+	{
+		float m_Target = 0.0f;
+		uint64_t m_LastUseCounter = 0;
+	};
+
+	static std::unordered_map<uint64_t, SPresentationTargetState> s_aLastTargets;
+	static uint64_t s_UseCounter = 0;
+	constexpr size_t TargetCacheSoftLimit = 4096;
+	constexpr uint64_t TargetCachePruneInterval = 1024;
+	constexpr uint64_t TargetCacheStaleWindow = 8192;
+	const uint64_t LastTargetKey = PropertyTargetCacheKey(NodeKey, Property);
+	const float CurrentValue = AnimRuntime.GetValue(NodeKey, Property, Target);
+	const uint64_t CurrentUseCounter = ++s_UseCounter;
+
+	if(s_aLastTargets.empty())
+		s_aLastTargets.reserve(TargetCacheSoftLimit);
+
+	if((CurrentUseCounter % TargetCachePruneInterval) == 0 && s_aLastTargets.size() > TargetCacheSoftLimit)
+	{
+		for(auto It = s_aLastTargets.begin(); It != s_aLastTargets.end();)
+		{
+			if(CurrentUseCounter - It->second.m_LastUseCounter > TargetCacheStaleWindow)
+				It = s_aLastTargets.erase(It);
+			else
+				++It;
+		}
+		if(s_aLastTargets.size() > TargetCacheSoftLimit * 2)
+			s_aLastTargets.clear();
+	}
+
+	auto [ItLastTarget, Inserted] = s_aLastTargets.try_emplace(LastTargetKey, SPresentationTargetState{Target, CurrentUseCounter});
+	const bool HasLastTarget = !Inserted;
+	const float LastTarget = ItLastTarget->second.m_Target;
+	const bool TargetChanged = !HasLastTarget || std::abs(Target - LastTarget) > std::max(Epsilon, ANIM_EPSILON);
+	const bool NeedsSync = !AnimRuntime.HasActiveAnimation(NodeKey, Property) && std::abs(Target - CurrentValue) > std::max(Epsilon, ANIM_EPSILON);
+	if(TargetChanged || NeedsSync)
+	{
+		SUiAnimRequest Request;
+		Request.m_NodeKey = NodeKey;
+		Request.m_Property = Property;
+		Request.m_Target = Target;
+		Request.m_Transition.m_Priority = Priority;
+		Request.m_Transition.m_Interrupt = EUiAnimInterruptPolicy::MERGE_TARGET;
+		Request.m_Transition.m_Driver = EUiAnimDriver::SPRING;
+		Request.m_Transition.m_Spring = Spring;
+		Request.m_Transition.m_RespectMotionLevel = false;
+		AnimRuntime.RequestAnimation(Request);
+		ItLastTarget->second.m_Target = Target;
+	}
+	ItLastTarget->second.m_LastUseCounter = CurrentUseCounter;
+
+	return AnimRuntime.GetValue(NodeKey, Property, Target);
+}
+
+void SetUiPresentationStateValue(CUiV2AnimationRuntime &AnimRuntime, uint64_t NodeKey, EUiAnimProperty Property, float Value)
+{
+	AnimRuntime.SetValue(NodeKey, Property, Value);
 }

@@ -9,7 +9,7 @@
 
 #include <generated/client_data.h>
 
-#include <game/client/QmUi/QmAnim.h>
+#include <game/client/QmUi/QmAnimResolve.h>
 #include <game/client/animstate.h>
 #include <game/client/gameclient.h>
 #include <game/client/prediction/entities/character.h>
@@ -108,25 +108,10 @@ static float ResolveChatBubbleAnimValue(
 	float &LastTarget,
 	bool ForceRequest = false)
 {
-	constexpr float Epsilon = 0.001f;
-	const float Current = AnimRuntime.GetValue(NodeKey, Property, Target);
-	const bool TargetChanged = !std::isfinite(LastTarget) || std::abs(Target - LastTarget) > Epsilon;
-	const bool NeedsSync = !AnimRuntime.HasActiveAnimation(NodeKey, Property) && std::abs(Target - Current) > Epsilon;
-	if(ForceRequest || TargetChanged || NeedsSync)
-	{
-		SUiAnimRequest Request;
-		Request.m_NodeKey = NodeKey;
-		Request.m_Property = Property;
-		Request.m_Target = Target;
-		Request.m_Transition.m_DurationSec = DurationSec;
-		Request.m_Transition.m_DelaySec = 0.0f;
-		Request.m_Transition.m_Priority = 1;
-		Request.m_Transition.m_Interrupt = EUiAnimInterruptPolicy::MERGE_TARGET;
-		Request.m_Transition.m_Easing = Easing;
-		AnimRuntime.RequestAnimation(Request);
-		LastTarget = Target;
-	}
-	return AnimRuntime.GetValue(NodeKey, Property, Target);
+	if(ForceRequest || !std::isfinite(LastTarget))
+		SetUiPresentationStateValue(AnimRuntime, NodeKey, Property, AnimRuntime.GetValue(NodeKey, Property, Target));
+	LastTarget = Target;
+	return ResolveUiAnimValue(AnimRuntime, NodeKey, Property, Target, DurationSec, Easing);
 }
 
 static constexpr int NAMEPLATE_FREE_MOVE_OFFSET_MIN = -300;
@@ -2147,10 +2132,10 @@ void CNamePlates::ResetChatBubbleAnimState(int ClientId, bool IsDestructing)
 
 	TextRender()->DeleteTextContainer(AnimState.m_TextContainerIndex);
 	AnimState = SChatBubbleAnimState();
-	AnimRuntime.SetValue(NodeKey, EUiAnimProperty::ALPHA, 0.0f);
-	AnimRuntime.SetValue(NodeKey, EUiAnimProperty::SCALE, 1.0f);
-	AnimRuntime.SetValue(NodeKey, EUiAnimProperty::POS_Y, 0.0f);
-	AnimRuntime.SetValue(NodeKey, EUiAnimProperty::WIDTH, 0.0f);
+	SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::ALPHA, 0.0f);
+	SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::SCALE, 1.0f);
+	SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::POS_Y, 0.0f);
+	SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::WIDTH, 0.0f);
 }
 
 void CNamePlates::RenderChatBubble(vec2 Position, int ClientId, float Alpha)
@@ -2174,10 +2159,10 @@ void CNamePlates::RenderChatBubble(vec2 Position, int ClientId, float Alpha)
 		TextRender()->DeleteTextContainer(AnimState.m_TextContainerIndex);
 		AnimState = SChatBubbleAnimState();
 		AnimState.m_Initialized = true;
-		AnimRuntime.SetValue(NodeKey, EUiAnimProperty::ALPHA, 0.0f);
-		AnimRuntime.SetValue(NodeKey, EUiAnimProperty::SCALE, 1.0f);
-		AnimRuntime.SetValue(NodeKey, EUiAnimProperty::POS_Y, 0.0f);
-		AnimRuntime.SetValue(NodeKey, EUiAnimProperty::WIDTH, 0.0f);
+		SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::ALPHA, 0.0f);
+		SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::SCALE, 1.0f);
+		SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::POS_Y, 0.0f);
+		SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::WIDTH, 0.0f);
 	}
 
 	// Determine what text to show
@@ -2223,11 +2208,11 @@ void CNamePlates::RenderChatBubble(vec2 Position, int ClientId, float Alpha)
 	const bool BecameVisible = HasSourceText && !AnimState.m_LastVisible;
 	if(BecameVisible || NewTimedBubble)
 	{
-		AnimRuntime.SetValue(NodeKey, EUiAnimProperty::ALPHA, 0.0f);
-		AnimRuntime.SetValue(NodeKey, EUiAnimProperty::SCALE, 0.92f);
-		AnimRuntime.SetValue(NodeKey, EUiAnimProperty::POS_Y, 12.0f);
+		SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::ALPHA, 0.0f);
+		SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::SCALE, 0.92f);
+		SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::POS_Y, 12.0f);
 		if(IsTyping)
-			AnimRuntime.SetValue(NodeKey, EUiAnimProperty::WIDTH, 0.0f);
+			SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::WIDTH, 0.0f);
 		AnimState.m_LastTargetAlpha = std::numeric_limits<float>::quiet_NaN();
 		AnimState.m_LastTargetScale = std::numeric_limits<float>::quiet_NaN();
 		AnimState.m_LastTargetSlide = std::numeric_limits<float>::quiet_NaN();
@@ -2293,7 +2278,7 @@ void CNamePlates::RenderChatBubble(vec2 Position, int ClientId, float Alpha)
 	}
 	else
 	{
-		AnimRuntime.SetValue(NodeKey, EUiAnimProperty::WIDTH, static_cast<float>(RenderCharCount));
+		SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::WIDTH, static_cast<float>(RenderCharCount));
 		AnimState.m_LastTargetFillChars = std::numeric_limits<float>::quiet_NaN();
 	}
 

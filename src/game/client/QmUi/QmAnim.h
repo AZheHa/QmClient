@@ -74,6 +74,7 @@ struct SUiAnimTransition
 	EUiAnimDriver m_Driver = EUiAnimDriver::TWEEN;
 	SUiSpringConfig m_Spring;
 	SUiBezier m_Bezier;
+	bool m_RespectMotionLevel = true;
 };
 
 struct SUiAnimCompleteEvent

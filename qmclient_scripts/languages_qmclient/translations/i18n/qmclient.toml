@@ -3252,6 +3252,22 @@ turkish = "Tekrarı etkinleştir"
 polish = "Włącz powtarzanie"
 
 [[message]]
+key = "Extra animations"
+[message.translations]
+japanese = "追加アニメーション"
+korean = "추가 애니메이션"
+simplified_chinese = "额外的动画"
+traditional_chinese = "額外的動畫"
+russian = "Дополнительные анимации"
+german = "Zusätzliche Animationen"
+spanish = "Animaciones adicionales"
+french = "Animations supplémentaires"
+brazilian_portuguese = "Animações extras"
+portuguese = "Animações extra"
+turkish = "Ek animasyonlar"
+polish = "Dodatkowe animacje"
+
+[[message]]
 key = "Enable speedrun timer"
 [message.translations]
 japanese = "スピードラインタイマーを有効化"

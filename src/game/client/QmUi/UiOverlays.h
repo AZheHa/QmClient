@@ -68,11 +68,11 @@ inline bool Toast(const IUiContext &Ctx, const void *pId, SToastState *pState, b
 		const uint64_t NodeKey = BuildUiAnimNodeKey(Ctx.m_ScopeHash, reinterpret_cast<uint64_t>(pId));
 		if(Visible && pState != nullptr && !pState->m_WasVisible)
 		{
-			Ctx.m_pAnim->SetValue(NodeKey, EUiAnimProperty::POS_Y, HiddenY);
-			Ctx.m_pAnim->SetValue(NodeKey, EUiAnimProperty::ALPHA, 0.0f);
+			SetUiPresentationStateValue(*Ctx.m_pAnim, NodeKey, EUiAnimProperty::POS_Y, HiddenY);
+			SetUiPresentationStateValue(*Ctx.m_pAnim, NodeKey, EUiAnimProperty::ALPHA, 0.0f);
 		}
-		CurrentY = ResolveUiAnimValue(*Ctx.m_pAnim, NodeKey, EUiAnimProperty::POS_Y, Visible ? Target.y : HiddenY, ui_token::motion::TOAST_SLIDE.m_DurationSec, ui_token::motion::TOAST_SLIDE.m_Easing);
-		Alpha = ResolveUiAnimValue(*Ctx.m_pAnim, NodeKey, EUiAnimProperty::ALPHA, Visible ? 1.0f : 0.0f, ui_token::motion::TOAST_SLIDE.m_DurationSec, ui_token::motion::TOAST_SLIDE.m_Easing);
+		CurrentY = ResolveUiPresentationStateValue(*Ctx.m_pAnim, NodeKey, EUiAnimProperty::POS_Y, Visible ? Target.y : HiddenY, ui_spring::SNAPPY, 2, 0.01f);
+		Alpha = ResolveUiPresentationStateValue(*Ctx.m_pAnim, NodeKey, EUiAnimProperty::ALPHA, Visible ? 1.0f : 0.0f, ui_spring::SNAPPY, 2, 0.004f);
 		if(!Visible && Alpha <= 0.01f && !Ctx.m_pAnim->HasActiveAnimation(NodeKey, EUiAnimProperty::ALPHA))
 		{
 			if(pState != nullptr)
@@ -143,13 +143,13 @@ bool Modal(const IUiContext &Ctx, const void *pId, bool *pOpen, const CUIRect &S
 	if(Ctx.m_pAnim != nullptr)
 	{
 		const uint64_t NodeKey = BuildUiAnimNodeKey(Ctx.m_ScopeHash, reinterpret_cast<uint64_t>(pId));
-		Scale = ResolveUiAnimValue(*Ctx.m_pAnim, NodeKey, EUiAnimProperty::SCALE, 1.0f, ui_token::motion::MODAL_IN.m_DurationSec, ui_token::motion::MODAL_IN.m_Easing);
+		Scale = ResolveUiPresentationStateValue(*Ctx.m_pAnim, NodeKey, EUiAnimProperty::SCALE, 1.0f, ui_spring::SNAPPY, 2, 0.004f);
 		// First frame after open we need to seed Scale at 0.92 so the spring
 		// has somewhere to travel from. Done by snapping if very close to 1
 		// without prior history.
 		if(g_Config.m_QmUiMotionLevel != 0 && Scale > 0.99f && !Ctx.m_pAnim->HasActiveAnimation(NodeKey, EUiAnimProperty::SCALE))
 		{
-			Ctx.m_pAnim->SetValue(NodeKey, EUiAnimProperty::SCALE, 0.92f);
+			SetUiPresentationStateValue(*Ctx.m_pAnim, NodeKey, EUiAnimProperty::SCALE, 0.92f);
 			Scale = 0.92f;
 		}
 	}

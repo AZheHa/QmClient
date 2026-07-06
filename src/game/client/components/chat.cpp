@@ -405,6 +405,7 @@ CChat::CLine::CLine()
 	m_aYOffset[1] = -1.0f;
 	m_TextYOffset = 0.0f;
 	m_CutOffProgress = 0.0f;
+	CChat::ResetPresentationState(m_Presentation);
 	m_ForceVisible = false;
 	m_ServerMessageClass = QmHudNotifications::EServerMessageClass::None;
 }
@@ -422,6 +423,7 @@ void CChat::CLine::Reset(CChat &This)
 	m_aYOffset[1] = -1.0f;
 	m_TextYOffset = 0.0f;
 	m_CutOffProgress = 0.0f;
+	CChat::ResetPresentationState(m_Presentation);
 	m_Friend = false;
 	m_ForceVisible = false;
 	m_ServerMessageClass = QmHudNotifications::EServerMessageClass::None;
@@ -437,25 +439,15 @@ void CChat::CLine::Reset(CChat &This)
 		m_TranslationId = 1;
 }
 
-float CChat::EaseInQuad(float t)
+static float ClampPresentationProgress(float Value)
 {
-	return t * t;
-}
-
-float CChat::CalculateCutOffAlpha(float CutOffT)
-{
-	return 1.0f - EaseInQuad(std::clamp(CutOffT, 0.0f, 1.0f));
-}
-
-float CChat::CalculateCutOffOffsetX(float CutOffT)
-{
-	return -CHAT_ANIM_SLIDE_OUT_OFFSET * EaseInQuad(std::clamp(CutOffT, 0.0f, 1.0f));
+	return std::clamp(Value, 0.0f, 1.0f);
 }
 
 CChat::CChat()
 {
 	m_Mode = MODE_NONE;
-	m_LastAnimUpdateTime = 0;
+	m_LastPresentationUpdateTime = 0;
 	m_aChatLogLastCleanupDate[0] = '\0';
 
 	m_Input.SetCalculateOffsetCallback([this]() { return m_IsInputCensored; });
@@ -728,6 +720,7 @@ void CChat::RebuildChat()
 		Line.m_aYOffset[0] = -1.0f;
 		Line.m_aYOffset[1] = -1.0f;
 		Line.m_CutOffProgress = 0.0f;
+		Line.m_Presentation.m_RenderYInitialized = false;
 	}
 }
 
@@ -744,7 +737,7 @@ void CChat::ClearLines()
 	m_MouseRelease = vec2(0.0f, 0.0f);
 	m_PrevScoreBoardShowed = false;
 	m_PrevShowChat = false;
-	m_LastAnimUpdateTime = 0;
+	m_LastPresentationUpdateTime = 0;
 }
 
 int CChat::GetLineIndex(const CLine *pLine) const
@@ -800,6 +793,23 @@ int CChat::CountVisibleLinesFrom(int BacklogLine) const
 			++Count;
 	}
 	return Count;
+}
+
+void CChat::UpdatePresentationStates(int64_t Now, float DeltaSeconds, bool ShowLargeArea)
+{
+	for(CLine &Line : m_aLines)
+	{
+		if(!Line.m_Initialized)
+			continue;
+
+		UpdateLinePresentation(
+			Line.m_Presentation,
+			Line.m_Time,
+			Now,
+			DeltaSeconds,
+			ShowLargeArea,
+			Line.m_ForceVisible);
+	}
 }
 
 void CChat::InvalidateLineTranslation(CLine &Line)
@@ -1786,6 +1796,7 @@ void CChat::AddLine(int ClientId, int Team, const char *pLine, bool ForceVisible
 		PreviousLine.m_aYOffset[0] = -1.0f;
 		PreviousLine.m_aYOffset[1] = -1.0f;
 		PreviousLine.m_CutOffProgress = 0.0f;
+		BeginLinePresentation(PreviousLine.m_Presentation, PreviousLine.m_Time, true);
 
 		// Keep bubble lifetime in sync for repeated chat lines as well.
 		if(ClientId >= 0 && ClientId < MAX_CLIENTS)
@@ -1809,6 +1820,7 @@ void CChat::AddLine(int ClientId, int Team, const char *pLine, bool ForceVisible
 	CurrentLine.Reset(*this);
 	CurrentLine.m_Initialized = true;
 	CurrentLine.m_Time = time();
+	BeginLinePresentation(CurrentLine.m_Presentation, CurrentLine.m_Time, false);
 	CurrentLine.m_aYOffset[0] = -1.0f;
 	CurrentLine.m_aYOffset[1] = -1.0f;
 	CurrentLine.m_ClientId = ClientId;
@@ -1991,7 +2003,6 @@ void CChat::OnPrepareLines(float y)
 	const bool ForceRecreate = IsScoreBoardOpen != m_PrevScoreBoardShowed || ShowLargeArea != m_PrevShowChat;
 	m_PrevScoreBoardShowed = IsScoreBoardOpen;
 	m_PrevShowChat = ShowLargeArea;
-	const int64_t VisibleTimeNoFocusTicks = static_cast<int64_t>(CHAT_VISIBLE_SECONDS_NO_FOCUS * time_freq());
 
 	const int TeeSize = MessageTeeSize();
 	float RealMsgPaddingX = MessagePaddingX();
@@ -2005,10 +2016,13 @@ void CChat::OnPrepareLines(float y)
 		RealMsgPaddingTee = 0;
 	}
 
-	int64_t Now = time();
 	float LineWidth = (IsScoreBoardOpen ? maximum(85.0f, (FontSize * 85.0f / 6.0f)) : g_Config.m_ClChatWidth) - (RealMsgPaddingX * 1.5f) - RealMsgPaddingTee;
 
-	float HeightLimit = IsScoreBoardOpen ? 180.0f : (m_PrevShowChat ? 50.0f : 200.0f);
+	const float HeightLimit =
+		IsScoreBoardOpen ?
+			CHAT_HEIGHT_MIN + 130.0f :
+			(ShowLargeArea ? CHAT_HEIGHT_MIN : CHAT_HEIGHT_FULL);
+
 	float Begin = x;
 	float TextBegin = Begin + RealMsgPaddingX / 2.0f;
 	int OffsetType = IsScoreBoardOpen ? 1 : 0;
@@ -2020,16 +2034,23 @@ void CChat::OnPrepareLines(float y)
 			break;
 		const bool ServerMessageIsBasicInfo = Line.m_ServerMessageClass == QmHudNotifications::EServerMessageClass::BasicInfo;
 		if(!ShouldRenderFocusFilteredChatLine(FocusHideChat, FocusHideSystemInfoMessages, FocusHideSystemPromptMessages, FocusHideEcho, Line.m_ClientId, Line.m_ForceVisible, ServerMessageIsBasicInfo))
+		{
 			continue;
-		if(Now > Line.m_Time + VisibleTimeNoFocusTicks && !m_PrevShowChat)
-			break;
+		}
+		if(!ShowLargeArea &&!Line.m_ForceVisible &&Line.m_Presentation.m_State == EPresentationState::COLLAPSED)
+		{
+			continue;
+		}
 
 		if(Line.m_TextContainerIndex.Valid() && !ForceRecreate)
 		{
-			// Keep y progression coherent for already prepared lines.
+			// 已有容器也必须消耗相同的垂直预算，
+			// 否则只有“首次创建”时受高度限制，后续帧又会溢出。
 			if(Line.m_aYOffset[OffsetType] >= 0.0f)
 			{
-				y -= Line.m_aYOffset[OffsetType];
+				y -= Line.m_aYOffset[OffsetType] *
+					ClampPresentationProgress(Line.m_Presentation.m_LayoutVisibility);
+
 				if(y < HeightLimit)
 					break;
 			}
@@ -2162,14 +2183,17 @@ void CChat::OnPrepareLines(float y)
 			Line.m_aYOffset[OffsetType] = AppendCursor.Height() + RealMsgPaddingY;
 		}
 
-		y -= Line.m_aYOffset[OffsetType];
-
-		// cut off if msgs waste too much space
+		const float LineHeight = Line.m_aYOffset[OffsetType];
+		const float LayoutVisibility = ClampPresentationProgress(Line.m_Presentation.m_LayoutVisibility);
+		const float LayoutBottom = y;
+		y -= LineHeight * LayoutVisibility;
+		// 超出 HUD 的聊天高度预算：停止准备更旧消息。
 		if(y < HeightLimit)
 			break;
+		const float TargetY = LayoutBottom - LineHeight;
 
 		// the position the text was created
-		Line.m_TextYOffset = y + RealMsgPaddingY / 2.0f;
+		Line.m_TextYOffset = TargetY + RealMsgPaddingY / 2.0f;
 
 		int CurRenderFlags = TextRender()->GetRenderFlags();
 		TextRender()->SetRenderFlags(CurRenderFlags | ETextRenderFlags::TEXT_RENDER_FLAG_NO_AUTOMATIC_QUAD_UPLOAD);
@@ -2343,7 +2367,7 @@ void CChat::OnPrepareLines(float y)
 				FullWidth += maximum(LineCursor.m_LongestLineWidth, AppendCursor.m_LongestLineWidth);
 			}
 			Graphics()->SetColor(1, 1, 1, 1);
-			Line.m_QuadContainerIndex = Graphics()->CreateRectQuadContainer(Begin, y, FullWidth, Line.m_aYOffset[OffsetType], MessageRounding(), IGraphics::CORNER_ALL);
+			Line.m_QuadContainerIndex = Graphics()->CreateRectQuadContainer(Begin, TargetY, FullWidth, LineHeight, MessageRounding(), IGraphics::CORNER_ALL);
 		}
 
 		TextRender()->SetRenderFlags(CurRenderFlags);
@@ -2369,6 +2393,20 @@ void CChat::OnRender()
 		return;
 
 	const bool HudEditorPreview = GameClient()->m_HudEditor.IsActive();
+	const bool InputActive = m_Mode != MODE_NONE;
+	const bool ShowLargeArea =
+	m_Show ||
+	(InputActive && g_Config.m_ClShowChat == 1) ||
+	g_Config.m_ClShowChat == 2;
+	int64_t Now = time();
+	if(m_LastPresentationUpdateTime == 0 || Now < m_LastPresentationUpdateTime)
+		m_LastPresentationUpdateTime = Now;
+	float DeltaSeconds = std::clamp((Now - m_LastPresentationUpdateTime) / (float)time_freq(), 0.0f, CHAT_PRESENTATION_MAX_DELTA_SECONDS);
+	m_LastPresentationUpdateTime = Now;
+	if(HudEditorPreview)
+		DeltaSeconds = 0.0f;
+	else
+		UpdatePresentationStates(Now, DeltaSeconds, ShowLargeArea);
 
 	// send pending chat messages
 	if(m_PendingChatCounter > 0 && m_LastChatSend + time_freq() < time())
@@ -2432,7 +2470,7 @@ void CChat::OnRender()
 		y -= PreviewBoundingBox.m_H + 4.0f;
 	}
 
-	if(m_Mode != MODE_NONE)
+	if(InputActive)
 	{
 		// render chat input
 		CTextCursor InputCursor;
@@ -2538,7 +2576,7 @@ void CChat::OnRender()
 	y -= ScaledFontSize;
 
 	const bool IsScoreBoardOpen = GameClient()->m_Scoreboard.IsActive();
-	float HeightLimit = IsScoreBoardOpen ? 180.0f : (m_PrevShowChat ? 50.0f : 200.0f);
+	const float HeightLimit = IsScoreBoardOpen ? CHAT_HEIGHT_MIN + 130.0f : (ShowLargeArea ? CHAT_HEIGHT_MIN : CHAT_HEIGHT_FULL);
 	int OffsetType = IsScoreBoardOpen ? 1 : 0;
 	const ColorRGBA ConfigBackgroundColor = color_cast<ColorRGBA>(ColorHSLA(g_Config.m_ClChatBackgroundColor, true));
 	const ColorRGBA BackgroundBaseColor = g_Config.m_ClChatOld ? ConfigBackgroundColor : ConfigBackgroundColor.Multiply(ColorRGBA(0.78f, 0.86f, 1.0f, 1.0f));
@@ -2562,9 +2600,11 @@ void CChat::OnRender()
 	const int TotalVisibleLines = CountVisibleLinesFrom(0);
 	const int VisibleLineCapacity = maximum(1, (int)std::floor(HistoryHeight / maximum(RowHeight, 1.0f)));
 	const int MaxScroll = maximum(0, TotalVisibleLines - VisibleLineCapacity);
+	if(!InputActive)
+		m_BacklogCurLine = 0;
 	m_BacklogCurLine = ClampBacklogLine(m_BacklogCurLine, TotalVisibleLines, VisibleLineCapacity);
 
-	const bool ShowChatScrollbar = m_Mode != MODE_NONE && MaxScroll > 0 && HistoryHeight > 0.0f;
+	const bool ShowChatScrollbar = InputActive && MaxScroll > 0 && HistoryHeight > 0.0f;
 	CUIRect ScrollbarRect = {ChatRect.w - CHAT_SCROLLBAR_WIDTH - CHAT_SCROLLBAR_MARGIN, HeightLimit, CHAT_SCROLLBAR_WIDTH, HistoryHeight};
 	float ScrollbarHandleY = ScrollbarRect.y;
 	float ScrollbarHandleH = ScrollbarRect.h;
@@ -2673,39 +2713,34 @@ void CChat::OnRender()
 
 	OnPrepareLines(y);
 
-	int64_t Now = time();
-	if(m_LastAnimUpdateTime == 0 || Now < m_LastAnimUpdateTime)
-		m_LastAnimUpdateTime = Now;
-	const float DeltaSeconds = std::clamp((Now - m_LastAnimUpdateTime) / (float)time_freq(), 0.0f, 0.25f);
-	m_LastAnimUpdateTime = Now;
-	const float CutOffStep = CHAT_ANIM_CUTOFF_DURATION > 0.0f ? std::clamp(DeltaSeconds / CHAT_ANIM_CUTOFF_DURATION, 0.0f, 1.0f) : 1.0f;
-	const int64_t VisibleTimeNoFocusTicks = static_cast<int64_t>(CHAT_VISIBLE_SECONDS_NO_FOCUS * time_freq());
-
 	bool RenderedAnyLines = false;
 	const CLine *pClickedLine = nullptr;
 	const CLine *pMenuLine = nullptr;
 
-	// Keep chat rendering static and only smooth the overflow cut-off.
 	for(int i = m_BacklogCurLine; i < MAX_LINES; i++)
 	{
-		CLine &Line = m_aLines[((m_CurrentLine - i) + MAX_LINES) % MAX_LINES];
+		const int LineIndex = ((m_CurrentLine - i) + MAX_LINES) % MAX_LINES;
+		CLine &Line = m_aLines[LineIndex];
 		if(!Line.m_Initialized)
 			break;
 		const bool ServerMessageIsBasicInfo = Line.m_ServerMessageClass == QmHudNotifications::EServerMessageClass::BasicInfo;
 		if(!ShouldRenderFocusFilteredChatLine(FocusHideChat, FocusHideSystemInfoMessages, FocusHideSystemPromptMessages, FocusHideEcho, Line.m_ClientId, Line.m_ForceVisible, ServerMessageIsBasicInfo))
+		{
 			continue;
-		if(Now > Line.m_Time + VisibleTimeNoFocusTicks && !m_PrevShowChat)
-			break;
+		}
+		if(!ShowLargeArea &&!Line.m_ForceVisible &&Line.m_Presentation.m_State == EPresentationState::COLLAPSED)
+		{
+			continue;
+		}
 
 		const bool LineHeightValid = Line.m_aYOffset[OffsetType] >= 0.0f;
 		const float LineHeight = LineHeightValid ? Line.m_aYOffset[OffsetType] : FontSize() + RealMsgPaddingY;
-
-		y -= LineHeight;
-		const CUIRect RenderedTextRect = {x, y, ChatRect.w - x, LineHeight};
-		if(CopyClickReleased && MousePos.x >= RenderedTextRect.x && MousePos.x <= RenderedTextRect.x + RenderedTextRect.w && MousePos.y >= RenderedTextRect.y && MousePos.y <= RenderedTextRect.y + RenderedTextRect.h)
-			pClickedLine = &Line;
-		if(ChatLineMenuRequested && MousePos.x >= RenderedTextRect.x && MousePos.x <= RenderedTextRect.x + RenderedTextRect.w && MousePos.y >= RenderedTextRect.y && MousePos.y <= RenderedTextRect.y + RenderedTextRect.h)
-			pMenuLine = &Line;
+		const float LayoutVisibility = ClampPresentationProgress(Line.m_Presentation.m_LayoutVisibility);
+		const float LayoutBottom = y;
+		y -= LineHeight * LayoutVisibility;
+		if(y < HeightLimit)
+			break;
+		Line.m_Presentation.m_TargetY = LayoutBottom - LineHeight;
 
 		// Don't abort the full render pass on a single malformed line.
 		if(!LineHeightValid)
@@ -2714,23 +2749,39 @@ void CChat::OnRender()
 			continue;
 		}
 
-		float AnimAlpha = 1.0f;
-		float AnimOffsetX = 0.0f;
+		if(!Line.m_Presentation.m_RenderYInitialized || HudEditorPreview)
+		{
+			Line.m_Presentation.m_RenderY = Line.m_Presentation.m_TargetY;
+			Line.m_Presentation.m_RenderYInitialized = true;
+		}
+		else
+			Line.m_Presentation.m_RenderY = SmoothPresentationY(Line.m_Presentation.m_RenderY, Line.m_Presentation.m_TargetY, DeltaSeconds);
 
-		// Declarative cut-off composition from current overflow in the visible area.
-		const float Overflow = std::max(0.0f, HeightLimit - y);
-		const float TargetCutOffT = std::clamp(Overflow / std::max(LineHeight, 1.0f), 0.0f, 1.0f);
-		Line.m_CutOffProgress += std::clamp(TargetCutOffT - Line.m_CutOffProgress, -CutOffStep, CutOffStep);
-		const float CutOffT = Line.m_CutOffProgress;
-		AnimAlpha *= CalculateCutOffAlpha(CutOffT);
-		AnimOffsetX += CalculateCutOffOffsetX(CutOffT);
+		const float RenderY = Line.m_Presentation.m_RenderY + Line.m_Presentation.m_RenderOffsetY;
+		Line.m_CutOffProgress = 0.0f;
+		const float AnimAlpha = ClampPresentationProgress(Line.m_Presentation.m_RenderAlpha);
+		const float AnimOffsetX = Line.m_Presentation.m_RenderOffsetX;
+		const float AnimOffsetY = (RenderY + RealMsgPaddingY / 2.0f) - Line.m_TextYOffset;
 
-		if(CutOffT >= 1.0f && AnimAlpha <= 0.001f)
-			break;
-
-		// Fully transparent lines can be skipped.
 		if(AnimAlpha <= 0.001f)
 			continue;
+
+		// Fully transparent lines must not receive mouse interaction.
+		if(AnimAlpha <= 0.001f)
+			continue;
+
+		const CUIRect RenderedTextRect = {x + AnimOffsetX, RenderY, ChatRect.w - x, LineHeight};
+		if(CopyClickReleased && MousePos.x >= RenderedTextRect.x && MousePos.x <= RenderedTextRect.x + RenderedTextRect.w &&
+			MousePos.y >= RenderedTextRect.y && MousePos.y <= RenderedTextRect.y + RenderedTextRect.h)
+		{
+			pClickedLine = &Line;
+		}
+
+		if(ChatLineMenuRequested && MousePos.x >= RenderedTextRect.x && MousePos.x <= RenderedTextRect.x + RenderedTextRect.w &&
+			MousePos.y >= RenderedTextRect.y && MousePos.y <= RenderedTextRect.y + RenderedTextRect.h)
+		{
+			pMenuLine = &Line;
+		}
 
 		// Draw backgrounds for messages in one batch
 		if(!g_Config.m_ClChatOld)
@@ -2738,32 +2789,36 @@ void CChat::OnRender()
 			Graphics()->TextureClear();
 			if(Line.m_QuadContainerIndex != -1)
 			{
+				const float QuadScale = Line.m_Presentation.m_RenderScale;
+				const float QuadY = Line.m_TextYOffset - RealMsgPaddingY / 2.0f;
+				const float QuadOffsetX = AnimOffsetX + x * (1.0f - QuadScale);
+				const float QuadOffsetY = AnimOffsetY + QuadY * (1.0f - QuadScale);
 				Graphics()->SetColor(BackgroundBaseColor.WithMultipliedAlpha(AnimAlpha));
-				Graphics()->RenderQuadContainerEx(Line.m_QuadContainerIndex, 0, -1, AnimOffsetX, ((y + RealMsgPaddingY / 2.0f) - Line.m_TextYOffset));
+				Graphics()->RenderQuadContainerEx(Line.m_QuadContainerIndex, 0, -1, QuadOffsetX, QuadOffsetY, QuadScale, QuadScale);
 			}
 		}
 
 		if(Line.m_TextContainerIndex.Valid())
 		{
 			RenderedAnyLines = true;
-			ExtendBounds(x, y, ChatRect.w - x, LineHeight);
+			ExtendBounds(x + AnimOffsetX, RenderY, ChatRect.w - x, LineHeight);
 			if(!g_Config.m_ClChatOld && Line.m_pManagedTeeRenderInfo != nullptr)
 			{
 				CTeeRenderInfo &TeeRenderInfo = Line.m_pManagedTeeRenderInfo->TeeRenderInfo();
-				TeeRenderInfo.m_Size = TeeSize;
+				TeeRenderInfo.m_Size = TeeSize * Line.m_Presentation.m_RenderScale;
 
 				float OffsetTeeY = TeeSize / 2.0f;
 				float FullHeightMinusTee = RowHeight - TeeSize;
 
 				vec2 OffsetToMid;
 				CRenderTools::GetRenderTeeOffsetToRenderedTee(pIdleState, &TeeRenderInfo, OffsetToMid);
-				vec2 TeeRenderPos(x + AnimOffsetX + (RealMsgPaddingX + TeeSize) / 2.0f, y + OffsetTeeY + FullHeightMinusTee / 2.0f + OffsetToMid.y);
+				vec2 TeeRenderPos(x + AnimOffsetX + (RealMsgPaddingX + TeeSize) / 2.0f, RenderY + OffsetTeeY + FullHeightMinusTee / 2.0f + OffsetToMid.y);
 				RenderTools()->RenderTee(pIdleState, &TeeRenderInfo, EMOTE_NORMAL, vec2(1, 0.1f), TeeRenderPos, AnimAlpha);
 			}
 
 			const ColorRGBA TextColor = DefaultTextColor.WithMultipliedAlpha(AnimAlpha);
 			const ColorRGBA TextOutlineColor = DefaultTextOutlineColor.WithMultipliedAlpha(AnimAlpha);
-			TextRender()->RenderTextContainer(Line.m_TextContainerIndex, TextColor, TextOutlineColor, AnimOffsetX, (y + RealMsgPaddingY / 2.0f) - Line.m_TextYOffset);
+			TextRender()->RenderTextContainer(Line.m_TextContainerIndex, TextColor, TextOutlineColor, AnimOffsetX, AnimOffsetY);
 		}
 	}
 
@@ -3090,8 +3145,6 @@ bool CChat::TranslateVisibleChatLines()
 	const bool IsScoreBoardOpen = GameClient()->m_Scoreboard.IsActive();
 	const bool ShowLargeArea = m_Show || (m_Mode != MODE_NONE && g_Config.m_ClShowChat == 1) || g_Config.m_ClShowChat == 2;
 	const int OffsetType = IsScoreBoardOpen ? 1 : 0;
-	const int64_t Now = time();
-	const int64_t VisibleTimeNoFocusTicks = static_cast<int64_t>(CHAT_VISIBLE_SECONDS_NO_FOCUS * time_freq());
 
 	int aLineIndices[MAX_LINES];
 	int NumLineIndices = 0;
@@ -3104,12 +3157,14 @@ bool CChat::TranslateVisibleChatLines()
 		const bool ServerMessageIsBasicInfo = Line.m_ServerMessageClass == QmHudNotifications::EServerMessageClass::BasicInfo;
 		if(!ShouldRenderFocusFilteredChatLine(FocusHideChat, FocusHideSystemInfoMessages, FocusHideSystemPromptMessages, FocusHideEcho, Line.m_ClientId, Line.m_ForceVisible, ServerMessageIsBasicInfo))
 			continue;
-		if(Now > Line.m_Time + VisibleTimeNoFocusTicks && !ShowLargeArea)
-			break;
+		if(!ShowLargeArea &&!Line.m_ForceVisible &&Line.m_Presentation.m_State == EPresentationState::COLLAPSED)
+			continue;
+		if(!ShowLargeArea && Line.m_Presentation.m_LayoutVisibility <= 0.001f && Line.m_Presentation.m_RenderAlpha <= 0.001f)
+			continue;
 		if(Line.m_aYOffset[OffsetType] < 0.0f)
 			continue;
 		if(Line.m_CutOffProgress >= 1.0f)
-			break;
+			continue;
 		if(!IsManualVisibleTranslateCandidate(Line.m_ClientId, Line.m_aText[0] != '\0', Line.m_pTranslateResponse != nullptr, GameClient()->m_aLocalIds, std::size(GameClient()->m_aLocalIds)))
 			continue;
 

@@ -2669,6 +2669,7 @@ if(CLIENT)
     components/ghost.h
     components/hud.cpp
     components/hud.h
+    components/hud_media_island_logic.h
     components/hud_editor.cpp
     components/hud_editor.h
     components/jump_hint_utils.cpp
@@ -3721,6 +3722,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     packer_test.cpp
     prng_test.cpp
     qm_chat_interactions_test.cpp
+    qm_hud_media_island_logic_test.cpp
     qm_hud_notifications_test.cpp
     qm_new_ui_menu_branch_test.cpp
     qm_live_client_test.cpp

@@ -10,7 +10,7 @@
 #include <generated/client_data7.h>
 #include <generated/protocol.h>
 
-#include <game/client/QmUi/QmAnim.h>
+#include <game/client/QmUi/QmAnimResolve.h>
 #include <game/client/QmUi/QmLayout.h>
 #include <game/client/QmUi/QmLegacy.h>
 #include <game/client/QmUi/UiTokens.h>
@@ -32,29 +32,60 @@
 
 namespace
 {
-	float ResolveAnimatedValue(CUiV2AnimationRuntime &AnimRuntime, uint64_t NodeKey, EUiAnimProperty Property, float Target, float &LastTarget, float DurationSec)
+	uint64_t ScoreboardPresentationNodeKey(const char *pScope)
 	{
-		constexpr float Epsilon = 0.001f;
-		const float Current = AnimRuntime.GetValue(NodeKey, Property, Target);
-		const bool TargetChanged = std::abs(Target - LastTarget) > Epsilon;
-		const bool NeedsSync = !AnimRuntime.HasActiveAnimation(NodeKey, Property) && std::abs(Target - Current) > Epsilon;
+		static const uint64_t s_BaseKey = static_cast<uint64_t>(str_quickhash("qm_extra_scoreboard_presentation"));
+		return BuildUiAnimNodeKey(s_BaseKey, static_cast<uint64_t>(str_quickhash(pScope)));
+	}
 
-		if(TargetChanged || NeedsSync)
+	SUiSpringConfig ScoreboardPresentationSpring()
+	{
+		SUiSpringConfig Spring;
+		Spring.m_Stiffness = 460.0f;
+		Spring.m_Damping = 42.0f;
+		Spring.m_RestEpsilon = 0.008f;
+		Spring.m_RestVelocity = 0.08f;
+		return Spring;
+	}
+
+	SUiSpringConfig ScoreboardContentSpring(bool Opening)
+	{
+		SUiSpringConfig Spring = ScoreboardPresentationSpring();
+		if(!Opening)
 		{
-			SUiAnimRequest Request;
-			Request.m_NodeKey = NodeKey;
-			Request.m_Property = Property;
-			Request.m_Target = Target;
-			Request.m_Transition.m_DurationSec = DurationSec;
-			Request.m_Transition.m_DelaySec = 0.0f;
-			Request.m_Transition.m_Priority = 1;
-			Request.m_Transition.m_Interrupt = EUiAnimInterruptPolicy::MERGE_TARGET;
-			Request.m_Transition.m_Easing = EEasing::EASE_OUT;
-			AnimRuntime.RequestAnimation(Request);
-			LastTarget = Target;
+			constexpr float CloseTimeScale = 0.30f;
+			Spring.m_Stiffness /= CloseTimeScale * CloseTimeScale;
+			Spring.m_Damping /= CloseTimeScale;
+			Spring.m_RestVelocity /= CloseTimeScale;
 		}
+		return Spring;
+	}
 
-		return AnimRuntime.GetValue(NodeKey, Property, Target);
+	SUiSpringConfig ScoreboardElementSpring(bool Visible)
+	{
+		SUiSpringConfig Spring;
+		Spring.m_Stiffness = 520.0f;
+		Spring.m_Damping = 44.0f;
+		Spring.m_RestEpsilon = 0.005f;
+		Spring.m_RestVelocity = 0.08f;
+		if(!Visible)
+		{
+			constexpr float ExitTimeScale = 0.38f;
+			Spring.m_Stiffness /= ExitTimeScale * ExitTimeScale;
+			Spring.m_Damping /= ExitTimeScale;
+			Spring.m_RestVelocity /= ExitTimeScale;
+		}
+		return Spring;
+	}
+
+	CUIRect ScaleRectAroundCenter(const CUIRect &Rect, float Scale)
+	{
+		Scale = std::max(0.01f, Scale);
+		const float CenterX = Rect.x + Rect.w * 0.5f;
+		const float CenterY = Rect.y + Rect.h * 0.5f;
+		const float Width = Rect.w * Scale;
+		const float Height = Rect.h * Scale;
+		return {CenterX - Width * 0.5f, CenterY - Height * 0.5f, Width, Height};
 	}
 
 	uint64_t SoundMuteButtonNodeKey(int Index)
@@ -138,6 +169,37 @@ namespace
 	{
 		return ScoreboardUiColorSurface(AlphaScale);
 	}
+
+	int DoScoreboardMediaIconButton(CUi *pUi, ITextRender *pTextRender, CButtonContainer *pButtonContainer, const char *pIcon, const CUIRect *pRect, bool Enabled, ColorRGBA ButtonColor, float ContentAlpha)
+	{
+		const float IconAlpha = std::clamp(ContentAlpha, 0.0f, 1.0f);
+		pRect->Draw(pUi->ScaleBackgroundAlpha(ButtonColor), IGraphics::CORNER_ALL, 5.0f);
+
+		const ColorRGBA PreviousTextColor = pTextRender->GetTextColor();
+		const ColorRGBA PreviousOutlineColor = pTextRender->GetTextOutlineColor();
+		pTextRender->SetFontPreset(EFontPreset::ICON_FONT);
+		pTextRender->SetRenderFlags(ETextRenderFlags::TEXT_RENDER_FLAG_ONLY_ADVANCE_WIDTH | ETextRenderFlags::TEXT_RENDER_FLAG_NO_X_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_Y_BEARING);
+		pTextRender->TextOutlineColor(pTextRender->DefaultTextOutlineColor().WithMultipliedAlpha(IconAlpha));
+		pTextRender->TextColor(pTextRender->DefaultTextColor().WithMultipliedAlpha(IconAlpha));
+
+		CUIRect Label;
+		pRect->HMargin(2.0f, &Label);
+		pUi->DoLabel(&Label, pIcon, Label.h * CUi::ms_FontmodHeight, TEXTALIGN_MC);
+
+		if(!Enabled)
+		{
+			pTextRender->TextColor(ColorRGBA(1.0f, 0.0f, 0.0f, IconAlpha));
+			pTextRender->TextOutlineColor(ColorRGBA(0.0f, 0.0f, 0.0f, 0.0f));
+			pUi->DoLabel(&Label, FontIcons::FONT_ICON_SLASH, Label.h * CUi::ms_FontmodHeight, TEXTALIGN_MC);
+		}
+
+		pTextRender->SetRenderFlags(0);
+		pTextRender->SetFontPreset(EFontPreset::DEFAULT_FONT);
+		pTextRender->TextOutlineColor(PreviousOutlineColor);
+		pTextRender->TextColor(PreviousTextColor);
+
+		return Enabled ? pUi->DoButtonLogic(pButtonContainer, 0, pRect, BUTTONFLAG_LEFT) : 0;
+	}
 }
 
 CScoreboard::CScoreboard()
@@ -219,7 +281,9 @@ void CScoreboard::OnReset()
 	m_Visibility = 0.0f;
 	m_OpenTime = 0.0f;
 	m_AnimContentAlpha = 0.0f;
+	m_PresentationInitialized = false;
 	m_MouseUnlocked = false;
+	m_RenderInteractions = false;
 	m_LastMousePos = std::nullopt;
 	m_SoundMuteButtonAnimState.Reset();
 	m_SoundMuteInfoAnimState.Reset();
@@ -231,6 +295,8 @@ void CScoreboard::OnRelease()
 	m_Visibility = 0.0f;
 	m_OpenTime = 0.0f;
 	m_AnimContentAlpha = 0.0f;
+	m_PresentationInitialized = false;
+	m_RenderInteractions = false;
 	m_SoundMuteButtonAnimState.Reset();
 	m_SoundMuteInfoAnimState.Reset();
 
@@ -605,7 +671,7 @@ void CScoreboard::RenderMediaControls(CUIRect Controls)
 
 	static CButtonContainer s_SmtcPrevButton;
 	const float PrevButtonAlpha = 0.5f * Ui()->ButtonColorMul(&s_SmtcPrevButton) * ContentAlpha;
-	if(Ui()->DoButton_FontIcon(&s_SmtcPrevButton, FontIcons::FONT_ICON_BACKWARD_STEP, 0, &PrevButton, BUTTONFLAG_LEFT, IGraphics::CORNER_ALL, CanPrev, ColorRGBA(1.0f, 1.0f, 1.0f, PrevButtonAlpha)))
+	if(DoScoreboardMediaIconButton(Ui(), TextRender(), &s_SmtcPrevButton, FontIcons::FONT_ICON_BACKWARD_STEP, &PrevButton, CanPrev && m_RenderInteractions, ColorRGBA(1.0f, 1.0f, 1.0f, PrevButtonAlpha), ContentAlpha))
 	{
 		GameClient()->m_SystemMediaControls.Previous();
 	}
@@ -614,7 +680,7 @@ void CScoreboard::RenderMediaControls(CUIRect Controls)
 	static CButtonContainer s_SmtcPlayButton;
 	const char *pPlayIcon = MediaState.m_Playing ? FontIcons::FONT_ICON_PAUSE : FontIcons::FONT_ICON_PLAY;
 	const float PlayButtonAlpha = 0.5f * Ui()->ButtonColorMul(&s_SmtcPlayButton) * ContentAlpha;
-	if(Ui()->DoButton_FontIcon(&s_SmtcPlayButton, pPlayIcon, 0, &PlayButton, BUTTONFLAG_LEFT, IGraphics::CORNER_ALL, CanToggle, ColorRGBA(1.0f, 1.0f, 1.0f, PlayButtonAlpha)))
+	if(DoScoreboardMediaIconButton(Ui(), TextRender(), &s_SmtcPlayButton, pPlayIcon, &PlayButton, CanToggle && m_RenderInteractions, ColorRGBA(1.0f, 1.0f, 1.0f, PlayButtonAlpha), ContentAlpha))
 	{
 		GameClient()->m_SystemMediaControls.PlayPause();
 	}
@@ -622,7 +688,7 @@ void CScoreboard::RenderMediaControls(CUIRect Controls)
 
 	static CButtonContainer s_SmtcNextButton;
 	const float NextButtonAlpha = 0.5f * Ui()->ButtonColorMul(&s_SmtcNextButton) * ContentAlpha;
-	if(Ui()->DoButton_FontIcon(&s_SmtcNextButton, FontIcons::FONT_ICON_FORWARD_STEP, 0, &NextButton, BUTTONFLAG_LEFT, IGraphics::CORNER_ALL, CanNext, ColorRGBA(1.0f, 1.0f, 1.0f, NextButtonAlpha)))
+	if(DoScoreboardMediaIconButton(Ui(), TextRender(), &s_SmtcNextButton, FontIcons::FONT_ICON_FORWARD_STEP, &NextButton, CanNext && m_RenderInteractions, ColorRGBA(1.0f, 1.0f, 1.0f, NextButtonAlpha), ContentAlpha))
 	{
 		GameClient()->m_SystemMediaControls.Next();
 	}
@@ -680,7 +746,7 @@ void CScoreboard::RenderSoundMuteBar(CUIRect ScoreboardRect)
 	}
 
 	CUiV2AnimationRuntime *pAnimRuntime = nullptr;
-	if(GameClient()->UiRuntimeV2()->Enabled())
+	if(g_Config.m_QmExtraAnimations != 0 && GameClient()->UiRuntimeV2()->Enabled())
 		pAnimRuntime = &GameClient()->UiRuntimeV2()->AnimRuntime();
 
 	if(pAnimRuntime != nullptr && !m_SoundMuteButtonAnimState.m_Initialized)
@@ -688,10 +754,10 @@ void CScoreboard::RenderSoundMuteBar(CUIRect ScoreboardRect)
 		for(int i = 0; i < NumButtons; ++i)
 		{
 			const uint64_t NodeKey = SoundMuteButtonNodeKey(i);
-			pAnimRuntime->SetValue(NodeKey, EUiAnimProperty::ALPHA, 0.0f);
-			pAnimRuntime->SetValue(NodeKey, EUiAnimProperty::SCALE, 1.0f);
-			pAnimRuntime->SetValue(NodeKey, EUiAnimProperty::POS_X, 18.0f);
-			pAnimRuntime->SetValue(NodeKey, EUiAnimProperty::POS_Y, 0.0f);
+			SetUiPresentationStateValue(*pAnimRuntime, NodeKey, EUiAnimProperty::ALPHA, 0.0f);
+			SetUiPresentationStateValue(*pAnimRuntime, NodeKey, EUiAnimProperty::SCALE, 1.0f);
+			SetUiPresentationStateValue(*pAnimRuntime, NodeKey, EUiAnimProperty::POS_X, 18.0f);
+			SetUiPresentationStateValue(*pAnimRuntime, NodeKey, EUiAnimProperty::POS_Y, 0.0f);
 			m_SoundMuteButtonAnimState.m_aTargetAlpha[i] = 0.0f;
 			m_SoundMuteButtonAnimState.m_aTargetScale[i] = 1.0f;
 			m_SoundMuteButtonAnimState.m_aTargetOffsetX[i] = 18.0f;
@@ -702,8 +768,8 @@ void CScoreboard::RenderSoundMuteBar(CUIRect ScoreboardRect)
 
 	if(pAnimRuntime != nullptr && !m_SoundMuteInfoAnimState.m_Initialized)
 	{
-		pAnimRuntime->SetValue(SoundMuteInfoNodeKey(), EUiAnimProperty::ALPHA, 0.0f);
-		pAnimRuntime->SetValue(SoundMuteInfoNodeKey(), EUiAnimProperty::POS_X, 14.0f);
+		SetUiPresentationStateValue(*pAnimRuntime, SoundMuteInfoNodeKey(), EUiAnimProperty::ALPHA, 0.0f);
+		SetUiPresentationStateValue(*pAnimRuntime, SoundMuteInfoNodeKey(), EUiAnimProperty::POS_X, 14.0f);
 		m_SoundMuteInfoAnimState.m_TargetAlpha = 0.0f;
 		m_SoundMuteInfoAnimState.m_TargetOffsetX = 14.0f;
 		m_SoundMuteInfoAnimState.m_Initialized = true;
@@ -752,22 +818,21 @@ void CScoreboard::RenderSoundMuteBar(CUIRect ScoreboardRect)
 		}
 
 		float Alpha = TargetAlpha;
+		float Scale = TargetScale;
 		float OffsetX = TargetOffsetX;
 		float YOffset = TargetYOffset;
+		m_SoundMuteButtonAnimState.m_aTargetAlpha[i] = TargetAlpha;
+		m_SoundMuteButtonAnimState.m_aTargetScale[i] = TargetScale;
+		m_SoundMuteButtonAnimState.m_aTargetOffsetX[i] = TargetOffsetX;
+		m_SoundMuteButtonAnimState.m_aTargetReveal[i] = TargetYOffset;
 		if(pAnimRuntime != nullptr)
 		{
 			const uint64_t NodeKey = SoundMuteButtonNodeKey(i);
-			Alpha = ResolveAnimatedValue(*pAnimRuntime, NodeKey, EUiAnimProperty::ALPHA, TargetAlpha, m_SoundMuteButtonAnimState.m_aTargetAlpha[i], 0.12f);
-			ResolveAnimatedValue(*pAnimRuntime, NodeKey, EUiAnimProperty::SCALE, TargetScale, m_SoundMuteButtonAnimState.m_aTargetScale[i], 0.12f);
-			OffsetX = ResolveAnimatedValue(*pAnimRuntime, NodeKey, EUiAnimProperty::POS_X, TargetOffsetX, m_SoundMuteButtonAnimState.m_aTargetOffsetX[i], 0.12f);
-			YOffset = ResolveAnimatedValue(*pAnimRuntime, NodeKey, EUiAnimProperty::POS_Y, TargetYOffset, m_SoundMuteButtonAnimState.m_aTargetReveal[i], 0.12f);
-		}
-		else
-		{
-			m_SoundMuteButtonAnimState.m_aTargetAlpha[i] = TargetAlpha;
-			m_SoundMuteButtonAnimState.m_aTargetScale[i] = TargetScale;
-			m_SoundMuteButtonAnimState.m_aTargetOffsetX[i] = TargetOffsetX;
-			m_SoundMuteButtonAnimState.m_aTargetReveal[i] = TargetYOffset;
+			const SUiSpringConfig ElementSpring = ScoreboardElementSpring(TargetAlpha > 0.01f);
+			Alpha = ResolveUiPresentationStateValue(*pAnimRuntime, NodeKey, EUiAnimProperty::ALPHA, m_SoundMuteButtonAnimState.m_aTargetAlpha[i], ElementSpring, 2, 0.003f);
+			Scale = ResolveUiPresentationStateValue(*pAnimRuntime, NodeKey, EUiAnimProperty::SCALE, m_SoundMuteButtonAnimState.m_aTargetScale[i], ElementSpring, 2, 0.003f);
+			OffsetX = ResolveUiPresentationStateValue(*pAnimRuntime, NodeKey, EUiAnimProperty::POS_X, m_SoundMuteButtonAnimState.m_aTargetOffsetX[i], ElementSpring, 2, 0.01f);
+			YOffset = ResolveUiPresentationStateValue(*pAnimRuntime, NodeKey, EUiAnimProperty::POS_Y, m_SoundMuteButtonAnimState.m_aTargetReveal[i], ElementSpring, 2, 0.01f);
 		}
 
 		Alpha = std::clamp(Alpha, 0.0f, 1.0f);
@@ -777,7 +842,9 @@ void CScoreboard::RenderSoundMuteBar(CUIRect ScoreboardRect)
 		CUIRect Button = {ColumnX, ColumnY + i * (ButtonSize + Gap), ButtonSize, ButtonSize};
 		Button.x += OffsetX;
 		Button.y += YOffset;
-		const float ScaledSize = ButtonSize;
+		const float ScaledSize = ButtonSize * std::max(0.01f, Scale);
+		Button.x += (ButtonSize - ScaledSize) * 0.5f;
+		Button.y += (ButtonSize - ScaledSize) * 0.5f;
 		Button.w = ScaledSize;
 		Button.h = ScaledSize;
 
@@ -787,12 +854,12 @@ void CScoreboard::RenderSoundMuteBar(CUIRect ScoreboardRect)
 		aAnimatedRects[i] = Button;
 
 		const bool Active = g_Config.*gs_aSoundMuteButtonDefs[i].m_pConfig != 0;
-		const bool Clickable = IsNearest;
+		const bool Clickable = IsNearest && m_RenderInteractions;
 		const float RenderAlpha = Alpha * ContentAlpha;
 		const ColorRGBA ButtonColor = Active ?
 						      ColorRGBA(1.0f, 0.32f, 0.32f, 0.95f * RenderAlpha) :
 						      ColorRGBA(0.82f, 0.88f, 0.96f, 0.45f * RenderAlpha);
-		if(Ui()->DoButton_FontIcon(&s_aButtons[i], gs_aSoundMuteButtonDefs[i].m_pIcon, 0, &Button, BUTTONFLAG_LEFT, IGraphics::CORNER_ALL, true, ButtonColor) && Clickable)
+		if(Ui()->DoButton_FontIcon(&s_aButtons[i], gs_aSoundMuteButtonDefs[i].m_pIcon, 0, &Button, BUTTONFLAG_LEFT, IGraphics::CORNER_ALL, Clickable, ButtonColor) && Clickable)
 			g_Config.*gs_aSoundMuteButtonDefs[i].m_pConfig ^= 1;
 		RestoreTextColors();
 
@@ -806,15 +873,13 @@ void CScoreboard::RenderSoundMuteBar(CUIRect ScoreboardRect)
 	const float InfoTargetOffsetX = HoveredNearestIndex >= 0 ? 0.0f : 14.0f;
 	float InfoAlpha = InfoTargetAlpha;
 	float InfoOffsetX = InfoTargetOffsetX;
+	m_SoundMuteInfoAnimState.m_TargetAlpha = InfoTargetAlpha;
+	m_SoundMuteInfoAnimState.m_TargetOffsetX = InfoTargetOffsetX;
 	if(pAnimRuntime != nullptr)
 	{
-		InfoAlpha = ResolveAnimatedValue(*pAnimRuntime, SoundMuteInfoNodeKey(), EUiAnimProperty::ALPHA, InfoTargetAlpha, m_SoundMuteInfoAnimState.m_TargetAlpha, 0.10f);
-		InfoOffsetX = ResolveAnimatedValue(*pAnimRuntime, SoundMuteInfoNodeKey(), EUiAnimProperty::POS_X, InfoTargetOffsetX, m_SoundMuteInfoAnimState.m_TargetOffsetX, 0.10f);
-	}
-	else
-	{
-		m_SoundMuteInfoAnimState.m_TargetAlpha = InfoTargetAlpha;
-		m_SoundMuteInfoAnimState.m_TargetOffsetX = InfoTargetOffsetX;
+		const SUiSpringConfig InfoSpring = ScoreboardElementSpring(InfoTargetAlpha > 0.01f);
+		InfoAlpha = ResolveUiPresentationStateValue(*pAnimRuntime, SoundMuteInfoNodeKey(), EUiAnimProperty::ALPHA, m_SoundMuteInfoAnimState.m_TargetAlpha, InfoSpring, 2, 0.003f);
+		InfoOffsetX = ResolveUiPresentationStateValue(*pAnimRuntime, SoundMuteInfoNodeKey(), EUiAnimProperty::POS_X, m_SoundMuteInfoAnimState.m_TargetOffsetX, InfoSpring, 2, 0.01f);
 	}
 	InfoAlpha = std::clamp(InfoAlpha, 0.0f, 1.0f);
 
@@ -1111,7 +1176,7 @@ void CScoreboard::RenderScoreboard(CUIRect Scoreboard, int Team, int CountStart,
 			const int ClientId = pInfo->m_ClientId;
 			const CGameClient::CClientData &ClientData = GameClient()->m_aClients[ClientId];
 
-			if(m_MouseUnlocked)
+			if(m_MouseUnlocked && m_RenderInteractions)
 			{
 				const int ButtonResult = Ui()->DoButtonLogic(&ClientData, 0, &Row, BUTTONFLAG_LEFT | BUTTONFLAG_RIGHT);
 				if(ButtonResult != 0)
@@ -1413,6 +1478,8 @@ void CScoreboard::RenderRecordingNotification(float x)
 
 void CScoreboard::OnRender()
 {
+	m_RenderInteractions = false;
+
 	if(Client()->State() != IClient::STATE_ONLINE && Client()->State() != IClient::STATE_DEMOPLAYBACK)
 		return;
 
@@ -1442,32 +1509,73 @@ void CScoreboard::OnRender()
 	}
 
 	const bool WantActive = IsActive();
-	if(!WantActive)
+	const bool ExtraAnimations = g_Config.m_QmExtraAnimations != 0 && GameClient()->UiRuntimeV2()->Enabled();
+	float PanelOffsetY = 0.0f;
+	float PanelScale = 1.0f;
+	if(!ExtraAnimations)
 	{
-		m_OpenTime = 0.0f;
-		m_Visibility = 0.0f;
-		m_AnimContentAlpha = 0.0f;
-		return;
+		if(!WantActive)
+		{
+			m_OpenTime = 0.0f;
+			m_Visibility = 0.0f;
+			m_AnimContentAlpha = 0.0f;
+			m_RenderInteractions = false;
+			return;
+		}
+
+		m_OpenTime = 1.0f;
+		m_Visibility = 1.0f;
+		m_AnimContentAlpha = 1.0f;
+	}
+	else
+	{
+		CUiV2AnimationRuntime &AnimRuntime = GameClient()->UiRuntimeV2()->AnimRuntime();
+		const uint64_t PanelNode = ScoreboardPresentationNodeKey("panel");
+		const SUiSpringConfig Spring = ScoreboardPresentationSpring();
+		if(!m_PresentationInitialized)
+		{
+			SetUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::ALPHA, 0.0f);
+			SetUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::COLOR_A, 0.0f);
+			SetUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::POS_Y, -10.0f);
+			SetUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::SCALE, 0.985f);
+			m_PresentationInitialized = true;
+		}
+
+		const float TargetVisibility = WantActive ? 1.0f : 0.0f;
+		const float TargetOffsetY = WantActive ? 0.0f : -10.0f;
+		const float TargetScale = WantActive ? 1.0f : 0.985f;
+		m_Visibility = std::clamp(ResolveUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::ALPHA, TargetVisibility, Spring, 3, 0.004f), 0.0f, 1.0f);
+		m_AnimContentAlpha = std::clamp(ResolveUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::COLOR_A, TargetVisibility, ScoreboardContentSpring(WantActive), 3, 0.004f), 0.0f, 1.0f);
+		PanelOffsetY = ResolveUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::POS_Y, TargetOffsetY, Spring, 3, 0.01f);
+		PanelScale = std::max(0.01f, ResolveUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::SCALE, TargetScale, Spring, 3, 0.002f));
+		m_OpenTime = m_Visibility;
+
+		if(!WantActive && m_Visibility <= 0.01f && !AnimRuntime.HasActiveAnimation(PanelNode, EUiAnimProperty::ALPHA))
+		{
+			m_OpenTime = 0.0f;
+			m_Visibility = 0.0f;
+			m_AnimContentAlpha = 0.0f;
+			m_RenderInteractions = false;
+			return;
+		}
 	}
 
-	m_OpenTime = 1.0f;
-	m_Visibility = 1.0f;
-	m_AnimContentAlpha = 1.0f;
-
-	if(!GameClient()->m_Menus.IsActive() && !GameClient()->m_Chat.IsActive())
+	const bool ScoreboardUiInteractive = WantActive && !GameClient()->m_Menus.IsActive() && !GameClient()->m_Chat.IsActive();
+	m_RenderInteractions = ScoreboardUiInteractive;
+	if(ScoreboardUiInteractive)
 	{
 		Ui()->StartCheck();
 		Ui()->Update();
 	}
 
 	// 如果记分板处于活动状态，则应同时清除每日公告消息。
-	if(GameClient()->m_Motd.IsActive())
+	if(WantActive && GameClient()->m_Motd.IsActive())
 		GameClient()->m_Motd.Clear();
 
 	const CUIRect Screen = *Ui()->Screen();
 	Ui()->MapScreen();
 
-	const float BackgroundAlphaFinal = 1.0f;
+	const float BackgroundAlphaFinal = ExtraAnimations ? m_Visibility : m_AnimContentAlpha;
 	const float ContentOffset = 0.0f;
 
 	const CNetObj_GameInfo *pGameInfoObj = GameClient()->m_Snap.m_pGameInfoObj;
@@ -1488,6 +1596,11 @@ void CScoreboard::OnRender()
 	const float TitleHeight = 30.0f;
 
 	CUIRect Scoreboard = {(Screen.w - ScoreboardWidth) / 2.0f, 75.0f, ScoreboardWidth, 355.0f + TitleHeight};
+	if(ExtraAnimations)
+	{
+		Scoreboard = ScaleRectAroundCenter(Scoreboard, PanelScale);
+		Scoreboard.y += PanelOffsetY;
+	}
 	CUIRect ScoreboardContent = Scoreboard;
 	ScoreboardContent.y += ContentOffset;
 	CScoreboardRenderState RenderState{};
@@ -1503,7 +1616,7 @@ void CScoreboard::OnRender()
 	auto &&DoSortButton = [&](CUIRect Rect) {
 		Rect.VMargin(4.0f, &Rect);
 		Rect.HMargin(6.0f, &Rect);
-		if(Ui()->DoButton_PopupMenu(&s_ScoreboardSortButton, pSortLabel, &Rect, SortButtonFontSize, TEXTALIGN_MC, 0.0f, false, true, SortButtonColor))
+		if(Ui()->DoButton_PopupMenu(&s_ScoreboardSortButton, pSortLabel, &Rect, SortButtonFontSize, TEXTALIGN_MC, 0.0f, false, m_RenderInteractions, SortButtonColor))
 			g_Config.m_QmScoreboardSortMode ^= 1;
 	};
 
@@ -1754,7 +1867,7 @@ void CScoreboard::OnRender()
 	if(!g_Config.m_ClShowhudTimer)
 		RenderRecordingNotification((Screen.w / 7) * 4 + 10);
 
-	if(!GameClient()->m_Menus.IsActive() && !GameClient()->m_Chat.IsActive())
+	if(ScoreboardUiInteractive)
 	{
 		Ui()->RenderPopupMenus();
 

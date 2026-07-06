@@ -9,10 +9,51 @@
 
 #include <generated/protocol.h>
 
+#include <game/client/QmUi/QmAnimResolve.h>
 #include <game/client/animstate.h>
 #include <game/client/gameclient.h>
 #include <game/client/QmUi/UiTokens.h>
 #include <game/client/ui.h>
+
+#include <algorithm>
+#include <cmath>
+
+static uint64_t EmoticonPresentationNodeKey(const char *pScope)
+{
+	static const uint64_t s_BaseKey = static_cast<uint64_t>(str_quickhash("qm_extra_emoticon_presentation"));
+	return BuildUiAnimNodeKey(s_BaseKey, static_cast<uint64_t>(str_quickhash(pScope)));
+}
+
+static SUiSpringConfig EmoticonPresentationSpring()
+{
+	SUiSpringConfig Spring;
+	Spring.m_Stiffness = 470.0f;
+	Spring.m_Damping = 40.0f;
+	Spring.m_RestEpsilon = 0.006f;
+	Spring.m_RestVelocity = 0.08f;
+	return Spring;
+}
+
+static int EmoticonClockwiseOrderFromTop(int Index, int Count)
+{
+	const float Angle = (2.0f * pi * Index) / Count;
+	const float ClockwiseFromTop = std::fmod(Angle + pi / 2.0f + 2.0f * pi, 2.0f * pi);
+	return std::clamp(static_cast<int>(std::round(ClockwiseFromTop / (2.0f * pi) * Count)), 0, Count - 1);
+}
+
+static float EmoticonStaggerReveal(int Index, int Count, float PresentationAlpha)
+{
+	if(Count <= 1)
+		return PresentationAlpha;
+
+	constexpr float MaxDelay = 0.42f;
+	const int Order = EmoticonClockwiseOrderFromTop(Index, Count);
+	const float Delay = MaxDelay * Order / (Count - 1);
+	const float Denominator = std::max(0.001f, 1.0f - Delay);
+	const float LocalT = std::clamp((PresentationAlpha - Delay) / Denominator, 0.0f, 1.0f);
+	const float Inv = 1.0f - LocalT;
+	return 1.0f - Inv * Inv * Inv * Inv;
+}
 
 CEmoticon::CEmoticon()
 {
@@ -50,6 +91,7 @@ void CEmoticon::OnReset()
 {
 	m_WasActive = false;
 	m_Active = false;
+	m_PresentationInitialized = false;
 	m_SelectedEmote = -1;
 	m_SelectedEyeEmote = -1;
 	m_TouchPressedOutside = false;
@@ -126,40 +168,64 @@ void CEmoticon::OnRender()
 
 	const CUIRect Screen = *Ui()->Screen();
 
-	const bool WasTouchPressed = m_TouchState.m_AnyPressed;
-	Ui()->UpdateTouchState(m_TouchState);
-	if(m_TouchState.m_AnyPressed)
+	if(m_Active)
 	{
-		const vec2 TouchPos = (m_TouchState.m_PrimaryPosition - vec2(0.5f, 0.5f)) * Screen.Size();
-		const float TouchCenterDistance = length(TouchPos);
-		if(TouchCenterDistance <= s_OuterMouseLimitRadius)
+		const bool WasTouchPressed = m_TouchState.m_AnyPressed;
+		Ui()->UpdateTouchState(m_TouchState);
+		if(m_TouchState.m_AnyPressed)
 		{
-			m_SelectorMouse = TouchPos;
+			const vec2 TouchPos = (m_TouchState.m_PrimaryPosition - vec2(0.5f, 0.5f)) * Screen.Size();
+			const float TouchCenterDistance = length(TouchPos);
+			if(TouchCenterDistance <= s_OuterMouseLimitRadius)
+			{
+				m_SelectorMouse = TouchPos;
+			}
+			else if(TouchCenterDistance > s_OuterCircleRadius)
+			{
+				m_TouchPressedOutside = true;
+			}
 		}
-		else if(TouchCenterDistance > s_OuterCircleRadius)
+		else if(WasTouchPressed)
 		{
-			m_TouchPressedOutside = true;
+			m_Active = false;
 		}
-	}
-	else if(WasTouchPressed)
-	{
-		m_Active = false;
 	}
 
-	if(!m_Active)
+	const bool ExtraAnimations = g_Config.m_QmExtraAnimations != 0 && GameClient()->UiRuntimeV2()->Enabled();
+	float PresentationAlpha = m_Active ? 1.0f : 0.0f;
+	float PresentationScale = m_Active ? 1.0f : 0.88f;
+	if(ExtraAnimations)
+	{
+		CUiV2AnimationRuntime &AnimRuntime = GameClient()->UiRuntimeV2()->AnimRuntime();
+		const SUiSpringConfig Spring = EmoticonPresentationSpring();
+		const uint64_t PanelNode = EmoticonPresentationNodeKey("panel");
+		if(!m_PresentationInitialized)
+		{
+			SetUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::ALPHA, 0.0f);
+			SetUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::SCALE, 0.88f);
+			m_PresentationInitialized = true;
+		}
+		PresentationAlpha = std::clamp(ResolveUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::ALPHA, m_Active ? 1.0f : 0.0f, Spring, 3, 0.004f), 0.0f, 1.0f);
+		PresentationScale = std::max(0.01f, ResolveUiPresentationStateValue(AnimRuntime, PanelNode, EUiAnimProperty::SCALE, m_Active ? 1.0f : 0.88f, Spring, 3, 0.004f));
+	}
+
+	if(!m_Active && (!ExtraAnimations || PresentationAlpha <= 0.01f))
 		return;
 
-	if(length(m_SelectorMouse) > s_OuterMouseLimitRadius)
-		m_SelectorMouse = normalize(m_SelectorMouse) * s_OuterMouseLimitRadius;
+	if(m_Active)
+	{
+		if(length(m_SelectorMouse) > s_OuterMouseLimitRadius)
+			m_SelectorMouse = normalize(m_SelectorMouse) * s_OuterMouseLimitRadius;
 
-	const float SelectorAngle = angle(m_SelectorMouse);
+		const float SelectorAngle = angle(m_SelectorMouse);
 
-	m_SelectedEmote = -1;
-	m_SelectedEyeEmote = -1;
-	if(length(m_SelectorMouse) > s_InnerOuterMouseBoundaryRadius)
-		m_SelectedEmote = PositiveMod(std::round(SelectorAngle / (2.0f * pi) * NUM_EMOTICONS), NUM_EMOTICONS);
-	else if(length(m_SelectorMouse) > s_InnerMouseLimitRadius)
-		m_SelectedEyeEmote = PositiveMod(std::round(SelectorAngle / (2.0f * pi) * NUM_EMOTES), NUM_EMOTES);
+		m_SelectedEmote = -1;
+		m_SelectedEyeEmote = -1;
+		if(length(m_SelectorMouse) > s_InnerOuterMouseBoundaryRadius)
+			m_SelectedEmote = PositiveMod(std::round(SelectorAngle / (2.0f * pi) * NUM_EMOTICONS), NUM_EMOTICONS);
+		else if(length(m_SelectorMouse) > s_InnerMouseLimitRadius)
+			m_SelectedEyeEmote = PositiveMod(std::round(SelectorAngle / (2.0f * pi) * NUM_EMOTES), NUM_EMOTES);
+	}
 
 	const vec2 ScreenCenter = Screen.Center();
 
@@ -169,10 +235,10 @@ void CEmoticon::OnRender()
 
 	Graphics()->TextureClear();
 	Graphics()->QuadsBegin();
-	Graphics()->SetColor(ui_token::color::SURFACE_OVERLAY.WithMultipliedAlpha(0.95f));
-	Graphics()->DrawCircle(ScreenCenter.x, ScreenCenter.y, s_OuterCircleRadius, 64);
-	Graphics()->SetColor(ui_token::color::ACCENT_PRIMARY_DIM.WithMultipliedAlpha(0.95f));
-	Graphics()->DrawCircle(ScreenCenter.x, ScreenCenter.y, s_InnerOuterMouseBoundaryRadius, 64);
+	Graphics()->SetColor(ui_token::color::SURFACE_OVERLAY.WithMultipliedAlpha(0.95f * PresentationAlpha));
+	Graphics()->DrawCircle(ScreenCenter.x, ScreenCenter.y, s_OuterCircleRadius * PresentationScale, 64);
+	Graphics()->SetColor(ui_token::color::ACCENT_PRIMARY_DIM.WithMultipliedAlpha(0.95f * PresentationAlpha));
+	Graphics()->DrawCircle(ScreenCenter.x, ScreenCenter.y, s_InnerOuterMouseBoundaryRadius * PresentationScale, 64);
 	Graphics()->QuadsEnd();
 
 	Graphics()->WrapClamp();
@@ -185,10 +251,13 @@ void CEmoticon::OnRender()
 		Graphics()->TextureSet(GameClient()->m_EmoticonsSkin.m_aSpriteEmoticons[Emote]);
 		Graphics()->QuadsSetSubset(0, 0, 1, 1);
 		Graphics()->QuadsBegin();
-		const vec2 Nudge = direction(Angle) * s_OuterItemRadius;
+		const float Reveal = EmoticonStaggerReveal(Emote, NUM_EMOTICONS, PresentationAlpha);
+		const float ItemAlpha = PresentationAlpha * Reveal;
+		const float ItemScale = PresentationScale * (0.70f + 0.30f * Reveal);
+		const vec2 Nudge = direction(Angle) * s_OuterItemRadius * ItemScale;
 		const float HoverPhase = Emote == m_SelectedEmote ? 1.0f : 0.0f;
-		const float Size = 50.0f + HoverPhase * 30.0f;
-		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+		const float Size = (50.0f + HoverPhase * 30.0f) * ItemScale;
+		Graphics()->SetColor(1.0f, 1.0f, 1.0f, ItemAlpha);
 		IGraphics::CQuadItem QuadItem(ScreenCenter.x + Nudge.x, ScreenCenter.y + Nudge.y, Size, Size);
 		Graphics()->QuadsDraw(&QuadItem, 1);
 		Graphics()->QuadsEnd();
@@ -199,8 +268,8 @@ void CEmoticon::OnRender()
 	{
 		Graphics()->TextureClear();
 		Graphics()->QuadsBegin();
-		Graphics()->SetColor(ui_token::color::SURFACE_HIGHLIGHT.WithMultipliedAlpha(2.0f));
-		Graphics()->DrawCircle(ScreenCenter.x, ScreenCenter.y, s_InnerCircleRadius, 64);
+		Graphics()->SetColor(ui_token::color::SURFACE_HIGHLIGHT.WithMultipliedAlpha(2.0f * PresentationAlpha));
+		Graphics()->DrawCircle(ScreenCenter.x, ScreenCenter.y, s_InnerCircleRadius * PresentationScale, 64);
 		Graphics()->QuadsEnd();
 
 		CTeeRenderInfo TeeInfo = GameClient()->m_aClients[GameClient()->m_aLocalIds[g_Config.m_ClDummy]].m_RenderInfo;
@@ -211,16 +280,19 @@ void CEmoticon::OnRender()
 			if(Angle > pi)
 				Angle -= 2.0f * pi;
 
-			const vec2 Nudge = direction(Angle) * s_InnerItemRadius;
+			const float Reveal = EmoticonStaggerReveal(Emote, NUM_EMOTES, PresentationAlpha);
+			const float ItemAlpha = PresentationAlpha * Reveal;
+			const float ItemScale = PresentationScale * (0.76f + 0.24f * Reveal);
+			const vec2 Nudge = direction(Angle) * s_InnerItemRadius * ItemScale;
 			const float HoverPhase = Emote == m_SelectedEyeEmote ? 1.0f : 0.0f;
-			TeeInfo.m_Size = 48.0f + HoverPhase * 18.0f;
-			RenderTools()->RenderTee(CAnimState::GetIdle(), &TeeInfo, Emote, vec2(-1.0f, 0.0f), ScreenCenter + Nudge, 1.0f);
+			TeeInfo.m_Size = (48.0f + HoverPhase * 18.0f) * ItemScale;
+			RenderTools()->RenderTee(CAnimState::GetIdle(), &TeeInfo, Emote, vec2(-1.0f, 0.0f), ScreenCenter + Nudge, ItemAlpha);
 		}
 
 		Graphics()->TextureClear();
 		Graphics()->QuadsBegin();
-		Graphics()->SetColor(ui_token::color::SURFACE_ELEVATED);
-		Graphics()->DrawCircle(ScreenCenter.x, ScreenCenter.y, 30.0f, 64);
+		Graphics()->SetColor(ui_token::color::SURFACE_ELEVATED.WithMultipliedAlpha(PresentationAlpha));
+		Graphics()->DrawCircle(ScreenCenter.x, ScreenCenter.y, 30.0f * PresentationScale, 64);
 		Graphics()->QuadsEnd();
 	}
 	else
@@ -228,7 +300,7 @@ void CEmoticon::OnRender()
 		m_SelectedEyeEmote = -1;
 	}
 
-	RenderTools()->RenderCursor(ScreenCenter + m_SelectorMouse, 24.0f, 1.0f);
+	RenderTools()->RenderCursor(ScreenCenter + m_SelectorMouse * PresentationScale, 24.0f * PresentationScale, PresentationAlpha);
 }
 
 void CEmoticon::Emote(int Emoticon)

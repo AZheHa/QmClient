@@ -12,6 +12,8 @@
 
 #include <game/client/ui_rect.h>
 
+#include <algorithm>
+
 enum class EInputPriority
 {
 	NONE = 0,
@@ -22,6 +24,8 @@ enum class EInputPriority
 
 namespace qm_ime_overlay
 {
+inline constexpr int FIXED_CANDIDATE_VIEWPORT_SIZE = 7;
+
 inline int NormalizeSelectedCandidateIndex(int SelectedIndex, int CandidateCount)
 {
 	if(CandidateCount <= 0)
@@ -29,6 +33,33 @@ inline int NormalizeSelectedCandidateIndex(int SelectedIndex, int CandidateCount
 	if(SelectedIndex < 0 || SelectedIndex >= CandidateCount)
 		return 0;
 	return SelectedIndex;
+}
+
+struct SQmImeCandidateViewport
+{
+	int m_Start = 0;
+	int m_Count = 0;
+};
+
+inline SQmImeCandidateViewport BuildCandidateViewport(int CandidateCount, int SelectedIndex, int PreviousStart, int MaxVisibleCandidates = FIXED_CANDIDATE_VIEWPORT_SIZE)
+{
+	SQmImeCandidateViewport Viewport;
+	if(CandidateCount <= 0 || MaxVisibleCandidates <= 0)
+		return Viewport;
+
+	Viewport.m_Count = std::min(CandidateCount, MaxVisibleCandidates);
+	const int MaxStart = std::max(0, CandidateCount - Viewport.m_Count);
+	int Start = std::clamp(PreviousStart, 0, MaxStart);
+	const int Selected = NormalizeSelectedCandidateIndex(SelectedIndex, CandidateCount);
+	if(Selected >= 0)
+	{
+		if(Selected < Start)
+			Start = Selected;
+		else if(Selected >= Start + Viewport.m_Count)
+			Start = Selected - Viewport.m_Count + 1;
+	}
+	Viewport.m_Start = std::clamp(Start, 0, MaxStart);
+	return Viewport;
 }
 } // namespace qm_ime_overlay
 

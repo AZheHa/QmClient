@@ -175,6 +175,205 @@ namespace
 		QmPerfLogStage("perf/gameclient", pStage, DurationMs, Force, pGameClient != nullptr ? pGameClient->Client() : nullptr, nullptr, nullptr, pExtra);
 	}
 
+	int QmLocalReferenceClientId(const CGameClient *pGameClient)
+	{
+		const int LocalId = pGameClient->m_aLocalIds[g_Config.m_ClDummy];
+		if(LocalId >= 0 && LocalId < MAX_CLIENTS)
+			return LocalId;
+		const int MainLocalId = pGameClient->m_aLocalIds[0];
+		return MainLocalId >= 0 && MainLocalId < MAX_CLIENTS ? MainLocalId : -1;
+	}
+
+	bool QmCachedOtherTeam(const CGameClient *pGameClient, int ClientId)
+	{
+		if(ClientId < 0 || ClientId >= MAX_CLIENTS)
+			return false;
+
+		const int LocalId = QmLocalReferenceClientId(pGameClient);
+		if(LocalId < 0 || LocalId >= MAX_CLIENTS)
+			return false;
+		if(pGameClient->m_aClients[LocalId].m_Team == TEAM_SPECTATORS)
+			return false;
+
+		const bool Local = LocalId == ClientId;
+		if((pGameClient->m_aClients[LocalId].m_Solo || pGameClient->m_aClients[ClientId].m_Solo) && !Local)
+			return true;
+
+		if(pGameClient->m_Teams.Team(ClientId) == TEAM_SUPER || pGameClient->m_Teams.Team(LocalId) == TEAM_SUPER)
+			return false;
+
+		return pGameClient->m_Teams.Team(ClientId) != pGameClient->m_Teams.Team(LocalId);
+	}
+
+	float QmKnownOwnerEventAlpha(CGameClient *pGameClient, int Owner)
+	{
+		if(Owner < 0 || Owner >= MAX_CLIENTS)
+			return 1.0f;
+
+		float Alpha = pGameClient->LiveObserverClientAlpha(Owner);
+		if(Alpha >= 1.0f && QmCachedOtherTeam(pGameClient, Owner))
+			Alpha = g_Config.m_ClShowOthersAlpha / 100.0f;
+		return Alpha;
+	}
+
+	void QmAddUniqueOwnerCandidate(int &Owner, bool &Ambiguous, int Candidate)
+	{
+		if(Candidate < 0 || Candidate >= MAX_CLIENTS || Ambiguous)
+			return;
+
+		if(Owner < 0)
+			Owner = Candidate;
+		else if(Owner != Candidate)
+			Ambiguous = true;
+	}
+
+	float QmDistancePointSegment(vec2 Pos, vec2 From, vec2 To)
+	{
+		const vec2 Segment = To - From;
+		const float SegmentLengthSquared = length_squared(Segment);
+		if(SegmentLengthSquared <= 0.000001f)
+			return distance(Pos, From);
+
+		const float Progress = std::clamp(dot(Pos - From, Segment) / SegmentLengthSquared, 0.0f, 1.0f);
+		return distance(Pos, From + Segment * Progress);
+	}
+
+	bool QmProjectileMotion(const CProjectileData &Projectile, const CTuningParams *pTuning, float &Curvature, float &Speed)
+	{
+		if(Projectile.m_Type == WEAPON_GRENADE)
+		{
+			Curvature = pTuning->m_GrenadeCurvature;
+			Speed = pTuning->m_GrenadeSpeed;
+			return true;
+		}
+		if(Projectile.m_Type == WEAPON_SHOTGUN)
+		{
+			Curvature = pTuning->m_ShotgunCurvature;
+			Speed = pTuning->m_ShotgunSpeed;
+			return true;
+		}
+		if(Projectile.m_Type == WEAPON_GUN)
+		{
+			Curvature = pTuning->m_GunCurvature;
+			Speed = pTuning->m_GunSpeed;
+			return true;
+		}
+		return false;
+	}
+
+	void QmAddExplosionProjectileCandidate(CGameClient *pGameClient, int &Owner, bool &Ambiguous, const CProjectileData &Projectile, vec2 Pos)
+	{
+		if(!Projectile.m_ExtraInfo || !Projectile.m_Explosive || Projectile.m_Owner < 0 || Projectile.m_Owner >= MAX_CLIENTS)
+			return;
+
+		float Curvature = 0.0f;
+		float Speed = 0.0f;
+		const int TuneZone = std::clamp(Projectile.m_TuneZone, 0, NUM_TUNEZONES - 1);
+		if(!QmProjectileMotion(Projectile, pGameClient->GetTuning(TuneZone), Curvature, Speed))
+			return;
+
+		const float FromTime = std::max(0.0f, (pGameClient->Client()->PrevGameTick(g_Config.m_ClDummy) - Projectile.m_StartTick) / (float)pGameClient->Client()->GameTickSpeed());
+		const float ToTime = std::max(0.0f, (pGameClient->Client()->GameTick(g_Config.m_ClDummy) - Projectile.m_StartTick) / (float)pGameClient->Client()->GameTickSpeed());
+		if(ToTime <= 0.0f && Projectile.m_StartTick > pGameClient->Client()->GameTick(g_Config.m_ClDummy))
+			return;
+
+		const vec2 From = CalcPos(Projectile.m_StartPos, Projectile.m_StartVel, Curvature, Speed, FromTime);
+		const vec2 To = CalcPos(Projectile.m_StartPos, Projectile.m_StartVel, Curvature, Speed, ToTime);
+		constexpr float MaxExplosionOwnerDistance = 96.0f;
+		if(QmDistancePointSegment(Pos, From, To) <= MaxExplosionOwnerDistance)
+			QmAddUniqueOwnerCandidate(Owner, Ambiguous, Projectile.m_Owner);
+	}
+
+	void QmAddExplosionWorldCandidates(CGameClient *pGameClient, CGameWorld &World, int &Owner, bool &Ambiguous, vec2 Pos)
+	{
+		for(CProjectile *pProj = static_cast<CProjectile *>(World.FindFirst(CGameWorld::ENTTYPE_PROJECTILE)); pProj; pProj = static_cast<CProjectile *>(pProj->TypeNext()))
+		{
+			const CProjectileData Projectile = pProj->GetData();
+			QmAddExplosionProjectileCandidate(pGameClient, Owner, Ambiguous, Projectile, Pos);
+		}
+	}
+
+	bool QmIsProjectileSnapType(int Type)
+	{
+		return Type == NETOBJTYPE_PROJECTILE || Type == NETOBJTYPE_DDRACEPROJECTILE || Type == NETOBJTYPE_DDNETPROJECTILE;
+	}
+
+	int QmInferExplosionOwner(CGameClient *pGameClient, vec2 Pos)
+	{
+		int Owner = -1;
+		bool Ambiguous = false;
+
+		for(const CSnapEntities &Ent : pGameClient->SnapEntities())
+		{
+			if(!QmIsProjectileSnapType(Ent.m_Item.m_Type))
+				continue;
+			const CProjectileData Projectile = ExtractProjectileInfo(Ent.m_Item.m_Type, Ent.m_Item.m_pData, &pGameClient->m_GameWorld, Ent.m_pDataEx);
+			QmAddExplosionProjectileCandidate(pGameClient, Owner, Ambiguous, Projectile, Pos);
+		}
+
+		QmAddExplosionWorldCandidates(pGameClient, pGameClient->m_GameWorld, Owner, Ambiguous, Pos);
+		QmAddExplosionWorldCandidates(pGameClient, pGameClient->m_PredictedWorld, Owner, Ambiguous, Pos);
+		QmAddExplosionWorldCandidates(pGameClient, pGameClient->m_PrevPredictedWorld, Owner, Ambiguous, Pos);
+
+		return Ambiguous ? -1 : Owner;
+	}
+
+	void QmAddHammerHitCharacterCandidate(CGameClient *pGameClient, int &Owner, bool &Ambiguous, int ClientId, const CNetObj_Character *pChar, vec2 Pos)
+	{
+		if(!pChar || ClientId < 0 || ClientId >= MAX_CLIENTS || pChar->m_Weapon != WEAPON_HAMMER)
+			return;
+
+		const int AttackAge = pGameClient->Client()->GameTick(g_Config.m_ClDummy) - pChar->m_AttackTick;
+		if(AttackAge < 0 || AttackAge > 2)
+			return;
+
+		vec2 Direction = direction(pChar->m_Angle / 256.0f);
+		const vec2 HammerStartPos = vec2(pChar->m_X, pChar->m_Y) + Direction * 21.0f;
+		constexpr float MaxHammerHitOwnerDistance = 72.0f;
+		if(distance(Pos, HammerStartPos) <= MaxHammerHitOwnerDistance)
+			QmAddUniqueOwnerCandidate(Owner, Ambiguous, ClientId);
+	}
+
+	void QmAddHammerHitWorldCandidates(CGameClient *pGameClient, CGameWorld &World, int &Owner, bool &Ambiguous, vec2 Pos)
+	{
+		for(CCharacter *pChar = static_cast<CCharacter *>(World.FindFirst(CGameWorld::ENTTYPE_CHARACTER)); pChar; pChar = static_cast<CCharacter *>(pChar->TypeNext()))
+		{
+			if(!pChar || pChar->GetActiveWeapon() != WEAPON_HAMMER)
+				continue;
+
+			const int AttackAge = pGameClient->Client()->GameTick(g_Config.m_ClDummy) - pChar->GetAttackTick();
+			if(AttackAge < 0 || AttackAge > 2)
+				continue;
+
+			vec2 HammerHitPos;
+			float HammerHitRadius;
+			if(!pGameClient->GetPredictedHammerHitbox(pChar, HammerHitPos, HammerHitRadius))
+				continue;
+
+			constexpr float MaxHammerHitOwnerDistance = 72.0f;
+			if(distance(Pos, HammerHitPos) <= MaxHammerHitOwnerDistance)
+				QmAddUniqueOwnerCandidate(Owner, Ambiguous, pChar->GetCid());
+		}
+	}
+
+	int QmInferHammerHitOwner(CGameClient *pGameClient, vec2 Pos)
+	{
+		int Owner = -1;
+		bool Ambiguous = false;
+
+		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
+		{
+			const auto *pChar = static_cast<const CNetObj_Character *>(pGameClient->Client()->SnapFindItem(IClient::SNAP_CURRENT, NETOBJTYPE_CHARACTER, ClientId));
+			QmAddHammerHitCharacterCandidate(pGameClient, Owner, Ambiguous, ClientId, pChar, Pos);
+		}
+
+		QmAddHammerHitWorldCandidates(pGameClient, pGameClient->m_GameWorld, Owner, Ambiguous, Pos);
+		QmAddHammerHitWorldCandidates(pGameClient, pGameClient->m_PredictedWorld, Owner, Ambiguous, Pos);
+		QmAddHammerHitWorldCandidates(pGameClient, pGameClient->m_PrevPredictedWorld, Owner, Ambiguous, Pos);
+
+		return Ambiguous ? -1 : Owner;
+	}
+
 	void SetDemoInputKeyState(unsigned char *pKeyStates, int Key, bool Pressed)
 	{
 		dbg_assert(Key >= KEY_FIRST && Key < KEY_LAST, "invalid demo input key");
@@ -4007,7 +4206,9 @@ void CGameClient::ProcessEvents()
 				continue;
 #endif
 			const CNetEvent_Explosion *pEvent = (const CNetEvent_Explosion *)Item.m_pData;
-			m_Effects.Explosion(vec2(pEvent->m_X, pEvent->m_Y), Alpha);
+			const vec2 ExplosionPos = vec2(pEvent->m_X, pEvent->m_Y);
+			const float ExplosionAlpha = QmKnownOwnerEventAlpha(this, QmInferExplosionOwner(this, ExplosionPos));
+			m_Effects.Explosion(ExplosionPos, ExplosionAlpha);
 		}
 		else if(Item.m_Type == NETEVENTTYPE_HAMMERHIT)
 		{
@@ -4017,7 +4218,8 @@ void CGameClient::ProcessEvents()
 #endif
 			const CNetEvent_HammerHit *pEvent = (const CNetEvent_HammerHit *)Item.m_pData;
 			const vec2 HammerHitPos = vec2(pEvent->m_X, pEvent->m_Y);
-			m_Effects.HammerHit(HammerHitPos, Alpha, Volume);
+			const float HammerHitAlpha = QmKnownOwnerEventAlpha(this, QmInferHammerHitOwner(this, HammerHitPos));
+			m_Effects.HammerHit(HammerHitPos, HammerHitAlpha, Volume);
 
 			constexpr float QmJellyHammerHitRadius = 120.0f;
 			for(int Dummy = 0; Dummy < NUM_DUMMIES; ++Dummy)

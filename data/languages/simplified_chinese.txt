@@ -2443,6 +2443,9 @@ Exported %d chat messages
 Exported to %s
 == 已导出到 %s
 
+Extra animations
+== 额外的动画
+
 Extras
 == 其他
 

@@ -6550,9 +6550,9 @@ void CMenus::RenderSettingsDDNet(CUIRect MainView)
 			s_PopupMapPickerContext.m_pMenus = this;
 			s_PopupMapPickerContext.m_aCurrentMapFolder[0] = '\0';
 			str_copy(s_PopupMapPickerContext.m_aRootPath, "maps", sizeof(s_PopupMapPickerContext.m_aRootPath));
-			str_copy(s_PopupMapPickerContext.m_aFallbackRootPath, "mapres", sizeof(s_PopupMapPickerContext.m_aFallbackRootPath));
+			s_PopupMapPickerContext.m_aFallbackRootPath[0] = '\0';
 			s_PopupMapPickerContext.m_aValuePrefix[0] = '\0';
-			str_copy(s_PopupMapPickerContext.m_aFallbackValuePrefix, "mapres", sizeof(s_PopupMapPickerContext.m_aFallbackValuePrefix));
+			s_PopupMapPickerContext.m_aFallbackValuePrefix[0] = '\0';
 			s_PopupMapPickerContext.m_pTargetConfig = g_Config.m_ClBackgroundEntities;
 			s_PopupMapPickerContext.m_TargetConfigSize = sizeof(g_Config.m_ClBackgroundEntities);
 			s_PopupMapPickerContext.MapListPopulate();
@@ -6766,7 +6766,6 @@ void CMenus::CPopupMapPickerContext::MapListPopulate()
 	};
 
 	ListRoot(m_aRootPath[0] != '\0' ? m_aRootPath : "maps", m_aValuePrefix);
-	ListRoot(m_aFallbackRootPath, m_aFallbackValuePrefix);
 	m_aListingValuePrefix[0] = '\0';
 	std::stable_sort(m_vMaps.begin(), m_vMaps.end(), CompareFilenameAscending);
 	m_Selection = -1;

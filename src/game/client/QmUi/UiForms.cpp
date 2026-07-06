@@ -11,6 +11,7 @@
 #include "QmAnimResolve.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 namespace ui_widget
@@ -81,8 +82,8 @@ bool Toggle(const IUiContext &Ctx, const void *pId, bool *pValue, const CUIRect 
 	}
 	Rect.Draw(Track, IGraphics::CORNER_ALL, Rect.h * 0.5f);
 
-	// Knob — slides between left and right ends. Uses a SPRING request so the
-	// motion has the expected snappy bounce on the v2 runtime.
+	// Knob — slides between left and right ends through Presentation State so
+	// toggles can be redirected mid-motion without restarting from rest.
 	const float Padding = std::min(Rect.h * 0.15f, 3.0f);
 	const float KnobSize = Rect.h - Padding * 2.0f;
 	const float LeftX = Rect.x + Padding;
@@ -92,19 +93,7 @@ bool Toggle(const IUiContext &Ctx, const void *pId, bool *pValue, const CUIRect 
 	{
 		const uint64_t KnobKey = BuildUiAnimNodeKey(Ctx.m_ScopeHash ^ 0x5A5Aull, reinterpret_cast<uint64_t>(pId));
 		const float Target = *pValue ? RightX : LeftX;
-		const float Current = Ctx.m_pAnim->GetValue(KnobKey, EUiAnimProperty::POS_X, Target);
-		if(std::abs(Current - Target) > 0.5f || !Ctx.m_pAnim->HasActiveAnimation(KnobKey, EUiAnimProperty::POS_X))
-		{
-			SUiAnimRequest Request;
-			Request.m_NodeKey = KnobKey;
-			Request.m_Property = EUiAnimProperty::POS_X;
-			Request.m_Target = Target;
-			Request.m_Transition.m_Driver = EUiAnimDriver::SPRING;
-			Request.m_Transition.m_Spring = ui_token::motion::TOGGLE;
-			Request.m_Transition.m_Interrupt = EUiAnimInterruptPolicy::MERGE_TARGET;
-			Ctx.m_pAnim->RequestAnimation(Request);
-		}
-		KnobX = Ctx.m_pAnim->GetValue(KnobKey, EUiAnimProperty::POS_X, Target);
+		KnobX = ResolveUiPresentationStateValue(*Ctx.m_pAnim, KnobKey, EUiAnimProperty::POS_X, Target, ui_token::motion::TOGGLE, 1, 0.5f);
 	}
 
 	CUIRect Knob;

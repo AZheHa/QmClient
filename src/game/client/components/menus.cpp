@@ -514,18 +514,8 @@ uint64_t CMenus::UiAnimNodeKey(const char *pScope, const uint64_t Id) const
 void CMenus::TriggerUiSwitchAnimation(const uint64_t NodeKey, const float DurationSec)
 {
 	CUiV2AnimationRuntime &AnimRuntime = GameClient()->UiRuntimeV2()->AnimRuntime();
-	AnimRuntime.SetValue(NodeKey, EUiAnimProperty::POS_X, 1.0f);
-
-	SUiAnimRequest Request;
-	Request.m_NodeKey = NodeKey;
-	Request.m_Property = EUiAnimProperty::POS_X;
-	Request.m_Target = 0.0f;
-	Request.m_Transition.m_DurationSec = DurationSec;
-	Request.m_Transition.m_DelaySec = 0.0f;
-	Request.m_Transition.m_Priority = 1;
-	Request.m_Transition.m_Interrupt = EUiAnimInterruptPolicy::MERGE_TARGET;
-	Request.m_Transition.m_Easing = EEasing::EASE_OUT;
-	AnimRuntime.RequestAnimation(Request);
+	SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::POS_X, 1.0f);
+	ResolveUiAnimValue(AnimRuntime, NodeKey, EUiAnimProperty::POS_X, 0.0f, DurationSec, EEasing::EASE_OUT);
 }
 
 float CMenus::ReadUiSwitchAnimation(const uint64_t NodeKey) const
@@ -1754,7 +1744,7 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 					}
 				}
 				if(!WasVisibleLastFrame)
-					AnimRuntime.SetValue(NodeKey, EUiAnimProperty::ALPHA, 0.0f);
+					SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::ALPHA, 0.0f);
 
 				const float AppearStrength = std::clamp(ResolveUiAnimValue(AnimRuntime, NodeKey, EUiAnimProperty::ALPHA, 1.0f, 0.18f, EEasing::EASE_OUT), 0.0f, 1.0f);
 				const float RevealWidth = maximum(2.0f, Button.w * AppearStrength);
@@ -2074,7 +2064,7 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 					}
 				}
 				if(!WasVisibleLastFrame)
-					AnimRuntime.SetValue(NodeKey, EUiAnimProperty::ALPHA, 0.0f);
+					SetUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::ALPHA, 0.0f);
 
 				const float AppearStrength = std::clamp(ResolveUiAnimValue(AnimRuntime, NodeKey, EUiAnimProperty::ALPHA, 1.0f, 0.18f, EEasing::EASE_OUT), 0.0f, 1.0f);
 				const float RevealWidth = maximum(2.0f, Button.w * AppearStrength);

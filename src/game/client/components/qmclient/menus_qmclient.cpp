@@ -3727,6 +3727,10 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 					CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 
 					CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
+					DoQmSettingsCheckboxAuto(&g_Config.m_QmExtraAnimations, "Extra animations", Localize("Extra animations"), &g_Config.m_QmExtraAnimations, &Row, LgLineHeight);
+					CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
+
+					CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
 					const CUIRect NewImeRow = Row;
 					DoQmSettingsCheckboxAuto(&g_Config.m_QmNewIme, "New IME", Localize("New IME"), &g_Config.m_QmNewIme, &Row, LgLineHeight);
 					if(!IsQmNewFeatureMarkRead("qm_2_63_0_new_ime"))
