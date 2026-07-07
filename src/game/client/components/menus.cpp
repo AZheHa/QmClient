@@ -5818,6 +5818,11 @@ void CMenus::OnStateChange(int NewState, int OldState)
 	{
 		TextRender()->DeleteTextContainer(m_MotdTextContainerIndex);
 		TextRender()->DeleteTextContainer(m_IngameMotdParagraphCache.m_PreviousTextContainerIndex);
+		TextRender()->DeleteTextContainer(m_IngameMotdParagraphCache.m_BuildTextContainerIndex);
+		m_IngameMotdParagraphCache.m_BuildByteOffset = 0;
+		m_IngameMotdParagraphCache.m_BuildHeight = 0.0f;
+		m_IngameMotdParagraphCache.m_BuildCursor = CTextCursor();
+		m_IngameMotdParagraphCache.m_BuildTextContainerIndex.Reset();
 		m_IngameMotdParagraphCache.m_Valid = false;
 		m_IngameMotdParagraphCache.m_Pending = false;
 		m_IngameMotdParagraphCache.m_PreviousTextHash = 0;
@@ -5873,6 +5878,11 @@ void CMenus::OnWindowResize()
 {
 	TextRender()->DeleteTextContainer(m_MotdTextContainerIndex);
 	TextRender()->DeleteTextContainer(m_IngameMotdParagraphCache.m_PreviousTextContainerIndex);
+	TextRender()->DeleteTextContainer(m_IngameMotdParagraphCache.m_BuildTextContainerIndex);
+	m_IngameMotdParagraphCache.m_BuildByteOffset = 0;
+	m_IngameMotdParagraphCache.m_BuildHeight = 0.0f;
+	m_IngameMotdParagraphCache.m_BuildCursor = CTextCursor();
+	m_IngameMotdParagraphCache.m_BuildTextContainerIndex.Reset();
 	m_IngameMotdParagraphCache.m_Valid = false;
 	m_IngameMotdParagraphCache.m_Pending = false;
 	m_IngameMotdParagraphCache.m_PreviousTextHash = 0;
