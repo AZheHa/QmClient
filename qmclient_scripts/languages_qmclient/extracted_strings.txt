@@ -813,6 +813,7 @@ Export selected file
 Export to clipboard
 Exported %d chat messages
 Exported to %s
+Extra animations
 Extras
 f = Frame rate
 Fade and slide
@@ -1641,6 +1642,7 @@ qm_profile_queue: index must be between 1 and %d
 QmClient
 QmClient chat log
 QmClient Community
+QmClient development team
 QmClient online distribution
 QmClient overview
 QmClient Settings

@@ -59,6 +59,7 @@ static constexpr int QM_EDITOR_COLLAB_PULL_INTERVAL_MS = 1500;
 static constexpr int QM_EDITOR_COLLAB_PUSH_DELAY_MS = 1000;
 static constexpr int QM_EDITOR_COLLAB_MAX_MAP_BYTES = 18 * 1024 * 1024;
 static constexpr int QM_EDITOR_COLLAB_MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
+static constexpr float QM_EDITOR_QUAD_WHEEL_SCALE_STEP = 0.1f;
 
 static const json_value *EditorCollabJsonField(const json_value *pObject, const char *pName)
 {
@@ -83,6 +84,86 @@ static bool EditorCollabJsonOk(const json_value *pObject)
 {
 	const json_value *pValue = EditorCollabJsonField(pObject, "ok");
 	return pValue->type != json_boolean || json_boolean_get(pValue);
+}
+
+static vec2 EditorQuadPointPosition(const CQuad &Quad, int PointIndex)
+{
+	return vec2(fx2f(Quad.m_aPoints[PointIndex].x), fx2f(Quad.m_aPoints[PointIndex].y));
+}
+
+static bool EditorQuadContainsPoint(CEditor *pEditor, const CQuad &Quad, vec2 Point)
+{
+	const vec2 TopLeft = EditorQuadPointPosition(Quad, 0);
+	const vec2 TopRight = EditorQuadPointPosition(Quad, 1);
+	const vec2 BottomLeft = EditorQuadPointPosition(Quad, 2);
+	const vec2 BottomRight = EditorQuadPointPosition(Quad, 3);
+	return pEditor->IsInTriangle(Point, TopLeft, TopRight, BottomRight) ||
+	       pEditor->IsInTriangle(Point, TopLeft, BottomLeft, BottomRight);
+}
+
+static void EditorScaleQuadAroundPivot(CQuad &Quad, float Scale)
+{
+	const CPoint Pivot = Quad.m_aPoints[4];
+	for(int PointIndex = 0; PointIndex < 4; ++PointIndex)
+	{
+		Quad.m_aPoints[PointIndex].x = Pivot.x + f2fx(fx2f(Quad.m_aPoints[PointIndex].x - Pivot.x) * Scale);
+		Quad.m_aPoints[PointIndex].y = Pivot.y + f2fx(fx2f(Quad.m_aPoints[PointIndex].y - Pivot.y) * Scale);
+	}
+	Quad.m_aPoints[4] = Pivot;
+}
+
+static bool HandleSelectedQuadWheelScale(CEditor *pEditor, CUIRect View)
+{
+	if(!pEditor->Input()->ShiftIsPressed() || pEditor->Input()->ModifierIsPressed() || pEditor->Input()->AltIsPressed())
+		return false;
+	if(CLineInput::GetActiveInput() != nullptr)
+		return false;
+	if(!pEditor->Ui()->CheckActiveItem(nullptr) || pEditor->m_ShowPicker || pEditor->m_QuadKnifeActive || !pEditor->m_pBrush->IsEmpty())
+		return false;
+	if(pEditor->m_vSelectedLayers.size() != 1)
+		return false;
+
+	int WheelDelta = 0;
+	if(pEditor->Input()->KeyPress(KEY_MOUSE_WHEEL_UP))
+		WheelDelta = 1;
+	else if(pEditor->Input()->KeyPress(KEY_MOUSE_WHEEL_DOWN))
+		WheelDelta = -1;
+	if(WheelDelta == 0)
+		return false;
+
+	if(!pEditor->Ui()->MouseInside(&View))
+		return false;
+
+	std::shared_ptr<CLayerQuads> pLayer = std::static_pointer_cast<CLayerQuads>(pEditor->GetSelectedLayerType(0, LAYERTYPE_QUADS));
+	if(!pLayer)
+		return false;
+
+	std::vector<int> vValidSelectedQuads;
+	vValidSelectedQuads.reserve(pEditor->m_vSelectedQuads.size());
+	bool MouseInsideSelectedQuad = false;
+	const vec2 MouseWorld = pEditor->Ui()->MouseWorldPos();
+	for(int QuadIndex : pEditor->m_vSelectedQuads)
+	{
+		if(QuadIndex < 0 || QuadIndex >= (int)pLayer->m_vQuads.size())
+			continue;
+
+		vValidSelectedQuads.push_back(QuadIndex);
+		if(EditorQuadContainsPoint(pEditor, pLayer->m_vQuads[QuadIndex], MouseWorld))
+			MouseInsideSelectedQuad = true;
+	}
+
+	if(vValidSelectedQuads.empty() || !MouseInsideSelectedQuad)
+		return false;
+
+	const float Scale = 1.0f + WheelDelta * QM_EDITOR_QUAD_WHEEL_SCALE_STEP;
+	pEditor->m_Map.m_QuadTracker.BeginQuadTrack(pLayer, vValidSelectedQuads);
+	for(int QuadIndex : vValidSelectedQuads)
+		EditorScaleQuadAroundPivot(pLayer->m_vQuads[QuadIndex], Scale);
+	pEditor->m_Map.m_QuadTracker.EndQuadTrack();
+	pEditor->m_Map.OnModify();
+
+	str_format(pEditor->m_aTooltip, sizeof(pEditor->m_aTooltip), "方块缩放：%d%%", (int)std::round(Scale * 100.0f));
+	return true;
 }
 
 static const char *VANILLA_IMAGES[] = {
@@ -2963,7 +3044,7 @@ void CEditor::DoMapEditor(CUIRect View)
 			}
 			else if(m_pBrush->IsEmpty() && GetSelectedLayerType(0, LAYERTYPE_QUADS) != nullptr)
 			{
-				str_copy(m_aTooltip, "按住鼠标左键拖拽创建画笔。按住 Shift 选择多个四边形。按 R 旋转选中四边形。Ctrl+右键选择图层。");
+				str_copy(m_aTooltip, "按住鼠标左键拖拽创建画笔。按住 Shift 选择多个四边形。按 R 旋转选中四边形。Shift+滚轮缩放选中四边形。Ctrl+右键选择图层。");
 			}
 			else if(m_pBrush->IsEmpty())
 			{
@@ -7628,14 +7709,15 @@ void CEditor::Render()
 		}
 
 		const bool DrawingToolsWheelHandled = m_DrawingTools.HandleWheelInput(this, View);
-		if(!DrawingToolsWheelHandled && (m_pBrush->IsEmpty() || !Input()->ShiftIsPressed()))
+		const bool QuadWheelScaleHandled = !DrawingToolsWheelHandled && HandleSelectedQuadWheelScale(this, View);
+		if(!DrawingToolsWheelHandled && !QuadWheelScaleHandled && (m_pBrush->IsEmpty() || !Input()->ShiftIsPressed()))
 		{
 			if(Input()->KeyPress(KEY_MOUSE_WHEEL_DOWN))
 				MapView()->Zoom()->ChangeValue(20.0f);
 			if(Input()->KeyPress(KEY_MOUSE_WHEEL_UP))
 				MapView()->Zoom()->ChangeValue(-20.0f);
 		}
-		if(!DrawingToolsWheelHandled && !m_pBrush->IsEmpty())
+		if(!DrawingToolsWheelHandled && !QuadWheelScaleHandled && !m_pBrush->IsEmpty())
 		{
 			const bool HasTeleTiles = std::any_of(m_pBrush->m_vpLayers.begin(), m_pBrush->m_vpLayers.end(), [](const auto &pLayer) {
 				return pLayer->m_Type == LAYERTYPE_TILES && std::static_pointer_cast<CLayerTiles>(pLayer)->m_HasTele;

@@ -2443,6 +2443,9 @@ Exported %d chat messages
 Exported to %s
 == Exportiert nach %s
 
+Extra animations
+== Zusätzliche Animationen
+
 Extras
 == Extras
 
@@ -4926,6 +4929,9 @@ QmClient chat log
 
 QmClient Community
 == QmClient-Community
+
+QmClient development team
+== QmClient-Entwicklungsteam
 
 QmClient online distribution
 == QmClient Online-Verteilung

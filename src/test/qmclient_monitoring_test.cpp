@@ -5781,6 +5781,25 @@ TEST(QmMonitoringHelpers, QmClientFunctionHotspotModulesHaveFirstFrameStages)
 	EXPECT_NE(Body.find("LogQmPerfStage(Client(), \"gores_bind_lookup\""), std::string::npos);
 }
 
+TEST(QmMonitoringHelpers, GoresDebugRouteFiltersUnwalkableTilesAndSteps)
+{
+	const std::string Source = ReadRepoFile("src/game/client/components/tclient/tclient.cpp");
+	const std::string TileScanBody = ExtractSourceFunctionBody(Source, "void CTClient::StepGoresDistanceFieldTileScan(int Budget)");
+	const std::string DijkstraBody = ExtractSourceFunctionBody(Source, "void CTClient::StepGoresDistanceFieldDijkstra(int Budget)");
+	const std::string DebugRouteBody = ExtractSourceFunctionBody(Source, "bool CTClient::BuildGoresDebugRoute(std::vector<vec2> &vRoutePoints, int Dummy) const");
+	ASSERT_FALSE(TileScanBody.empty());
+	ASSERT_FALSE(DijkstraBody.empty());
+	ASSERT_FALSE(DebugRouteBody.empty());
+
+	EXPECT_NE(Source.find("static bool IsGoresDistanceFieldTileStandable("), std::string::npos);
+	EXPECT_NE(Source.find("CCharacterCore::PhysicalSize() / 2.0f"), std::string::npos);
+	EXPECT_NE(Source.find("static bool IsGoresDistanceFieldStepAllowed("), std::string::npos);
+	EXPECT_NE(TileScanBody.find("const bool HasTeeSpace = IsStart || IsFinish || IsGoresDistanceFieldTileStandable("), std::string::npos);
+	EXPECT_NE(TileScanBody.find("(!HasTeeSpace || IsHardBlockedForGoresDistanceField(Tile)"), std::string::npos);
+	EXPECT_NE(DijkstraBody.find("IsGoresDistanceFieldStepAllowed(pCollision, PredIndex, Cur, Width)"), std::string::npos);
+	EXPECT_NE(DebugRouteBody.find("IsGoresDistanceFieldStepAllowed(pCollision, CurrentIndex, NextIndex, Width)"), std::string::npos);
+}
+
 TEST(QmMonitoringHelpers, QmClientModuleHeadlinesKeyTextCacheByLayout)
 {
 	const std::string Source = ReadRepoFile("src/game/client/components/qmclient/menus_qmclient.cpp");

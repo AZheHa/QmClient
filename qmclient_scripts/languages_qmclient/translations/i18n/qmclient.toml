@@ -7392,6 +7392,22 @@ turkish = "QmClient Topluluğu"
 polish = "Społeczność QmClient"
 
 [[message]]
+key = "QmClient development team"
+[message.translations]
+japanese = "栖夢開発チーム"
+korean = "QmClient 개발팀"
+simplified_chinese = "栖梦的开发组"
+traditional_chinese = "栖夢的開發組"
+russian = "Команда разработки QmClient"
+german = "QmClient-Entwicklungsteam"
+spanish = "Equipo de desarrollo de QmClient"
+french = "Équipe de développement QmClient"
+brazilian_portuguese = "Equipe de desenvolvimento do QmClient"
+portuguese = "Equipa de desenvolvimento do QmClient"
+turkish = "QmClient geliştirme ekibi"
+polish = "Zespół deweloperski QmClient"
+
+[[message]]
 key = "QmClient overview"
 [message.translations]
 japanese = "栖夢サイドバー概要"

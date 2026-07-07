@@ -3503,6 +3503,7 @@ void CMenus::AudioPackEditorClose()
 	m_AudioPackEditorState.m_Open = false;
 	m_AudioPackEditorState.m_Initialized = false;
 	m_AudioPackEditorState.m_SelectedCandidateIndex = -1;
+	m_AudioPackEditorState.m_vCandidatePaths.clear();
 	m_AudioPackEditorState.m_vCandidateEntries.clear();
 }
 
@@ -3608,21 +3609,33 @@ void CMenus::AudioPackEditorRefreshCandidates()
 		Storage()->ListDirectoryInfo(IStorage::TYPE_ALL, ScanRoot.m_pScanRoot, AudioPackCandidateScanCallback, &Context);
 	}
 
-	std::vector<std::string> vPaths(vCandidatePaths.begin(), vCandidatePaths.end());
+	m_AudioPackEditorState.m_vCandidatePaths.assign(vCandidatePaths.begin(), vCandidatePaths.end());
+	AudioPackEditorRebuildCandidates();
+}
 
+void CMenus::AudioPackEditorRebuildCandidates()
+{
 	char aCurrentPath[IO_MAX_PATH_LENGTH] = "";
 	const auto vSlots = BuildAudioPackSlots();
 	if(!vSlots.empty())
 	{
 		m_AudioPackEditorState.m_SelectedSlotIndex = std::clamp(m_AudioPackEditorState.m_SelectedSlotIndex, 0, (int)vSlots.size() - 1);
-		ResolveAudioPackEditorCurrentFilePath(Storage(), ResolveAudioPackEditorPackName(m_AudioPackEditorState.m_PackNameInput, g_Config.m_SndPack), vSlots[m_AudioPackEditorState.m_SelectedSlotIndex], aCurrentPath, sizeof(aCurrentPath));
+		ResolveAudioPackEditorCurrentFilePath(
+			Storage(),
+			ResolveAudioPackEditorPackName(m_AudioPackEditorState.m_PackNameInput, g_Config.m_SndPack),
+			vSlots[m_AudioPackEditorState.m_SelectedSlotIndex],
+			aCurrentPath,
+			sizeof(aCurrentPath));
 	}
 
 	std::string SelectedPath;
 	if(m_AudioPackEditorState.m_SelectedCandidateIndex >= 0 && m_AudioPackEditorState.m_SelectedCandidateIndex < (int)m_AudioPackEditorState.m_vCandidateEntries.size())
 		SelectedPath = m_AudioPackEditorState.m_vCandidateEntries[m_AudioPackEditorState.m_SelectedCandidateIndex].m_Path;
 
-	m_AudioPackEditorState.m_vCandidateEntries = BuildAudioPackCandidateEntries(vPaths, ResolveAudioPackEditorPackName(m_AudioPackEditorState.m_PackNameInput, g_Config.m_SndPack), aCurrentPath);
+	m_AudioPackEditorState.m_vCandidateEntries = BuildAudioPackCandidateEntries(
+		m_AudioPackEditorState.m_vCandidatePaths,
+		ResolveAudioPackEditorPackName(m_AudioPackEditorState.m_PackNameInput, g_Config.m_SndPack),
+		aCurrentPath);
 
 	int SelectedIndex = FindAudioPackCandidateEntryIndex(m_AudioPackEditorState.m_vCandidateEntries, aCurrentPath);
 	if(SelectedIndex < 0 && !SelectedPath.empty())
@@ -3778,6 +3791,7 @@ void CMenus::RenderAudioPackEditorScreen(CUIRect MainView)
 	static CButtonContainer s_AudioPackEditorImportPreviewButton;
 	static CListBox s_AudioPackEditorSlotListBox;
 	static CListBox s_AudioPackEditorCandidateListBox;
+	static std::vector<CButtonContainer> s_vAudioPackEditorSlotIds;
 
 	auto SplitLeftSafe = [](CUIRect &Source, float Wanted, CUIRect *pLeft, CUIRect *pRight) {
 		const float Cut = minimum(Wanted, Source.w);
@@ -3807,7 +3821,7 @@ void CMenus::RenderAudioPackEditorScreen(CUIRect MainView)
 	PackRow.VSplitLeft(90.0f, &PackLabel, &PackInput);
 	DoSettingsMenuLabel(SETTINGS_SOUND, -1, -1, "audio_pack_name_label", &PackLabel, Localize("Pack name"), EditorFontSize, TEXTALIGN_ML);
 	if(Ui()->DoEditBox(&m_AudioPackEditorState.m_PackNameInput, &PackInput, EditorEditBoxFontSize))
-		AudioPackEditorRefreshCandidates();
+		AudioPackEditorRebuildCandidates();
 
 	DoSettingsMenuLabel(SETTINGS_SOUND, -1, -1, "audio_pack_edit_title", &TitleRow, Localize("Edit audio pack"), EditorFontSize, TEXTALIGN_ML);
 	if(DoSettingsButton_Menu(SETTINGS_SOUND, -1, -1, &s_AudioPackEditorRefreshButton, "sound-audio-pack-editor-reload", Localize("Reload"), 0, &RefreshButton))
@@ -3852,9 +3866,12 @@ void CMenus::RenderAudioPackEditorScreen(CUIRect MainView)
 		if(std::find(vVisibleSlotIndices.begin(), vVisibleSlotIndices.end(), m_AudioPackEditorState.m_SelectedSlotIndex) == vVisibleSlotIndices.end())
 		{
 			m_AudioPackEditorState.m_SelectedSlotIndex = vVisibleSlotIndices.front();
-			AudioPackEditorRefreshCandidates();
+			AudioPackEditorRebuildCandidates();
 		}
 	}
+
+	if(s_vAudioPackEditorSlotIds.size() < vAllSlots.size())
+		s_vAudioPackEditorSlotIds.resize(vAllSlots.size());
 
 	s_AudioPackEditorSlotListBox.DoHeader(&SlotListRow, Localize("Audio slots"), 20.0f, 2.0f);
 	int SelectedVisibleSlot = 0;
@@ -3872,7 +3889,7 @@ void CMenus::RenderAudioPackEditorScreen(CUIRect MainView)
 	{
 		const int SlotIndex = vVisibleSlotIndices[VisibleIndex];
 		const auto &Slot = vAllSlots[SlotIndex];
-		const CListboxItem Item = s_AudioPackEditorSlotListBox.DoNextItem(&Slot, SelectedVisibleSlot == VisibleIndex);
+		const CListboxItem Item = s_AudioPackEditorSlotListBox.DoNextItem(&s_vAudioPackEditorSlotIds[SlotIndex], SelectedVisibleSlot == VisibleIndex);
 		if(!Item.m_Visible)
 			continue;
 
@@ -3887,7 +3904,7 @@ void CMenus::RenderAudioPackEditorScreen(CUIRect MainView)
 	if(SelectedVisibleSlot != OldSelectedVisibleSlot && SelectedVisibleSlot >= 0 && SelectedVisibleSlot < (int)vVisibleSlotIndices.size())
 	{
 		m_AudioPackEditorState.m_SelectedSlotIndex = vVisibleSlotIndices[SelectedVisibleSlot];
-		AudioPackEditorRefreshCandidates();
+		AudioPackEditorRebuildCandidates();
 	}
 
 	CUIRect CandidateSearchRow, CandidateListRow;

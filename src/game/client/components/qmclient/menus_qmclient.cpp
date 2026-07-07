@@ -28,6 +28,7 @@
 #include <game/client/components/menus.h>
 #include <game/client/components/qmclient/keyword_reply_rules.h>
 #include <game/client/components/qmclient/perf_logging.h>
+#include <game/client/components/qmclient/qimeng_contributor_images_base64.h>
 #include <game/client/components/qmclient/translate/translate_ui_settings.h>
 #include <game/client/components/skins.h>
 #include <game/client/components/tclient/bindchat.h>
@@ -1013,19 +1014,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			TextRender()->TextColor(TextRender()->DefaultTextColor());
 		}
 	};
-	auto RenderMenuImage = [&](const CMenuImage *pImage, const CUIRect &Rect, float Alpha = 1.0f) {
-		if(!pImage)
-			return;
-		Graphics()->TextureSet(pImage->m_OrgTexture);
-		Graphics()->WrapClamp();
-		Graphics()->QuadsBegin();
-		Graphics()->SetColor(1.0f, 1.0f, 1.0f, Alpha);
-		IGraphics::CQuadItem QuadItem(Rect.x, Rect.y, Rect.w, Rect.h);
-		Graphics()->QuadsDrawTL(&QuadItem, 1);
-		Graphics()->QuadsEnd();
-		Graphics()->WrapNormal();
-	};
-	auto RenderTexture = [&](IGraphics::CTextureHandle Texture, const CUIRect &Rect, float Alpha = 1.0f) {
+	auto RenderMenuTexture = [&](IGraphics::CTextureHandle Texture, const CUIRect &Rect, float Alpha = 1.0f) {
 		if(!Texture.IsValid())
 			return;
 		Graphics()->TextureSet(Texture);
@@ -1036,6 +1025,102 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		Graphics()->QuadsDrawTL(&QuadItem, 1);
 		Graphics()->QuadsEnd();
 		Graphics()->WrapNormal();
+	};
+	auto RenderMenuImage = [&](const CMenuImage *pImage, const CUIRect &Rect, float Alpha = 1.0f) {
+		if(!pImage)
+			return;
+		RenderMenuTexture(pImage->m_OrgTexture, Rect, Alpha);
+	};
+	auto RenderMenuTextureTinted = [&](IGraphics::CTextureHandle Texture, const CUIRect &Rect, ColorRGBA Color, float OffsetX = 0.0f, float OffsetY = 0.0f) {
+		if(!Texture.IsValid() || Color.a <= 0.0f)
+			return;
+		Graphics()->TextureSet(Texture);
+		Graphics()->WrapClamp();
+		Graphics()->QuadsBegin();
+		Graphics()->SetColor(Color.r, Color.g, Color.b, Color.a);
+		IGraphics::CQuadItem QuadItem(Rect.x + OffsetX, Rect.y + OffsetY, Rect.w, Rect.h);
+		Graphics()->QuadsDrawTL(&QuadItem, 1);
+		Graphics()->QuadsEnd();
+		Graphics()->WrapNormal();
+	};
+	auto RenderMenuTextureSlice = [&](IGraphics::CTextureHandle Texture, const CUIRect &Rect, float Top, float Bottom, float OffsetX, ColorRGBA Color) {
+		if(!Texture.IsValid() || Color.a <= 0.0f)
+			return;
+		Top = std::clamp(Top, 0.0f, 1.0f);
+		Bottom = std::clamp(Bottom, 0.0f, 1.0f);
+		if(Bottom <= Top)
+			return;
+		Graphics()->TextureSet(Texture);
+		Graphics()->WrapClamp();
+		Graphics()->QuadsBegin();
+		Graphics()->SetColor(Color.r, Color.g, Color.b, Color.a);
+		Graphics()->QuadsSetSubset(0.0f, Top, 1.0f, Bottom);
+		IGraphics::CQuadItem QuadItem(Rect.x + OffsetX, Rect.y + Rect.h * Top, Rect.w, Rect.h * (Bottom - Top));
+		Graphics()->QuadsDrawTL(&QuadItem, 1);
+		Graphics()->QuadsSetSubset(0.0f, 0.0f, 1.0f, 1.0f);
+		Graphics()->QuadsEnd();
+		Graphics()->WrapNormal();
+	};
+	auto QimengSignalNoise = [](unsigned Seed) {
+		Seed ^= Seed >> 16;
+		Seed *= 0x7feb352du;
+		Seed ^= Seed >> 15;
+		Seed *= 0x846ca68bu;
+		Seed ^= Seed >> 16;
+		return (Seed & 0xffffu) / 65535.0f;
+	};
+	auto RenderQimengReconnectTransition = [&](IGraphics::CTextureHandle OldTexture, IGraphics::CTextureHandle NewTexture, const CUIRect &Rect, float Progress, float Now) {
+		const float T = std::clamp(Progress, 0.0f, 1.0f);
+		const float Pulse = std::sin(T * pi);
+		const float TearStrength = Pulse * (1.0f - T * 0.35f);
+		const float OldAlpha = std::clamp(1.0f - T * 1.25f + Pulse * 0.20f, 0.0f, 1.0f);
+		const float NewAlpha = std::clamp(T * 1.30f - 0.12f, 0.0f, 1.0f);
+		const int PhaseFrame = (int)(Now * 38.0f);
+
+		RenderMenuTextureTinted(OldTexture, Rect, ColorRGBA(1.0f, 1.0f, 1.0f, OldAlpha));
+		RenderMenuTextureTinted(NewTexture, Rect, ColorRGBA(1.0f, 1.0f, 1.0f, NewAlpha));
+
+		const float RgbOffset = Rect.w * (0.012f + 0.018f * TearStrength);
+		RenderMenuTextureTinted(OldTexture, Rect, ColorRGBA(1.0f, 0.24f, 0.20f, 0.22f * TearStrength), -RgbOffset, 0.0f);
+		RenderMenuTextureTinted(OldTexture, Rect, ColorRGBA(0.20f, 0.95f, 1.0f, 0.24f * TearStrength), RgbOffset, 0.0f);
+		RenderMenuTextureTinted(NewTexture, Rect, ColorRGBA(1.0f, 0.24f, 0.20f, 0.18f * Pulse), RgbOffset * (1.0f - T), 0.0f);
+		RenderMenuTextureTinted(NewTexture, Rect, ColorRGBA(0.20f, 0.95f, 1.0f, 0.20f * Pulse), -RgbOffset * (1.0f - T), 0.0f);
+
+		for(int i = 0; i < 7; ++i)
+		{
+			const float SliceTop = i / 7.0f;
+			const float SliceBottom = (i + 1) / 7.0f;
+			const float Noise = QimengSignalNoise((unsigned)(PhaseFrame * 41 + i * 97));
+			const float Offset = (Noise - 0.5f) * Rect.w * 0.10f * TearStrength;
+			const IGraphics::CTextureHandle SliceTexture = (i % 2 == 0 || T < 0.45f) ? OldTexture : NewTexture;
+			const float SliceAlpha = (i % 2 == 0 ? OldAlpha : NewAlpha) * (0.28f + 0.26f * Pulse);
+			RenderMenuTextureSlice(SliceTexture, Rect, SliceTop, SliceBottom, Offset, ColorRGBA(1.0f, 1.0f, 1.0f, SliceAlpha));
+		}
+
+		RenderMenuTextureTinted(NewTexture, Rect, ColorRGBA(1.0f, 1.0f, 1.0f, 0.12f * Pulse));
+		const float ScanStep = maximum(3.0f, Rect.h * 0.075f);
+		const float ScanOffset = std::fmod(Now * Rect.h * 1.6f, ScanStep);
+		for(float y = Rect.y + ScanOffset; y < Rect.y + Rect.h; y += ScanStep)
+		{
+			CUIRect Line;
+			Line.x = Rect.x;
+			Line.y = y;
+			Line.w = Rect.w;
+			Line.h = maximum(1.0f, Rect.h * 0.006f);
+			Line.Draw(ColorRGBA(0.64f, 1.0f, 1.0f, 0.12f * Pulse), IGraphics::CORNER_NONE, 0.0f);
+		}
+		for(int i = 0; i < 11; ++i)
+		{
+			const float XNoise = QimengSignalNoise((unsigned)(PhaseFrame * 113 + i * 29));
+			const float YNoise = QimengSignalNoise((unsigned)(PhaseFrame * 61 + i * 131));
+			const float WNoise = QimengSignalNoise((unsigned)(PhaseFrame * 17 + i * 53));
+			CUIRect Crack;
+			Crack.x = Rect.x + XNoise * Rect.w;
+			Crack.y = Rect.y + YNoise * Rect.h;
+			Crack.w = Rect.w * (0.025f + WNoise * 0.11f);
+			Crack.h = maximum(1.0f, Rect.h * (0.006f + 0.010f * WNoise));
+			Crack.Draw(ColorRGBA(0.80f, 1.0f, 1.0f, 0.18f * Pulse * (1.0f - T * 0.25f)), IGraphics::CORNER_NONE, 0.0f);
+		}
 	};
 
 	// Avoid repeatedly scanning every key/modifier combination for each bind row.
@@ -1073,6 +1158,9 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 	static bool s_SponsorQrTextureReady = false;
 	static bool s_SponsorQrDecodeFailed = false;
 	static IGraphics::CTextureHandle s_SponsorQrTexture;
+	static bool s_QimengContributorTexturesTried = false;
+	static bool s_QimengContributorTexturesReady = false;
+	static std::array<IGraphics::CTextureHandle, 2> s_aQimengContributorTextures;
 	static const char *const s_apSponsorQrPngBase64[] = {
 		"data:image/png;base64,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AAAAAAAAQAYjAAQAAAAAAAAyGAEgAAAAAAAAkMEIAAEAAAAAAIAMRgAIAAAAAAAAZDACQAAAAAAAACCDEQACAAAAAAAAGYwAEAAAAAAAAMhgBIAAAAAAAABABiMABAAAAAAAADIYASAAAAAAAACQwQgAAQAAAAAAgAxGAAgAAAAAAABkMAJAAAAAAAAAIIMRAAIAAAAAAAAZjAAQAAAAAAAAyGAEgAAAAAAAAEAGIwAEAAAAAAAAMhgBIAAAAAAAAJDBCAABAAAAAACADEYACAAAAAAAAGQwAkAAAAAAAAAggxEAAgAAAAAAABmMABAAAAAAAADIYASAAAAAAAAAQAYjAAQAAAAAAAAyGAEgAAAAAAAAkMEIAAEAAAAAAIAMRgAIAAAAAAAAZDACQAAAAAAAACCDEQACAAAAAAAAGYwAEAAAAAAAAMhgBIAAAAAAAABABiMABAAAAAAAADIYASAAAA",
 		"AAAACQwQgAAQAAAAAAgAxGAAgAAAAAAABkMAJAAAAAAAAAIIMRAAIAAAAAAAAZjAAQAAAAAAAAyGAEgAAAAAAAAEAGIwAEAAAAAAAAMhgBIAAAAAAAAJDBCAABAAAAAACADEYACAAAAAAAAGQwAkAAAAAAAAAggxEAAgAAAAAAABmMABAAAAAAAADIYASAAAAAAAAAQAYjAAQAAAAAAAAyGAEgAAAAAAAAkMEIAAEAAAAAAIAMRgAIAAAAAAAAZDACQAAAAAAAACCDEQACAAAAAAAAGYwAEAAAAAAAAMhgBIAAAAAAAABABiMABAAAAAAAADIYASAAAAAAAACQwQgAAQAAAAAAgAxGAAgAAAAAAABkMAJAAAAAAAAAIIMRAAIAAAAAAAAZjAAQAAAAAAAAyGAEgAAAAAAAAEAGIwAEAAAAAAAAMhgBIAAAAAAAAJDBCAABAAAAAACADEYACAAAAAAAAGQwAkAAAAAAAAAggxEAAgAAAAAAABmMABAAAAAAAADIYASAAAAAAAAAQAYjAAQAAAAAAAAyGAEgAAAAAAAAkMEIAAEAAAAAAIAMRgAIAAAAAAAAZDACQAAAAAAAACCDEQACAAAAAAAAGYwAEAAAAAAAAMhgBIAAAAAAAABABiMABAAAAAAAADIYASAAAAAAAACQwQgAAQAAAAAAgAxGAAgAAAAAAABkMAJAAAAAAAAAIIMRAAIAAAAAAAAZjAAQAAAAAAAAyGAEgAAAAAAAAEAGIwAEAAAAAAAAMhgBIAAAAAAAAJDBCAABAAAAAACADEYACAAAAAAAAGQwAkAAAAAAAAAggxEAAgAAAAAAABmMABAAAAAAAADIYASAAAAAAAAAQAYjAAQAAAAAAAAyGAEgAAAAAAAAkMEIAAEAAAAAAIAMRgAIAAAAAAAAZDACQAAAAAAAACCDEQACAAAAAAAAGYwAEAAAAAAAAMhgBIAAAAAAAABABiMABAAAAAAAADIYASAAAAAAAACQwQgAAQAAAAAAgAxGAAgAAAAAAABkMAJAAAAAAAAAIIMRAAIAAAAAAAAZjAAQAAAAAAAAyGAEgAAAAAAAAEAGIwAEAAAAAAAAMhgBIAAAAAAAAJDBCAABAAAAAACADEYACAAAAAAAAGQwAkAAAAAAAAAggxEAAgAAAAAAABmMABAAAAAAAADIYASAAAAAAAAAQAYjAAQAAAAAAAAyGAEgAAAAAAAAkMEIAAEAAAAAAIAMRgAIAAAAAAAAZDACQAAAAAAAACCDEQACAAAAAAAAGYwAEAAAAAAAAMhgBIAAAAAAAABABiMABAAAAAAAADIYASAAAAAAAACQwQgAAQAAAAAAgAxGAAgAAAAAAABkMAJAAAAAAAAAIIM5FnoBAAAAuJ5pmorH44rH45Ikp9Mpu90uwzAWemmp9VlrSSQSSiQSisVicjgccjgcstls98xaAQAAQAAIAABwzzBNU5FIRJ2dnWpubtbQ0JBsNpvKy8tVV1enkpISOZ3OhV6mDMNQMpnU+Pi4Wltb1d7ertHRUWVnZ6uyslL19fXy+/2y2dhsAgAAcC8gAAQAAFhApmlK34dq0WhUR48e1Z/+9CedOnVKY2NjMgxDZWVleuSRR/SDH/xAy5cvl9vtXrC1GoYh0zQ1ODio/fv364MPPlBTU5OCwaBcLpdqa2v17LPP6qWXXlJRURGVgAAAAPcAAkAAAIAFZAVkpmmqq6tLv/nNb/T+++9rZGREiURChmHo4sWLunz5suLxuP7mb/5GtbW1C1JdZ4V/ExMTOnLkiP7+7/9ex44d08TEhJLJZGqtra2tKi4u1vPPPy+Hg183AQAAFhr7MgAAAO4Bpmnq3LlzOnjwoAYGBhSLxZRMJpVIJBSJRNTe3q6vvvpKTU1NikajC7rO/v5+HTx4UCdPntTY2Jji8XhqrRMTE7pw4YL279+vYDC40KcVAAAABIAAAOBBYm23vVeYpplaUzQa1ZUrVzQwMDDlOuPxuNrb29Xc3KxQKLRga47H4+rs7NSFCxc0Pj4+5TGRSESXL1/W0NDQgq0TAAAA/4wAEAAAZDwraLO2sN4rQaBhGKktwKFQSGfOnNHExETaxzA2Nqbe3l5FIpEFewzxeFwDAwPq7e1VIpGY8phkMqnm5mY1NzcvyBoBAABwPZqyAACAB4IV/iWTSSWTydR/s9ls98S02mQyqYmJibShmiQlEgmFw2HF4/EFW6c1qTgWi017XDgcVjgcXtB1WuFqMplMPfeSUs85A0oAAMCDggAQAABkPCv8CwaD6u7u1uDgoIaHh+X3+1VcXKzS0lLl5OQsaCDkcrlUWVkpt9uddotvKBRSS0uLhoeHVV5eLrvdPq9rNE1T4XBYnZ2dGhkZmbYKsbi4WMXFxfN+Hm9cbywWU39/v/r6+jQ0NCSbzabCwkKVlZUpPz9fTqdzQdcIAAAwHwgAAQBAxjNNU8PDwzp48KA++eQTNTU1aWRkRH6/X/X19dq1a5d27typgoKCBasG9Hg8Wrp06bQBYDQa1eDgoCYmJhZsC3AsFtPo6KhCoVDaNdhsNlVWVqq6unpB1jh5rWfPntUHH3ygkydPqre3V3a7XWVlZXrkkUe0Z88eLV26lEnFAAAg4/HbDgAAyHjRaFTHjx/Xr3/9ax05ckTBYFDJZFI2m03Hjh1TY2Oj7Ha7nn32WWVnZy/IGg3DkMfjuWUAeS/0L5xJH0W3272g1XWmaaq9vV2/+c1v9NZbb6m/vz+1ddrpdOrMmTMKh8P6l//yX6qsrGzB1gkAADAfFr7hDQAAwBwbGxvTV199pVOnTml8fFyJREKmaSqRSCgQCOjMmTPav3+/+vr6Un3iFspMAr6FDAEn99K71XELtaXaNE2NjIzos88+0759+9Td3a1oNJrq/xiJRNTW1qaDBw+qubl52r6LAAAAmYAAEAAAZDQrDGppaVEwGJwyPAuHw2ptbVV/f/+CBYCGYcjpdE67HdXqYxgIBBZsnZFIROPj49MOIjEMQy6Xa8ECwGQyqc7OTh08eFAdHR1TnqtYLKbu7m51dHTccqAJAADA/Y4AEAAAZLx4PK5oNJq2cs4aFhGPxxesus4wDFVWVqq4uDhtcJZMJtXb26uurq4FmQScTCY1Ojqqjo6OaSf8ut1u1dXVye12z/sa9f3z3dnZqba2NkUikbTHRaPR1HZwAACATEYACAAAMl52drby8vLSVtfZ7Xbl5ubK5/PN+xAQK3C02WwqLy9XYWFh2gDQqgAcHx9f0ArAsbGxabfNut1u1dbWLlgAGAqFdO3aNfX19bG9FwAAgAAQAAA8CPx+v9asWaPS0tKbAj6bzabi4mKtW7dOxcXF8x4ATg77nE6n7Hb7tMfPZADHXLHu+1ZrWMgtwKZpKhAIqK2tTaOjo9Ou0+12KycnhynAAAAg4/HbDgAAyGiGYcjn82nHjh1qbW3V+++/r87OTsViMTmdTpWVlenpp5/W3r17VVhYOO/rmzwsY6bBnjXEZKrbmC8L1d/vVkzT1ODgoNra2tL2fNT3YWtZWZkqKytvGboCAADc7wgAAQBAxrPb7WpoaNCvfvUrbdiwQU1NTeru7lZpaakaGhq0efNm1dXVyeVyzeu6bgzurEEg04Vr1vbWYDAon893XXg416FcMplUIBC4Zd88u90uu92+IJWKiURCfX196uzsnLb/n9PpVEVFhcrKyua96hMAAGC+EQACAIAHgsvlUn19vaqrqxWJRDQxMSGv1yuPxyOXy7UgVWA3BnZ+v1/19fX6+uuvNTExMeWfsQLAiYmJVOg3X9V4sVhMLS0taSfrWo+ptLRUtbW1C3JOw+Gwmpub1dXVlbb/n2EYysnJ0ZIlS5SXlzfva5zKQlRxAgCABwcBIAAAmDP3Wqhht9vl9Xrl9Xrl9/vvqbXp+2ElVVVVcjqdaY8xTTO1BXi+12+apkKhkCKRSNrqPsMwVFhYqIqKink/f5IUCATU0tKiwcHBaUPK3Nxc1dXVKSsra8FfBwvV0xEAADw4CAABAMCcWehg5X5bm81mk81mu+XaFnIQyEwfx3xWJlqSyaR6e3t15cqVtBWU+n777+LFi9XQ0HBPDAC5F1",
@@ -1156,20 +1244,27 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		"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",
 	};
-	auto EnsureSponsorQrTexture = [&]() -> bool {
-		if(s_SponsorQrTextureReady && s_SponsorQrTexture.IsValid())
-			return true;
-		if(s_SponsorQrTextureTried)
-			return false;
-		s_SponsorQrTextureTried = true;
-
+	auto LoadPngTextureFromBase64 = [&](const char *const *ppBase64Chunks, size_t NumBase64Chunks, const char *pLoadName, const char *pTextureName, IGraphics::CTextureHandle &Texture, bool &DecodeFailed) -> bool {
+		DecodeFailed = false;
 		std::string CleanBase64;
 		size_t Base64Size = 0;
-		for(const char *pChunk : s_apSponsorQrPngBase64)
-			Base64Size += str_length(pChunk);
-		CleanBase64.reserve(Base64Size);
-		for(const char *pChunk : s_apSponsorQrPngBase64)
+		for(size_t i = 0; i < NumBase64Chunks; ++i)
 		{
+			const char *pChunk = ppBase64Chunks[i];
+			if(pChunk)
+				Base64Size += str_length(pChunk);
+		}
+		if(Base64Size == 0)
+		{
+			DecodeFailed = true;
+			return false;
+		}
+		CleanBase64.reserve(Base64Size);
+		for(size_t i = 0; i < NumBase64Chunks; ++i)
+		{
+			const char *pChunk = ppBase64Chunks[i];
+			if(!pChunk)
+				continue;
 			const char *pPayload = pChunk;
 			if(const char *pComma = str_find(pPayload, ","))
 				pPayload = pComma + 1;
@@ -1181,29 +1276,67 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			}
 		}
 		if(CleanBase64.empty())
+		{
+			DecodeFailed = true;
 			return false;
+		}
 
 		const int MaxDecodedSize = static_cast<int>((CleanBase64.size() * 3) / 4 + 4);
 		std::vector<uint8_t> vDecoded(MaxDecodedSize);
 		const int DecodedSize = str_base64_decode(vDecoded.data(), MaxDecodedSize, CleanBase64.c_str());
 		if(DecodedSize <= 0)
 		{
-			s_SponsorQrDecodeFailed = true;
+			DecodeFailed = true;
 			return false;
 		}
 		vDecoded.resize(DecodedSize);
 
-		CImageInfo QrImage;
-		if(!Graphics()->LoadPng(QrImage, vDecoded.data(), vDecoded.size(), "qmclient_sponsor_qr_base64"))
+		CImageInfo PngImage;
+		if(!Graphics()->LoadPng(PngImage, vDecoded.data(), vDecoded.size(), pLoadName))
 		{
-			s_SponsorQrDecodeFailed = true;
+			DecodeFailed = true;
 			return false;
 		}
 
-		s_SponsorQrTexture = Graphics()->LoadTextureRawMove(QrImage, 0, "qmclient_sponsor_qr");
-		s_SponsorQrTextureReady = s_SponsorQrTexture.IsValid();
-		s_SponsorQrDecodeFailed = !s_SponsorQrTextureReady;
+		Texture = Graphics()->LoadTextureRawMove(PngImage, 0, pTextureName);
+		DecodeFailed = !Texture.IsValid();
+		return Texture.IsValid();
+	};
+	auto EnsureSponsorQrTexture = [&]() -> bool {
+		if(s_SponsorQrTextureReady && s_SponsorQrTexture.IsValid())
+			return true;
+		if(s_SponsorQrTextureTried)
+			return false;
+		s_SponsorQrTextureTried = true;
+
+		s_SponsorQrTextureReady = LoadPngTextureFromBase64(s_apSponsorQrPngBase64, std::size(s_apSponsorQrPngBase64), "qmclient_sponsor_qr_base64", "qmclient_sponsor_qr", s_SponsorQrTexture, s_SponsorQrDecodeFailed);
 		return s_SponsorQrTextureReady;
+	};
+	auto EnsureQimengContributorTextures = [&]() -> bool {
+		if(s_QimengContributorTexturesReady)
+		{
+			for(const IGraphics::CTextureHandle Texture : s_aQimengContributorTextures)
+			{
+				if(Texture.IsValid())
+					return true;
+			}
+		}
+		if(s_QimengContributorTexturesTried)
+			return false;
+		s_QimengContributorTexturesTried = true;
+
+		bool DecodeFailed = false;
+		LoadPngTextureFromBase64(QIMENG_CONTRIBUTOR_IMAGE_1_PNG_BASE64, std::size(QIMENG_CONTRIBUTOR_IMAGE_1_PNG_BASE64), "qimeng_contributor_1_base64", "qimeng_contributor_1", s_aQimengContributorTextures[0], DecodeFailed);
+		LoadPngTextureFromBase64(QIMENG_CONTRIBUTOR_IMAGE_2_PNG_BASE64, std::size(QIMENG_CONTRIBUTOR_IMAGE_2_PNG_BASE64), "qimeng_contributor_2_base64", "qimeng_contributor_2", s_aQimengContributorTextures[1], DecodeFailed);
+		for(const IGraphics::CTextureHandle Texture : s_aQimengContributorTextures)
+		{
+			if(Texture.IsValid())
+			{
+				s_QimengContributorTexturesReady = true;
+				return true;
+			}
+		}
+		return false;
 	};
 	auto DoKeyBindRow = [&](CUIRect &Content, CButtonContainer &ReaderButton, CButtonContainer &ClearButton, const char *pLabel, const char *pCommand) {
 		CBindSlot Bind(KEY_UNKNOWN, KeyModifier::NONE);
@@ -2495,7 +2628,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 						QrRect.HSplitTop(Pad, nullptr, &QrRect);
 						QrRect.HSplitBottom(Pad, &QrRect, nullptr);
 					}
-					RenderTexture(s_SponsorQrTexture, QrRect, 1.0f);
+					RenderMenuTexture(s_SponsorQrTexture, QrRect, 1.0f);
 				}
 				else
 				{
@@ -2537,11 +2670,89 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			CUIRect RightContent = TextRect;
 			RightContent.x -= RightContentShift;
 			RightContent.w += RightContentShift;
-			RenderQmModuleHeadline(RightContent, -2, Localize("QmClient"), Localize("Developers and sponsors"));
-			RightContent.HSplitTop(LgLineHeight, &Row, &RightContent);
-			TextRender()->TextColor(GetRainbowColor(-6));
-			DoQmSettingsLabel("qmclient-community-developers-names", &Row, "栖梦(璇梦),夏日,DYL", LgBodySize + 2.0f);
-			TextRender()->TextColor(TextRender()->DefaultTextColor());
+			RenderQmModuleHeadline(RightContent, -2, Localize("QmClient development team"), Localize("Developers and sponsors"));
+			std::array<IGraphics::CTextureHandle, 2> aQimengContributorTextures = {};
+			int QimengContributorImageCount = 0;
+			if(EnsureQimengContributorTextures())
+			{
+				for(const IGraphics::CTextureHandle Texture : s_aQimengContributorTextures)
+				{
+					if(!Texture.IsValid())
+						continue;
+					aQimengContributorTextures[QimengContributorImageCount] = Texture;
+					++QimengContributorImageCount;
+				}
+			}
+			if(QimengContributorImageCount > 0)
+			{
+				static constexpr float QimengContributorImageAspect = 760.0f / 325.0f;
+				static constexpr float QimengContributorSwitchDuration = 0.82f;
+				static int s_QimengContributorCurrentImage = 0;
+				static int s_QimengContributorPreviousImage = 0;
+				static float s_QimengContributorSwitchStart = -1000.0f;
+				static float s_QimengContributorNextSwitch = 0.0f;
+				static unsigned s_QimengContributorSwitchSeed = 0x51b1d00du;
+				auto QimengContributorSwitchDelay = [&]() {
+					s_QimengContributorSwitchSeed = s_QimengContributorSwitchSeed * 1664525u + 1013904223u;
+					return 5.0f + (s_QimengContributorSwitchSeed % 7000u) / 1000.0f;
+				};
+				auto QimengContributorTextureAt = [&](int Index) -> IGraphics::CTextureHandle {
+					if(Index < 0 || Index >= QimengContributorImageCount)
+						return IGraphics::CTextureHandle();
+					return aQimengContributorTextures[Index];
+				};
+				if(s_QimengContributorCurrentImage >= QimengContributorImageCount)
+					s_QimengContributorCurrentImage = 0;
+				if(s_QimengContributorPreviousImage >= QimengContributorImageCount)
+					s_QimengContributorPreviousImage = s_QimengContributorCurrentImage;
+				const float Now = Client()->LocalTime();
+				if(s_QimengContributorNextSwitch <= 0.0f)
+				{
+					s_QimengContributorSwitchSeed ^= (unsigned)(Now * 1000.0f);
+					s_QimengContributorNextSwitch = Now + QimengContributorSwitchDelay();
+				}
+				if(QimengContributorImageCount > 1 && Now >= s_QimengContributorNextSwitch && Now - s_QimengContributorSwitchStart > QimengContributorSwitchDuration)
+				{
+					s_QimengContributorPreviousImage = s_QimengContributorCurrentImage;
+					s_QimengContributorCurrentImage = (s_QimengContributorCurrentImage + 1 + (s_QimengContributorSwitchSeed % (unsigned)(QimengContributorImageCount - 1))) % QimengContributorImageCount;
+					s_QimengContributorSwitchStart = Now;
+					s_QimengContributorNextSwitch = Now + QimengContributorSwitchDuration + QimengContributorSwitchDelay();
+				}
+				const IGraphics::CTextureHandle QimengContributorTexture = QimengContributorTextureAt(s_QimengContributorCurrentImage);
+				const IGraphics::CTextureHandle QimengContributorPreviousTexture = QimengContributorTextureAt(s_QimengContributorPreviousImage);
+				const float QimengContributorSwitchProgress = (Now - s_QimengContributorSwitchStart) / QimengContributorSwitchDuration;
+				const bool QimengContributorSwitchActive = QimengContributorImageCount > 1 && QimengContributorSwitchProgress >= 0.0f && QimengContributorSwitchProgress < 1.0f;
+				const float QimengContributorImageWidth = maximum(0.0f, RightContent.w * 0.50f);
+				const float QimengContributorImageHeight = QimengContributorImageWidth / QimengContributorImageAspect;
+
+				RightContent.HSplitTop(QimengContributorImageHeight, &Row, &RightContent);
+				CUIRect QimengContributorImageRect = Row;
+				QimengContributorImageRect.w = QimengContributorImageWidth;
+				QimengContributorImageRect.x += (Row.w - QimengContributorImageWidth) * 0.5f;
+				if(QimengContributorSwitchActive)
+					RenderQimengReconnectTransition(QimengContributorPreviousTexture, QimengContributorTexture, QimengContributorImageRect, QimengContributorSwitchProgress, Now);
+				else
+					RenderMenuTexture(QimengContributorTexture, QimengContributorImageRect, 1.0f);
+
+				RightContent.HSplitTop(LgLineSpacing * 0.4f, nullptr, &RightContent);
+				RightContent.HSplitTop(LgLineHeight, &Row, &RightContent);
+				CUIRect ContributorNameRow = Row;
+				ContributorNameRow.w = QimengContributorImageWidth;
+				ContributorNameRow.x += (Row.w - QimengContributorImageWidth) * 0.5f;
+				CUIRect SummerName, DylName;
+				ContributorNameRow.VSplitMid(&SummerName, &DylName);
+				TextRender()->TextColor(GetRainbowColor(-6));
+				DoQmSettingsLabel("qmclient-community-developer-summer", &SummerName, "夏日", LgBodySize + 2.0f, TEXTALIGN_ML);
+				DoQmSettingsLabel("qmclient-community-developer-dyl", &DylName, "DYL", LgBodySize + 2.0f, TEXTALIGN_MR);
+				TextRender()->TextColor(TextRender()->DefaultTextColor());
+			}
+			else
+			{
+				RightContent.HSplitTop(LgLineHeight, &Row, &RightContent);
+				TextRender()->TextColor(GetRainbowColor(-6));
+				DoQmSettingsLabel("qmclient-community-developers-names", &Row, "栖梦(璇梦),夏日,DYL", LgBodySize + 2.0f);
+				TextRender()->TextColor(TextRender()->DefaultTextColor());
+			}
 			constexpr float SponsorFontShrink = 4.0f;
 			constexpr float MinSponsorFontSize = 8.0f;
 			RightContent.HSplitTop(LgLineSpacing * 1.75f, nullptr, &RightContent);

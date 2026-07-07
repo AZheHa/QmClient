@@ -2443,6 +2443,9 @@ Exported %d chat messages
 Exported to %s
 == %s konumuna dışa aktarıldı
 
+Extra animations
+== Ek animasyonlar
+
 Extras
 == Ekstralar
 
@@ -4926,6 +4929,9 @@ QmClient chat log
 
 QmClient Community
 == QmClient Topluluğu
+
+QmClient development team
+== QmClient geliştirme ekibi
 
 QmClient online distribution
 == QmClient çevrimiçi dağılımı

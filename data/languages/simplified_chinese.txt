@@ -4930,6 +4930,9 @@ QmClient chat log
 QmClient Community
 == 栖梦社区
 
+QmClient development team
+== 栖梦的开发组
+
 QmClient online distribution
 == 栖梦客户端在线分布
 

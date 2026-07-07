@@ -366,6 +366,62 @@ static bool IsHardBlockedForGoresDistanceField(int TileIndex)
 	return TileIndex == TILE_SOLID || TileIndex == TILE_NOHOOK;
 }
 
+static bool IsHardBlockedGoresDistanceFieldIndex(const CTile *pGame, const CTile *pFront, int Index)
+{
+	if(!pGame || Index < 0)
+		return true;
+
+	return IsHardBlockedForGoresDistanceField(pGame[Index].m_Index) ||
+	       (pFront && IsHardBlockedForGoresDistanceField(pFront[Index].m_Index));
+}
+
+static bool IsGoresDistanceFieldTileStandable(const CCollision *pCollision, const CTile *pGame, const CTile *pFront, int Index)
+{
+	if(!pCollision || !pGame || Index < 0)
+		return false;
+
+	const vec2 Pos = pCollision->GetPos(Index);
+	const float HalfSize = CCharacterCore::PhysicalSize() / 2.0f;
+	const vec2 aSamples[] = {
+		vec2(-HalfSize, -HalfSize),
+		vec2(HalfSize, -HalfSize),
+		vec2(-HalfSize, HalfSize),
+		vec2(HalfSize, HalfSize),
+	};
+	for(const vec2 SampleOffset : aSamples)
+	{
+		const int SampleIndex = pCollision->GetPureMapIndex(Pos + SampleOffset);
+		if(IsHardBlockedGoresDistanceFieldIndex(pGame, pFront, SampleIndex))
+			return false;
+	}
+	return true;
+}
+
+static int GoresDistanceFieldMoveBlockMask(int FromIndex, int ToIndex, int Width)
+{
+	if(Width <= 0)
+		return 0;
+	if(ToIndex == FromIndex + 1)
+		return CANTMOVE_RIGHT;
+	if(ToIndex == FromIndex - 1)
+		return CANTMOVE_LEFT;
+	if(ToIndex == FromIndex + Width)
+		return CANTMOVE_DOWN;
+	if(ToIndex == FromIndex - Width)
+		return CANTMOVE_UP;
+	return 0;
+}
+
+static bool IsGoresDistanceFieldStepAllowed(const CCollision *pCollision, int FromIndex, int ToIndex, int Width)
+{
+	const int BlockMask = GoresDistanceFieldMoveBlockMask(FromIndex, ToIndex, Width);
+	if(!pCollision || BlockMask == 0)
+		return false;
+
+	const int Restrictions = pCollision->GetMoveRestrictions(nullptr, nullptr, pCollision->GetPos(FromIndex), 18.0f, FromIndex);
+	return (Restrictions & BlockMask) == 0;
+}
+
 static bool IsPenaltyTileForGoresDistanceField(int TileIndex)
 {
 	return TileIndex == TILE_DEATH || TileIndex == TILE_FREEZE || TileIndex == TILE_DFREEZE || TileIndex == TILE_LFREEZE;
@@ -3653,8 +3709,9 @@ void CTClient::StepGoresDistanceFieldTileScan(int Budget)
 		const bool HasPenalty = IsPenaltyTileForGoresDistanceField(Tile) || IsPenaltyTileForGoresDistanceField(FrontTile);
 		const bool HasReward = IsRewardTileForGoresDistanceField(Tile) || IsRewardTileForGoresDistanceField(FrontTile);
 		const bool HasTeleport = pTele && pTele[Index].m_Type != 0;
+		const bool HasTeeSpace = IsStart || IsFinish || IsGoresDistanceFieldTileStandable(pCollision, pGame, pFront, Index);
 		const bool IsBlocked = !IsStart && !IsFinish &&
-				       (IsHardBlockedForGoresDistanceField(Tile) || IsHardBlockedForGoresDistanceField(FrontTile));
+				       (!HasTeeSpace || IsHardBlockedForGoresDistanceField(Tile) || IsHardBlockedForGoresDistanceField(FrontTile));
 		if(IsStart)
 			m_GoresDistanceFieldBuildHadStart = true;
 		if(IsFinish)
@@ -3919,6 +3976,8 @@ void CTClient::StepGoresDistanceFieldDijkstra(int Budget)
 
 				const int PredIndex = PredY * Width + PredX;
 				if(!m_vGoresDistanceFieldBuildPassable[(size_t)PredIndex])
+					continue;
+				if(!IsGoresDistanceFieldStepAllowed(pCollision, PredIndex, Cur, Width))
 					continue;
 
 				const int PredTeleType = pTele ? pTele[PredIndex].m_Type : 0;
@@ -4214,6 +4273,8 @@ bool CTClient::BuildGoresDebugRoute(std::vector<vec2> &vRoutePoints, int Dummy) 
 
 			const int NextIndex = NextY * Width + NextX;
 			if(!IsReachableIndex(NextIndex))
+				continue;
+			if(!IsGoresDistanceFieldStepAllowed(pCollision, CurrentIndex, NextIndex, Width))
 				continue;
 
 			const int NextTile = pGame[NextIndex].m_Index;
