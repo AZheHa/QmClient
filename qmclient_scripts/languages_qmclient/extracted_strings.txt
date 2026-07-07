@@ -275,6 +275,7 @@ Auto translate received messages
 Auto translate sent messages
 Auto unmute when speaking
 Auto unspec on unfreeze
+Auto-save history count
 Auto-sync player camera
 Auto-toggle fast input
 Auto-toggle fast input others
@@ -409,9 +410,11 @@ Classic Pro
 Classic pro
 Clear
 Clear all favorite maps
+Clear all history
 Clear Changes
 Clear chat messages
 Clear current cut (right click to clear all cuts)
+Clear finished
 Clear friend note
 Clear local console
 Clear note
@@ -466,6 +469,8 @@ Configure background 3D particle effects
 Configure hammer skin steal and skin transition animations
 Configure qm_report_app_id and qm_report_secret first
 Confirm both are on same server, same room, and support voice
+Confirm clear all
+Confirm clear finished
 Connect address error
 Connect dummy
 Connect dummy to enable
@@ -861,6 +866,7 @@ Find all ban records for the specified IP address
 Finish data source
 Finish Name
 Finish Name:
+Finished
 Finished maps
 Fire
 First page in console
@@ -1142,6 +1148,7 @@ Laser preview
 Laser settings
 Laser size
 Laser style
+Last entered
 Last page in console
 Latency
 Latency Jitter
@@ -1256,6 +1263,7 @@ Map
 Map browser color
 Map browser opacity
 Map danger border
+Map play history
 Map Preview TODO
 Map progress bar
 Map Progress: %.1f%%
@@ -1388,6 +1396,7 @@ No items to write
 No local saves file found (ddnet-saves.txt)
 No local servers found (ports %d-%d)
 No login required
+No map play history yet
 No matching assets.
 No matching features found. Try other keywords
 No more blocking entity layers in the world of TeeWorlds
@@ -1679,6 +1688,7 @@ Receive
 Receive Rate
 Receive rate
 Receiving
+Recent
 Reconnect in %d sec
 Record demo
 Record match
@@ -1727,6 +1737,7 @@ Remove Bind
 Remove chat
 Remove friend
 Remove from favorites
+Remove from history
 Remove from queue
 Remove Item
 Remove prediction & antiping in freeze
@@ -2473,12 +2484,14 @@ Unbind all keys
 Unbind key
 Uncertainty duration
 Unclassified audio issue
+Unfinished
 Unfinished map
 Unfinished map count: %d
 Unfinished map data is refreshing, please try again later
 Unfinished map data not fetched
 Unfinished map data refreshing
 Unfinished maps
+Unfinished maps are shown first
 Unflip:
 Unfreeze
 Unfreeze automation helpers

@@ -829,6 +829,9 @@ Auto unmute when speaking
 Auto unspec on unfreeze
 == Sair de espectador automaticamente ao descongelar
 
+Auto-save history count
+== Auto-save history count
+
 Auto-sync player camera
 == Sincronizar câmara do jogador automaticamente
 
@@ -1231,6 +1234,9 @@ Clear
 Clear all favorite maps
 == Limpar todos os mapas favoritos
 
+Clear all history
+== Clear all history
+
 Clear Changes
 == Limpar Alterações
 
@@ -1239,6 +1245,9 @@ Clear chat messages
 
 Clear current cut (right click to clear all cuts)
 == Limpar corte atual (clique direito para limpar todos os cortes)
+
+Clear finished
+== Clear finished
 
 Clear friend note
 == Limpar nota de amigo
@@ -1401,6 +1410,12 @@ Configure qm_report_app_id and qm_report_secret first
 
 Confirm both are on same server, same room, and support voice
 == Confirme que ambos estão no mesmo servidor, na mesma sala e que suportam voz
+
+Confirm clear all
+== Confirm clear all
+
+Confirm clear finished
+== Confirm clear finished
 
 Connect address error
 == Erro de endereço de conexão
@@ -2587,6 +2602,9 @@ Finish Name
 Finish Name:
 == Nome na Chegada:
 
+Finished
+== Finished
+
 Finished maps
 == Mapas concluídos
 
@@ -3430,6 +3448,9 @@ Laser size
 Laser style
 == Estilo do laser
 
+Last entered
+== Last entered
+
 Last page in console
 == Última página na consola
 
@@ -3771,6 +3792,9 @@ Map browser opacity
 
 Map danger border
 == Borda de perigo do mapa
+
+Map play history
+== Map play history
 
 Map Preview TODO
 == Pré-visualização do mapa pendente
@@ -4167,6 +4191,9 @@ No local servers found (ports %d-%d)
 
 No login required
 == Sem login necessário
+
+No map play history yet
+== No map play history yet
 
 No matching assets.
 == Nenhuns recursos correspondentes.
@@ -5041,6 +5068,9 @@ Receive rate
 Receiving
 == A receber
 
+Recent
+== Recent
+
 Reconnect in %d sec
 == Reconnectar em %d seg
 
@@ -5184,6 +5214,9 @@ Remove friend
 
 Remove from favorites
 == Remover dos favoritos
+
+Remove from history
+== Remove from history
 
 Remove from queue
 == Remover da fila
@@ -6581,7 +6614,7 @@ Stats notes
 == Notas de estatísticas
 
 Status
-== Estado
+== Status
 
 Status Bar
 == Barra de Estado
@@ -7423,6 +7456,9 @@ Uncertainty duration
 Unclassified audio issue
 == Problema de áudio não classificado
 
+Unfinished
+== Unfinished
+
 Unfinished map
 == Mapa incompleto
 
@@ -7440,6 +7476,9 @@ Unfinished map data refreshing
 
 Unfinished maps
 == Mapas não terminados
+
+Unfinished maps are shown first
+== Unfinished maps are shown first
 
 Unflip:
 == Desinverter:

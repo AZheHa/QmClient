@@ -66,6 +66,7 @@ static constexpr const char *MAP_CATEGORY_CACHE_FILE = "qmclient/map_categories.
 static constexpr int64_t MAP_CATEGORY_CACHE_SAVE_DELAY_SEC = 5;
 static constexpr const char *MAP_NOTES_FILE = "qmclient/map_notes.json";
 static constexpr int64_t MAP_NOTES_SAVE_DELAY_SEC = 5;
+static constexpr const char *MAP_HISTORY_FILE = "qmclient/map_history.json";
 static constexpr const char *QMCLIENT_FREEZE_WAKEUP_TEXT = "快醒醒!";
 static constexpr int LOCAL_SAVE_JOIN_HINT_MAX_ITEMS = 12;
 static constexpr int GORES_DISTANCE_FIELD_TILE_SCAN_BUDGET = 4096;
@@ -595,6 +596,7 @@ void CTClient::OnInit()
 	}
 	LoadMapCategoryCache();
 	LoadMapNotes();
+	LoadMapHistory();
 }
 
 void CTClient::OnShutdown()
@@ -609,6 +611,9 @@ void CTClient::OnShutdown()
 
 	AbortTask(m_pQmClientUpdateInfoTask);
 	AbortTask(m_pUpdateExeTask);
+	EndMapHistorySession(true);
+	if(m_MapHistoryDirty)
+		SaveMapHistory();
 	if(m_MapNotesDirty)
 		SaveMapNotes();
 	UnloadTextPopupCaches();
@@ -1157,6 +1162,22 @@ void CTClient::OnMessage(int MsgType, void *pRawMsg)
 {
 	if(Client()->State() == IClient::STATE_DEMOPLAYBACK)
 		return;
+
+	if(MsgType == NETMSGTYPE_SV_KILLMSG)
+	{
+		CNetMsg_Sv_KillMsg *pMsg = (CNetMsg_Sv_KillMsg *)pRawMsg;
+		HandleMapHistoryDeath(pMsg->m_Victim);
+	}
+	else if(MsgType == NETMSGTYPE_SV_KILLMSGTEAM)
+	{
+		CNetMsg_Sv_KillMsgTeam *pMsg = (CNetMsg_Sv_KillMsgTeam *)pRawMsg;
+		HandleMapHistoryTeamDeath(pMsg->m_Team);
+	}
+	else if(MsgType == NETMSGTYPE_SV_RACEFINISH)
+	{
+		CNetMsg_Sv_RaceFinish *pMsg = (CNetMsg_Sv_RaceFinish *)pRawMsg;
+		HandleMapHistoryFinish(pMsg->m_ClientId, pMsg->m_Time);
+	}
 
 	if(MsgType == NETMSGTYPE_SV_CHAT)
 	{
@@ -1865,6 +1886,7 @@ void CTClient::OnUpdate()
 		UpdateGoresMapProgress(); // 更新 Gores 地图路径进度
 	}
 
+	UpdateMapHistorySession();
 	MaybeSaveMapCategoryCache();
 	MaybeSaveMapNotes();
 	ApplyFocusModeEffects();
@@ -3006,6 +3028,11 @@ void CTClient::SetForcedAspect()
 void CTClient::OnStateChange(int NewState, int OldState)
 {
 	SetForcedAspect();
+	if(NewState != IClient::STATE_ONLINE)
+	{
+		EndMapHistorySession(true);
+		m_MapHistorySuppressedMapId.clear();
+	}
 	for(auto &AirRescuePositions : m_aAirRescuePositions)
 		AirRescuePositions = {};
 	ClearFreezeWakeupPopups();
@@ -4792,6 +4819,276 @@ void CTClient::SetMapNote(const char *pMapName, const char *pNote)
 		m_MapNotesDirty = true;
 		m_MapNotesNextSave = time_get() + time_freq() * MAP_NOTES_SAVE_DELAY_SEC;
 	}
+}
+
+void CTClient::LoadMapHistory()
+{
+	char *pJson = Storage()->ReadFileStr(MAP_HISTORY_FILE, IStorage::TYPE_SAVE);
+	if(pJson == nullptr)
+		return;
+
+	char aError[256] = "";
+	if(!m_MapHistory.FromJson(pJson, aError, sizeof(aError)))
+	{
+		log_error("qmclient", "map history json parse error: %s", aError);
+	}
+	free(pJson);
+
+	const size_t OldSize = m_MapHistory.Size();
+	m_MapHistory.ApplyLimit(g_Config.m_QmAutoSaveHistoryCount);
+	m_MapHistoryDirty = m_MapHistory.Size() != OldSize;
+}
+
+void CTClient::SaveMapHistory()
+{
+	Storage()->CreateFolder("qmclient", IStorage::TYPE_SAVE);
+
+	IOHANDLE File = Storage()->OpenFile(MAP_HISTORY_FILE, IOFLAG_WRITE, IStorage::TYPE_SAVE);
+	if(!File)
+	{
+		log_error("qmclient", "map history file open failed");
+		return;
+	}
+
+	const std::string Json = m_MapHistory.ToJson();
+	const bool Ok = io_write(File, Json.data(), (unsigned)Json.size()) == Json.size();
+	io_close(File);
+	if(!Ok)
+	{
+		log_error("qmclient", "map history file write failed");
+		return;
+	}
+	m_MapHistoryDirty = false;
+}
+
+void CTClient::MarkMapHistoryDirty()
+{
+	const size_t OldSize = m_MapHistory.Size();
+	m_MapHistory.ApplyLimit(g_Config.m_QmAutoSaveHistoryCount);
+	m_MapHistoryDirty = true;
+	if(m_MapHistory.Size() != OldSize)
+		log_info("qmclient", "Trimmed map history to %d entries", g_Config.m_QmAutoSaveHistoryCount);
+}
+
+std::string CTClient::CurrentMapHistoryId() const
+{
+	const char *pMapName = Client()->GetCurrentMap();
+	if(pMapName == nullptr || pMapName[0] == '\0')
+		return {};
+
+	const SHA256_DIGEST Sha256 = Client()->GetCurrentMapSha256();
+	char aBuf[SHA256_MAXSTRSIZE + 16];
+	if(Sha256 != SHA256_ZEROED)
+	{
+		char aSha256[SHA256_MAXSTRSIZE];
+		sha256_str(Sha256, aSha256, sizeof(aSha256));
+		str_format(aBuf, sizeof(aBuf), "sha256:%s", aSha256);
+		return aBuf;
+	}
+
+	str_format(aBuf, sizeof(aBuf), "crc:%08x:%s", Client()->GetCurrentMapCrc(), pMapName);
+	return aBuf;
+}
+
+int64_t CTClient::CurrentMapHistoryPlayTimeMs() const
+{
+	if(!m_MapHistorySessionActive || m_MapHistorySessionStart <= 0)
+		return 0;
+	const int64_t Elapsed = time_get() - m_MapHistorySessionStart;
+	if(Elapsed <= 0)
+		return 0;
+	return Elapsed * 1000 / time_freq();
+}
+
+void CTClient::TouchMapHistoryPlayTime()
+{
+	if(!m_MapHistorySessionActive || m_MapHistoryActiveMapId.empty())
+		return;
+	m_MapHistory.UpdatePlayTime(m_MapHistoryActiveMapId, CurrentMapHistoryPlayTimeMs());
+}
+
+void CTClient::StartMapHistorySession()
+{
+	if(g_Config.m_QmAutoSaveHistoryCount <= 0 || Client()->State() != IClient::STATE_ONLINE)
+		return;
+
+	const char *pMapName = Client()->GetCurrentMap();
+	if(pMapName == nullptr || pMapName[0] == '\0')
+		return;
+
+	const std::string MapId = CurrentMapHistoryId();
+	if(MapId.empty())
+		return;
+	if(m_MapHistorySuppressedMapId == MapId)
+		return;
+
+	if(m_MapHistorySessionActive && m_MapHistoryActiveMapId == MapId)
+	{
+		TouchMapHistoryPlayTime();
+		return;
+	}
+
+	EndMapHistorySession(true);
+
+	char aDate[32];
+	str_timestamp_format(aDate, sizeof(aDate), "%Y-%m-%d");
+	m_MapHistory.RecordVisit(pMapName, MapId, time_timestamp(), aDate);
+	m_MapHistorySessionActive = true;
+	m_MapHistorySessionStart = time_get();
+	m_MapHistoryActiveMapId = MapId;
+	m_MapHistoryActiveMapName = pMapName;
+	MarkMapHistoryDirty();
+}
+
+void CTClient::EndMapHistorySession(bool SaveNow)
+{
+	if(!m_MapHistorySessionActive)
+		return;
+	TouchMapHistoryPlayTime();
+	m_MapHistorySessionActive = false;
+	m_MapHistorySessionStart = 0;
+	m_MapHistoryActiveMapId.clear();
+	m_MapHistoryActiveMapName.clear();
+	MarkMapHistoryDirty();
+	if(SaveNow)
+		SaveMapHistory();
+}
+
+void CTClient::UpdateMapHistorySession()
+{
+	if(g_Config.m_QmAutoSaveHistoryCount <= 0 || Client()->State() != IClient::STATE_ONLINE)
+	{
+		EndMapHistorySession(true);
+		return;
+	}
+
+	const std::string MapId = CurrentMapHistoryId();
+	if(MapId.empty())
+	{
+		EndMapHistorySession(true);
+		return;
+	}
+	if(!m_MapHistorySuppressedMapId.empty() && m_MapHistorySuppressedMapId != MapId)
+		m_MapHistorySuppressedMapId.clear();
+	if(m_MapHistorySuppressedMapId == MapId)
+		return;
+
+	if(m_MapHistorySessionActive && m_MapHistoryActiveMapId != MapId)
+		EndMapHistorySession(true);
+	StartMapHistorySession();
+}
+
+void CTClient::HandleMapHistoryDeath(int ClientId)
+{
+	if(g_Config.m_QmAutoSaveHistoryCount <= 0 || !m_MapHistorySessionActive || ClientId < 0)
+		return;
+
+	const bool OwnMain = ClientId == GameClient()->m_aLocalIds[0];
+	const bool OwnDummy = Client()->DummyConnected() && ClientId == GameClient()->m_aLocalIds[1];
+	if(!OwnMain && !OwnDummy)
+		return;
+
+	if(m_MapHistory.AddDeath(m_MapHistoryActiveMapId))
+		MarkMapHistoryDirty();
+}
+
+void CTClient::HandleMapHistoryTeamDeath(int Team)
+{
+	if(g_Config.m_QmAutoSaveHistoryCount <= 0 || !m_MapHistorySessionActive)
+		return;
+
+	for(int Dummy = 0; Dummy < NUM_DUMMIES; ++Dummy)
+	{
+		if(Dummy == 1 && !Client()->DummyConnected())
+			continue;
+		const int ClientId = GameClient()->m_aLocalIds[Dummy];
+		if(ClientId >= 0 && GameClient()->m_Teams.Team(ClientId) == Team)
+		{
+			if(m_MapHistory.AddDeath(m_MapHistoryActiveMapId))
+				MarkMapHistoryDirty();
+			return;
+		}
+	}
+}
+
+void CTClient::HandleMapHistoryFinish(int ClientId, int FinishTimeMs)
+{
+	if(g_Config.m_QmAutoSaveHistoryCount <= 0 || !m_MapHistorySessionActive || ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return;
+
+	bool OwnFinish = false;
+	for(int Dummy = 0; Dummy < NUM_DUMMIES; ++Dummy)
+	{
+		if(Dummy == 1 && !Client()->DummyConnected())
+			continue;
+		const int LocalId = GameClient()->m_aLocalIds[Dummy];
+		if(LocalId < 0)
+			continue;
+		if(ClientId == LocalId)
+		{
+			OwnFinish = true;
+			break;
+		}
+		const int LocalTeam = GameClient()->m_Teams.Team(LocalId);
+		if(GameClient()->m_GameInfo.m_DDRaceTeam && LocalTeam > TEAM_FLOCK && GameClient()->m_Teams.Team(ClientId) == LocalTeam)
+		{
+			OwnFinish = true;
+			break;
+		}
+	}
+
+	if(!OwnFinish)
+		return;
+
+	m_MapHistory.MarkFinished(m_MapHistoryActiveMapId, FinishTimeMs, CurrentMapHistoryPlayTimeMs());
+	MarkMapHistoryDirty();
+	SaveMapHistory();
+}
+
+void CTClient::RemoveMapHistoryRecord(const char *pMapId)
+{
+	if(pMapId == nullptr || pMapId[0] == '\0')
+		return;
+	if(m_MapHistory.Remove(pMapId))
+	{
+		std::string CurrentMapId;
+		if(Client()->State() == IClient::STATE_ONLINE)
+			CurrentMapId = CurrentMapHistoryId();
+		if(!CurrentMapId.empty() && CurrentMapId == pMapId)
+			m_MapHistorySuppressedMapId = CurrentMapId;
+		if(m_MapHistoryActiveMapId == pMapId)
+		{
+			m_MapHistorySessionActive = false;
+			m_MapHistorySessionStart = 0;
+			m_MapHistoryActiveMapId.clear();
+			m_MapHistoryActiveMapName.clear();
+		}
+		m_MapHistoryDirty = true;
+		SaveMapHistory();
+	}
+}
+
+void CTClient::ClearFinishedMapHistory()
+{
+	if(m_MapHistory.ClearFinished() > 0)
+	{
+		m_MapHistoryDirty = true;
+		SaveMapHistory();
+	}
+}
+
+void CTClient::ClearAllMapHistory()
+{
+	m_MapHistory.Clear();
+	m_MapHistorySessionActive = false;
+	m_MapHistorySessionStart = 0;
+	m_MapHistorySuppressedMapId.clear();
+	if(Client()->State() == IClient::STATE_ONLINE)
+		m_MapHistorySuppressedMapId = CurrentMapHistoryId();
+	m_MapHistoryActiveMapId.clear();
+	m_MapHistoryActiveMapName.clear();
+	m_MapHistoryDirty = true;
+	SaveMapHistory();
 }
 
 static void TrimLocalSaveField(std::string &Field)

@@ -109,9 +109,19 @@ namespace
 	constexpr float MENU_TAB_DEFAULT_W_OFFSET = 0.0f;
 	constexpr float MENU_TAB_DEFAULT_H_OFFSET = 3.0f;
 	constexpr float MENU_TAB_ANIM_EPSILON = 0.0001f;
+	constexpr float MENU_MENUBAR_HEIGHT_NEW = 24.0f;
+	constexpr float MENU_MENUBAR_HEIGHT_LEGACY = 30.0f;
+	constexpr float MENU_MENUBAR_LEGACY_ICON_BUTTON_SIZE = 29.0f;
+	constexpr float MENU_MENUBAR_LEGACY_GAP = 8.0f;
+	constexpr float MENU_MENUBAR_LEGACY_BROWSER_BUTTON_WIDTH = 66.0f;
 	constexpr int MENU_IDLE_REFRESH_RATE = 60;
 	constexpr auto MENU_IDLE_INTERACTION_GRACE_TIME = 450ms;
 	int s_LastPlanCollectionScreenBucket = -1;
+	constexpr float MenuMenubarHeight(bool UseNewUi)
+	{
+		return UseNewUi ? MENU_MENUBAR_HEIGHT_NEW : MENU_MENUBAR_HEIGHT_LEGACY;
+	}
+
 	CUIRect MenuButtonTextRect(const CUIRect *pRect, float FontFactor, float HoverLift)
 	{
 		CUIRect Text = *pRect;
@@ -284,8 +294,7 @@ namespace
 	{
 		CUIRect TabBar, MainView;
 		const bool UseNewUi = g_Config.m_QmNewUi != 0;
-		const float MenubarHeight = UseNewUi ? 24.0f : 34.0f;
-		Screen.HSplitTop(MenubarHeight, &TabBar, &MainView);
+		Screen.HSplitTop(MenuMenubarHeight(UseNewUi), &TabBar, &MainView);
 		if(UseNewUi)
 			MainView.HSplitTop(6.0f, nullptr, &MainView);
 		return MainView;
@@ -1872,7 +1881,7 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 	}
 	else
 	{
-		Box.VSplitRight(33.0f, &Box, &Button);
+		Box.VSplitRight(MENU_MENUBAR_LEGACY_ICON_BUTTON_SIZE, &Box, &Button);
 		static CButtonContainer s_QuitButton;
 		ColorRGBA QuitColor(1.0f, 0.0f, 0.0f, 0.5f);
 		if(DoButton_MenuTab(&s_QuitButton, FONT_ICON_POWER_OFF, 0, &Button, IGraphics::CORNER_T, &m_aAnimatorsSmallPage[SMALL_TAB_QUIT], nullptr, nullptr, &QuitColor, 10.0f))
@@ -1888,8 +1897,8 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 		}
 		GameClient()->m_Tooltips.DoToolTip(&s_QuitButton, &Button, Localize("Quit"));
 
-		Box.VSplitRight(10.0f, &Box, nullptr);
-		Box.VSplitRight(33.0f, &Box, &Button);
+		Box.VSplitRight(MENU_MENUBAR_LEGACY_GAP, &Box, nullptr);
+		Box.VSplitRight(MENU_MENUBAR_LEGACY_ICON_BUTTON_SIZE, &Box, &Button);
 		static CButtonContainer s_SettingsButton;
 		if(DoButton_MenuTab(&s_SettingsButton, FONT_ICON_GEAR, ActivePage == PAGE_SETTINGS, &Button, IGraphics::CORNER_T, &m_aAnimatorsSmallPage[SMALL_TAB_SETTINGS]))
 		{
@@ -1897,8 +1906,8 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 		}
 		GameClient()->m_Tooltips.DoToolTip(&s_SettingsButton, &Button, Localize("Settings"));
 
-		Box.VSplitRight(10.0f, &Box, nullptr);
-		Box.VSplitRight(33.0f, &Box, &Button);
+		Box.VSplitRight(MENU_MENUBAR_LEGACY_GAP, &Box, nullptr);
+		Box.VSplitRight(MENU_MENUBAR_LEGACY_ICON_BUTTON_SIZE, &Box, &Button);
 		static CButtonContainer s_EditorButton;
 		if(DoButton_MenuTab(&s_EditorButton, FONT_ICON_PEN_TO_SQUARE, 0, &Button, IGraphics::CORNER_T, &m_aAnimatorsSmallPage[SMALL_TAB_EDITOR]))
 		{
@@ -1908,8 +1917,8 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 
 		if(ClientState == IClient::STATE_OFFLINE)
 		{
-			Box.VSplitRight(10.0f, &Box, nullptr);
-			Box.VSplitRight(33.0f, &Box, &Button);
+			Box.VSplitRight(MENU_MENUBAR_LEGACY_GAP, &Box, nullptr);
+			Box.VSplitRight(MENU_MENUBAR_LEGACY_ICON_BUTTON_SIZE, &Box, &Button);
 			static CButtonContainer s_DemoButton;
 			if(DoMenuTabV2(&s_DemoButton, FONT_ICON_CLAPPERBOARD, ActivePage == PAGE_DEMOS, &Button))
 			{
@@ -1917,9 +1926,9 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 			}
 			MenubarTrackActive(PAGE_DEMOS, Button);
 			GameClient()->m_Tooltips.DoToolTip(&s_DemoButton, &Button, Localize("Demos"));
-			Box.VSplitRight(10.0f, &Box, nullptr);
+			Box.VSplitRight(MENU_MENUBAR_LEGACY_GAP, &Box, nullptr);
 
-			Box.VSplitLeft(33.0f, &Button, &Box);
+			Box.VSplitLeft(MENU_MENUBAR_LEGACY_ICON_BUTTON_SIZE, &Button, &Box);
 
 			bool GotNewsOrUpdate = false;
 
@@ -1954,8 +1963,8 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 			}
 			GameClient()->m_Tooltips.DoToolTip(&s_StartButton, &Button, Localize("Main menu"));
 
-			const float BrowserButtonWidth = 75.0f;
-			Box.VSplitLeft(10.0f, nullptr, &Box);
+			const float BrowserButtonWidth = MENU_MENUBAR_LEGACY_BROWSER_BUTTON_WIDTH;
+			Box.VSplitLeft(MENU_MENUBAR_LEGACY_GAP, nullptr, &Box);
 			Box.VSplitLeft(BrowserButtonWidth, &Button, &Box);
 			static CButtonContainer s_InternetButton;
 			if(DoButton_MenuTab(&s_InternetButton, FONT_ICON_EARTH_AMERICAS, ActivePage == PAGE_INTERNET, &Button, IGraphics::CORNER_T, &m_aAnimatorsBigPage[BIG_TAB_INTERNET]))
@@ -2154,20 +2163,20 @@ void CMenus::RenderMenubar(CUIRect Box, IClient::EClientState ClientState)
 				m_ControlPageOpening = true;
 			}
 
-			if(Box.w >= 10.0f + 33.0f + 10.0f)
+			if(Box.w >= MENU_MENUBAR_LEGACY_GAP + MENU_MENUBAR_LEGACY_ICON_BUTTON_SIZE + MENU_MENUBAR_LEGACY_GAP)
 			{
 				TextRender()->SetFontPreset(EFontPreset::ICON_FONT);
 				TextRender()->SetRenderFlags(ETextRenderFlags::TEXT_RENDER_FLAG_ONLY_ADVANCE_WIDTH | ETextRenderFlags::TEXT_RENDER_FLAG_NO_X_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_Y_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_PIXEL_ALIGNMENT | ETextRenderFlags::TEXT_RENDER_FLAG_NO_OVERSIZE);
 
-				Box.VSplitRight(10.0f, &Box, nullptr);
-				Box.VSplitRight(33.0f, &Box, &Button);
+				Box.VSplitRight(MENU_MENUBAR_LEGACY_GAP, &Box, nullptr);
+				Box.VSplitRight(MENU_MENUBAR_LEGACY_ICON_BUTTON_SIZE, &Box, &Button);
 				static CButtonContainer s_DemoButton;
 				if(DoButton_MenuTab(&s_DemoButton, FONT_ICON_CLAPPERBOARD, ActivePage == PAGE_DEMOS, &Button, IGraphics::CORNER_T, &m_aAnimatorsSmallPage[SMALL_TAB_DEMOBUTTON]))
 				{
 					NewPage = PAGE_DEMOS;
 				}
 				GameClient()->m_Tooltips.DoToolTip(&s_DemoButton, &Button, Localize("Demos"));
-				Box.VSplitRight(10.0f, &Box, nullptr);
+				Box.VSplitRight(MENU_MENUBAR_LEGACY_GAP, &Box, nullptr);
 
 				TextRender()->SetRenderFlags(0);
 				TextRender()->SetFontPreset(EFontPreset::DEFAULT_FONT);
@@ -2833,8 +2842,7 @@ void CMenus::Render()
 			CPerfTimer ShellTimer;
 			CUIRect TabBar, MainView;
 			const bool UseNewUi = g_Config.m_QmNewUi != 0;
-			const float MenubarHeight = UseNewUi ? 24.0f : 34.0f;
-			Screen.HSplitTop(MenubarHeight, &TabBar, &MainView);
+			Screen.HSplitTop(MenuMenubarHeight(UseNewUi), &TabBar, &MainView);
 			if(UseNewUi)
 				MainView.HSplitTop(6.0f, nullptr, &MainView);
 			const CUIRect MainViewClip = MainView;
@@ -2937,8 +2945,7 @@ void CMenus::Render()
 			CPerfTimer ShellTimer;
 			CUIRect TabBar, MainView;
 			const bool UseNewUi = g_Config.m_QmNewUi != 0;
-			const float MenubarHeight = UseNewUi ? 24.0f : 34.0f;
-			Screen.HSplitTop(MenubarHeight, &TabBar, &MainView);
+			Screen.HSplitTop(MenuMenubarHeight(UseNewUi), &TabBar, &MainView);
 			if(UseNewUi)
 				MainView.HSplitTop(6.0f, nullptr, &MainView);
 			const CUIRect MainViewClip = MainView;
@@ -5113,8 +5120,7 @@ void CMenus::BuildIngameMenuTextPlan(std::vector<SMenuTextPlanItem> &vItems, CUI
 
 	CUIRect TabBar, ContentView;
 	const bool UseNewUi = g_Config.m_QmNewUi != 0;
-	const float MenubarHeight = UseNewUi ? 24.0f : 34.0f;
-	MainView.HSplitTop(MenubarHeight, &TabBar, &ContentView);
+	MainView.HSplitTop(MenuMenubarHeight(UseNewUi), &TabBar, &ContentView);
 	if(UseNewUi)
 		ContentView.HSplitTop(6.0f, nullptr, &ContentView);
 

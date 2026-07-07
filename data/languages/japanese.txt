@@ -829,6 +829,9 @@ Auto unmute when speaking
 Auto unspec on unfreeze
 == フリーズ解除時に自動観戦解除
 
+Auto-save history count
+== Auto-save history count
+
 Auto-sync player camera
 == プレイヤーカメラを自動同期
 
@@ -1231,6 +1234,9 @@ Clear
 Clear all favorite maps
 == すべてのお気に入りマップをクリア
 
+Clear all history
+== Clear all history
+
 Clear Changes
 == 変更をクリア
 
@@ -1239,6 +1245,9 @@ Clear chat messages
 
 Clear current cut (right click to clear all cuts)
 == 現在のカットをクリア (右クリックですべてのカットをクリア)
+
+Clear finished
+== Clear finished
 
 Clear friend note
 == フレンドメモをクリア
@@ -1401,6 +1410,12 @@ Configure qm_report_app_id and qm_report_secret first
 
 Confirm both are on same server, same room, and support voice
 == 両方が同じサーバー、同じ部屋にいて、ボイスをサポートしていることを確認
+
+Confirm clear all
+== Confirm clear all
+
+Confirm clear finished
+== Confirm clear finished
 
 Connect address error
 == 接続アドレスエラー
@@ -2587,6 +2602,9 @@ Finish Name
 Finish Name:
 == フィニッシュ名:
 
+Finished
+== Finished
+
 Finished maps
 == 完走マップ数
 
@@ -3430,6 +3448,9 @@ Laser size
 Laser style
 == レーザースタイル
 
+Last entered
+== Last entered
+
 Last page in console
 == コンソールの最後のページ
 
@@ -3771,6 +3792,9 @@ Map browser opacity
 
 Map danger border
 == マップ危険境界
+
+Map play history
+== Map play history
 
 Map Preview TODO
 == マッププレビュー未実装
@@ -4167,6 +4191,9 @@ No local servers found (ports %d-%d)
 
 No login required
 == ログイン不要
+
+No map play history yet
+== No map play history yet
 
 No matching assets.
 == 一致するアセットはありません。
@@ -5041,6 +5068,9 @@ Receive rate
 Receiving
 == 受信中
 
+Recent
+== Recent
+
 Reconnect in %d sec
 == %d 秒後に再接続
 
@@ -5184,6 +5214,9 @@ Remove friend
 
 Remove from favorites
 == お気に入りから削除
+
+Remove from history
+== Remove from history
 
 Remove from queue
 == キューから削除
@@ -6581,7 +6614,7 @@ Stats notes
 == 統計メモ
 
 Status
-== ステータス
+== Status
 
 Status Bar
 == ステータスバー
@@ -7423,6 +7456,9 @@ Uncertainty duration
 Unclassified audio issue
 == 未分類のオーディオ問題
 
+Unfinished
+== Unfinished
+
 Unfinished map
 == 未完了のマップ
 
@@ -7440,6 +7476,9 @@ Unfinished map data refreshing
 
 Unfinished maps
 == 未完了マップ
+
+Unfinished maps are shown first
+== Unfinished maps are shown first
 
 Unflip:
 == 反転解除:

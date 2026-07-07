@@ -829,6 +829,9 @@ Auto unmute when speaking
 Auto unspec on unfreeze
 == Quitter automatiquement les spectateurs lors du dégel
 
+Auto-save history count
+== Auto-save history count
+
 Auto-sync player camera
 == Synchronisation automatique de la caméra du joueur
 
@@ -1231,6 +1234,9 @@ Clear
 Clear all favorite maps
 == Effacer toutes les cartes favorites
 
+Clear all history
+== Clear all history
+
 Clear Changes
 == Effacer les modifications
 
@@ -1239,6 +1245,9 @@ Clear chat messages
 
 Clear current cut (right click to clear all cuts)
 == Effacer la coupe actuelle (clic droit pour effacer toutes les coupes)
+
+Clear finished
+== Clear finished
 
 Clear friend note
 == Effacer la note d'ami
@@ -1401,6 +1410,12 @@ Configure qm_report_app_id and qm_report_secret first
 
 Confirm both are on same server, same room, and support voice
 == Confirmez que les deux sont sur le même serveur, la même salle et prennent en charge la voix
+
+Confirm clear all
+== Confirm clear all
+
+Confirm clear finished
+== Confirm clear finished
 
 Connect address error
 == Erreur d'adresse de connexion
@@ -2587,6 +2602,9 @@ Finish Name
 Finish Name:
 == Nom à l'arrivée :
 
+Finished
+== Finished
+
 Finished maps
 == Cartes terminées
 
@@ -3430,6 +3448,9 @@ Laser size
 Laser style
 == Style laser
 
+Last entered
+== Last entered
+
 Last page in console
 == Dernière page dans la console
 
@@ -3771,6 +3792,9 @@ Map browser opacity
 
 Map danger border
 == Bordure de danger de la carte
+
+Map play history
+== Map play history
 
 Map Preview TODO
 == Aperçu de la carte à faire
@@ -4167,6 +4191,9 @@ No local servers found (ports %d-%d)
 
 No login required
 == Aucune connexion requise
+
+No map play history yet
+== No map play history yet
 
 No matching assets.
 == Aucun élément correspondant.
@@ -5041,6 +5068,9 @@ Receive rate
 Receiving
 == Réception en cours
 
+Recent
+== Recent
+
 Reconnect in %d sec
 == Reconnexion dans %d s
 
@@ -5184,6 +5214,9 @@ Remove friend
 
 Remove from favorites
 == Retirer des favoris
+
+Remove from history
+== Remove from history
 
 Remove from queue
 == Retirer de la file
@@ -6581,7 +6614,7 @@ Stats notes
 == Notes de statistiques
 
 Status
-== Statut
+== Status
 
 Status Bar
 == Barre d'état
@@ -7423,6 +7456,9 @@ Uncertainty duration
 Unclassified audio issue
 == Problème audio non classifié
 
+Unfinished
+== Unfinished
+
 Unfinished map
 == Carte non terminée
 
@@ -7440,6 +7476,9 @@ Unfinished map data refreshing
 
 Unfinished maps
 == Cartes non terminées
+
+Unfinished maps are shown first
+== Unfinished maps are shown first
 
 Unflip:
 == Dé-retourner :

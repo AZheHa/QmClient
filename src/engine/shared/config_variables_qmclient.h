@@ -31,6 +31,7 @@ MACRO_CONFIG_INT(QmShowOutdatedVersionWarning, qm_show_outdated_version_warning,
 MACRO_CONFIG_STR(QmNewFeatureMarksRead, qm_new_feature_marks_read, 1024, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "已读的设置界面新功能标识")
 MACRO_CONFIG_INT(QmImeAutoManage, qm_ime_auto_manage, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "根据文本输入焦点自动启用或关闭 IME")
 MACRO_CONFIG_INT(QmNewIme, qm_new_ime, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用新版 IME 候选栏")
+MACRO_CONFIG_INT(QmAutoSaveHistoryCount, qm_auto_save_history_count, 100, 0, 1000, CFGFLAG_CLIENT | CFGFLAG_SAVE, "自动保存历史数量（0=禁用自动过图历史记录）")
 
 // Report / 举报
 MACRO_CONFIG_STR(QmReportEndpoint, qm_report_endpoint, 128, "http://124.222.146.111:8790", CFGFLAG_CLIENT | CFGFLAG_SAVE, "举报服务地址")

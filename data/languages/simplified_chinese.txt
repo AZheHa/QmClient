@@ -829,6 +829,9 @@ Auto unmute when speaking
 Auto unspec on unfreeze
 == 解冻自动取消旁观
 
+Auto-save history count
+== 自动保存历史数量
+
 Auto-sync player camera
 == 自动同步玩家视角
 
@@ -1231,6 +1234,9 @@ Clear
 Clear all favorite maps
 == 清空全部收藏地图
 
+Clear all history
+== 清空全部历史
+
 Clear Changes
 == 清除更改
 
@@ -1239,6 +1245,9 @@ Clear chat messages
 
 Clear current cut (right click to clear all cuts)
 == 清除当前片段（右键清除全部片段）
+
+Clear finished
+== 清空已通关
 
 Clear friend note
 == 清除好友备注
@@ -1401,6 +1410,12 @@ Configure qm_report_app_id and qm_report_secret first
 
 Confirm both are on same server, same room, and support voice
 == 建议确认双方在同服、同房间，并且对方也支持语音
+
+Confirm clear all
+== 确认清空全部
+
+Confirm clear finished
+== 确认清空已通关
 
 Connect address error
 == 连接地址错误
@@ -2587,6 +2602,9 @@ Finish Name
 Finish Name:
 == 恰分名称：
 
+Finished
+== 已通关
+
 Finished maps
 == 完成地图次数
 
@@ -3430,6 +3448,9 @@ Laser size
 Laser style
 == 激光样式
 
+Last entered
+== 最近进入
+
 Last page in console
 == 控制台最后一页
 
@@ -3771,6 +3792,9 @@ Map browser opacity
 
 Map danger border
 == 地图危险边界
+
+Map play history
+== 过图历史
 
 Map Preview TODO
 == 地图预览待做
@@ -4167,6 +4191,9 @@ No local servers found (ports %d-%d)
 
 No login required
 == 无需登录
+
+No map play history yet
+== 还没有过图历史
 
 No matching assets.
 == 没有匹配的材质。
@@ -5041,6 +5068,9 @@ Receive rate
 Receiving
 == 正在接收
 
+Recent
+== 最近游玩
+
 Reconnect in %d sec
 == %d 秒后重新连接
 
@@ -5184,6 +5214,9 @@ Remove friend
 
 Remove from favorites
 == 取消收藏
+
+Remove from history
+== 从历史中移除
 
 Remove from queue
 == 从队列移除
@@ -7423,6 +7456,9 @@ Uncertainty duration
 Unclassified audio issue
 == 音频异常未分类
 
+Unfinished
+== 未完成
+
 Unfinished map
 == 未完成的地图
 
@@ -7440,6 +7476,9 @@ Unfinished map data refreshing
 
 Unfinished maps
 == 未完成图
+
+Unfinished maps are shown first
+== 未完成地图会优先显示
 
 Unflip:
 == 取消翻转：

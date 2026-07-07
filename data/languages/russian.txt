@@ -829,6 +829,9 @@ Auto unmute when speaking
 Auto unspec on unfreeze
 == Автовыход из зрителей при разморозке
 
+Auto-save history count
+== Auto-save history count
+
 Auto-sync player camera
 == Автосинхронизация камеры игрока
 
@@ -1231,6 +1234,9 @@ Clear
 Clear all favorite maps
 == Очистить все избранные карты
 
+Clear all history
+== Clear all history
+
 Clear Changes
 == Очистить изменения
 
@@ -1239,6 +1245,9 @@ Clear chat messages
 
 Clear current cut (right click to clear all cuts)
 == Очистить текущий отрезок (правый клик — очистить все отрезки)
+
+Clear finished
+== Clear finished
 
 Clear friend note
 == Очистить заметку друга
@@ -1401,6 +1410,12 @@ Configure qm_report_app_id and qm_report_secret first
 
 Confirm both are on same server, same room, and support voice
 == Убедитесь, что оба находятся на одном сервере, в одной комнате и поддерживают голос.
+
+Confirm clear all
+== Confirm clear all
+
+Confirm clear finished
+== Confirm clear finished
 
 Connect address error
 == Ошибка адреса подключения
@@ -2587,6 +2602,9 @@ Finish Name
 Finish Name:
 == Имя на финише:
 
+Finished
+== Finished
+
 Finished maps
 == Завершенные карты
 
@@ -3430,6 +3448,9 @@ Laser size
 Laser style
 == Стиль лазера
 
+Last entered
+== Last entered
+
 Last page in console
 == Последняя страница в консоли
 
@@ -3771,6 +3792,9 @@ Map browser opacity
 
 Map danger border
 == Опасная граница карты
+
+Map play history
+== Map play history
 
 Map Preview TODO
 == Предпросмотр карты в работе
@@ -4167,6 +4191,9 @@ No local servers found (ports %d-%d)
 
 No login required
 == Вход не требуется
+
+No map play history yet
+== No map play history yet
 
 No matching assets.
 == Нет подходящих ресурсов.
@@ -5041,6 +5068,9 @@ Receive rate
 Receiving
 == Приём
 
+Recent
+== Recent
+
 Reconnect in %d sec
 == Переподключение через %d сек
 
@@ -5184,6 +5214,9 @@ Remove friend
 
 Remove from favorites
 == Очередь переименования
+
+Remove from history
+== Remove from history
 
 Remove from queue
 == Удалить из очереди
@@ -6581,7 +6614,7 @@ Stats notes
 == Примечания к статистике
 
 Status
-== Статус
+== Status
 
 Status Bar
 == Строка состояния
@@ -7423,6 +7456,9 @@ Uncertainty duration
 Unclassified audio issue
 == Неклассифицированная аудио-проблема
 
+Unfinished
+== Unfinished
+
 Unfinished map
 == Незавершённая карта
 
@@ -7440,6 +7476,9 @@ Unfinished map data refreshing
 
 Unfinished maps
 == Незавершенные карты
+
+Unfinished maps are shown first
+== Unfinished maps are shown first
 
 Unflip:
 == Отменить отражение:

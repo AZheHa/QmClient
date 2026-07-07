@@ -2843,6 +2843,8 @@ if(CLIENT)
     components/tclient/custom_communities.h
     components/tclient/fast_practice.cpp
     components/tclient/fast_practice.h
+    components/tclient/map_history.cpp
+    components/tclient/map_history.h
     components/tclient/menus_tclient.cpp
     components/tclient/mod.cpp
     components/tclient/mod.h
@@ -3710,6 +3712,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     jsonwriter_test.cpp
     keyword_reply_rules_test.cpp
     logger_test.cpp
+    map_history_test.cpp
     linereader_test.cpp
     mapbugs_test.cpp
     mapitems_test.cpp
@@ -3785,6 +3788,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     src/game/client/animstate.cpp
     src/game/client/race_parse.cpp
     src/game/client/skin.cpp
+    src/game/client/components/tclient/map_history.cpp
     src/game/client/components/tclient/swap_countdown_message.cpp
     src/test/render_tee_offset_helpers.cpp
     src/game/client/components/section_loader.cpp

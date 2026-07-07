@@ -829,6 +829,9 @@ Auto unmute when speaking
 Auto unspec on unfreeze
 == 얼음 해제 시 자동 관전 해제
 
+Auto-save history count
+== Auto-save history count
+
 Auto-sync player camera
 == 플레이어 카메라 자동 동기화
 
@@ -1231,6 +1234,9 @@ Clear
 Clear all favorite maps
 == 모든 즐겨찾기 맵 지우기
 
+Clear all history
+== Clear all history
+
 Clear Changes
 == 변경 사항 지우기
 
@@ -1239,6 +1245,9 @@ Clear chat messages
 
 Clear current cut (right click to clear all cuts)
 == 현재 잘라낸 구간 지우기 (우클릭으로 모든 구간 지우기)
+
+Clear finished
+== Clear finished
 
 Clear friend note
 == 친구 메모 지우기
@@ -1401,6 +1410,12 @@ Configure qm_report_app_id and qm_report_secret first
 
 Confirm both are on same server, same room, and support voice
 == 둘 다 같은 서버, 같은 방에 있고 음성을 지원하는지 확인하세요
+
+Confirm clear all
+== Confirm clear all
+
+Confirm clear finished
+== Confirm clear finished
 
 Connect address error
 == 연결 주소 오류
@@ -2587,6 +2602,9 @@ Finish Name
 Finish Name:
 == 완료 이름:
 
+Finished
+== Finished
+
 Finished maps
 == 완주한 맵 수
 
@@ -3430,6 +3448,9 @@ Laser size
 Laser style
 == 레이저 스타일
 
+Last entered
+== Last entered
+
 Last page in console
 == 콘솔 마지막 페이지
 
@@ -3771,6 +3792,9 @@ Map browser opacity
 
 Map danger border
 == 맵 위험 경계
+
+Map play history
+== Map play history
 
 Map Preview TODO
 == 맵 미리보기 준비 중
@@ -4167,6 +4191,9 @@ No local servers found (ports %d-%d)
 
 No login required
 == 로그인 필요 없음
+
+No map play history yet
+== No map play history yet
 
 No matching assets.
 == 일치하는 자산이 없습니다.
@@ -5041,6 +5068,9 @@ Receive rate
 Receiving
 == 수신 중
 
+Recent
+== Recent
+
 Reconnect in %d sec
 == %d초 후 재연결
 
@@ -5184,6 +5214,9 @@ Remove friend
 
 Remove from favorites
 == 즐겨찾기에서 제거
+
+Remove from history
+== Remove from history
 
 Remove from queue
 == 대기열에서 제거
@@ -6581,7 +6614,7 @@ Stats notes
 == 통계 설명
 
 Status
-== 상태
+== Status
 
 Status Bar
 == 상태 표시줄
@@ -7423,6 +7456,9 @@ Uncertainty duration
 Unclassified audio issue
 == 분류되지 않은 오디오 문제
 
+Unfinished
+== Unfinished
+
 Unfinished map
 == 미완료 맵
 
@@ -7440,6 +7476,9 @@ Unfinished map data refreshing
 
 Unfinished maps
 == 미완료 맵
+
+Unfinished maps are shown first
+== Unfinished maps are shown first
 
 Unflip:
 == 뒤집기 취소:

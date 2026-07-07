@@ -829,6 +829,9 @@ Auto unmute when speaking
 Auto unspec on unfreeze
 == Automatisch Zuschauer beenden beim Auftauen
 
+Auto-save history count
+== Auto-save history count
+
 Auto-sync player camera
 == Spielerkamera automatisch synchronisieren
 
@@ -1231,6 +1234,9 @@ Clear
 Clear all favorite maps
 == Alle Favoriten-Karten löschen
 
+Clear all history
+== Clear all history
+
 Clear Changes
 == Änderungen verwerfen
 
@@ -1239,6 +1245,9 @@ Clear chat messages
 
 Clear current cut (right click to clear all cuts)
 == Aktuellen Schnitt löschen (Rechtsklick, um alle Schnitte zu löschen)
+
+Clear finished
+== Clear finished
 
 Clear friend note
 == Freundesnotiz löschen
@@ -1401,6 +1410,12 @@ Configure qm_report_app_id and qm_report_secret first
 
 Confirm both are on same server, same room, and support voice
 == Bestätige, dass beide auf demselben Server, im selben Raum sind und Sprachchat unterstützen
+
+Confirm clear all
+== Confirm clear all
+
+Confirm clear finished
+== Confirm clear finished
 
 Connect address error
 == Verbindungsadressfehler
@@ -2587,6 +2602,9 @@ Finish Name
 Finish Name:
 == Ziel-Name:
 
+Finished
+== Finished
+
 Finished maps
 == Abgeschlossene Karten
 
@@ -3430,6 +3448,9 @@ Laser size
 Laser style
 == Laser-Stil
 
+Last entered
+== Last entered
+
 Last page in console
 == Letzte Seite in der Konsole
 
@@ -3771,6 +3792,9 @@ Map browser opacity
 
 Map danger border
 == Karten-Gefahrengrenze
+
+Map play history
+== Map play history
 
 Map Preview TODO
 == Kartenvorschau ausstehend
@@ -4167,6 +4191,9 @@ No local servers found (ports %d-%d)
 
 No login required
 == Kein Login erforderlich
+
+No map play history yet
+== No map play history yet
 
 No matching assets.
 == Keine passenden Assets.
@@ -5041,6 +5068,9 @@ Receive rate
 Receiving
 == Empfange
 
+Recent
+== Recent
+
 Reconnect in %d sec
 == Erneute Verbindung in %d Sek.
 
@@ -5184,6 +5214,9 @@ Remove friend
 
 Remove from favorites
 == Aus Favoriten entfernen
+
+Remove from history
+== Remove from history
 
 Remove from queue
 == Aus Warteschlange entfernen
@@ -7423,6 +7456,9 @@ Uncertainty duration
 Unclassified audio issue
 == Nicht klassifiziertes Audio-Problem
 
+Unfinished
+== Unfinished
+
 Unfinished map
 == Unvollendete Karte
 
@@ -7440,6 +7476,9 @@ Unfinished map data refreshing
 
 Unfinished maps
 == Unfertige Karten
+
+Unfinished maps are shown first
+== Unfinished maps are shown first
 
 Unflip:
 == Entspiegeln:

@@ -134,6 +134,17 @@ static void BuildQmJellyExtraImpulse(const CGameClient *pGameClient, const CColl
 	}
 }
 
+static bool GetWarListTeeGlowColor(CGameClient *pGameClient, int ClientId, ColorRGBA &Color)
+{
+	if(!g_Config.m_TcWarList || ClientId < 0 || ClientId >= MAX_CLIENTS)
+		return false;
+	if(!pGameClient->m_aClients[ClientId].m_Active || !pGameClient->m_WarList.GetAnyWar(ClientId))
+		return false;
+
+	Color = pGameClient->m_WarList.GetPriorityColor(ClientId);
+	return Color.a > 0.0f;
+}
+
 void CPlayers::RenderHand(const CTeeRenderInfo *pInfo, vec2 CenterPos, vec2 Dir, float AngleOffset, vec2 PostRotOffset, float Alpha)
 {
 	const vec2 HandPos = CalculateHandPosition(CenterPos, Dir, PostRotOffset);
@@ -1171,6 +1182,26 @@ void CPlayers::RenderPlayer(
 			pPreviousSkinInfo = &PreviousSkinInfoHueCycle;
 		}
 	}
+
+	ColorRGBA WarListGlowColor;
+	if(GetWarListTeeGlowColor(GameClient(), ClientId, WarListGlowColor))
+	{
+		CTeeRenderInfo GlowRenderInfo = RenderInfo;
+		GlowRenderInfo.m_TeeRenderFlags = (GlowRenderInfo.m_TeeRenderFlags & ~TEE_PREVIEW_LAYER_ALL) | TEE_PREVIEW_LAYER_OUTLINE | TEE_CUSTOM_OUTLINE_COLOR;
+		GlowRenderInfo.m_OutlineColor = WarListGlowColor;
+
+		static constexpr float s_aGlowScales[] = {1.13f, 1.08f, 1.035f};
+		static constexpr float s_aGlowAlphas[] = {0.10f, 0.18f, 0.30f};
+		for(size_t i = 0; i < std::size(s_aGlowScales); ++i)
+		{
+			RenderTools()->RenderTee(&State, &GlowRenderInfo, Player.m_Emote, Direction, Position,
+				Alpha * s_aGlowAlphas[i] * WarListGlowColor.a,
+				JellyDeform.m_BodyScale * s_aGlowScales[i],
+				JellyDeform.m_FeetScale * s_aGlowScales[i],
+				JellyDeform.m_BodyAngle, JellyDeform.m_FeetAngle);
+		}
+	}
+
 	RenderTools()->RenderTeeWithSkinChangeTransition(&State, pPreviousSkinInfo, &RenderInfo, Player.m_Emote, Direction, Position, SkinTransitionProgress, Alpha, JellyDeform.m_BodyScale, JellyDeform.m_FeetScale, JellyDeform.m_BodyAngle, JellyDeform.m_FeetAngle);
 
 	float TeeAnimScale, TeeBaseSize;
