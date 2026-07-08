@@ -3257,25 +3257,28 @@ void CGameClient::OnRender()
 	// resend player and dummy info if it was filtered by server
 	if(m_aLocalIds[0] >= 0 && Client()->State() == IClient::STATE_ONLINE && !m_Menus.IsActive() && WasNewTick)
 	{
+		const bool ServerControlledLocalSkin = ShouldUseServerControlledLocalSkin(m_GameInfo.m_aGameType);
 		if(m_aCheckInfo[0] == 0)
 		{
 			if(m_pClient->IsSixup())
 			{
-				if(!GotWantedSkin7(false))
+				if(!ServerControlledLocalSkin && !GotWantedSkin7(false))
 					SendSkinChange7(false);
 				else
 					m_aCheckInfo[0] = -1;
 			}
 			else
 			{
+				const CClientData &LocalClient = m_aClients[m_aLocalIds[0]];
 				if(
-					str_comp(m_aClients[m_aLocalIds[0]].m_aName, Client()->PlayerName()) ||
-					str_comp(m_aClients[m_aLocalIds[0]].m_aClan, g_Config.m_PlayerClan) ||
-					m_aClients[m_aLocalIds[0]].m_Country != g_Config.m_PlayerCountry ||
-					str_comp(m_aClients[m_aLocalIds[0]].m_aSkinName, g_Config.m_ClPlayerSkin) ||
-					m_aClients[m_aLocalIds[0]].m_UseCustomColor != g_Config.m_ClPlayerUseCustomColor ||
-					m_aClients[m_aLocalIds[0]].m_ColorBody != (int)g_Config.m_ClPlayerColorBody ||
-					m_aClients[m_aLocalIds[0]].m_ColorFeet != (int)g_Config.m_ClPlayerColorFeet)
+					str_comp(LocalClient.m_aName, Client()->PlayerName()) ||
+					str_comp(LocalClient.m_aClan, g_Config.m_PlayerClan) ||
+					LocalClient.m_Country != g_Config.m_PlayerCountry ||
+					(!ServerControlledLocalSkin &&
+						(str_comp(LocalClient.m_aSkinName, g_Config.m_ClPlayerSkin) ||
+							LocalClient.m_UseCustomColor != g_Config.m_ClPlayerUseCustomColor ||
+							LocalClient.m_ColorBody != (int)g_Config.m_ClPlayerColorBody ||
+							LocalClient.m_ColorFeet != (int)g_Config.m_ClPlayerColorFeet)))
 					SendInfo(false);
 				else
 					m_aCheckInfo[0] = -1;
@@ -3293,21 +3296,23 @@ void CGameClient::OnRender()
 			{
 				if(m_pClient->IsSixup())
 				{
-					if(!GotWantedSkin7(true))
+					if(!ServerControlledLocalSkin && !GotWantedSkin7(true))
 						SendSkinChange7(true);
 					else
 						m_aCheckInfo[1] = -1;
 				}
 				else
 				{
+					const CClientData &LocalDummyClient = m_aClients[m_aLocalIds[1]];
 					if(
-						str_comp(m_aClients[m_aLocalIds[1]].m_aName, Client()->DummyName()) ||
-						str_comp(m_aClients[m_aLocalIds[1]].m_aClan, g_Config.m_ClDummyClan) ||
-						m_aClients[m_aLocalIds[1]].m_Country != g_Config.m_ClDummyCountry ||
-						str_comp(m_aClients[m_aLocalIds[1]].m_aSkinName, g_Config.m_ClDummySkin) ||
-						m_aClients[m_aLocalIds[1]].m_UseCustomColor != g_Config.m_ClDummyUseCustomColor ||
-						m_aClients[m_aLocalIds[1]].m_ColorBody != (int)g_Config.m_ClDummyColorBody ||
-						m_aClients[m_aLocalIds[1]].m_ColorFeet != (int)g_Config.m_ClDummyColorFeet)
+						str_comp(LocalDummyClient.m_aName, Client()->DummyName()) ||
+						str_comp(LocalDummyClient.m_aClan, g_Config.m_ClDummyClan) ||
+						LocalDummyClient.m_Country != g_Config.m_ClDummyCountry ||
+						(!ServerControlledLocalSkin &&
+							(str_comp(LocalDummyClient.m_aSkinName, g_Config.m_ClDummySkin) ||
+								LocalDummyClient.m_UseCustomColor != g_Config.m_ClDummyUseCustomColor ||
+								LocalDummyClient.m_ColorBody != (int)g_Config.m_ClDummyColorBody ||
+								LocalDummyClient.m_ColorFeet != (int)g_Config.m_ClDummyColorFeet)))
 						SendDummyInfo(false);
 					else
 						m_aCheckInfo[1] = -1;
@@ -6395,11 +6400,12 @@ void CGameClient::CClientData::BuildLocalSkinDescriptor(CSkinDescriptor &SkinDes
 		return;
 	}
 
+	const bool UseServerControlledSkin = ShouldUseServerControlledLocalSkin(m_pGameClient->m_GameInfo.m_aGameType);
 	CTranslationContext::CClientData &TranslatedClient = m_pGameClient->m_pClient->m_TranslationContext.m_aClients[ClientId()];
 	if(m_Active && !TranslatedClient.m_Active)
 	{
 		SkinDescriptor.m_Flags |= CSkinDescriptor::FLAG_SIX;
-		str_copy(SkinDescriptor.m_aSkinName, Dummy ? g_Config.m_ClDummySkin : g_Config.m_ClPlayerSkin);
+		str_copy(SkinDescriptor.m_aSkinName, UseServerControlledSkin ? m_aSkinName : (Dummy ? g_Config.m_ClDummySkin : g_Config.m_ClPlayerSkin));
 		NormalizeSixupSkinName(SkinDescriptor.m_aSkinName, sizeof(SkinDescriptor.m_aSkinName));
 	}
 	else if(TranslatedClient.m_Active)
@@ -6409,7 +6415,7 @@ void CGameClient::CClientData::BuildLocalSkinDescriptor(CSkinDescriptor &SkinDes
 		{
 			for(int Part = 0; Part < protocol7::NUM_SKINPARTS; ++Part)
 			{
-				str_copy(SkinDescriptor.m_aSixup[SkinDummy].m_aaSkinPartNames[Part], CSkins7::ms_apSkinVariables[Dummy][Part]);
+				str_copy(SkinDescriptor.m_aSixup[SkinDummy].m_aaSkinPartNames[Part], UseServerControlledSkin ? m_aSixup[Dummy].m_aaSkinPartNames[Part] : CSkins7::ms_apSkinVariables[Dummy][Part]);
 			}
 			SkinDescriptor.m_aSixup[SkinDummy].m_XmasHat = time_season() == SEASON_XMAS;
 			SkinDescriptor.m_aSixup[SkinDummy].m_BotDecoration = (TranslatedClient.m_PlayerFlags7 & protocol7::PLAYERFLAG_BOT) != 0;
@@ -6427,9 +6433,14 @@ void CGameClient::CClientData::UpdateSkinInfo()
 
 	const auto &&ApplySkinProperties = [&]() {
 		const int LocalDummy = LocalDummyIndex();
+		const bool UseServerControlledSkin = LocalDummy >= 0 && ShouldUseServerControlledLocalSkin(m_pGameClient->m_GameInfo.m_aGameType);
 		if(SkinDescriptor.m_Flags & CSkinDescriptor::FLAG_SIX)
 		{
-			if(LocalDummy >= 0)
+			if(UseServerControlledSkin)
+			{
+				m_pSkinInfo->TeeRenderInfo().ApplyColors(m_UseCustomColor, m_ColorBody, m_ColorFeet);
+			}
+			else if(LocalDummy >= 0)
 			{
 				m_pSkinInfo->TeeRenderInfo().ApplyColors(
 					LocalDummy ? g_Config.m_ClDummyUseCustomColor : g_Config.m_ClPlayerUseCustomColor,
@@ -6449,7 +6460,11 @@ void CGameClient::CClientData::UpdateSkinInfo()
 				CTeeRenderInfo::CSixup &SixupSkinInfo = m_pSkinInfo->TeeRenderInfo().m_aSixup[Dummy];
 				for(int Part = 0; Part < protocol7::NUM_SKINPARTS; Part++)
 				{
-					if(LocalDummy >= 0)
+					if(UseServerControlledSkin)
+					{
+						m_pGameClient->m_Skins7.ApplyColorTo(SixupSkinInfo, m_aSixup[LocalDummy].m_aUseCustomColors[Part], m_aSixup[LocalDummy].m_aSkinPartColors[Part], Part);
+					}
+					else if(LocalDummy >= 0)
 					{
 						m_pGameClient->m_Skins7.ApplyColorTo(SixupSkinInfo, *CSkins7::ms_apUCCVariables[LocalDummy][Part], *CSkins7::ms_apColorVariables[LocalDummy][Part], Part);
 					}
@@ -6620,14 +6635,20 @@ void CGameClient::CClientData::UpdateSkinChangeTransition(const CTeeRenderInfo &
 	CSkinTransitionKey Key;
 	Key.m_SkinDescriptor = SkinDescriptor;
 	const int LocalDummy = LocalDummyIndex();
-	Key.m_UseCustomColor = LocalDummy >= 0 ? (LocalDummy ? g_Config.m_ClDummyUseCustomColor : g_Config.m_ClPlayerUseCustomColor) : m_UseCustomColor;
-	Key.m_ColorBody = LocalDummy >= 0 ? (LocalDummy ? g_Config.m_ClDummyColorBody : g_Config.m_ClPlayerColorBody) : m_ColorBody;
-	Key.m_ColorFeet = LocalDummy >= 0 ? (LocalDummy ? g_Config.m_ClDummyColorFeet : g_Config.m_ClPlayerColorFeet) : m_ColorFeet;
+	const bool UseServerControlledSkin = LocalDummy >= 0 && ShouldUseServerControlledLocalSkin(m_pGameClient->m_GameInfo.m_aGameType);
+	Key.m_UseCustomColor = UseServerControlledSkin ? m_UseCustomColor : (LocalDummy >= 0 ? (LocalDummy ? g_Config.m_ClDummyUseCustomColor : g_Config.m_ClPlayerUseCustomColor) : m_UseCustomColor);
+	Key.m_ColorBody = UseServerControlledSkin ? m_ColorBody : (LocalDummy >= 0 ? (LocalDummy ? g_Config.m_ClDummyColorBody : g_Config.m_ClPlayerColorBody) : m_ColorBody);
+	Key.m_ColorFeet = UseServerControlledSkin ? m_ColorFeet : (LocalDummy >= 0 ? (LocalDummy ? g_Config.m_ClDummyColorFeet : g_Config.m_ClPlayerColorFeet) : m_ColorFeet);
 	for(int Dummy = 0; Dummy < NUM_DUMMIES; ++Dummy)
 	{
 		for(int Part = 0; Part < protocol7::NUM_SKINPARTS; ++Part)
 		{
-			if(LocalDummy >= 0)
+			if(UseServerControlledSkin)
+			{
+				Key.m_aaSixupUseCustomColors[Dummy][Part] = m_aSixup[LocalDummy].m_aUseCustomColors[Part];
+				Key.m_aaSixupSkinPartColors[Dummy][Part] = m_aSixup[LocalDummy].m_aSkinPartColors[Part];
+			}
+			else if(LocalDummy >= 0)
 			{
 				Key.m_aaSixupUseCustomColors[Dummy][Part] = *CSkins7::ms_apUCCVariables[LocalDummy][Part];
 				Key.m_aaSixupSkinPartColors[Dummy][Part] = *CSkins7::ms_apColorVariables[LocalDummy][Part];
@@ -6975,12 +6996,20 @@ void CGameClient::SendInfo(bool Start)
 
 	UpdateLocalSkinInfo(0);
 
+	const CClientData *pServerSkinClient = nullptr;
+	if(!Start && ShouldUseServerControlledLocalSkin(m_GameInfo.m_aGameType) && m_aLocalIds[0] >= 0 && m_aLocalIds[0] < MAX_CLIENTS)
+	{
+		pServerSkinClient = &m_aClients[m_aLocalIds[0]];
+	}
+
 	if(m_pClient->IsSixup())
 	{
 		if(Start)
 			SendStartInfo7(false);
-		else
+		else if(pServerSkinClient == nullptr)
 			SendSkinChange7(false);
+		else
+			m_aCheckInfo[0] = -1;
 		return;
 	}
 	if(Start)
@@ -7004,10 +7033,10 @@ void CGameClient::SendInfo(bool Start)
 		Msg.m_pName = Client()->PlayerName();
 		Msg.m_pClan = g_Config.m_PlayerClan;
 		Msg.m_Country = g_Config.m_PlayerCountry;
-		Msg.m_pSkin = g_Config.m_ClPlayerSkin;
-		Msg.m_UseCustomColor = g_Config.m_ClPlayerUseCustomColor;
-		Msg.m_ColorBody = g_Config.m_ClPlayerColorBody;
-		Msg.m_ColorFeet = g_Config.m_ClPlayerColorFeet;
+		Msg.m_pSkin = pServerSkinClient != nullptr ? pServerSkinClient->m_aSkinName : g_Config.m_ClPlayerSkin;
+		Msg.m_UseCustomColor = pServerSkinClient != nullptr ? pServerSkinClient->m_UseCustomColor : g_Config.m_ClPlayerUseCustomColor;
+		Msg.m_ColorBody = pServerSkinClient != nullptr ? pServerSkinClient->m_ColorBody : g_Config.m_ClPlayerColorBody;
+		Msg.m_ColorFeet = pServerSkinClient != nullptr ? pServerSkinClient->m_ColorFeet : g_Config.m_ClPlayerColorFeet;
 		CMsgPacker Packer(&Msg);
 		Msg.Pack(&Packer);
 		Client()->SendMsg(IClient::CONN_MAIN, &Packer, MSGFLAG_VITAL);
@@ -7019,12 +7048,20 @@ void CGameClient::SendDummyInfo(bool Start)
 {
 	UpdateLocalSkinInfo(1);
 
+	const CClientData *pServerSkinClient = nullptr;
+	if(!Start && ShouldUseServerControlledLocalSkin(m_GameInfo.m_aGameType) && m_aLocalIds[1] >= 0 && m_aLocalIds[1] < MAX_CLIENTS)
+	{
+		pServerSkinClient = &m_aClients[m_aLocalIds[1]];
+	}
+
 	if(m_pClient->IsSixup())
 	{
 		if(Start)
 			SendStartInfo7(true);
-		else
+		else if(pServerSkinClient == nullptr)
 			SendSkinChange7(true);
+		else
+			m_aCheckInfo[1] = -1;
 		return;
 	}
 	if(Start)
@@ -7048,10 +7085,10 @@ void CGameClient::SendDummyInfo(bool Start)
 		Msg.m_pName = Client()->DummyName();
 		Msg.m_pClan = g_Config.m_ClDummyClan;
 		Msg.m_Country = g_Config.m_ClDummyCountry;
-		Msg.m_pSkin = g_Config.m_ClDummySkin;
-		Msg.m_UseCustomColor = g_Config.m_ClDummyUseCustomColor;
-		Msg.m_ColorBody = g_Config.m_ClDummyColorBody;
-		Msg.m_ColorFeet = g_Config.m_ClDummyColorFeet;
+		Msg.m_pSkin = pServerSkinClient != nullptr ? pServerSkinClient->m_aSkinName : g_Config.m_ClDummySkin;
+		Msg.m_UseCustomColor = pServerSkinClient != nullptr ? pServerSkinClient->m_UseCustomColor : g_Config.m_ClDummyUseCustomColor;
+		Msg.m_ColorBody = pServerSkinClient != nullptr ? pServerSkinClient->m_ColorBody : g_Config.m_ClDummyColorBody;
+		Msg.m_ColorFeet = pServerSkinClient != nullptr ? pServerSkinClient->m_ColorFeet : g_Config.m_ClDummyColorFeet;
 		CMsgPacker Packer(&Msg);
 		Msg.Pack(&Packer);
 		Client()->SendMsg(IClient::CONN_DUMMY, &Packer, MSGFLAG_VITAL);

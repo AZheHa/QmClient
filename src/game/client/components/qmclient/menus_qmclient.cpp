@@ -1832,6 +1832,11 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		return std::clamp(static_cast<int>(Id), 0, static_cast<int>(QmModuleCount) - 1);
 	};
 
+	auto QmModuleAnimNodeKey = [&](const char *pScope, const SQmModuleEntry *pModule) -> uint64_t {
+		const int Index = pModule != nullptr ? GetQmModuleStateIndexById(pModule->m_Id) : 0;
+		return UiAnimNodeKey(pScope, static_cast<uint64_t>(Index));
+	};
+
 	auto FindQmModuleLayoutIndexById = [&](EQmModuleId Id) -> int {
 		for(size_t i = 0; i < s_aQmModuleLayout.size(); ++i)
 		{
@@ -2476,12 +2481,15 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 	};
 	static std::array<CButtonContainer, QmModuleCount> s_aModuleHeaderButtons;
 	const SUiSpringConfig ModuleHeightSpring{1.0f, 260.0f, 32.0f, 0.002f, 0.025f};
-	const SUiSpringConfig ModuleContentSpring{1.0f, 420.0f, 38.0f, 0.006f, 0.04f};
+	constexpr float QmModuleDrawerSnapEpsilon = 0.5f;
 	auto IsQmModuleCollapsible = [&](const SQmModuleEntry *pModule) -> bool {
 		return ShowSearchModuleControls && pModule != nullptr && pModule->m_Id != EQmModuleId::Info && pModule->m_Column != EQmModuleColumn::Full;
 	};
 	auto GetQmModuleCollapsedCardHeight = [&]() -> float {
 		return LgCardPadding * 2.0f + LgHeadlineSize + LgTipHeight;
+	};
+	auto GetQmModuleHeaderOnlyClipHeight = [&]() -> float {
+		return maximum(0.0f, LgCardPadding + LgHeadlineSize + LgTipHeight - 1.0f);
 	};
 	auto GetQmModuleFallbackExpandedHeight = [&](const SQmModuleEntry *pModule) -> float {
 		if(pModule != nullptr && pModule->m_Id == EQmModuleId::Coords)
@@ -2513,25 +2521,23 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			return maximum(s_aQmModuleLastHeights[Index], GetQmModuleCollapsedCardHeight());
 		return maximum(GetQmModuleFallbackExpandedHeight(pModule), GetQmModuleCollapsedCardHeight());
 	};
+	auto ReadQmModuleExpansion = [&](const SQmModuleEntry *pModule) -> float {
+		if(!IsQmModuleCollapsible(pModule))
+			return 1.0f;
+		const float DefaultValue = IsQmModuleCollapsed(pModule->m_Id) ? 0.0f : 1.0f;
+		if(PrewarmOnly)
+			return DefaultValue;
+		CUiV2AnimationRuntime &AnimRuntime = GameClient()->UiRuntimeV2()->AnimRuntime();
+		return std::clamp(AnimRuntime.GetValue(QmModuleAnimNodeKey("qm_module_expand", pModule), EUiAnimProperty::HEIGHT, DefaultValue), 0.0f, 1.0f);
+	};
 	auto ResolveQmModuleExpansion = [&](const SQmModuleEntry *pModule) -> float {
 		if(!IsQmModuleCollapsible(pModule))
 			return 1.0f;
 		const float Target = IsQmModuleCollapsed(pModule->m_Id) ? 0.0f : 1.0f;
 		if(PrewarmOnly)
 			return Target;
-		const uint64_t NodeKey = UiAnimNodeKey("qm_module_expand", static_cast<uint64_t>(GetQmModuleStateIndexById(pModule->m_Id)));
 		CUiV2AnimationRuntime &AnimRuntime = GameClient()->UiRuntimeV2()->AnimRuntime();
-		return std::clamp(ResolveUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::HEIGHT, Target, ModuleHeightSpring, 3, 0.001f), 0.0f, 1.0f);
-	};
-	auto ResolveQmModuleContentPresence = [&](const SQmModuleEntry *pModule) -> float {
-		if(!IsQmModuleCollapsible(pModule))
-			return 1.0f;
-		const float Target = IsQmModuleCollapsed(pModule->m_Id) ? 0.0f : 1.0f;
-		if(PrewarmOnly)
-			return Target;
-		const uint64_t NodeKey = UiAnimNodeKey("qm_module_content", static_cast<uint64_t>(GetQmModuleStateIndexById(pModule->m_Id)));
-		CUiV2AnimationRuntime &AnimRuntime = GameClient()->UiRuntimeV2()->AnimRuntime();
-		return std::clamp(ResolveUiPresentationStateValue(AnimRuntime, NodeKey, EUiAnimProperty::ALPHA, Target, ModuleContentSpring, 4, 0.002f), 0.0f, 1.0f);
+		return std::clamp(ResolveUiPresentationStateValue(AnimRuntime, QmModuleAnimNodeKey("qm_module_expand", pModule), EUiAnimProperty::HEIGHT, Target, ModuleHeightSpring, 3, 0.001f), 0.0f, 1.0f);
 	};
 	auto ResolveQmModuleHeaderHover = [&](const SQmModuleEntry *pModule, const CUIRect &HotRect) -> float {
 		if(!IsQmModuleCollapsible(pModule) || PrewarmOnly)
@@ -2550,9 +2556,24 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		return CollapsedHeight + (ExpandedHeight - CollapsedHeight) * ResolveQmModuleExpansion(pModule);
 	};
 	auto GetQmModuleContentClipHeight = [&](const SQmModuleEntry *pModule) -> float {
-		const float CollapsedHeight = GetQmModuleCollapsedCardHeight();
+		if(!IsQmModuleCollapsible(pModule))
+			return GetQmModuleExpandedCardHeight(pModule);
 		const float ExpandedHeight = GetQmModuleExpandedCardHeight(pModule);
-		return CollapsedHeight + (ExpandedHeight - CollapsedHeight) * ResolveQmModuleContentPresence(pModule);
+		const float HeaderHeight = GetQmModuleHeaderOnlyClipHeight();
+		const float Expansion = ReadQmModuleExpansion(pModule);
+		if(Expansion <= 0.001f)
+			return HeaderHeight;
+		const float AnimatedHeight = GetQmModuleCollapsedCardHeight() + (ExpandedHeight - GetQmModuleCollapsedCardHeight()) * Expansion;
+		if(AnimatedHeight >= ExpandedHeight - QmModuleDrawerSnapEpsilon)
+			return ExpandedHeight;
+
+		const float ItemStep = maximum(1.0f, LgLineHeight + LgLineSpacing);
+		const float BodyHeight = maximum(0.0f, AnimatedHeight - HeaderHeight);
+		const int VisibleItems = static_cast<int>(std::floor((BodyHeight + LgLineSpacing) / ItemStep));
+		if(VisibleItems <= 0)
+			return HeaderHeight;
+		const float VisibleBodyHeight = VisibleItems * LgLineHeight + std::max(0, VisibleItems - 1) * LgLineSpacing;
+		return std::clamp(HeaderHeight + VisibleBodyHeight, HeaderHeight, ExpandedHeight);
 	};
 	auto GetModuleHeaderHotRect = [&](const SQmModuleEntry *pModule, const CUIRect &CardRect, CUIRect *pOutRect) -> bool {
 		if(!IsQmModuleCollapsible(pModule))
@@ -2566,6 +2587,9 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		return true;
 	};
 	auto GetQmModuleToggleHotRect = [&](const SQmModuleEntry *pModule, const CUIRect &CardRect, CUIRect *pOutRect) -> bool {
+		return GetModuleHeaderHotRect(pModule, CardRect, pOutRect);
+	};
+	auto GetQmModuleDragHotRect = [&](const SQmModuleEntry *pModule, const CUIRect &CardRect, CUIRect *pOutRect) -> bool {
 		if(!IsQmModuleCollapsible(pModule))
 			return false;
 		if(pOutRect != nullptr)
@@ -2579,26 +2603,39 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		CUIRect DisplayCardRect = CardRect;
 		if(IsQmModuleCollapsible(pModule))
 			DisplayCardRect.h = GetQmModuleCollapsedCardHeight() + (maximum(CardRect.h, GetQmModuleCollapsedCardHeight()) - GetQmModuleCollapsedCardHeight()) * ResolveQmModuleExpansion(pModule);
-		CUIRect ToggleRect;
+		CUIRect ToggleRect, DragRect;
 		const bool HasToggle = GetQmModuleToggleHotRect(pModule, DisplayCardRect, &ToggleRect);
+		const bool HasDragArea = GetQmModuleDragHotRect(pModule, DisplayCardRect, &DragRect);
 		const bool OverToggle = HasToggle && Ui()->MouseHovered(&ToggleRect);
+		const bool OverDragArea = HasDragArea && Ui()->MouseHovered(&DragRect);
 		const int ModuleIndex = IsQmModuleCollapsible(pModule) ? GetQmModuleStateIndexById(pModule->m_Id) : 0;
 		const void *pModuleHotId = IsQmModuleCollapsible(pModule) ? static_cast<const void *>(&s_aModuleHeaderButtons[ModuleIndex]) : nullptr;
 		const void *pCurrentFrameHotItem = Ui()->NextHotItem();
 		const bool OverOtherInteractiveItem = pCurrentFrameHotItem != nullptr && pCurrentFrameHotItem != pModuleHotId;
-		const bool OverModuleNonInteractiveArea = OverToggle && !OverOtherInteractiveItem;
-		if(Ui()->MouseHovered(&DisplayCardRect) && Ui()->MouseButtonClicked(0))
+		const bool OverToggleNonInteractiveArea = OverToggle && !OverOtherInteractiveItem;
+		const bool OverModuleNonInteractiveArea = OverDragArea && !OverOtherInteractiveItem;
+		if(!SearchDragBlocked && Ui()->MouseButtonClicked(0) && (OverToggleNonInteractiveArea || (!BlockDrag && OverModuleNonInteractiveArea)))
 			RecordQmModuleUsage(pModule->m_Id);
 		const bool ModuleDragActive = s_DragState.m_pPressed == pModule || s_DragState.m_pDragging == pModule;
-		const bool HardInteractionBlocked = SearchDragBlocked || BlockDrag || Ui()->IsPopupOpen() || Ui()->IsPopupHovered();
+		const bool DragBlocked = SearchDragBlocked || BlockDrag;
+		const bool HardInteractionBlocked = Ui()->IsPopupOpen() || Ui()->IsPopupHovered();
 		const bool InteractionBlocked = HardInteractionBlocked || (Ui()->ActiveItem() != nullptr && !ModuleDragActive);
 		if(HardInteractionBlocked && ModuleDragActive)
 			ResetModuleDragState();
+		if(DragBlocked && s_DragState.m_pDragging == pModule)
+			ResetModuleDragState();
 
-		if(!InteractionBlocked && HasToggle && OverModuleNonInteractiveArea)
+		if(!InteractionBlocked && SearchDragBlocked && HasToggle && Ui()->MouseButtonClicked(0) && OverToggleNonInteractiveArea)
+		{
+			ToggleQmModuleCollapsed(pModule->m_Id);
+			ResetModuleDragState();
+			return;
+		}
+
+		if(!InteractionBlocked && ((HasToggle && OverToggleNonInteractiveArea) || (!DragBlocked && OverModuleNonInteractiveArea)))
 			Ui()->SetHotItem(&s_aModuleHeaderButtons[ModuleIndex]);
 
-		if(!InteractionBlocked && Ui()->MouseButtonClicked(0) && OverModuleNonInteractiveArea)
+		if(!InteractionBlocked && Ui()->MouseButtonClicked(0) && (OverToggleNonInteractiveArea || (!DragBlocked && OverModuleNonInteractiveArea)))
 		{
 			s_DragState.m_pPressed = pModule;
 			s_DragState.m_pDragging = nullptr;
@@ -2612,13 +2649,13 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		const bool MouseReleased = !Ui()->MouseButton(0) && Ui()->LastMouseButton(0);
 		if(!InteractionBlocked && HasToggle && s_DragState.m_pPressed == pModule && s_DragState.m_pDragging == nullptr && MouseReleased)
 		{
-			if(OverModuleNonInteractiveArea)
+			if(OverToggleNonInteractiveArea)
 				ToggleQmModuleCollapsed(pModule->m_Id);
 			ResetModuleDragState();
 			return;
 		}
 
-		if(!InteractionBlocked && s_DragState.m_pPressed == pModule && Ui()->MouseButton(0) && s_DragState.m_pDragging == nullptr)
+		if(!InteractionBlocked && !DragBlocked && s_DragState.m_pPressed == pModule && Ui()->MouseButton(0) && s_DragState.m_pDragging == nullptr)
 		{
 			if(Client()->GlobalTime() - s_DragState.m_PressStartTime >= DragHoldSeconds)
 			{
@@ -3266,15 +3303,6 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		return FindQmModuleIndex(pModule->m_pKey);
 	};
 
-	auto GetQmModuleEstimatedHeight = [&](const SQmModuleEntry *pModule) -> float {
-		const int Index = GetQmModuleStateIndexById(pModule->m_Id);
-		if(IsQmModuleCollapsed(pModule->m_Id))
-			return GetQmModuleCollapsedCardHeight() + LgCardSpacing;
-		if(s_aQmModuleLastHeights[Index] > 0.0f)
-			return s_aQmModuleLastHeights[Index] + LgCardSpacing;
-		return GetQmModuleFallbackExpandedHeight(pModule) + LgCardSpacing;
-	};
-
 	struct SQmFunctionSnapshotEntry
 	{
 		int m_LayoutIndex;
@@ -3283,7 +3311,6 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 		int m_OrderInColumn;
 		int m_SearchOrder;
 		int m_Usage;
-		float m_EstimatedHeight;
 		std::string m_Key;
 		std::string m_SearchKeywords;
 	};
@@ -3383,23 +3410,16 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 				}
 				else
 				{
-					float LeftEstimatedHeight = 0.0f;
-					float RightEstimatedHeight = 0.0f;
+					int SearchColumnIndex = 0;
 					for(const SQmFunctionSnapshotEntry *pEntry : vSearchVisible)
 					{
 						if(Aborted())
 							return;
 
-						if(LeftEstimatedHeight <= RightEstimatedHeight)
-						{
+						if((SearchColumnIndex++ % 2) == 0)
 							pResult->m_SearchLeftIndices.push_back(pEntry->m_LayoutIndex);
-							LeftEstimatedHeight += pEntry->m_EstimatedHeight;
-						}
 						else
-						{
 							pResult->m_SearchRightIndices.push_back(pEntry->m_LayoutIndex);
-							RightEstimatedHeight += pEntry->m_EstimatedHeight;
-						}
 					}
 				}
 			}
@@ -3488,13 +3508,7 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 				Hash = HashValueFnv1a64(Hash, Entry.m_Column);
 				Hash = HashValueFnv1a64(Hash, Entry.m_OrderInColumn);
 				Hash = HashStringFnv1a64(Hash, Entry.m_pKey);
-				Hash = HashValueFnv1a64(Hash, IsQmModuleCollapsed(Entry.m_Id));
 				Hash = HashValueFnv1a64(Hash, GetQmModuleUsage(Entry.m_Id));
-				if(HasModuleSearch && !CompactLayout)
-				{
-					const float EstimatedHeight = GetQmModuleEstimatedHeight(&Entry);
-					Hash = HashValueFnv1a64(Hash, EstimatedHeight);
-				}
 			}
 			return Hash;
 		};
@@ -3517,7 +3531,6 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 				SnapshotEntry.m_OrderInColumn = Entry.m_OrderInColumn;
 				SnapshotEntry.m_SearchOrder = FindQmModuleIndex(Entry.m_pKey);
 				SnapshotEntry.m_Usage = GetQmModuleUsage(Entry.m_Id);
-				SnapshotEntry.m_EstimatedHeight = GetQmModuleEstimatedHeight(&Entry);
 				SnapshotEntry.m_Key = Entry.m_pKey;
 				SnapshotEntry.m_SearchKeywords = ModuleSearchKeywords(Entry.m_Id);
 				vEntries.push_back(std::move(SnapshotEntry));
@@ -3641,21 +3654,13 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			}
 			else
 			{
-				float LeftEstimatedHeight = 0.0f;
-				float RightEstimatedHeight = 0.0f;
+				int SearchColumnIndex = 0;
 				for(const SQmModuleEntry *pModule : SearchVisibleModules)
 				{
-					const float EstimatedHeight = GetQmModuleEstimatedHeight(pModule);
-					if(LeftEstimatedHeight <= RightEstimatedHeight)
-					{
+					if((SearchColumnIndex++ % 2) == 0)
 						SearchLeftModules.push_back(pModule);
-						LeftEstimatedHeight += EstimatedHeight;
-					}
 					else
-					{
 						SearchRightModules.push_back(pModule);
-						RightEstimatedHeight += EstimatedHeight;
-					}
 				}
 			}
 		}
@@ -3772,7 +3777,6 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			const SQmModuleHeadlineInfo HeadlineInfo = GetQmModuleHeadlineInfo(pModule->m_Id);
 			const bool ModuleCollapsible = IsQmModuleCollapsible(pModule);
 			const float ModuleExpansion = ResolveQmModuleExpansion(pModule);
-			const float ModuleContentPresence = ResolveQmModuleContentPresence(pModule);
 			CUIRect PredictedCard = Column;
 			PredictedCard.y += LgCardSpacing;
 			PredictedCard.h = GetQmModuleAnimatedCardHeight(pModule);
@@ -3792,11 +3796,11 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			if(ModuleCollapsible && !PrewarmOnly)
 			{
 				CUIRect ModuleContentClip = PredictedCard;
-				ModuleContentClip.h = std::clamp(GetQmModuleContentClipHeight(pModule), GetQmModuleCollapsedCardHeight(), maximum(GetQmModuleExpandedCardHeight(pModule), GetQmModuleCollapsedCardHeight()));
+				ModuleContentClip.h = std::clamp(GetQmModuleContentClipHeight(pModule), GetQmModuleHeaderOnlyClipHeight(), maximum(GetQmModuleExpandedCardHeight(pModule), GetQmModuleCollapsedCardHeight()));
 				Ui()->ClipEnable(&ModuleContentClip);
 				ModuleContentClipEnabled = true;
 			}
-			if(ModuleCollapsible && IsQmModuleCollapsed(pModule->m_Id) && ModuleExpansion <= 0.015f && ModuleContentPresence <= 0.03f)
+			if(ModuleCollapsible && IsQmModuleCollapsed(pModule->m_Id) && ModuleExpansion <= 0.015f)
 			{
 				Column.HSplitTop(LgCardSpacing, nullptr, &Column);
 				CUIRect CollapsedCard = Column;
@@ -7907,15 +7911,6 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 			}
 			if(ModuleContentClipEnabled)
 			{
-				const bool HasCurrentModuleCard = !ModuleCards.empty() && !s_GlassCards.empty() && ModuleCards.back().m_pModule == pModule && ModuleCards.back().m_Column == ColumnId;
-				if(ModuleCollapsible && ModuleContentPresence < 0.995f && HasCurrentModuleCard)
-				{
-					CUIRect FadeRect = s_GlassCards.back();
-					FadeRect.y += GetQmModuleCollapsedCardHeight();
-					FadeRect.h = maximum(0.0f, minimum(FadeRect.h, GetQmModuleContentClipHeight(pModule)) - GetQmModuleCollapsedCardHeight());
-					if(FadeRect.h > 0.0f)
-						FadeRect.Draw(ColorRGBA(0.02f, 0.025f, 0.035f, (1.0f - ModuleContentPresence) * 0.34f), IGraphics::CORNER_NONE, 0.0f);
-				}
 				Ui()->ClipDisable();
 			}
 			ApplyQmModulePresentationAfterRender(pModule, ColumnId, Column);

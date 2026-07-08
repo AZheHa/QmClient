@@ -448,6 +448,8 @@ CChat::CChat()
 {
 	m_Mode = MODE_NONE;
 	m_LastPresentationUpdateTime = 0;
+	m_LargeAreaOpenTick = 0;
+	m_LastPresentationShowLargeArea = false;
 	m_aChatLogLastCleanupDate[0] = '\0';
 
 	m_Input.SetCalculateOffsetCallback([this]() { return m_IsInputCensored; });
@@ -738,6 +740,8 @@ void CChat::ClearLines()
 	m_PrevScoreBoardShowed = false;
 	m_PrevShowChat = false;
 	m_LastPresentationUpdateTime = 0;
+	m_LargeAreaOpenTick = 0;
+	m_LastPresentationShowLargeArea = false;
 }
 
 int CChat::GetLineIndex(const CLine *pLine) const
@@ -797,18 +801,29 @@ int CChat::CountVisibleLinesFrom(int BacklogLine) const
 
 void CChat::UpdatePresentationStates(int64_t Now, float DeltaSeconds, bool ShowLargeArea)
 {
-	for(CLine &Line : m_aLines)
-	{
-		if(!Line.m_Initialized)
-			continue;
+	if(ShowLargeArea && !m_LastPresentationShowLargeArea)
+		m_LargeAreaOpenTick = Now;
+	else if(!ShowLargeArea)
+		m_LargeAreaOpenTick = 0;
+	m_LastPresentationShowLargeArea = ShowLargeArea;
 
+	int RecallIndex = 0;
+	for(int i = 0; i < MAX_LINES; ++i)
+	{
+		CLine &Line = m_aLines[((m_CurrentLine - i) + MAX_LINES) % MAX_LINES];
+		if(!Line.m_Initialized)
+			break;
+
+		const float RecallDelaySeconds = ShowLargeArea ? RecallIndex++ * CHAT_RECALL_STAGGER_SECONDS : 0.0f;
 		UpdateLinePresentation(
 			Line.m_Presentation,
 			Line.m_Time,
 			Now,
 			DeltaSeconds,
 			ShowLargeArea,
-			Line.m_ForceVisible);
+			Line.m_ForceVisible,
+			m_LargeAreaOpenTick,
+			RecallDelaySeconds);
 	}
 }
 
