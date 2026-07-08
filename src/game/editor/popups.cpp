@@ -106,9 +106,9 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuFile(void *pContext, CUIRect Vie
 
 	View.HSplitTop(10.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_AppendButton, "附加", 0, &Slot, BUTTONFLAG_LEFT, "[Ctrl+A] 将所选地图文件的所有设计元素添加到当前地图中."))
+	if(pEditor->DoButton_MenuItem(&s_AppendButton, "添加", 0, &Slot, BUTTONFLAG_LEFT, "[Ctrl+A] 将所选地图文件的所有内容添加到当前地图中."))
 	{
-		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::MAP, "附加地图", "附加", "maps", "", CallbackAppendMap, pEditor);
+		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::MAP, "添加地图", "添加", "maps", "", CallbackAppendMap, pEditor);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
 
@@ -334,16 +334,6 @@ static int EntitiesListdirCallback(const char *pName, int IsDir, int StorageType
 
 static const char *EntitiesDisplayName(const char *pName)
 {
-	if(str_comp_nocase(pName, "DDNet") == 0)
-		return "官方";
-	if(str_comp_nocase(pName, "FNG") == 0)
-		return "冻结手雷";
-	if(str_comp_nocase(pName, "Race") == 0)
-		return "竞速";
-	if(str_comp_nocase(pName, "Vanilla") == 0)
-		return "原版";
-	if(str_comp_nocase(pName, "blockworlds") == 0)
-		return "方块世界";
 	return pName;
 }
 
@@ -400,16 +390,16 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "允许未使用图块", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, "允许无效实体层", 10.0f, TEXTALIGN_ML);
 		if(pEditor->m_AllowPlaceUnusedTiles != EUnusedEntities::ALLOWED_IMPLICIT)
 		{
 			static int s_ButtonNo = 0;
 			static int s_ButtonYes = 0;
-			if(pEditor->DoButton_Ex(&s_ButtonNo, "否", pEditor->m_AllowPlaceUnusedTiles == EUnusedEntities::NOT_ALLOWED, &No, BUTTONFLAG_LEFT, "[Ctrl+U] 禁止放置未使用图块。", IGraphics::CORNER_L))
+			if(pEditor->DoButton_Ex(&s_ButtonNo, "否", pEditor->m_AllowPlaceUnusedTiles == EUnusedEntities::NOT_ALLOWED, &No, BUTTONFLAG_LEFT, "[Ctrl+U] 禁止放置无效实体层图块。", IGraphics::CORNER_L))
 			{
 				pEditor->m_AllowPlaceUnusedTiles = EUnusedEntities::NOT_ALLOWED;
 			}
-			if(pEditor->DoButton_Ex(&s_ButtonYes, "是", pEditor->m_AllowPlaceUnusedTiles == EUnusedEntities::ALLOWED_EXPLICIT, &Yes, BUTTONFLAG_LEFT, "[Ctrl+U] 允许放置未使用图块。", IGraphics::CORNER_R))
+			if(pEditor->DoButton_Ex(&s_ButtonYes, "是", pEditor->m_AllowPlaceUnusedTiles == EUnusedEntities::ALLOWED_EXPLICIT, &Yes, BUTTONFLAG_LEFT, "[Ctrl+U] 允许放置无效实体层图块。", IGraphics::CORNER_R))
 			{
 				pEditor->m_AllowPlaceUnusedTiles = EUnusedEntities::ALLOWED_EXPLICIT;
 			}
@@ -427,7 +417,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		Selector.VSplitLeft(Selector.w / 3.0f, &Off, &Selector);
 		Selector.VSplitMid(&Dec, &Hex);
 
-		pEditor->Ui()->DoLabel(&Label, "显示信息", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, "显示图块编号", 10.0f, TEXTALIGN_ML);
 		static int s_ButtonOff = 0;
 		static int s_ButtonDec = 0;
 		static int s_ButtonHex = 0;
@@ -458,16 +448,16 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "预览四边形包络线", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, "预览四边形动画", 10.0f, TEXTALIGN_ML);
 
 		static int s_ButtonNo = 0;
 		static int s_ButtonYes = 0;
-		if(pEditor->DoButton_Ex(&s_ButtonNo, "否", !pEditor->m_ShowEnvelopePreview, &No, BUTTONFLAG_LEFT, "选中四边形图层时，不预览带位置包络线的四边形路径。", IGraphics::CORNER_L))
+		if(pEditor->DoButton_Ex(&s_ButtonNo, "否", !pEditor->m_ShowEnvelopePreview, &No, BUTTONFLAG_LEFT, "选中四边形图层时，不预览带位置动画的四边形路径。", IGraphics::CORNER_L))
 		{
 			pEditor->m_ShowEnvelopePreview = false;
 			pEditor->m_ActiveEnvelopePreview = EEnvelopePreview::NONE;
 		}
-		if(pEditor->DoButton_Ex(&s_ButtonYes, "是", pEditor->m_ShowEnvelopePreview, &Yes, BUTTONFLAG_LEFT, "选中四边形图层时，预览带位置包络线的四边形路径。", IGraphics::CORNER_R))
+		if(pEditor->DoButton_Ex(&s_ButtonYes, "是", pEditor->m_ShowEnvelopePreview, &Yes, BUTTONFLAG_LEFT, "选中四边形图层时，预览带位置动画的四边形路径。", IGraphics::CORNER_R))
 		{
 			pEditor->m_ShowEnvelopePreview = true;
 			pEditor->m_ActiveEnvelopePreview = EEnvelopePreview::NONE;
@@ -1182,9 +1172,9 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuad(void *pContext, CUIRect View, b
 		{"顺序", pEditor->m_vSelectedQuads[pEditor->m_SelectedQuadIndex], PROPTYPE_INT, 0, NumQuads},
 		{"位置横", fx2i(pCurrentQuad->m_aPoints[4].x), PROPTYPE_INT, -1000000, 1000000},
 		{"位置纵", fx2i(pCurrentQuad->m_aPoints[4].y), PROPTYPE_INT, -1000000, 1000000},
-		{"位置包络线", pCurrentQuad->m_PosEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
+		{"位置动画", pCurrentQuad->m_PosEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
 		{"位置偏移", pCurrentQuad->m_PosEnvOffset, PROPTYPE_INT, -1000000, 1000000},
-		{"颜色包络线", pCurrentQuad->m_ColorEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
+		{"颜色动画", pCurrentQuad->m_ColorEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
 		{"颜色偏移", pCurrentQuad->m_ColorEnvOffset, PROPTYPE_INT, -1000000, 1000000},
 		{nullptr},
 	};
@@ -1315,9 +1305,9 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSource(void *pContext, CUIRect View,
 		{"声像", pSource->m_Pan, PROPTYPE_BOOL, 0, 1},
 		{"延迟", pSource->m_TimeDelay, PROPTYPE_INT, 0, 1000000},
 		{"衰减", pSource->m_Falloff, PROPTYPE_INT, 0, 255},
-		{"位置包络线", pSource->m_PosEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
+		{"位置动画", pSource->m_PosEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
 		{"位置偏移", pSource->m_PosEnvOffset, PROPTYPE_INT, -1000000, 1000000},
-		{"声音包络线", pSource->m_SoundEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
+		{"声音动画", pSource->m_SoundEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
 		{"声音偏移", pSource->m_SoundEnvOffset, PROPTYPE_INT, -1000000, 1000000},
 		{nullptr},
 	};
@@ -1585,7 +1575,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPoint(void *pContext, CUIRect Vie
 				}
 
 				char aDisplay[256];
-				str_format(aDisplay, sizeof(aDisplay), "编辑包络线 %d 的第 %d 个点颜色", pEditor->m_SelectedEnvelope, SelectedIndex);
+				str_format(aDisplay, sizeof(aDisplay), "编辑动画 %d 的第 %d 个点颜色", pEditor->m_SelectedEnvelope, SelectedIndex);
 				pEditor->m_Map.m_EnvelopeEditorHistory.RecordAction(std::make_shared<CEditorActionBulk>(&pEditor->m_Map, vpActions, aDisplay));
 			}
 
@@ -1620,14 +1610,14 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPoint(void *pContext, CUIRect Vie
 	Row.VSplitLeft(60.0f, &Label, &Row);
 	Row.VSplitLeft(10.0f, nullptr, &EditBox);
 	pEditor->Ui()->DoLabel(&Label, "数值：", RowHeight - 2.0f, TEXTALIGN_ML);
-	pEditor->DoEditBox(&s_CurValueInput, &EditBox, RowHeight - 2.0f, IGraphics::CORNER_ALL, "当前选中包络点的数值。");
+	pEditor->DoEditBox(&s_CurValueInput, &EditBox, RowHeight - 2.0f, IGraphics::CORNER_ALL, "当前选中动画点的数值。");
 
 	View.HSplitTop(4.0f, nullptr, &View);
 	View.HSplitTop(RowHeight, &Row, &View);
 	Row.VSplitLeft(60.0f, &Label, &Row);
 	Row.VSplitLeft(10.0f, nullptr, &EditBox);
 	pEditor->Ui()->DoLabel(&Label, "时间（秒）：", RowHeight - 2.0f, TEXTALIGN_ML);
-	pEditor->DoEditBox(&s_CurTimeInput, &EditBox, RowHeight - 2.0f, IGraphics::CORNER_ALL, "当前选中包络点的时间。");
+	pEditor->DoEditBox(&s_CurTimeInput, &EditBox, RowHeight - 2.0f, IGraphics::CORNER_ALL, "当前选中动画点的时间。");
 
 	if(pEditor->Input()->KeyIsPressed(KEY_RETURN) || pEditor->Input()->KeyIsPressed(KEY_KP_ENTER))
 	{
@@ -1679,7 +1669,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPoint(void *pContext, CUIRect Vie
 	View.HSplitTop(RowHeight, &Row, &View);
 	static int s_DeleteButtonId = 0;
 	const char *pButtonText = pEditor->IsTangentSelected() ? "重置" : "删除";
-	const char *pTooltip = pEditor->IsTangentSelected() ? "将切线点重置为默认值。" : "删除当前包络点在所有通道上的数据。";
+	const char *pTooltip = pEditor->IsTangentSelected() ? "将切线点重置为默认值。" : "删除当前动画点在所有通道上的数据。";
 	if(pEditor->DoButton_Editor(&s_DeleteButtonId, pButtonText, 0, &Row, BUTTONFLAG_LEFT, pTooltip))
 	{
 		if(pEditor->IsTangentInSelected())
@@ -1712,7 +1702,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPointMulti(void *pContext, CUIRec
 	static int s_CurveButtonId = 0;
 	CUIRect CurveButton;
 	View.HSplitTop(RowHeight, &CurveButton, &View);
-	if(pEditor->DoButton_Editor(&s_CurveButtonId, "投影到", 0, &CurveButton, BUTTONFLAG_LEFT, "将所有选中的包络点投影到首尾两点之间的曲线上。"))
+	if(pEditor->DoButton_Editor(&s_CurveButtonId, "投影到", 0, &CurveButton, BUTTONFLAG_LEFT, "将所有选中的动画点投影到首尾两点之间的曲线上。"))
 	{
 		static SPopupMenuId s_PopupCurveTypeId;
 		pEditor->Ui()->DoPopupMenu(&s_PopupCurveTypeId, pEditor->Ui()->MouseX(), pEditor->Ui()->MouseY(), 80, 80, pEditor, PopupEnvPointCurveType);
@@ -2180,7 +2170,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEvent(void *pContext, CUIRect View, 
 	else if(pEditor->m_PopupEventType == POPEVENT_PREVENTUNUSEDTILES)
 	{
 		pTitle = "未使用图块已禁用";
-		pMessage = "默认不允许放置未使用图块，因为它们后续可能被启用并破坏地图。\n\n启用“允许未使用图块”后可放置所有图块。";
+		pMessage = "默认不允许放置无效实体层图块，因为它们后续可能被启用并破坏地图。\n\n启用“允许无效实体层”后可放置所有实体层图块。";
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_IMAGEDIV16)
 	{
@@ -3011,7 +3001,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupTune(void *pContext, CUIRect View, b
 		}
 
 		static int s_NextViewPid = 0;
-		if(pEditor->DoButton_Editor(&s_NextViewPid, "N", 0, &ViewEmptySlot, BUTTONFLAG_LEFT, "[N] 显示具有此编号的下一个调整图块.") ||
+		if(pEditor->DoButton_Editor(&s_NextViewPid, "N", 0, &ViewEmptySlot, BUTTONFLAG_LEFT, "[N] 显示具有此编号的下一个物理图块.") ||
 			(Active && pEditor->Input()->KeyPress(KEY_N)))
 		{
 			s_vColors[PROP_TUNE_VIEW] = ViewTune() ? ColorRGBA(0.5f, 1, 0.5f, 0.5f) : ColorRGBA(1, 0.5f, 0.5f, 0.5f);

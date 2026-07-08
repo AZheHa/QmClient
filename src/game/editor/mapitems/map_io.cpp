@@ -471,14 +471,14 @@ bool CEditorMap::Save(const char *pFilename, const std::function<void(const char
 	}
 
 	// save envelopes
-	m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "editor", "正在保存包络线");
+	m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "editor", "正在保存动画");
 	int PointCount = 0;
 	for(size_t e = 0; e < m_vpEnvelopes.size(); e++)
 	{
 		if(m_vpEnvelopes[e]->m_vPoints.size() > (size_t)std::numeric_limits<int>::max() ||
 			PointCount > std::numeric_limits<int>::max() - (int)m_vpEnvelopes[e]->m_vPoints.size())
 		{
-			ErrorHandler("错误：无法保存，因为包络点数量过多。");
+			ErrorHandler("错误：无法保存，因为动画点数量过多。");
 			return false;
 		}
 		CMapItemEnvelope Item;
@@ -494,7 +494,7 @@ bool CEditorMap::Save(const char *pFilename, const std::function<void(const char
 	}
 
 	// save points
-	m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "editor", "正在保存包络点");
+	m_pEditor->Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "editor", "正在保存动画点");
 	bool BezierUsed = false;
 	for(const auto &pEnvelope : m_vpEnvelopes)
 	{
@@ -513,13 +513,13 @@ bool CEditorMap::Save(const char *pFilename, const std::function<void(const char
 	size_t EnvPointDataSize = 0;
 	if(!CheckedDatafileArraySize((size_t)PointCount, sizeof(CEnvPoint), EnvPointDataSize))
 	{
-		ErrorHandler("错误：无法保存，因为包络点数据过大。");
+		ErrorHandler("错误：无法保存，因为动画点数据过大。");
 		return false;
 	}
 	CEnvPoint *pPoints = (CEnvPoint *)calloc(maximum(PointCount, 1), sizeof(CEnvPoint));
 	if(pPoints == nullptr)
 	{
-		ErrorHandler("错误：无法为包络点分配内存。");
+		ErrorHandler("错误：无法为动画点分配内存。");
 		return false;
 	}
 	CEnvPointBezier *pPointsBezier = nullptr;
@@ -529,14 +529,14 @@ bool CEditorMap::Save(const char *pFilename, const std::function<void(const char
 		if(!CheckedDatafileArraySize((size_t)PointCount, sizeof(CEnvPointBezier), EnvPointBezierDataSize))
 		{
 			free(pPoints);
-			ErrorHandler("错误：无法保存，因为贝塞尔包络点数据过大。");
+			ErrorHandler("错误：无法保存，因为贝塞尔动画点数据过大。");
 			return false;
 		}
 		pPointsBezier = (CEnvPointBezier *)calloc(maximum(PointCount, 1), sizeof(CEnvPointBezier));
 		if(pPointsBezier == nullptr)
 		{
 			free(pPoints);
-			ErrorHandler("错误：无法为贝塞尔包络点分配内存。");
+			ErrorHandler("错误：无法为贝塞尔动画点分配内存。");
 			return false;
 		}
 	}
@@ -575,7 +575,7 @@ bool CEditorMap::Save(const char *pFilename, const std::function<void(const char
 		if(!CheckedDatafileArraySize((size_t)PointCount, sizeof(CEnvPointBezier), EnvPointBezierDataSize))
 		{
 			free(pPointsBezier);
-			ErrorHandler("错误：无法保存，因为贝塞尔包络点数据过大。");
+			ErrorHandler("错误：无法保存，因为贝塞尔动画点数据过大。");
 			return false;
 		}
 		Writer.AddItem(MAPITEMTYPE_ENVPOINTS_BEZIER, 0, EnvPointBezierDataSize, pPointsBezier);
@@ -1222,7 +1222,7 @@ bool CEditorMap::Load(const char *pFilename, int StorageType, const std::functio
 			if(Channels != pItem->m_Channels)
 			{
 				char aBuf[128];
-			str_format(aBuf, sizeof(aBuf), "错误：包络线 %d 的通道数 %d 无效，已更正为 %d。", e, pItem->m_Channels, Channels);
+				str_format(aBuf, sizeof(aBuf), "错误：动画 %d 的通道数 %d 无效，已更正为 %d。", e, pItem->m_Channels, Channels);
 				ErrorHandler(aBuf);
 			}
 

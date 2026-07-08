@@ -18,7 +18,7 @@ static const char *LayerTypeDisplayName(const std::shared_ptr<CLayer> &pLayer)
 		if(pTiles->m_HasSwitch)
 			return "开关";
 		if(pTiles->m_HasTune)
-			return "调整";
+			return "物理";
 		return "图块";
 	}
 	if(pLayer->m_Type == LAYERTYPE_QUADS)
@@ -370,10 +370,10 @@ CEditorActionEditQuadProp::CEditorActionEditQuadProp(CEditorMap *pMap, int Group
 		"顺序",
 		"位置横",
 		"位置纵",
-		"位置包络线",
-		"位置包络线偏移",
-		"颜色包络线",
-		"颜色包络线偏移"};
+		"位置动画",
+		"位置动画偏移",
+		"颜色动画",
+		"颜色动画偏移"};
 	static_assert(std::size(s_apNames) == (size_t)EQuadProp::NUM_PROPS);
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑四边形 %s 属性（图层 %d，组 %d）", s_apNames[(int)m_Prop], m_LayerIndex, m_GroupIndex);
 }
@@ -877,8 +877,8 @@ CEditorActionEditLayerTilesProp::CEditorActionEditLayerTilesProp(CEditorMap *pMa
 		"偏移步长",
 		"图像",
 		"颜色",
-		"颜色包络线",
-		"颜色包络线偏移",
+		"颜色动画",
+		"颜色动画偏移",
 		"自动映射器",
 		"自动映射参考",
 		"实时游戏图块",
@@ -1189,7 +1189,7 @@ CEditorActionAppendMap::CEditorActionAppendMap(CEditorMap *pMap, const char *pMa
 	IEditorAction(pMap), m_PrevInfo(PrevInfo), m_vImageIndexMap(vImageIndexMap)
 {
 	str_copy(m_aMapName, pMapName);
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "附加 %s", m_aMapName);
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "添加 %s", m_aMapName);
 }
 
 void CEditorActionAppendMap::Undo()
@@ -1456,7 +1456,7 @@ CEditorActionEnvelopeAdd::CEditorActionEnvelopeAdd(CEditorMap *pMap, CEnvelope::
 	IEditorAction(pMap),
 	m_EnvelopeType(EnvelopeType)
 {
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "新增%s包络线", EnvelopeType == CEnvelope::EType::COLOR ? "颜色" : (EnvelopeType == CEnvelope::EType::POSITION ? "位置" : "声音"));
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "新增%s动画", EnvelopeType == CEnvelope::EType::COLOR ? "颜色" : (EnvelopeType == CEnvelope::EType::POSITION ? "位置" : "声音"));
 	m_PreviousSelectedEnvelope = Editor()->m_SelectedEnvelope;
 }
 
@@ -1478,7 +1478,7 @@ void CEditorActionEnvelopeAdd::Redo()
 CEditorActionEnvelopeDelete::CEditorActionEnvelopeDelete(CEditorMap *pMap, int EnvelopeIndex, std::vector<std::shared_ptr<IEditorEnvelopeReference>> &vpObjectReferences, std::shared_ptr<CEnvelope> &pEnvelope) :
 	IEditorAction(pMap), m_EnvelopeIndex(EnvelopeIndex), m_pEnv(pEnvelope), m_vpObjectReferences(vpObjectReferences)
 {
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "删除包络线 %d", m_EnvelopeIndex);
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "删除动画 %d", m_EnvelopeIndex);
 }
 
 void CEditorActionEnvelopeDelete::Undo()
@@ -1500,7 +1500,7 @@ CEditorActionEnvelopeEdit::CEditorActionEnvelopeEdit(CEditorMap *pMap, int Envel
 	static const char *s_apNames[] = {
 		"同步",
 		"顺序"};
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑包络线 %d 的%s", m_EnvelopeIndex, s_apNames[(int)m_EditType]);
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑动画 %d 的%s", m_EnvelopeIndex, s_apNames[(int)m_EditType]);
 }
 
 void CEditorActionEnvelopeEdit::Undo()
@@ -1544,7 +1544,7 @@ void CEditorActionEnvelopeEdit::Redo()
 CEditorActionEnvelopeEditPointTime::CEditorActionEnvelopeEditPointTime(CEditorMap *pMap, int EnvelopeIndex, int PointIndex, CFixedTime Previous, CFixedTime Current) :
 	IEditorAction(pMap), m_EnvelopeIndex(EnvelopeIndex), m_PointIndex(PointIndex), m_Previous(Previous), m_Current(Current), m_pEnv(Map()->m_vpEnvelopes[EnvelopeIndex])
 {
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑点 %d 的时间（包络线 %d）", m_PointIndex, m_EnvelopeIndex);
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑点 %d 的时间（动画 %d）", m_PointIndex, m_EnvelopeIndex);
 }
 
 void CEditorActionEnvelopeEditPointTime::Undo()
@@ -1569,7 +1569,7 @@ CEditorActionEnvelopeEditPoint::CEditorActionEnvelopeEditPoint(CEditorMap *pMap,
 	static const char *s_apNames[] = {
 		"数值",
 		"曲线类型"};
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑包络线 %d 的点 %d（通道 %d）的%s", m_EnvelopeIndex, m_PointIndex, m_Channel, s_apNames[(int)m_EditType]);
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑动画 %d 的点 %d（通道 %d）的%s", m_EnvelopeIndex, m_PointIndex, m_Channel, s_apNames[(int)m_EditType]);
 }
 
 void CEditorActionEnvelopeEditPoint::Undo()
@@ -1608,7 +1608,7 @@ void CEditorActionEnvelopeEditPoint::Apply(int Value)
 CEditorActionEditEnvelopePointValue::CEditorActionEditEnvelopePointValue(CEditorMap *pMap, int EnvIndex, int PointIndex, int Channel, EType Type, CFixedTime OldTime, int OldValue, CFixedTime NewTime, int NewValue) :
 	IEditorAction(pMap), m_EnvIndex(EnvIndex), m_PtIndex(PointIndex), m_Channel(Channel), m_Type(Type), m_OldTime(OldTime), m_OldValue(OldValue), m_NewTime(NewTime), m_NewValue(NewValue)
 {
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑点 %d%s 数值（包络线 %d，通道 %d）", PointIndex, m_Type == EType::TANGENT_IN ? "入切线" : (m_Type == EType::TANGENT_OUT ? "出切线" : ""), m_EnvIndex, m_Channel);
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑点 %d%s 数值（动画 %d，通道 %d）", PointIndex, m_Type == EType::TANGENT_IN ? "入切线" : (m_Type == EType::TANGENT_OUT ? "出切线" : ""), m_EnvIndex, m_Channel);
 }
 
 void CEditorActionEditEnvelopePointValue::Undo()
@@ -1679,7 +1679,7 @@ CEditorActionResetEnvelopePointTangent::CEditorActionResetEnvelopePointTangent(C
 		m_OldValue = pEnvelope->m_vPoints[PointIndex].m_Bezier.m_aOutTangentDeltaY[Channel];
 	}
 
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "重置点 %d（包络线 %d）切线%s", m_PointIndex, m_EnvIndex, m_In ? "入" : "出");
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "重置点 %d（动画 %d）切线%s", m_PointIndex, m_EnvIndex, m_In ? "入" : "出");
 }
 
 void CEditorActionResetEnvelopePointTangent::Undo()
@@ -1719,7 +1719,7 @@ void CEditorActionResetEnvelopePointTangent::Redo()
 CEditorActionAddEnvelopePoint::CEditorActionAddEnvelopePoint(CEditorMap *pMap, int EnvIndex, CFixedTime Time, ColorRGBA Channels) :
 	IEditorAction(pMap), m_EnvIndex(EnvIndex), m_Time(Time), m_Channels(Channels)
 {
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "在包络线 %d 的时间 %f 处新增点", m_EnvIndex, Time.AsSeconds());
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "在动画 %d 的时间 %f 处新增点", m_EnvIndex, Time.AsSeconds());
 }
 
 void CEditorActionAddEnvelopePoint::Undo()
@@ -1748,7 +1748,7 @@ void CEditorActionAddEnvelopePoint::Redo()
 CEditorActionDeleteEnvelopePoint::CEditorActionDeleteEnvelopePoint(CEditorMap *pMap, int EnvIndex, int PointIndex) :
 	IEditorAction(pMap), m_EnvIndex(EnvIndex), m_PointIndex(PointIndex), m_Point(Map()->m_vpEnvelopes[EnvIndex]->m_vPoints[PointIndex])
 {
-	str_format(m_aDisplayText, sizeof(m_aDisplayText), "删除点 %d（包络线 %d）", m_PointIndex, m_EnvIndex);
+	str_format(m_aDisplayText, sizeof(m_aDisplayText), "删除点 %d（动画 %d）", m_PointIndex, m_EnvIndex);
 }
 
 void CEditorActionDeleteEnvelopePoint::Undo()
@@ -1907,10 +1907,10 @@ CEditorActionEditSoundSourceProp::CEditorActionEditSoundSourceProp(CEditorMap *p
 		"声像",
 		"时间延迟",
 		"衰减",
-		"位置包络线",
-		"位置包络线偏移",
-		"声音包络线",
-		"声音包络线偏移"};
+		"位置动画",
+		"位置动画偏移",
+		"声音动画",
+		"声音动画偏移"};
 	static_assert(std::size(s_apNames) == (size_t)ESoundProp::NUM_PROPS);
 	str_format(m_aDisplayText, sizeof(m_aDisplayText), "编辑声音源 %d（图层 %d，组 %d）的%s属性", SourceIndex, LayerIndex, GroupIndex, s_apNames[(int)Prop]);
 }
