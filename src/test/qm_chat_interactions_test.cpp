@@ -47,12 +47,14 @@ TEST(QmChatPresentation, NewLineEntersThenBecomesVisible)
 	CChat::BeginLinePresentation(Presentation, Start, false);
 	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::ENTERING);
 	EXPECT_FLOAT_EQ(Presentation.m_LayoutVisibility, 1.0f);
-	EXPECT_GT(Presentation.m_RenderOffsetY, 0.0f);
+	EXPECT_LT(Presentation.m_RenderOffsetX, 0.0f);
+	EXPECT_FLOAT_EQ(Presentation.m_RenderOffsetY, 0.0f);
 	EXPECT_LT(Presentation.m_RenderAlpha, 1.0f);
 
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(0.31f), 0.10f, false, false);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(0.31f), 0.10f, false, false, 0, 0.0f);
 	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::VISIBLE);
 	EXPECT_FLOAT_EQ(Presentation.m_LayoutVisibility, 1.0f);
+	EXPECT_NEAR(Presentation.m_RenderOffsetX, 0.0f, 0.001f);
 	EXPECT_NEAR(Presentation.m_RenderOffsetY, 0.0f, 0.001f);
 	EXPECT_NEAR(Presentation.m_RenderAlpha, 1.0f, 0.001f);
 }
@@ -62,9 +64,9 @@ TEST(QmChatPresentation, InactiveOldLineKeepsFullOpacity)
 	CChat::SPresentationState Presentation;
 	const int64_t Start = TestTicks(20.0f);
 	CChat::BeginLinePresentation(Presentation, Start, false);
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(0.31f), 0.10f, false, false);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(0.31f), 0.10f, false, false, 0, 0.0f);
 
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.05f), 0.05f, false, false);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.05f), 0.05f, false, false, 0, 0.0f);
 	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::VISIBLE);
 	EXPECT_FLOAT_EQ(Presentation.m_LayoutVisibility, 1.0f);
 	EXPECT_FLOAT_EQ(Presentation.m_RenderOffsetX, 0.0f);
@@ -77,14 +79,14 @@ TEST(QmChatPresentation, InactiveExpiredLineFadesAndCollapses)
 	const int64_t Start = TestTicks(30.0f);
 	CChat::BeginLinePresentation(Presentation, Start, false);
 
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(15.0f), 0.20f, false, false);
-	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::VISIBLE);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(14.1f), 0.20f, false, false, 0, 0.0f);
+	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::EXITING);
 	EXPECT_NEAR(Presentation.m_RenderAlpha, 0.5f, 0.001f);
-	EXPECT_NEAR(Presentation.m_LayoutVisibility, 0.5f, 0.001f);
-	EXPECT_NEAR(Presentation.m_RenderOffsetX, 0.0f, 0.001f);
-	EXPECT_NEAR(Presentation.m_RenderOffsetY, 1.0f, 0.001f);
+	EXPECT_NEAR(Presentation.m_LayoutVisibility, 1.0f, 0.001f);
+	EXPECT_NEAR(Presentation.m_RenderOffsetX, -12.0f, 0.001f);
+	EXPECT_NEAR(Presentation.m_RenderOffsetY, 0.0f, 0.001f);
 
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(16.1f), 0.20f, false, false);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(14.3f), 0.20f, false, false, 0, 0.0f);
 	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::COLLAPSED);
 	EXPECT_NEAR(Presentation.m_RenderAlpha, 0.0f, 0.001f);
 	EXPECT_NEAR(Presentation.m_LayoutVisibility, 0.0f, 0.001f);
@@ -96,7 +98,7 @@ TEST(QmChatPresentation, InputKeepsOldLineOpaque)
 	const int64_t Start = TestTicks(40.0f);
 	CChat::BeginLinePresentation(Presentation, Start, false);
 
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.20f), 0.18f, true, false);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.20f), 0.18f, true, false, 0, 0.0f);
 	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::VISIBLE);
 	EXPECT_NEAR(Presentation.m_LayoutVisibility, 1.0f, 0.001f);
 	EXPECT_NEAR(Presentation.m_RenderOffsetX, 0.0f, 0.001f);
@@ -108,9 +110,9 @@ TEST(QmChatPresentation, ClosingInputKeepsOldLineVisible)
 	CChat::SPresentationState Presentation;
 	const int64_t Start = TestTicks(50.0f);
 	CChat::BeginLinePresentation(Presentation, Start, false);
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.70f), 0.18f, true, false);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.70f), 0.18f, true, false, 0, 0.0f);
 
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.72f), 0.02f, false, false);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.72f), 0.02f, false, false, 0, 0.0f);
 	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::VISIBLE);
 	EXPECT_FLOAT_EQ(Presentation.m_LayoutVisibility, 1.0f);
 	EXPECT_NEAR(Presentation.m_RenderAlpha, 1.0f, 0.001f);
@@ -122,7 +124,7 @@ TEST(QmChatPresentation, ForceVisibleLineDoesNotAutoDecay)
 	const int64_t Start = TestTicks(60.0f);
 	CChat::BeginLinePresentation(Presentation, Start, false);
 
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(30.0f), 0.10f, false, true);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(30.0f), 0.10f, false, true, 0, 0.0f);
 	EXPECT_EQ(Presentation.m_State, CChat::EPresentationState::VISIBLE);
 	EXPECT_FLOAT_EQ(Presentation.m_LayoutVisibility, 1.0f);
 	EXPECT_NEAR(Presentation.m_RenderAlpha, 1.0f, 0.001f);
@@ -133,7 +135,7 @@ TEST(QmChatPresentation, ResetAndTimeRollbackKeepFiniteFreshState)
 	CChat::SPresentationState Presentation;
 	const int64_t Start = TestTicks(70.0f);
 	CChat::BeginLinePresentation(Presentation, Start, false);
-	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.50f), 0.20f, false, false);
+	CChat::UpdateLinePresentation(Presentation, Start, Start + TestTicks(5.50f), 0.20f, false, false, 0, 0.0f);
 	ASSERT_EQ(Presentation.m_State, CChat::EPresentationState::VISIBLE);
 	ASSERT_NEAR(Presentation.m_RenderAlpha, 1.0f, 0.001f);
 
@@ -143,7 +145,7 @@ TEST(QmChatPresentation, ResetAndTimeRollbackKeepFiniteFreshState)
 	EXPECT_FLOAT_EQ(Presentation.m_RenderAlpha, 0.0f);
 
 	CChat::BeginLinePresentation(Presentation, Start, false);
-	CChat::UpdateLinePresentation(Presentation, Start, Start - TestTicks(1.0f), -1.0f, false, false);
+	CChat::UpdateLinePresentation(Presentation, Start, Start - TestTicks(1.0f), -1.0f, false, false, 0, 0.0f);
 	EXPECT_TRUE(std::isfinite(Presentation.m_RenderAlpha));
 	EXPECT_TRUE(std::isfinite(Presentation.m_RenderOffsetX));
 	EXPECT_TRUE(std::isfinite(Presentation.m_RenderOffsetY));

@@ -1262,9 +1262,9 @@ TEST(QmMonitoringHelpers, QmClientModuleDragGhostUsesPressAnchor)
 	Buffer << File.rdbuf();
 	const std::string Source = Buffer.str();
 
-	const size_t PressBlockPos = Source.find("if(!InteractionBlocked && Ui()->MouseButtonClicked(0) && OverHeader)");
+	const size_t PressBlockPos = Source.find("if(!InteractionBlocked && Ui()->MouseButtonClicked(0) && (OverToggleNonInteractiveArea || (!DragBlocked && OverModuleNonInteractiveArea)))");
 	ASSERT_NE(PressBlockPos, std::string::npos);
-	const size_t HoldBlockPos = Source.find("if(!InteractionBlocked && s_DragState.m_pPressed == pModule && Ui()->MouseButton(0) && s_DragState.m_pDragging == nullptr)", PressBlockPos);
+	const size_t HoldBlockPos = Source.find("if(!InteractionBlocked && !DragBlocked && s_DragState.m_pPressed == pModule && Ui()->MouseButton(0) && s_DragState.m_pDragging == nullptr)", PressBlockPos);
 	ASSERT_NE(HoldBlockPos, std::string::npos);
 	const std::string PressBlock = Source.substr(PressBlockPos, HoldBlockPos - PressBlockPos);
 
@@ -1272,12 +1272,12 @@ TEST(QmMonitoringHelpers, QmClientModuleDragGhostUsesPressAnchor)
 	ASSERT_NE(AfterHoldPos, std::string::npos);
 	const std::string HoldBlock = Source.substr(HoldBlockPos, AfterHoldPos - HoldBlockPos);
 
-	EXPECT_NE(PressBlock.find("s_DragState.m_GrabOffset = vec2(Ui()->MouseX() - CardRect.x, Ui()->MouseY() - CardRect.y);"), std::string::npos);
-	EXPECT_NE(PressBlock.find("s_DragState.m_DraggedWidth = CardRect.w;"), std::string::npos);
-	EXPECT_NE(PressBlock.find("s_DragState.m_DraggedHeight = CardRect.h;"), std::string::npos);
+	EXPECT_NE(PressBlock.find("s_DragState.m_GrabOffset = vec2(Ui()->MouseX() - DisplayCardRect.x, Ui()->MouseY() - DisplayCardRect.y);"), std::string::npos);
+	EXPECT_NE(PressBlock.find("s_DragState.m_DraggedWidth = DisplayCardRect.w;"), std::string::npos);
+	EXPECT_NE(PressBlock.find("s_DragState.m_DraggedHeight = DisplayCardRect.h;"), std::string::npos);
 	EXPECT_NE(PressBlock.find("s_DragState.m_HasDragAnchor = true;"), std::string::npos);
 	EXPECT_NE(HoldBlock.find("s_DragState.m_pDragging = pModule;"), std::string::npos);
-	EXPECT_EQ(HoldBlock.find("s_DragState.m_GrabOffset = vec2(Ui()->MouseX() - CardRect.x, Ui()->MouseY() - CardRect.y);"), std::string::npos);
+	EXPECT_EQ(HoldBlock.find("s_DragState.m_GrabOffset = vec2(Ui()->MouseX() - DisplayCardRect.x, Ui()->MouseY() - DisplayCardRect.y);"), std::string::npos);
 	EXPECT_NE(Source.find("if(s_DragState.m_pDragging == nullptr || !s_DragState.m_HasDragAnchor)"), std::string::npos);
 }
 
@@ -1418,6 +1418,14 @@ TEST(QmMonitoringHelpers, QmClientStableTextCandidateAuditIsEmptyExceptAllowlist
 		{pFile, 974, "animated-style"},
 		{pFile, 983, "animated-style"},
 		{pFile, 991, "animated-style"},
+		{pFile, 1125, "animated-style"},
+		{pFile, 1126, "animated-style"},
+		{pFile, 1133, "animated-style"},
+		{pFile, 1137, "animated-style"},
+		{pFile, 1141, "animated-style"},
+		{pFile, 1142, "animated-style"},
+		{pFile, 1144, "animated-style"},
+		{pFile, 1145, "animated-style"},
 		{pFile, 1987, "dynamic-value"},
 		{pFile, 2153, "icon-only"},
 		{pFile, 2480, "animated-style"},
@@ -3580,7 +3588,9 @@ TEST(QmMonitoringHelpers, IngameEscOpenHasConcreteSectionTelemetry)
 		if(TrimmedLine.find("return;") != std::string::npos)
 		{
 			if(PreviousNonEmptyLine != "if(ButtonColumnPerfLogged)")
+			{
 				EXPECT_EQ(PreviousNonEmptyLine, "LogButtonColumnPerf();");
+			}
 		}
 		PreviousNonEmptyLine = TrimmedLine;
 	}
@@ -5806,12 +5816,12 @@ TEST(QmMonitoringHelpers, QmClientModuleHeadlinesKeyTextCacheByLayout)
 	const std::string HeadlineBlock = ExtractSourceBlock(Source, "auto RenderQmModuleHeadline = [&](CUIRect &Content", "auto RenderMenuImage =");
 	ASSERT_FALSE(HeadlineBlock.empty());
 
-	EXPECT_NE(HeadlineBlock.find("TitleLabelProps.m_MaxWidth = TitleRect.w"), std::string::npos);
-	EXPECT_NE(HeadlineBlock.find("BuildMenuTextStyleKey(&TitleRect, LgHeadlineSize, TEXTALIGN_ML, TitleLabelProps)"), std::string::npos);
-	EXPECT_NE(HeadlineBlock.find("BuildMenuTextStyleKey(&TitleRect, LgHeadlineSizeNew, TEXTALIGN_ML, TitleLabelProps)"), std::string::npos);
+	EXPECT_NE(HeadlineBlock.find("TitleLabelProps.m_MaxWidth = TitleTextRect.w"), std::string::npos);
+	EXPECT_NE(HeadlineBlock.find("BuildMenuTextStyleKey(&TitleTextRect, LgHeadlineSize, TEXTALIGN_ML, TitleLabelProps)"), std::string::npos);
+	EXPECT_NE(HeadlineBlock.find("BuildMenuTextStyleKey(&TitleTextRect, LgHeadlineSizeNew, TEXTALIGN_ML, TitleLabelProps)"), std::string::npos);
 	EXPECT_NE(HeadlineBlock.find("SettingsTextElement(SETTINGS_QMCLIENT, m_QmClientSettingsTab, pTitle, TitleStyleKey)"), std::string::npos);
-	EXPECT_NE(HeadlineBlock.find("DoSettingsLabelStreamed(TitleElement, &TitleRect, pTitle, LgHeadlineSize, TEXTALIGN_ML, TitleLabelProps)"), std::string::npos);
-	EXPECT_NE(HeadlineBlock.find("DoSettingsLabelStreamed(TitleElement, &TitleRect, BuildQmFeatureLabel(pTitle, pNewFeatureId, aTitle, sizeof(aTitle)), LgHeadlineSizeNew, TEXTALIGN_ML, TitleLabelProps)"), std::string::npos);
+	EXPECT_NE(HeadlineBlock.find("DoSettingsLabelStreamed(TitleElement, &TitleTextRect, pTitle, LgHeadlineSize, TEXTALIGN_ML, TitleLabelProps)"), std::string::npos);
+	EXPECT_NE(HeadlineBlock.find("DoSettingsLabelStreamed(TitleElement, &TitleTextRect, BuildQmFeatureLabel(pTitle, pNewFeatureId, aTitle, sizeof(aTitle)), LgHeadlineSizeNew, TEXTALIGN_ML, TitleLabelProps)"), std::string::npos);
 	EXPECT_EQ(HeadlineBlock.find("SettingsTextElement(SETTINGS_QMCLIENT, m_QmClientSettingsTab, pTitle);"), std::string::npos);
 }
 
