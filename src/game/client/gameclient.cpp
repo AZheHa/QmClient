@@ -318,60 +318,64 @@ namespace
 		return Ambiguous ? -1 : Owner;
 	}
 
-	void QmAddHammerHitCharacterCandidate(CGameClient *pGameClient, int &Owner, bool &Ambiguous, int ClientId, const CNetObj_Character *pChar, vec2 Pos)
+	void QmAddHammerAttackSample(
+		SQmHammerAttackSample *pSamples,
+		int &NumSamples,
+		int MaxSamples,
+		int ClientId,
+		const CNetObj_Character *pCurrent,
+		const CNetObj_Character *pPrevious,
+		bool HammerHitEnabled,
+		int DDTeam,
+		bool Solo,
+		bool Super)
 	{
-		if(!pChar || ClientId < 0 || ClientId >= MAX_CLIENTS || pChar->m_Weapon != WEAPON_HAMMER)
+		if(pCurrent == nullptr || NumSamples >= MaxSamples)
 			return;
-
-		const int AttackAge = pGameClient->Client()->GameTick(g_Config.m_ClDummy) - pChar->m_AttackTick;
-		if(AttackAge < 0 || AttackAge > 2)
-			return;
-
-		vec2 Direction = direction(pChar->m_Angle / 256.0f);
-		const vec2 HammerStartPos = vec2(pChar->m_X, pChar->m_Y) + Direction * 21.0f;
-		constexpr float MaxHammerHitOwnerDistance = 72.0f;
-		if(distance(Pos, HammerStartPos) <= MaxHammerHitOwnerDistance)
-			QmAddUniqueOwnerCandidate(Owner, Ambiguous, ClientId);
+		SQmHammerAttackSample &Sample = pSamples[NumSamples++];
+		Sample.m_ClientId = ClientId;
+		Sample.m_AttackTick = pCurrent->m_AttackTick;
+		Sample.m_Weapon = pCurrent->m_Weapon;
+		Sample.m_HammerHitEnabled = HammerHitEnabled;
+		Sample.m_PrevPos = pPrevious != nullptr ? vec2(pPrevious->m_X, pPrevious->m_Y) : vec2(pCurrent->m_X, pCurrent->m_Y);
+		Sample.m_CurPos = vec2(pCurrent->m_X, pCurrent->m_Y);
+		Sample.m_Direction = direction(pCurrent->m_Angle / 256.0f);
+		Sample.m_ProximityRadius = CCharacterCore::PhysicalSize();
+		Sample.m_DDTeam = DDTeam;
+		Sample.m_Solo = Solo;
+		Sample.m_Super = Super;
 	}
 
-	void QmAddHammerHitWorldCandidates(CGameClient *pGameClient, CGameWorld &World, int &Owner, bool &Ambiguous, vec2 Pos)
+	SQmHammerHitMatch QmInferHammerHit(CGameClient *pGameClient, vec2 Pos, int EventTick)
 	{
-		for(CCharacter *pChar = static_cast<CCharacter *>(World.FindFirst(CGameWorld::ENTTYPE_CHARACTER)); pChar; pChar = static_cast<CCharacter *>(pChar->TypeNext()))
-		{
-			if(!pChar || pChar->GetActiveWeapon() != WEAPON_HAMMER)
-				continue;
-
-			const int AttackAge = pGameClient->Client()->GameTick(g_Config.m_ClDummy) - pChar->GetAttackTick();
-			if(AttackAge < 0 || AttackAge > 2)
-				continue;
-
-			vec2 HammerHitPos;
-			float HammerHitRadius;
-			if(!pGameClient->GetPredictedHammerHitbox(pChar, HammerHitPos, HammerHitRadius))
-				continue;
-
-			constexpr float MaxHammerHitOwnerDistance = 72.0f;
-			if(distance(Pos, HammerHitPos) <= MaxHammerHitOwnerDistance)
-				QmAddUniqueOwnerCandidate(Owner, Ambiguous, pChar->GetCid());
-		}
-	}
-
-	int QmInferHammerHitOwner(CGameClient *pGameClient, vec2 Pos)
-	{
-		int Owner = -1;
-		bool Ambiguous = false;
-
+		SQmHammerAttackSample aAttackSamples[MAX_CLIENTS];
+		SQmHammerTargetSample aTargetSamples[MAX_CLIENTS];
+		int NumAttackSamples = 0;
+		int NumTargetSamples = 0;
 		for(int ClientId = 0; ClientId < MAX_CLIENTS; ++ClientId)
 		{
-			const auto *pChar = static_cast<const CNetObj_Character *>(pGameClient->Client()->SnapFindItem(IClient::SNAP_CURRENT, NETOBJTYPE_CHARACTER, ClientId));
-			QmAddHammerHitCharacterCandidate(pGameClient, Owner, Ambiguous, ClientId, pChar, Pos);
+			const auto *pCurrent = static_cast<const CNetObj_Character *>(pGameClient->Client()->SnapFindItem(IClient::SNAP_CURRENT, NETOBJTYPE_CHARACTER, ClientId));
+			const auto *pPrevious = static_cast<const CNetObj_Character *>(pGameClient->Client()->SnapFindItem(IClient::SNAP_PREV, NETOBJTYPE_CHARACTER, ClientId));
+			const CGameClient::CSnapState::CCharacterInfo &Character = pGameClient->m_Snap.m_aCharacters[ClientId];
+			const int CharacterFlags = Character.m_HasExtendedData ? Character.m_ExtendedData.m_Flags : 0;
+			const bool HammerHitEnabled = (CharacterFlags & CHARACTERFLAG_HAMMER_HIT_DISABLED) == 0;
+			const int DDTeam = pGameClient->m_Teams.Team(ClientId);
+			const bool Solo = (CharacterFlags & CHARACTERFLAG_SOLO) != 0;
+			const bool Super = (CharacterFlags & CHARACTERFLAG_SUPER) != 0 || QmIsHammerSuperTeam(DDTeam, pGameClient->m_Teams.m_IsDDRace16);
+			QmAddHammerAttackSample(aAttackSamples, NumAttackSamples, std::size(aAttackSamples), ClientId, pCurrent, pPrevious, HammerHitEnabled, DDTeam, Solo, Super);
+			if((pCurrent == nullptr && pPrevious == nullptr) || NumTargetSamples >= MAX_CLIENTS)
+				continue;
+			SQmHammerTargetSample &Target = aTargetSamples[NumTargetSamples++];
+			Target.m_ClientId = ClientId;
+			Target.m_PrevPos = pPrevious != nullptr ? vec2(pPrevious->m_X, pPrevious->m_Y) : vec2(pCurrent->m_X, pCurrent->m_Y);
+			Target.m_CurPos = pCurrent != nullptr ? vec2(pCurrent->m_X, pCurrent->m_Y) : Target.m_PrevPos;
+			Target.m_ProximityRadius = CCharacterCore::PhysicalSize();
+			Target.m_DDTeam = DDTeam;
+			Target.m_Solo = Solo;
+			Target.m_Super = Super;
 		}
 
-		QmAddHammerHitWorldCandidates(pGameClient, pGameClient->m_GameWorld, Owner, Ambiguous, Pos);
-		QmAddHammerHitWorldCandidates(pGameClient, pGameClient->m_PredictedWorld, Owner, Ambiguous, Pos);
-		QmAddHammerHitWorldCandidates(pGameClient, pGameClient->m_PrevPredictedWorld, Owner, Ambiguous, Pos);
-
-		return Ambiguous ? -1 : Owner;
+		return QmMatchHammerHitEvent(Pos, EventTick, aAttackSamples, NumAttackSamples, aTargetSamples, NumTargetSamples);
 	}
 
 	void SetDemoInputKeyState(unsigned char *pKeyStates, int Key, bool Pressed)
@@ -1325,12 +1329,10 @@ void CGameClient::OnReset()
 	m_PredictedTick = -1;
 	std::fill(std::begin(m_aLastNewPredictedTick), std::end(m_aLastNewPredictedTick), -1);
 	std::fill(std::begin(m_aLastPredictedAirJumpTick), std::end(m_aLastPredictedAirJumpTick), -1);
-	std::fill(std::begin(m_aLastHammerSkinSwapAttackTick), std::end(m_aLastHammerSkinSwapAttackTick), -1);
+	std::fill(std::begin(m_aLastHammerSkinSwapHitTick), std::end(m_aLastHammerSkinSwapHitTick), -1);
+	std::fill(std::begin(m_aLastRandomEmoteHammerHitTick), std::end(m_aLastRandomEmoteHammerHitTick), -1);
 	for(int Dummy = 0; Dummy < NUM_DUMMIES; ++Dummy)
-	{
-		std::fill(std::begin(m_aaLastRandomEmoteAttackTick[Dummy]), std::end(m_aaLastRandomEmoteAttackTick[Dummy]), -1);
 		m_aLastRandomEmoteDamageTick[Dummy] = -1;
-	}
 
 	m_LastRoundStartTick = -1;
 	m_LastRaceTick = -1;
@@ -1352,7 +1354,9 @@ void CGameClient::OnReset()
 	m_SuppressEvents = false;
 	m_NewTick = false;
 	m_NewPredictedTick = false;
-	std::fill(std::begin(m_aPredictedHammerHitEvent), std::end(m_aPredictedHammerHitEvent), false);
+	m_HammerHitTracker.Reset();
+	m_vPendingHammerHitEvents.clear();
+	std::fill(std::begin(m_aConfirmedHammerHitEvent), std::end(m_aConfirmedHammerHitEvent), false);
 
 	m_aFlagDropTick[TEAM_RED] = 0;
 	m_aFlagDropTick[TEAM_BLUE] = 0;
@@ -3245,7 +3249,7 @@ void CGameClient::OnRender()
 	// clear new tick flags
 	m_NewTick = false;
 	m_NewPredictedTick = false;
-	std::fill(std::begin(m_aPredictedHammerHitEvent), std::end(m_aPredictedHammerHitEvent), false);
+	std::fill(std::begin(m_aConfirmedHammerHitEvent), std::end(m_aConfirmedHammerHitEvent), false);
 
 	if(g_Config.m_ClDummy && !Client()->DummyConnected())
 		g_Config.m_ClDummy = 0;
@@ -3338,6 +3342,9 @@ void CGameClient::OnDummyDisconnect()
 	m_aLastNewPredictedTick[1] = -1;
 	m_aLastPredictedAirJumpTick[1] = -1;
 	m_PredictedDummyId = -1;
+	m_HammerHitTracker.Reset();
+	m_vPendingHammerHitEvents.clear();
+	std::fill(std::begin(m_aConfirmedHammerHitEvent), std::end(m_aConfirmedHammerHitEvent), false);
 	m_FastPractice.InvalidateBufferedInputState();
 }
 
@@ -4001,6 +4008,8 @@ void CGameClient::ResetDemoPlaybackState()
 {
 	m_DemoHudPlaybackState = {};
 	m_DemoInputPlaybackState = {};
+	m_HammerHitTracker.Reset();
+	m_vPendingHammerHitEvents.clear();
 #if defined(CONF_QM_LIVE_CLIENT)
 	ResetLiveFinishRanking();
 	m_QmLiveDemoLastTick = -1;
@@ -4157,7 +4166,7 @@ void CGameClient::ProcessDemoSnapshot(CSnapshot *pSnap)
 			// always record local camera info as follow mode
 			CNetObj_DDNetSpectatorInfo *pDDNetSpectatorInfo = (CNetObj_DDNetSpectatorInfo *)((void *)pItem->Data());
 			pDDNetSpectatorInfo->m_HasCameraInfo = true;
-			pDDNetSpectatorInfo->m_Zoom = (m_Camera.m_Zooming ? m_Camera.m_ZoomSmoothingTarget : m_Camera.m_Zoom) * 1000.0f;
+			pDDNetSpectatorInfo->m_Zoom = (m_Camera.m_Zooming ? m_Camera.m_ZoomSmoothingTarget : m_Camera.BaseZoom()) * 1000.0f;
 			pDDNetSpectatorInfo->m_Deadzone = m_Camera.Deadzone();
 			pDDNetSpectatorInfo->m_FollowFactor = m_Camera.FollowFactor();
 		}
@@ -4176,10 +4185,10 @@ void CGameClient::OnRconLine(const char *pLine)
 
 void CGameClient::ProcessEvents()
 {
+	m_vPendingHammerHitEvents.clear();
+	std::fill(std::begin(m_aConfirmedHammerHitEvent), std::end(m_aConfirmedHammerHitEvent), false);
 	if(m_SuppressEvents)
 		return;
-
-	std::fill(std::begin(m_aPredictedHammerHitEvent), std::end(m_aPredictedHammerHitEvent), false);
 
 	int SnapType = IClient::SNAP_CURRENT;
 	int Num = Client()->SnapNumItems(SnapType);
@@ -4217,30 +4226,16 @@ void CGameClient::ProcessEvents()
 		}
 		else if(Item.m_Type == NETEVENTTYPE_HAMMERHIT)
 		{
-#if defined(CONF_QM_LIVE_CLIENT)
-			if(LiveRejectUnknownVisualEvent)
-				continue;
-#endif
 			const CNetEvent_HammerHit *pEvent = (const CNetEvent_HammerHit *)Item.m_pData;
-			const vec2 HammerHitPos = vec2(pEvent->m_X, pEvent->m_Y);
-			const float HammerHitAlpha = QmKnownOwnerEventAlpha(this, QmInferHammerHitOwner(this, HammerHitPos));
-			m_Effects.HammerHit(HammerHitPos, HammerHitAlpha, Volume);
-
-			constexpr float QmJellyHammerHitRadius = 120.0f;
-			for(int Dummy = 0; Dummy < NUM_DUMMIES; ++Dummy)
-			{
-				const int LocalId = m_aLocalIds[Dummy];
-				if(LocalId < 0 || LocalId >= MAX_CLIENTS || !m_aClients[LocalId].m_Active)
-					continue;
-
-				const auto &Core = m_aClients[LocalId].m_Predicted;
-				const bool FiringHammer = Core.m_ActiveWeapon == WEAPON_HAMMER && (Core.m_Input.m_Fire & 1);
-				if(!FiringHammer)
-					continue;
-
-				if(distance(Core.m_Pos, HammerHitPos) <= QmJellyHammerHitRadius)
-					m_aPredictedHammerHitEvent[Dummy] = true;
-			}
+			bool RenderEffect = true;
+#if defined(CONF_QM_LIVE_CLIENT)
+			RenderEffect = !LiveRejectUnknownVisualEvent;
+#endif
+			m_vPendingHammerHitEvents.push_back({vec2(pEvent->m_X, pEvent->m_Y),
+				Client()->GameTick(g_Config.m_ClDummy),
+				g_Config.m_ClDummy,
+				Index,
+				RenderEffect});
 		}
 		else if(Item.m_Type == NETEVENTTYPE_BIRTHDAY)
 		{
@@ -4314,6 +4309,39 @@ void CGameClient::ProcessEvents()
 			m_MapSounds.PlayAt(CSounds::CHN_WORLD, pEvent->m_SoundId, vec2(pEvent->m_X, pEvent->m_Y));
 		}
 	}
+}
+
+void CGameClient::FinalizeHammerHitEvents()
+{
+	for(const SPendingHammerHitEvent &Event : m_vPendingHammerHitEvents)
+	{
+		const SQmHammerHitMatch Match = QmInferHammerHit(this, Event.m_Pos, Event.m_SnapshotTick);
+		bool TargetWoke = false;
+		if(Match.m_TargetId >= 0 && Match.m_TargetId < MAX_CLIENTS)
+		{
+			const CSnapState::CCharacterInfo &Character = m_Snap.m_aCharacters[Match.m_TargetId];
+			TargetWoke = Character.m_HasExtendedData && Character.m_pPrevExtendedData != nullptr &&
+				     QmIsHammerWakeupTransition(Character.m_pPrevExtendedData->m_FreezeEnd, Character.m_ExtendedData.m_FreezeEnd, Event.m_SnapshotTick);
+		}
+
+		const SQmHammerHitRecord Hit = {
+			Match.m_AttackerId,
+			Match.m_TargetId,
+			Event.m_SnapshotTick,
+			Event.m_EventOrdinal,
+			Event.m_Pos,
+			Event.m_Connection,
+			TargetWoke};
+		if((IsLocalClientId(Hit.m_AttackerId) || IsLocalClientId(Hit.m_TargetId)) && m_HammerHitTracker.Record(Hit))
+			HandleConfirmedHammerHit(Hit);
+
+		if(Event.m_RenderEffect)
+		{
+			const float HammerHitAlpha = QmKnownOwnerEventAlpha(this, Match.m_AttackerId);
+			m_Effects.HammerHit(Event.m_Pos, HammerHitAlpha, 1.0f);
+		}
+	}
+	m_vPendingHammerHitEvents.clear();
 }
 
 static CGameInfo GetGameInfo(const CNetObj_GameInfoEx *pInfoEx, int InfoExSize, const CServerInfo *pFallbackServerInfo)
@@ -5183,13 +5211,14 @@ void CGameClient::OnNewSnapshot()
 			m_aEnableSpectatorCount[1] = g_Config.m_ClShowhudSpectatorCount;
 		}
 
-		float ShowDistanceZoom = m_Camera.m_Zoom;
-		float Zoom = m_Camera.m_Zoom;
+		const float BaseZoom = m_Camera.BaseZoom();
+		float ShowDistanceZoom = BaseZoom;
+		float Zoom = BaseZoom;
 		if(m_Camera.m_Zooming)
 		{
-			if(m_Camera.m_ZoomSmoothingTarget > m_Camera.m_Zoom) // Zooming out
+			if(m_Camera.m_ZoomSmoothingTarget > BaseZoom) // Zooming out
 				ShowDistanceZoom = m_Camera.m_ZoomSmoothingTarget;
-			else if(m_Camera.m_ZoomSmoothingTarget < m_Camera.m_Zoom && m_LastShowDistanceZoom > 0) // Zooming in
+			else if(m_Camera.m_ZoomSmoothingTarget < BaseZoom && m_LastShowDistanceZoom > 0) // Zooming in
 				ShowDistanceZoom = m_LastShowDistanceZoom;
 
 			Zoom = m_Camera.m_ZoomSmoothingTarget;
@@ -5269,6 +5298,8 @@ void CGameClient::OnNewSnapshot()
 		m_LastFollowFactor = FollowFactor;
 		m_LastDummyConnected = Client()->DummyConnected();
 	}
+
+	FinalizeHammerHitEvents();
 
 	for(auto &pComponent : m_vpAll)
 		pComponent->OnNewSnapshot();
@@ -5477,7 +5508,7 @@ void CGameClient::UpdateEditorIngameMoved()
 	}
 }
 
-bool CGameClient::GetPredictedHammerHitbox(CCharacter *pChar, vec2 &HitPos, float &HitRadius)
+bool CGameClient::GetPotentialHammerHitArea(CCharacter *pChar, vec2 &HitPos, float &HitRadius)
 {
 	if(!pChar || pChar->GetActiveWeapon() != WEAPON_HAMMER || pChar->HammerHitDisabled())
 		return false;
@@ -5496,13 +5527,13 @@ bool CGameClient::GetPredictedHammerHitbox(CCharacter *pChar, vec2 &HitPos, floa
 	return true;
 }
 
-int CGameClient::FindPredictedHammerHitTargets(CCharacter *pChar, vec2 HitPos, float HitRadius, int *pTargetIds, int MaxTargetIds)
+int CGameClient::FindPotentialHammerHitTargets(CCharacter *pChar, vec2 HitPos, float HitRadius, int *pTargetIds, int MaxTargetIds)
 {
 	if(!pChar || !pTargetIds || MaxTargetIds <= 0)
 		return 0;
 
 	CEntity *apEnts[MAX_CLIENTS];
-	const int Num = m_PredictedWorld.FindEntities(HitPos, HitRadius, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+	const int Num = pChar->GameWorld()->FindEntities(HitPos, HitRadius, apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 
 	int NumTargets = 0;
 	for(int i = 0; i < Num && NumTargets < MaxTargetIds; ++i)
@@ -5521,57 +5552,57 @@ int CGameClient::FindPredictedHammerHitTargets(CCharacter *pChar, vec2 HitPos, f
 	return NumTargets;
 }
 
-void CGameClient::HandleHammerSkinSwap(CCharacter *pChar)
+int CGameClient::HammerHitConnectionFilter() const
 {
-	if(!g_Config.m_QmHammerSwapSkin || !pChar)
-		return;
+	const int ActiveConnection = g_Config.m_ClDummy;
+	if(!Client()->DummyConnected())
+		return ActiveConnection;
+	const int ActiveClientId = m_aLocalIds[ActiveConnection];
+	const int OtherClientId = m_aLocalIds[ActiveConnection ^ 1];
+	const bool SharedObservationTeam = ActiveClientId >= 0 && ActiveClientId < MAX_CLIENTS &&
+					   OtherClientId >= 0 && OtherClientId < MAX_CLIENTS && m_Teams.CanCollide(ActiveClientId, OtherClientId);
+	return SharedObservationTeam ? CQmHammerHitTracker::ANY_CONNECTION : ActiveConnection;
+}
 
-	const int Cid = pChar->GetCid();
-	int TeeIndex = -1;
-	if(Cid == m_aLocalIds[0])
-		TeeIndex = 0;
-	else if(Cid == m_aLocalIds[1])
-		TeeIndex = 1;
-	if(TeeIndex < 0)
-		return;
-
-	const int AttackTick = pChar->GetAttackTick();
-	if(AttackTick <= 0 || AttackTick == m_aLastHammerSkinSwapAttackTick[TeeIndex])
-		return;
-	m_aLastHammerSkinSwapAttackTick[TeeIndex] = AttackTick;
-
-	vec2 HammerHitPos;
-	float HammerHitRadius;
-	if(!GetPredictedHammerHitbox(pChar, HammerHitPos, HammerHitRadius))
-		return;
-
-	int aTargetIds[MAX_CLIENTS];
-	const int NumTargets = FindPredictedHammerHitTargets(pChar, HammerHitPos, HammerHitRadius, aTargetIds, MAX_CLIENTS);
-	if(NumTargets <= 0)
-		return;
-
-	int TargetId = -1;
-	float BestDistSq = 0.0f;
-	for(int i = 0; i < NumTargets; ++i)
+void CGameClient::HandleConfirmedHammerHit(const SQmHammerHitRecord &Hit)
+{
+	const bool Online = Client()->State() == IClient::STATE_ONLINE;
+	if(Online)
+		HandleHammerSkinSwap(Hit);
+	for(int Dummy = 0; Dummy < NUM_DUMMIES; ++Dummy)
 	{
-		CCharacter *pTarget = m_PredictedWorld.GetCharacterById(aTargetIds[i]);
-		if(!pTarget)
+		if(Hit.m_AttackerId == m_aLocalIds[Dummy])
+			m_aConfirmedHammerHitEvent[Dummy] = true;
+		if(!Online || !g_Config.m_QmRandomEmoteOnHit || Hit.m_TargetId != m_aLocalIds[Dummy] || Hit.m_AttackerId < 0 || Hit.m_AttackerId == Hit.m_TargetId)
 			continue;
-
-		const float DistSq = length_squared(pTarget->GetPos() - HammerHitPos);
-		if(TargetId < 0 || DistSq < BestDistSq)
-		{
-			TargetId = pTarget->GetCid();
-			BestDistSq = DistSq;
-		}
+		if(Dummy == 1 && !Client()->DummyConnected())
+			continue;
+		if(Hit.m_SnapshotTick == m_aLastRandomEmoteHammerHitTick[Dummy])
+			continue;
+		m_aLastRandomEmoteHammerHitTick[Dummy] = Hit.m_SnapshotTick;
+		CNetMsg_Cl_Emoticon Msg;
+		Msg.m_Emoticon = rand() % NUM_EMOTICONS;
+		Client()->SendPackMsg(Dummy == 0 ? IClient::CONN_MAIN : IClient::CONN_DUMMY, &Msg, MSGFLAG_VITAL);
 	}
+}
 
-	if(TargetId < 0 || TargetId >= MAX_CLIENTS)
+void CGameClient::HandleHammerSkinSwap(const SQmHammerHitRecord &Hit)
+{
+	if(!g_Config.m_QmHammerSwapSkin || Hit.m_AttackerId < 0 || Hit.m_TargetId < 0 || Hit.m_TargetId >= MAX_CLIENTS)
 		return;
 
-	const CClientData &TargetClient = m_aClients[TargetId];
+	int TeeIndex = -1;
+	if(Hit.m_AttackerId == m_aLocalIds[0])
+		TeeIndex = 0;
+	else if(Hit.m_AttackerId == m_aLocalIds[1])
+		TeeIndex = 1;
+	if(TeeIndex < 0 || Hit.m_SnapshotTick == m_aLastHammerSkinSwapHitTick[TeeIndex])
+		return;
+
+	const CClientData &TargetClient = m_aClients[Hit.m_TargetId];
 	if(!TargetClient.m_Active)
 		return;
+	m_aLastHammerSkinSwapHitTick[TeeIndex] = Hit.m_SnapshotTick;
 
 	bool Changed = false;
 	if(TeeIndex == 1)
@@ -5644,7 +5675,7 @@ void CGameClient::HandleHammerSkinSwap(CCharacter *pChar)
 	}
 }
 
-void CGameClient::HandleRandomEmoteOnHit(CCharacter *pLocalChar, int DummyIndex)
+void CGameClient::HandleRandomGrenadeEmoteOnHit(CCharacter *pLocalChar, int DummyIndex)
 {
 	if(!g_Config.m_QmRandomEmoteOnHit || !pLocalChar)
 		return;
@@ -5657,42 +5688,6 @@ void CGameClient::HandleRandomEmoteOnHit(CCharacter *pLocalChar, int DummyIndex)
 		Conn = g_Config.m_ClDummy;
 	else if(LocalId == m_PredictedDummyId)
 		Conn = !g_Config.m_ClDummy;
-	bool HammerTriggered = false;
-
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		if(i == LocalId)
-			continue;
-
-		CCharacter *pAttacker = m_PredictedWorld.GetCharacterById(i);
-		if(!pAttacker)
-			continue;
-
-		const int AttackTick = pAttacker->GetAttackTick();
-		if(AttackTick <= 0)
-			continue;
-		if(AttackTick == m_aaLastRandomEmoteAttackTick[DummyIndex][i])
-			continue;
-		m_aaLastRandomEmoteAttackTick[DummyIndex][i] = AttackTick;
-
-		vec2 HammerHitPos;
-		float HammerHitRadius;
-		if(!GetPredictedHammerHitbox(pAttacker, HammerHitPos, HammerHitRadius))
-			continue;
-
-		int aTargetIds[MAX_CLIENTS];
-		const int NumTargets = FindPredictedHammerHitTargets(pAttacker, HammerHitPos, HammerHitRadius, aTargetIds, MAX_CLIENTS);
-		for(int TargetIndex = 0; TargetIndex < NumTargets; ++TargetIndex)
-		{
-			if(aTargetIds[TargetIndex] == LocalId)
-			{
-				HammerTriggered = true;
-				break;
-			}
-		}
-		if(HammerTriggered)
-			break;
-	}
 
 	bool GrenadeTriggered = false;
 	const int DamageTick = pLocalChar->GetLastDamageTick();
@@ -5704,7 +5699,7 @@ void CGameClient::HandleRandomEmoteOnHit(CCharacter *pLocalChar, int DummyIndex)
 			GrenadeTriggered = true;
 	}
 
-	if(HammerTriggered || GrenadeTriggered)
+	if(GrenadeTriggered)
 	{
 		const int Emote = rand() % NUM_EMOTICONS;
 		CNetMsg_Cl_Emoticon Msg;
@@ -5878,7 +5873,6 @@ void CGameClient::OnPredict()
 		bool TempPredEventState = m_PredictedWorld.m_WorldConfig.m_PredictEvents;
 		if(Tick > FinalTickRegular)
 			m_PredictedWorld.m_WorldConfig.m_PredictEvents = false;
-
 		if(DummyFirst)
 			pDummyChar->OnDirectInput(pDummyInputData);
 		if(pInputData)
@@ -5898,12 +5892,12 @@ void CGameClient::OnPredict()
 
 		m_PredictedWorld.Tick();
 		m_PredictedWorld.m_WorldConfig.m_PredictEvents = TempPredEventState;
-		HandleHammerSkinSwap(pLocalChar);
-		if(pDummyChar)
-			HandleHammerSkinSwap(pDummyChar);
-		HandleRandomEmoteOnHit(pLocalChar, 0);
-		if(pDummyChar)
-			HandleRandomEmoteOnHit(pDummyChar, 1);
+		if(Tick <= FinalTickRegular)
+		{
+			HandleRandomGrenadeEmoteOnHit(pLocalChar, 0);
+			if(pDummyChar)
+				HandleRandomGrenadeEmoteOnHit(pDummyChar, 1);
+		}
 
 		// fetch the current characters
 		if(Tick == FinalTickSelf)
@@ -6111,7 +6105,6 @@ void CGameClient::OnPredict()
 		CNetObj_PlayerInput *pInputData = m_PredictedWorld.GetCharacterById(m_Snap.m_LocalClientId)->LatestInput();
 		CNetObj_PlayerInput *pDummyInputData = !pPredDummyChar ? 0 : m_PredictedWorld.GetCharacterById(m_PredictedDummyId)->LatestInput();
 		bool DummyFirst = pSmoothLocalChar && pSmoothDummyChar && pSmoothDummyChar->GetCid() < pSmoothLocalChar->GetCid();
-
 		if(DummyFirst && pSmoothDummyChar && pDummyInputData)
 			pSmoothDummyChar->OnDirectInput(pDummyInputData);
 

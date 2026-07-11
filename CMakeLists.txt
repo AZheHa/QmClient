@@ -2727,6 +2727,8 @@ if(CLIENT)
     components/qmclient/collision_hitbox.h
     components/qmclient/colored_parts.h
     components/qmclient/data_version.h
+    components/qmclient/hammer_hit_detection.cpp
+    components/qmclient/hammer_hit_detection.h
     components/qmclient/hud_notifications/hud_notification_catalog.cpp
     components/qmclient/hud_notifications/hud_notification_catalog.h
     components/qmclient/hud_notifications/hud_notification_rules.cpp
@@ -2829,6 +2831,7 @@ if(CLIENT)
     components/statboard.h
     components/system_media_controls.cpp
     components/system_media_controls.h
+    components/system_media_controls_timeline.h
     components/tclient/background_particles.cpp
     components/tclient/background_particles.h
     components/tclient/bg_draw.cpp
@@ -3724,7 +3727,9 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     os_test.cpp
     packer_test.cpp
     prng_test.cpp
+    qm_background_particles_test.cpp
     qm_chat_interactions_test.cpp
+    qm_hammer_hit_detection_test.cpp
     qm_hud_media_island_logic_test.cpp
     qm_hud_notifications_test.cpp
     qm_new_ui_menu_branch_test.cpp
@@ -3803,6 +3808,7 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     src/generated/client_data7.h
     src/game/client/components/qmclient/hud_notifications/hud_notification_catalog.cpp
     src/game/client/components/qmclient/hud_notifications/hud_notification_rules.cpp
+    src/game/client/components/qmclient/hammer_hit_detection.cpp
     src/game/client/components/qmclient/monitoring/monitoring_device_perf.cpp
     src/game/client/components/qmclient/qm_lyrics/qm_lyrics_cache.cpp
     src/game/client/components/qmclient/qm_lyrics/qm_lyrics_clock.cpp

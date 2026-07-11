@@ -243,6 +243,13 @@ void CUi::OnCursorMove(float X, float Y)
 
 void CUi::Update(vec2 MouseWorldPos)
 {
+	const int UiScale = std::clamp(g_Config.m_QmUiScale, 50, 200);
+	if(UiScale != m_LastUiScale)
+	{
+		m_LastUiScale = UiScale;
+		Client()->OnWindowResize();
+	}
+
 	const vec2 WindowSize = vec2(Graphics()->WindowWidth(), Graphics()->WindowHeight());
 	const CUIRect *pScreen = Screen();
 
@@ -505,7 +512,7 @@ float CUi::ButtonColorMul(const void *pId)
 
 const CUIRect *CUi::Screen()
 {
-	m_Screen.h = 600.0f;
+	m_Screen.h = QmUiVirtualScreenHeight(g_Config.m_QmUiScale);
 	m_Screen.w = Graphics()->ScreenAspect() * m_Screen.h;
 	return &m_Screen;
 }

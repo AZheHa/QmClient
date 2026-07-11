@@ -1183,6 +1183,9 @@ Choose export name first.
 Choose whether to browse replays or screenshots
 == Выберите просмотр демо или скриншотов
 
+Cinematic camera
+== Кинематографическая камера
+
 Clan
 == Клан
 
@@ -2427,9 +2430,6 @@ Execute the specified file
 
 Existing Player
 == Существующий игрок
-
-Expand module
-== Развернуть модуль
 
 Export
 == Экспорт
@@ -3906,9 +3906,6 @@ Milliseconds
 
 Min size
 == Минимальный размер
-
-Minimize module
-== Свернуть модуль
 
 Minimize the client
 == Свернуть клиент

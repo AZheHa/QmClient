@@ -1,90 +1,74 @@
-# QmLive Match Live Implementation Plan
+---
+title: QmLive Match 剩余阶段计划
+date: 2026-06-28
+last_reviewed: 2026-07-11
+status: active
+scope: QmLive entry mode、录制生命周期、服务端赛事权威与管理 UI；普通 DDNet 兼容性不可改变
+---
 
-**Status:** active
+# 已有基础
 
-**Goal:** Build QmLive match features around one Match event model, while keeping ordinary DDNet demo/ranking compatibility intact. The first implementation phase is the pure-client replay/ranking/filter foundation; QmLiveServer authority and admin workflows are intentionally split into later phases.
+当前 master 已具备客户端 finish ranking、可选 sidecar、标准 demo replay、team filter、overlay 和对应 QmLive 测试。Phase 1 已完成，不在本文重复记录实现过程。
 
-## Compatibility Boundary
+仍存在两个客户端基础缺口：
 
-- Pure client phase must not modify `src/game/server/**`, `src/engine/server/**`, protocol definitions, UUIDs, generated protocol files, or server config.
-- Ordinary DDNet servers must support full match demo recording, standard demo playback, optional `.qmlive.json` sidecar, local finish cards, and demo playback reconstruction from standard snapshots/messages.
-- All QmLive-only client code is compiled behind `CONF_QM_LIVE_CLIENT`; ordinary QmClient/DDNet builds must not show live match UI, write sidecars, or apply team filters.
-- QmLiveServer-only authority, referee, admin assignment, countdown, race lock, delayed-start vote, and official match timing belong to later server phases.
+- recorder 继续复用手动录制槽，缺独立生命周期和临时文件到最终文件的原子重命名；
+- owner 不明确的标准事件/声音只能严格抑制，完整 filter 覆盖仍需审计。
 
-## Phase 1: Pure Client Match Replay Foundation
+# 执行顺序
 
-**Files:**
+每一阶段都必须拆成单独任务、单独审查和单独验收，不能一次跨阶段实现。
 
-- Modify: `src/game/client/live/live_finish_ranking.*`
-  - Own standard `SV_RACEFINISH` processing, ClientId-to-DDRace-team attribution, pending resolution, duplicate suppression, finish sorting, card queue, and sidecar finish serialization helpers.
-- Modify: `src/game/client/live/live_replay_sidecar.*`
-  - Own optional sidecar schema version 1, demo/map matching, team/finish event validation, JSON parsing/building, and atomic JSON write.
-- Modify: `src/game/client/live/live_match_replay.*`
-  - Reuse standard DDNet demo recorder for full match `.demo` files under `demos/qm_live/matches/`; sidecar remains optional and non-authoritative.
-- Modify: `src/game/client/live/live_team_render_filter.*`
-  - Centralize team filter decisions for client-owned render/message/sound paths.
-- Modify: `src/game/client/gameclient.*`
-  - Wire QmLive presentation mode, sidecar-backed demo playback, finish card HUD, team filter config, transient reset on seek/filter switch, and live overlay reuse.
-- Modify: `src/engine/demo.h`, `src/engine/shared/demo.h`
-  - Expose current demo player filename for sidecar lookup only; do not change demo format.
-- Modify: `src/game/client/components/{chat,hud,menus_ingame,skins}.cpp`
-  - Keep QmLive presentation mode isolated from ordinary HUD/chat/skin paths.
-- Modify: `src/test/qm_live_client_test.cpp`
-  - Cover finish ranking, sidecar validation, team filter, and source-level contracts that protect DDNet-compatible recording.
+## Phase 2A：Entry Mode
 
-**Done in this phase:**
+- 为 Axiom auto-login 增加明确的 QmLive connection-mode gate。
+- 提供连接前模式选择、当前模式显示、手动 override 和按地址记忆。
+- 普通 QmClient/DDNet 构建与连接路径不得出现 QmLive 副作用。
 
-- Standard finish messages drive a local ranking state and short card queue.
-- Sidecar records map/demo identity, tick range, team changes, and finish events.
-- Demo playback can load a matching sidecar and rebuild ranking/team context across seek.
-- Team filter has a single decision object and strict unknown-player-event policy.
-- Full match recording does not require QmLive observer acceptance; ordinary online DDNet connections remain eligible.
+验收：
 
-**Known gaps in this phase:**
+- DDNet 模式不触发 Axiom 命令；
+- QmLive 模式选择可恢复、可覆盖、错误配置可安全回退；
+- 配置只使用 qm_/Qm 前缀。
 
-- Demo recorder still writes directly through the existing manual recorder slot. A dedicated QmLive recorder lifecycle and temp-file-to-final atomic rename need a later recorder change.
-- Rendering/audio filter coverage is partial. Owner-known paths are filtered; standard DDNet events/sounds without reliable owner must remain strict-suppressed where wired, and more call sites still need audit.
-- UI is console/overlay level, not the final polished Esc/live menu workflow.
-- Axiom/DDNet entry-mode choice is not implemented in this phase.
+## Phase 2B：Client UI 与录制
 
-## Phase 2: Entry Mode And Client UI
+- 在 QmLive-only UI 中提供录制状态、team filter 和 finish card 控制。
+- 建立独立 recorder 生命周期、失败清理和原子 finalize。
+- 审计 chat、HUD、skins、events、sounds 的 owner-known/unknown filter 路径。
 
-**Files to modify:**
+验收：
 
-- `src/game/client/components/qmclient/axiom_auto_login.*`
-  - Add an explicit QmLive connection-mode gate so DDNet mode cannot trigger Axiom auto-login or Axiom-only commands.
-- `src/game/client/components/menus*.cpp`, QmClient UI helpers
-  - Add pre-enter selection, current mode display, per-address remembered choice, manual override, match recording controls, team filter controls, and finish-card settings.
-- Config files under `src/engine/shared/config_variables_qmclient*.h`
-  - Add only `qm_`/`Qm` prefixed settings.
+- 普通 DDNet demo 格式不变；
+- sidecar 缺失、损坏或不匹配时标准 demo 仍可播放；
+- seek、切换 filter 和录制失败不会留下旧状态或半成品最终文件。
 
-## Phase 3: QmLiveServer Match Authority
+## Phase 3：QmLiveServer Match Authority
 
-**Files to add/modify:**
+本阶段会触及服务端玩法和时序，实施前必须获得明确批准并另写稳定设计。
 
-- Add: `src/game/server/qmlive/match_state.*`
-  - Own `Idle`, `Preparing`, `Ready`, `DelayedStart`, `Countdown`, `Running`, `Finished`, `Reset` state transitions.
-- Add: `src/game/server/qmlive/match_assignments.*`
-  - Own admin team-assignment state: Pending, Applied, Rejected, Superseded, Expired.
-- Modify: `src/game/server/teams.*`, `src/game/server/gamecontext.*`
-  - Add minimal hooks for safe pending assignment application, race lock checks, countdown release, and official finish timing without bypassing DDRace team safety.
-- Modify: existing rcon/admin auth paths only
-  - Gate all authority through existing admin/rcon permission; no client-self-asserted admin flag.
+- 定义 Idle、Preparing、Ready、DelayedStart、Countdown、Running、Finished、Reset 状态转换。
+- 定义 Pending、Applied、Rejected、Superseded、Expired 队伍分配状态。
+- 所有管理权只复用现有 admin/rcon 权限，不接受客户端自声明。
+- race lock、倒计时释放和官方 finish timing 不得绕过 DDRace team safety。
 
-## Phase 4: Admin Panel, Referee, Timeline
+## Phase 4：Admin、Referee 与 Timeline
 
-**Files to add/modify:**
+Phase 3 通过后再规划：
 
-- Add client live admin panel under QmLive-only client UI files.
-  - Search, multi-select, drag/drop team assignment, pending state display, cancel/replace pending assignment, referee actions, undo, recent audit log.
-- Add shared event structs/helpers for match event timeline.
-  - Match start/countdown/team finish/ranking/penalty/warning/DNF/DNS/DSQ/reset/bookmark.
-- Extend sidecar schema only with backward-compatible optional arrays.
-  - Keep versioning and safe ignore behavior for missing or mismatched data.
+- 搜索、多选、队伍分配、pending 状态和取消/替换；
+- referee action、undo 和审计日志；
+- match start、finish、penalty、warning、DNF/DNS/DSQ、reset、bookmark timeline；
+- sidecar 只能通过向后兼容的可选字段扩展。
 
-## Verification Plan
+# 验证要求
 
-- Phase 1 code: run focused `QmLive*` C++ tests, full `run_cxx_tests` when feasible, and `python qmclient_scripts/gate/check_gate.py --mode quick`.
-- Docs changed: run `python qmclient_scripts/gate/check_docs.py`.
-- Later server phases: add unit tests for pending assignment transitions, race lock, fixed-denominator delayed-start vote, GO same-tick release/timing, referee undo scoring, plus manual QmLiveServer validation.
+- 客户端阶段：QmLive 聚焦测试、全量 C++ 测试、game-client 构建和 quick/default gate。
+- 服务端阶段：状态转换、分配过期/替换、race lock、同 tick GO、finish timing 和 referee undo 单测。
+- 人工验收按 [QmLiveClient 验收手册](../../qmlive-acceptance.md) 执行。
 
+# 非目标
+
+- 不改变普通 DDNet 协议、demo 格式、排名语义或物理。
+- 不把后续阶段的 UI、服务端权威和 recorder 重构混进同一补丁。
+- 不把当前 master 之外的分支实现当成完成证据。

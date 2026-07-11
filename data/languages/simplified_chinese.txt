@@ -1183,6 +1183,9 @@ Choose export name first.
 Choose whether to browse replays or screenshots
 == 选择浏览录像还是截图
 
+Cinematic camera
+== 电影镜头
+
 Clan
 == 战队
 
@@ -2427,9 +2430,6 @@ Execute the specified file
 
 Existing Player
 == 玩家已存在
-
-Expand module
-== 展开模块
 
 Export
 == 导出
@@ -3906,9 +3906,6 @@ Milliseconds
 
 Min size
 == 最小尺寸
-
-Minimize module
-== 最小化模块
 
 Minimize the client
 == 最小化客户端

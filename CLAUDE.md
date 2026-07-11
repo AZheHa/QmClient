@@ -11,9 +11,9 @@ QmClient（Q1menG Client）是基于 DDNet / TaterClient 的第三方定制客�
 ## 文档系统
 
 - docs 中 是各贡献者的 AI 工作流 的文档，其功能可共享通用
-- `docs/superpowers/` 下的探索/计划/规格会随时间推移而老化；已标注 `文档已过时` 或 `部分内容已过时` banner 的文件仅供参考，不应作为实现依据。
-- 无标注或标注为当前有效的文档才是本次开发的权威来源。
-- 有效文档的判定以最新日期和 `status` 字段（如 `active`、`draft`）为准。
+- `docs/superpowers/README.md` 是活动任务文档入口；活动树只允许 `explore/`、`plans/`、`specs/` 下带 `status: active` 或 `status: draft` 的 Markdown。
+- 完成、过时或已取代的 superpowers 文档直接从当前树删除，由 Git 历史归档；不要建立 `archive/`、`reports/`、`reviews/`，也不要保留 HTML 副本。
+- 新增、删除或改变活动文档状态时，必须在同一改动中同步 `docs/superpowers/README.md`。
 
 ### 文档地图
 
@@ -25,6 +25,7 @@ QmClient（Q1menG Client）是基于 DDNet / TaterClient 的第三方定制客�
 | `docs/ai-workflow/review.md` | 代码审查立场、严重级别格式、DDNet 特有风险点和输出格式。 | 完成任务后 |
 | `docs/ai-workflow/git-workflow.md` | Git - commit、PR 标题/描述和最终汇报格式规范。 | 提交 git 和 PR 时 |
 | `docs/ai-workflow/advanced/README.md` | 性能、量化系统、重构、安全、内存、jobs、观测和回归防护等专项稳定规则的阅读路由。 | 任务涉及对应专项风险时 |
+| `docs/superpowers/README.md` | 当前有效的探索、计划和规格索引，以及活动文档生命周期。 | 开始任务或维护任务文档时 |
 | `qmclient_scripts/scripts_overview.md` | 脚本分层、推荐入口和 gate 工作流语义。 | 使用脚本时 |
 
 ## 极简工作流
@@ -36,7 +37,7 @@ QmClient（Q1menG Client）是基于 DDNet / TaterClient 的第三方定制客�
 
 ### 启动顺序
 
-- 先读匹配的 `docs/superpowers/plans/` 或 `docs/superpowers/specs/`。
+- 先读 `docs/superpowers/README.md`，再读其中匹配的当前 plan/spec；没有登记的旧路径不作为实现依据。
 - 再读与当前任务匹配的最小 `docs/ai-workflow/` 规则。
 - 如果这轮涉及文档/入口/gate，先看 `check_docs.py` 是否也要同步修改。
 - 修改前检查附近源码、调用点、配置变量、翻译和测试；不理解现状时不要直接写代码。
@@ -64,7 +65,8 @@ QmClient（Q1menG Client）是基于 DDNet / TaterClient 的第三方定制客�
 ### 修改文档后
 
 - 先判断这次文档改动是否改变了入口或规范；如果改变了，先同步修改 `check_docs.py` 或其约束，再跑文档检查。
-- 运行 `python qmclient_scripts/gate/check_docs.py --sync-only --prefer agents`，再运行 `python qmclient_scripts/gate/check_docs.py`，确认没有断链或镜像漂移。
+- 修改 superpowers 活动树时，同步更新 `docs/superpowers/README.md`；完成、过时或已取代的文档直接删除，不移动到历史目录。
+- 运行 `python qmclient_scripts/gate/check_docs.py --sync-only --prefer agents`，再运行 `python qmclient_scripts/gate/check_docs.py`，确认根镜像、AI workflow 清单、活动状态、索引与本地引用一致。
 
 ### 最终汇报
 
@@ -73,7 +75,7 @@ QmClient（Q1menG Client）是基于 DDNet / TaterClient 的第三方定制客�
 
 ## 全局硬约束（简略版，详细看 `docs/ai-workflow/ddnet-development.md`）
 
-- 仓库就是记录系统：决策、计划、功能状态、验证证据和交接说明都应该写进版本化文件。
+- 仓库就是记录系统：当前决策、计划、功能状态和验证证据写进活动文档；完成记录由提交、PR 和 Git 历史保存，不在当前树复制历史文档。
 - 一次只处理一个功能。直接以当前用户请求和对应的 superpowers plan/spec 作为范围边界。
 - 如果功能请求有歧义，先问清行为、范围和兼容性边界，再开始实现。
 - 改行为之前先读真实代码。优先遵循本地模式和 DDNet 兼容性，而不是套用泛化的现代 C++ 偏好。

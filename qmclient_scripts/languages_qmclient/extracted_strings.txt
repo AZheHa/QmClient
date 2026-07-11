@@ -393,6 +393,7 @@ Choose country flag
 Choose default eyes when joining a server
 Choose export name first.
 Choose whether to browse replays or screenshots
+Cinematic camera
 Clan
 Clan color in friends list
 Clan Members
@@ -808,7 +809,6 @@ Execute on connect
 Execute on join
 Execute the specified file
 Existing Player
-Expand module
 Export
 Export cut as a separate demo
 Export demo cut
@@ -1301,7 +1301,6 @@ Microphone permission denied by system
 Microphone volume
 Milliseconds
 Min size
-Minimize module
 Minimize the client
 Minimum match chars
 Minimum time

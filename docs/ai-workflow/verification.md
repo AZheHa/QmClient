@@ -1,6 +1,6 @@
 # 验证
 
-用能覆盖改动风险的最小验证集合，然后把证据记录到当前 `docs/superpowers/plans/` 或 `docs/superpowers/specs/`。
+用能覆盖改动风险的最小验证集合。执行中的证据写入当前活动 plan/spec；任务完成后，验证摘要进入提交、PR 和最终汇报，已消费的过程文档按 `docs/superpowers/README.md` 生命周期删除。
 
 ## Harness 与文档
 
@@ -8,11 +8,20 @@
 python qmclient_scripts/gate/check_docs.py
 ```
 
-当你改了 `AGENTS.md`、`CLAUDE.md`、`docs/ai-workflow/`、`docs/superpowers/plans/`、`docs/superpowers/specs/`、governance workflow 文件或 gate 脚本后，都要跑这一项。
+`check_docs.py` 默认先同步 `AGENTS.md` / `CLAUDE.md`，再校验 `docs/ai-workflow/` 精确清单、superpowers 目录边界、`active|draft` 状态、`README.md` 双向索引和活动文档本地引用。
+
+当你改了 `AGENTS.md`、`CLAUDE.md`、`docs/ai-workflow/`、`docs/superpowers/`、governance workflow 文件或 gate 脚本后，都要跑这一项。修改检查脚本本身时先补跑：
+
+```bash
+python -m unittest discover -s qmclient_scripts/gate/tests -v
+python -m py_compile qmclient_scripts/gate/check_docs.py qmclient_scripts/gate/lib/agents_sync.py qmclient_scripts/gate/lib/docs_harness.py
+```
+
+新增、删除或改变 superpowers 活动文档状态时，必须同步更新 `docs/superpowers/README.md`；不要建立 archive/report/review 历史目录或 HTML 副本。
 
 ## i18n 脚本工作流
 
-当改动 `qmclient_scripts/languages_qmclient/`、`data/languages/*.txt`、`translations/i18n/*.toml`，或任何会新增/删除 `Localize`、`Localizable`、`Register` help 文本的源码时，默认按这条顺序验证：
+当改动 `qmclient_scripts/languages_qmclient/`、`data/languages/*.txt`、`qmclient_scripts/languages_qmclient/translations/i18n/*.toml`，或任何会新增/删除 `Localize`、`Localizable`、`Register` help 文本的源码时，默认按这条顺序验证：
 
 ```bash
 python qmclient_scripts/languages_qmclient/extract_strings.py
@@ -24,17 +33,17 @@ python qmclient_scripts/languages_qmclient/review_duplicate_entries.py --show-gr
 说明：
 
 - `extract_strings.py` 负责从全 `src/` 提取 active source keys，并输出分类统计。
-- `translations/i18n/*.toml` 是按代码模块拆分的翻译维护源；单条记录可同时维护多语言翻译，不要求全语言补齐。
+- `qmclient_scripts/languages_qmclient/translations/i18n/*.toml` 是按代码模块拆分的翻译维护源；单条记录可同时维护多语言翻译，不要求全语言补齐。
 - `data/languages/*.txt` 是运行时生成产物，不作为手工维护的长期真相源。
 - `generate_all.py` 会以英文 source key 作为缺省回退，并生成 `generate_all.GENERATED_LANGUAGES` 中登记的运行时语言文件。
 - 新增英文 source key 后，先运行 `extract_strings.py`，再用 `translate_with_local_http.py --languages ...` 为目标语言生成 `translations_draft/<language>/*.toml`；审核通过后再显式 `--write-back` 回填维护源。
-- `translate_with_local_http.py --write-back` 只应把审核通过的 draft 条目 patch 到对应 `translations/i18n/*.toml`，不能重写整份模块 TOML 或重排未触碰的 `[[message]]` block。
+- `translate_with_local_http.py --write-back` 只应把审核通过的 draft 条目 patch 到对应 `qmclient_scripts/languages_qmclient/translations/i18n/*.toml`，不能重写整份模块 TOML 或重排未触碰的 `[[message]]` block。
 - `review_duplicate_entries.py` 是只读审查脚本；duplicate/similar 报告用于人工收口，unused 口径必须基于最终 active source key 集合。
-- `translate_with_local_http.py` 通过 OpenAI-compatible HTTP 模型生成翻译 draft；所有语言默认只写 `translations_draft/<language>/*.toml`，审核通过后才允许显式 `--write-back` 回填 `translations/i18n/*.toml`，不属于运行时生成主链。
+- `translate_with_local_http.py` 通过 OpenAI-compatible HTTP 模型生成翻译 draft；所有语言默认只写 `translations_draft/<language>/*.toml`，审核通过后才允许显式 `--write-back` 回填 `qmclient_scripts/languages_qmclient/translations/i18n/*.toml`，不属于运行时生成主链。
 
 ### 历史译法审计
 
-当需要核对当前 `translations/i18n/*.toml` 是否偏离项目既有简中口径时，补跑历史译法审计：
+当需要核对当前 `qmclient_scripts/languages_qmclient/translations/i18n/*.toml` 是否偏离项目既有简中口径时，补跑历史译法审计：
 
 ```bash
 python qmclient_scripts/languages_qmclient/audit_translation_drift.py --git-ref HEAD
@@ -43,6 +52,7 @@ python qmclient_scripts/languages_qmclient/audit_translation_drift.py --git-ref 
 说明：
 
 - 这是只读审计，不参与运行时生成链。
+- 默认报告写入被忽略的 `tmp/translation_drift_report.txt`；需要保留时显式指定 `--output` 到合适的任务产物目录。
 - 结果只用于人工判断历史译法是否需要回退或统一风格。
 - 它不替代 `extract_strings.py` / `generate_all.py` / `validate.py`，也不阻断 `validate.py`。
 

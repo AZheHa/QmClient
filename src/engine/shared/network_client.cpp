@@ -1,8 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
-#include "network.h"
-
 #include "config.h"
+#include "network.h"
 
 #include <base/system.h>
 #include <base/types.h>
@@ -257,7 +256,23 @@ int CNetClient::Send(CNetChunk *pChunk)
 
 		if(m_Transport == ENetTransport::KCP && Flags == 0)
 		{
-			return SendLegacyBypass(pChunk);
+			if((pChunk->m_Flags & NETSENDFLAG_FLUSH) == 0 || !m_Connection.HasPendingPacketData())
+				return SendLegacyBypass(pChunk);
+			if(pChunk->m_DataSize >= NET_MAX_PAYLOAD)
+				return SendLegacyBypass(pChunk);
+			if(m_Kcp.PendingSegments() >= NET_KCP_MAX_PENDING_SEGMENTS)
+				return -1;
+
+			const int Result = m_Connection.QueueChunk(0, pChunk->m_DataSize, pChunk->m_pData);
+			if(Result < 0)
+				return Result;
+			const int FlushResult = m_Connection.Flush();
+			m_Kcp.Flush();
+			if(FlushResult < 0)
+			{
+				return FlushResult;
+			}
+			return 0;
 		}
 
 		if(m_Transport == ENetTransport::KCP && m_Kcp.PendingSegments() >= NET_KCP_MAX_PENDING_SEGMENTS)
@@ -265,13 +280,17 @@ int CNetClient::Send(CNetChunk *pChunk)
 			return -1;
 		}
 
-		m_Connection.QueueChunk(Flags, pChunk->m_DataSize, pChunk->m_pData);
+		const int Result = m_Connection.QueueChunk(Flags, pChunk->m_DataSize, pChunk->m_pData);
+		if(Result < 0)
+			return Result;
 
 		if(pChunk->m_Flags & NETSENDFLAG_FLUSH)
 		{
-			m_Connection.Flush();
+			const int FlushResult = m_Connection.Flush();
 			if(m_Transport == ENetTransport::KCP)
 				m_Kcp.Flush();
+			if(FlushResult < 0)
+				return FlushResult;
 		}
 	}
 	return 0;

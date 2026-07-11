@@ -1183,6 +1183,9 @@ Choose export name first.
 Choose whether to browse replays or screenshots
 == Demo mu yoksa ekran görüntüsü mü gezileceğini seçin
 
+Cinematic camera
+== Sinematik kamera
+
 Clan
 == Klan
 
@@ -2427,9 +2430,6 @@ Execute the specified file
 
 Existing Player
 == Mevcut Oyuncu
-
-Expand module
-== Modülü genişlet
 
 Export
 == Dışa aktar
@@ -3906,9 +3906,6 @@ Milliseconds
 
 Min size
 == Minimum boyut
-
-Minimize module
-== Modülü simge durumuna küçült
 
 Minimize the client
 == İstemciyi simge durumuna küçült

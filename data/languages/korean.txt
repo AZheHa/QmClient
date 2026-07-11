@@ -1183,6 +1183,9 @@ Choose export name first.
 Choose whether to browse replays or screenshots
 == 데모 또는 스크린샷을 탐색할지 선택
 
+Cinematic camera
+== 시네마틱 카메라
+
 Clan
 == 클랜
 
@@ -2427,9 +2430,6 @@ Execute the specified file
 
 Existing Player
 == 기존 플레이어
-
-Expand module
-== 모듈 확장
 
 Export
 == 내보내기
@@ -3906,9 +3906,6 @@ Milliseconds
 
 Min size
 == 최소 크기
-
-Minimize module
-== 모듈 최소화
 
 Minimize the client
 == 클라이언트 최소화

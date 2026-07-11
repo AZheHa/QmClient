@@ -799,7 +799,7 @@ int CChat::CountVisibleLinesFrom(int BacklogLine) const
 	return Count;
 }
 
-void CChat::UpdatePresentationStates(int64_t Now, float DeltaSeconds, bool ShowLargeArea)
+void CChat::UpdatePresentationStates(int64_t Now, float DeltaSeconds, bool ShowLargeArea, bool ExtraAnimations)
 {
 	if(ShowLargeArea && !m_LastPresentationShowLargeArea)
 		m_LargeAreaOpenTick = Now;
@@ -823,7 +823,8 @@ void CChat::UpdatePresentationStates(int64_t Now, float DeltaSeconds, bool ShowL
 			ShowLargeArea,
 			Line.m_ForceVisible,
 			m_LargeAreaOpenTick,
-			RecallDelaySeconds);
+			RecallDelaySeconds,
+			ExtraAnimations);
 	}
 }
 
@@ -2052,7 +2053,7 @@ void CChat::OnPrepareLines(float y)
 		{
 			continue;
 		}
-		if(!ShowLargeArea &&!Line.m_ForceVisible &&Line.m_Presentation.m_State == EPresentationState::COLLAPSED)
+		if(!ShowLargeArea && !Line.m_ForceVisible && Line.m_Presentation.m_State == EPresentationState::COLLAPSED)
 		{
 			continue;
 		}
@@ -2064,7 +2065,7 @@ void CChat::OnPrepareLines(float y)
 			if(Line.m_aYOffset[OffsetType] >= 0.0f)
 			{
 				y -= Line.m_aYOffset[OffsetType] *
-					ClampPresentationProgress(Line.m_Presentation.m_LayoutVisibility);
+				     ClampPresentationProgress(Line.m_Presentation.m_LayoutVisibility);
 
 				if(y < HeightLimit)
 					break;
@@ -2410,9 +2411,10 @@ void CChat::OnRender()
 	const bool HudEditorPreview = GameClient()->m_HudEditor.IsActive();
 	const bool InputActive = m_Mode != MODE_NONE;
 	const bool ShowLargeArea =
-	m_Show ||
-	(InputActive && g_Config.m_ClShowChat == 1) ||
-	g_Config.m_ClShowChat == 2;
+		m_Show ||
+		(InputActive && g_Config.m_ClShowChat == 1) ||
+		g_Config.m_ClShowChat == 2;
+	const bool ExtraAnimations = g_Config.m_QmExtraAnimations != 0 && GameClient()->UiRuntimeV2()->Enabled();
 	int64_t Now = time();
 	if(m_LastPresentationUpdateTime == 0 || Now < m_LastPresentationUpdateTime)
 		m_LastPresentationUpdateTime = Now;
@@ -2421,7 +2423,7 @@ void CChat::OnRender()
 	if(HudEditorPreview)
 		DeltaSeconds = 0.0f;
 	else
-		UpdatePresentationStates(Now, DeltaSeconds, ShowLargeArea);
+		UpdatePresentationStates(Now, DeltaSeconds, ShowLargeArea, ExtraAnimations);
 
 	// send pending chat messages
 	if(m_PendingChatCounter > 0 && m_LastChatSend + time_freq() < time())
@@ -2743,7 +2745,7 @@ void CChat::OnRender()
 		{
 			continue;
 		}
-		if(!ShowLargeArea &&!Line.m_ForceVisible &&Line.m_Presentation.m_State == EPresentationState::COLLAPSED)
+		if(!ShowLargeArea && !Line.m_ForceVisible && Line.m_Presentation.m_State == EPresentationState::COLLAPSED)
 		{
 			continue;
 		}
@@ -2764,7 +2766,7 @@ void CChat::OnRender()
 			continue;
 		}
 
-		if(!Line.m_Presentation.m_RenderYInitialized || HudEditorPreview)
+		if(!Line.m_Presentation.m_RenderYInitialized || HudEditorPreview || !ExtraAnimations)
 		{
 			Line.m_Presentation.m_RenderY = Line.m_Presentation.m_TargetY;
 			Line.m_Presentation.m_RenderYInitialized = true;
@@ -3172,7 +3174,7 @@ bool CChat::TranslateVisibleChatLines()
 		const bool ServerMessageIsBasicInfo = Line.m_ServerMessageClass == QmHudNotifications::EServerMessageClass::BasicInfo;
 		if(!ShouldRenderFocusFilteredChatLine(FocusHideChat, FocusHideSystemInfoMessages, FocusHideSystemPromptMessages, FocusHideEcho, Line.m_ClientId, Line.m_ForceVisible, ServerMessageIsBasicInfo))
 			continue;
-		if(!ShowLargeArea &&!Line.m_ForceVisible &&Line.m_Presentation.m_State == EPresentationState::COLLAPSED)
+		if(!ShowLargeArea && !Line.m_ForceVisible && Line.m_Presentation.m_State == EPresentationState::COLLAPSED)
 			continue;
 		if(!ShowLargeArea && Line.m_Presentation.m_LayoutVisibility <= 0.001f && Line.m_Presentation.m_RenderAlpha <= 0.001f)
 			continue;
@@ -3544,7 +3546,7 @@ CUi::EPopupMenuFunctionResult CChat::PopupLanguageMenu(void *pContext, CUIRect V
 	// 语言/后端名称数组（用于 DoDropDown）
 	static const char *s_apLangNames[] = {"中文", "English", "日本語", "한국어", "繁體中文", "Русский", "Deutsch", "Français", "Español", "Português"};
 	static const char *s_apLangCodes[] = {"zh", "en", "ja", "ko", "zh-TW", "ru", "de", "fr", "es", "pt"};
-	static const char *s_apBackendNames[] = {Localize("LLM API"), Localize("Tencent Cloud"), Localize("LibreTranslate"), Localize("FTAPI")};
+	const char *apBackendNames[] = {Localize("LLM API"), Localize("Tencent Cloud"), Localize("LibreTranslate"), Localize("FTAPI")};
 	static const char *s_apBackendCodes[] = {"llm", "tencentcloud", "libretranslate", "ftapi"};
 
 	auto FindIndex = [](const char *pValue, const char **apCodes, int Count) -> int {
@@ -3590,7 +3592,7 @@ CUi::EPopupMenuFunctionResult CChat::PopupLanguageMenu(void *pContext, CUIRect V
 		View.HSplitTop(DropdownHeight, &DropdownRect, &View);
 
 		const int OldSel = FindIndex(g_Config.m_QmTranslateBackend, s_apBackendCodes, std::size(s_apBackendCodes));
-		const int NewSel = pUi->DoDropDown(&DropdownRect, OldSel, s_apBackendNames, std::size(s_apBackendNames), pPopupContext->m_BackendDropDownState, Active);
+		const int NewSel = pUi->DoDropDown(&DropdownRect, OldSel, apBackendNames, std::size(apBackendNames), pPopupContext->m_BackendDropDownState, Active);
 		if(NewSel != OldSel)
 			str_copy(g_Config.m_QmTranslateBackend, s_apBackendCodes[NewSel], sizeof(g_Config.m_QmTranslateBackend));
 	}

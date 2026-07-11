@@ -3124,6 +3124,22 @@ turkish = "3D arka plan parçacıklarını etkinleştir"
 polish = "Włącz cząsteczki tła 3D"
 
 [[message]]
+key = "Cinematic camera"
+[message.translations]
+japanese = "シネマティックカメラ"
+korean = "시네마틱 카메라"
+simplified_chinese = "电影镜头"
+traditional_chinese = "電影鏡頭"
+russian = "Кинематографическая камера"
+german = "Filmische Kamera"
+spanish = "Cámara cinematográfica"
+french = "Caméra cinématique"
+brazilian_portuguese = "Câmera cinematográfica"
+portuguese = "Câmara cinematográfica"
+turkish = "Sinematik kamera"
+polish = "Kamera filmowa"
+
+[[message]]
 key = "Enable camera drift"
 [message.translations]
 japanese = "カメラドリフトを有効化"

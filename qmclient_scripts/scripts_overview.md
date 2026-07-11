@@ -25,14 +25,15 @@
 |------|------|
 | `qmclient_scripts/gate/check_gate.py` | Python 版仓库级门禁总入口 |
 | `checks/strict_build` | 严格构建与静态分析（`check_gate.py` 调度模块） |
-| `qmclient_scripts/gate/check_docs.py` | 治理文档一致性检查（可带 `--sync-only`） |
+| `qmclient_scripts/gate/check_docs.py` | 根文档镜像同步与治理文档生命周期检查（可带 `--sync-only`） |
 | `qmclient_scripts/gate/baseline_debt_allowlist.json` | 基线白名单数据 |
 
 适用：
 
 - 跑仓库级 `quick/default/full` 门禁
 - 跑严格构建、`/analyze`、clang-tidy、ASan
-- 校验 `AGENTS.md` / `CLAUDE.md` / 精简 `docs/ai-workflow/` / CI 入口是否一致
+- 同步 `AGENTS.md` / `CLAUDE.md`，校验 `docs/ai-workflow/` 精确文件清单
+- 拒绝 superpowers 历史目录、HTML、无效状态、`README.md` 索引漂移和活动文档本地断链
 - 维护 baseline debt allowlist
 
 ### 2. 构建与平台辅助
@@ -75,7 +76,7 @@
 - `translations/i18n/*.toml`：按代码模块拆分的翻译维护源；单条记录可同时维护多语言翻译，不要求全量语言留空
 - `generate_all.py`：从当前源码 key 和模块化 TOML 维护源生成 `generate_all.GENERATED_LANGUAGES` 中登记的 `data/languages/*.txt`，缺失时回退英文 key
 - `review_duplicate_entries.py`：只读审查重复、相似、空译文和疑似未使用项；unused 直接按最终 active source key 集合判断，避免 context 漂移误报
-- `audit_translation_drift.py`：只读对比当前 `translations/i18n/*.toml` 与 Git 历史里的 `data/languages/simplified_chinese.txt`，用于审查历史译法是否被新维护源改偏；默认基线为 `HEAD`
+- `audit_translation_drift.py`：只读对比当前 `translations/i18n/*.toml` 与 Git 历史里的 `data/languages/simplified_chinese.txt`，用于审查历史译法是否被新维护源改偏；默认基线为 `HEAD`，报告写到被忽略的 `tmp/translation_drift_report.txt`
 - `translate_with_local_http.py`：通过 OpenAI-compatible HTTP 接口生成翻译 draft；所有语言默认只写 `translations_draft/<language>/*.toml`，审核通过后才允许显式 `--write-back` 回填主 TOML 维护源；回填必须按审核通过的条目做 patch，不重写整份模块 TOML
 - `validate.py`：校验提取文件与审计报告新鲜度、生成产物覆盖、模块化 i18n store 可读性和 legacy overlay 删除状态；`violation` 会返回失败，`needs_review` 只作为人工清理 backlog 提示
 
@@ -109,9 +110,11 @@ python qmclient_scripts/gate/check_gate.py --mode full
 ### 文档入口一致性
 
 ```bash
-python qmclient_scripts/gate/check_docs.py
 python qmclient_scripts/gate/check_docs.py --sync-only --prefer agents
+python qmclient_scripts/gate/check_docs.py
 ```
+
+默认入口也会先同步根镜像；显式 `--sync-only --prefer agents` 用于治理文档改动后固定以 `AGENTS.md` 更新 `CLAUDE.md`。修改 harness 本身时，先运行 `python -m unittest discover -s qmclient_scripts/gate/tests -v`。
 
 ### GitHub Release 说明
 
@@ -147,7 +150,7 @@ python qmclient_scripts/gate/tools/refresh_allowlist.py --report tmp/check-gate-
 它负责：
 
 - 把源码卫生检查、严格调试检查、测试、allowlist 与 JSON 报告收口成统一工作流
-- 用 `check_docs.py` 的内建最小规则校验根规则和文档入口是否齐全
+- 用 `check_docs.py` 校验根镜像、AI workflow 精确清单和 superpowers 活动树生命周期
 - 区分“已知历史债务”和“当前新增阻断”
 
 ### 模式

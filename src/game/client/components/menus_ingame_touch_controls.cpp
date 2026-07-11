@@ -57,7 +57,6 @@ void CMenusIngameTouchControls::RenderTouchButtonEditor(CUIRect MainView)
 	static EElementType s_PrevEditElement = EElementType::LAYOUT;
 	static float s_EditElementTransitionDirection = 0.0f;
 	static const uint64_t s_EditElementSwitchNode = static_cast<uint64_t>(str_quickhash("touch_editor_element_switch"));
-	MainView.h = 600.0f - 40.0f - MainView.y;
 	MainView.Draw(CMenus::ms_ColorTabbarActive, IGraphics::CORNER_B, 10.0f);
 	MainView.VMargin(MAINMARGIN, &MainView);
 	MainView.HSplitTop(MAINMARGIN, nullptr, &MainView);
@@ -642,7 +641,6 @@ bool CMenusIngameTouchControls::RenderVisibilitySettingBlock(CUIRect Block)
 void CMenusIngameTouchControls::RenderTouchButtonBrowser(CUIRect MainView)
 {
 	CUIRect LeftButton, MiddleButton, RightButton, EditBox, LabelRect, CommandRect, X, Y, W, H;
-	MainView.h = 600.0f - 40.0f - MainView.y;
 	MainView.Draw(CMenus::ms_ColorTabbarActive, IGraphics::CORNER_B, 10.0f);
 	MainView.Margin(MAINMARGIN, &MainView);
 	MainView.HSplitTop(ROWSIZE, &RightButton, &MainView);
@@ -971,7 +969,6 @@ void CMenusIngameTouchControls::RenderConfigSettings(CUIRect MainView)
 void CMenusIngameTouchControls::RenderPreviewSettings(CUIRect MainView)
 {
 	CUIRect EditBox;
-	MainView.h = 600.0f - 40.0f - MainView.y;
 	MainView.Draw(CMenus::ms_ColorTabbarActive, IGraphics::CORNER_B, 10.0f);
 	MainView.VMargin(MAINMARGIN, &MainView);
 	MainView.HMargin(MAINMARGIN, &MainView);

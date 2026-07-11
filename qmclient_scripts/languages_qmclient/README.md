@@ -64,7 +64,7 @@ python qmclient_scripts/languages_qmclient/review_duplicate_entries.py --show-gr
 - `generate_all.py`：根据 active keys 和 `translations/i18n/*.toml` 生成 `GENERATED_LANGUAGES` 中登记的运行时语言文件。
 - `validate.py`：校验提取结果新鲜度、全部生成语言文件覆盖、模块化 TOML 可读性、legacy overlay 删除状态和 blocking audit violations。
 - `review_duplicate_entries.py`：只读报告重复、相似、空译文和疑似未使用项，用于人工清理。
-- `audit_translation_drift.py`：把当前 TOML 译文和 Git 历史里的简中译法做只读对比。
+- `audit_translation_drift.py`：把当前 TOML 译文和 Git 历史里的简中译法做只读对比，默认把报告写到被忽略的 `tmp/translation_drift_report.txt`。
 - `translate_with_local_http.py`：生成本地模型翻译草稿；审核通过后，可显式 `--write-back` 按条目 patch 回填 `translations/i18n/*.toml`。
 
 ## 翻译草稿工作流
