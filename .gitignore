@@ -18,10 +18,7 @@ qmclient_scripts/languages_qmclient/translations_draft/
 
 # Local Codex screenshots
 .codex-*.png
-.superpowers
 .trae
-.claude
-skills/
 docs/Promting.md
 
 # tmp

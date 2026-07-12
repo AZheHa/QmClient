@@ -1,3 +1,4 @@
+> 请抬头享受阳光｜日子很好 我很我---------致咩子
 # scripts_overview
 
 这个文档统一说明 `qmclient_scripts/` 的脚本分层、推荐入口，以及 `check_gate.py` 相关工作流语义。
@@ -25,15 +26,12 @@
 |------|------|
 | `qmclient_scripts/gate/check_gate.py` | Python 版仓库级门禁总入口 |
 | `checks/strict_build` | 严格构建与静态分析（`check_gate.py` 调度模块） |
-| `qmclient_scripts/gate/check_docs.py` | 根文档镜像同步与治理文档生命周期检查（可带 `--sync-only`） |
 | `qmclient_scripts/gate/baseline_debt_allowlist.json` | 基线白名单数据 |
 
 适用：
 
 - 跑仓库级 `quick/default/full` 门禁
 - 跑严格构建、`/analyze`、clang-tidy、ASan
-- 同步 `AGENTS.md` / `CLAUDE.md`，校验 `docs/ai-workflow/` 精确文件清单
-- 拒绝 superpowers 历史目录、HTML、无效状态、`README.md` 索引漂移和活动文档本地断链
 - 维护 baseline debt allowlist
 
 ### 2. 构建与平台辅助
@@ -107,15 +105,6 @@ python qmclient_scripts/gate/check_gate.py --mode default
 python qmclient_scripts/gate/check_gate.py --mode full
 ```
 
-### 文档入口一致性
-
-```bash
-python qmclient_scripts/gate/check_docs.py --sync-only --prefer agents
-python qmclient_scripts/gate/check_docs.py
-```
-
-默认入口也会先同步根镜像；显式 `--sync-only --prefer agents` 用于治理文档改动后固定以 `AGENTS.md` 更新 `CLAUDE.md`。修改 harness 本身时，先运行 `python -m unittest discover -s qmclient_scripts/gate/tests -v`。
-
 ### GitHub Release 说明
 
 ```bash
@@ -150,7 +139,6 @@ python qmclient_scripts/gate/tools/refresh_allowlist.py --report tmp/check-gate-
 它负责：
 
 - 把源码卫生检查、严格调试检查、测试、allowlist 与 JSON 报告收口成统一工作流
-- 用 `check_docs.py` 校验根镜像、AI workflow 精确清单和 superpowers 活动树生命周期
 - 区分“已知历史债务”和“当前新增阻断”
 
 ### 模式
@@ -221,8 +209,3 @@ python qmclient_scripts/gate/check_gate.py --mode default --explain-scope --repo
 - 不要绕开 `qmclient_scripts/gate/check_gate.py` 自己临时拼一套等价门禁
 - 不要把 `qmclient_scripts/` 根目录当成完全平级；门禁相关内容统一以 `gate/` 为准
 - 不要在 QmClient gate 或 workflow 中直接调用根目录 `scripts/` 下的 QmClient 特化脚本；改用 `qmclient_scripts/` 复制件
-
-## 关联文档
-
-- `docs/ai-workflow/meta.md`
-- `docs/ai-workflow/verification.md`

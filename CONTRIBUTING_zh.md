@@ -4,7 +4,7 @@
 
 ## QmClient 贡献入口
 
-Issue 和 Pull Request 应提交到 [wxj881027/QmClient](https://github.com/wxj881027/QmClient)，而不是上游 DDNet 仓库。行为改动应在实现前讨论，开发时遵循 `AGENTS.md`，请求审查前按 `docs/ai-workflow/verification.md` 完成对应验证。
+Issue 和 Pull Request 应提交到 [wxj881027/QmClient](https://github.com/wxj881027/QmClient)，而不是上游 DDNet 仓库。行为改动应在实现前讨论，开发时遵循 `AGENTS.md`，请求审查前运行相关 gate 和测试。
 
 QmClient 继承下文的 DDNet 兼容性与 C++ 约定。保留的 DDNet Issue 和 Pull Request 链接只是上游背景示例，不是 QmClient 的提交目标。
 
@@ -374,4 +374,4 @@ src/game/foo_bar.cpp
 
 ## 提交信息
 
-描述您的贡献为玩家/用户带来的变化，而不是只罗列技术修改。QmClient 的 commit 和 PR 标题使用 `<type>(<scope>): <中文简述>`；正文先写问题或背景，再按 `fix`、`test`、`docs` 等标签分组。当前规则见 `docs/ai-workflow/git-workflow.md`。
+描述您的贡献为玩家/用户带来的变化，而不是只罗列技术修改。QmClient 的 commit 和 PR 标题使用 `<type>(<scope>): <中文简述>`；正文先写问题或背景，再按 `fix`、`test`、`docs` 等标签分组。

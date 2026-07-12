@@ -4,7 +4,7 @@
 
 ## QmClient contribution entry
 
-Open issues and pull requests against [wxj881027/QmClient](https://github.com/wxj881027/QmClient), not the upstream DDNet repository. Discuss behavior changes before implementation, follow the repository workflow in `AGENTS.md`, and run the verification required by `docs/ai-workflow/verification.md` before requesting review.
+Open issues and pull requests against [wxj881027/QmClient](https://github.com/wxj881027/QmClient), not the upstream DDNet repository. Discuss behavior changes before implementation, follow the repository workflow in `AGENTS.md`, and run the relevant gate and tests before requesting review.
 
 QmClient inherits the compatibility and C++ conventions below from DDNet. Links to DDNet issues and pull requests in the retained upstream guidance are background examples, not QmClient submission targets.
 
@@ -375,4 +375,4 @@ We use [Javadoc style block comments](https://www.doxygen.nl/manual/docblocks.ht
 
 ## Commit messages
 
-Describe the change your contribution makes for the player/user instead of only listing technical edits. QmClient commit and PR titles use `<type>(<scope>): <中文简述>`; the body starts with the problem or background and groups details under labels such as `fix`, `test`, and `docs`. See `docs/ai-workflow/git-workflow.md` for the current rules.
+Describe the change your contribution makes for the player/user instead of only listing technical edits. QmClient commit and PR titles use `<type>(<scope>): <中文简述>`; the body starts with the problem or background and groups details under labels such as `fix`, `test`, and `docs`.

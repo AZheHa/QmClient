@@ -1,3 +1,4 @@
+# 请抬头享受阳光｜日子很好 我很我---------致咩子
 #!/usr/bin/env python3
 """QmClient 仓库级门禁总入口（Python 版）。
 
@@ -22,7 +23,6 @@ from checks import (  # noqa: E402
     ci_build,
     config_vars,
     dilate,
-    docs,
     env,
     headers,
     identifiers,
@@ -49,7 +49,6 @@ _MODE_SPECS: dict[str, dict] = {
         "checks": [
             "env",
             "config_vars",
-            "docs",
             "headers",
             "style",
             "python",
@@ -71,7 +70,6 @@ _MODE_SPECS: dict[str, dict] = {
         "checks": [
             "env",
             "config_vars",
-            "docs",
             "headers",
             "style",
             "python",
@@ -91,7 +89,6 @@ _MODE_SPECS: dict[str, dict] = {
         "checks": [
             "env",
             "config_vars",
-            "docs",
             "headers",
             "style",
             "python",
@@ -127,7 +124,6 @@ _MODE_SPECS: dict[str, dict] = {
 _CHECK_MAP = {
     "env": env,
     "config_vars": config_vars,
-    "docs": docs,
     "headers": headers,
     "style": style,
     "python": python,
@@ -160,7 +156,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-ci-build", action="store_true")
     parser.add_argument("--skip-preflight", action="store_true")
     parser.add_argument("--skip-config-checks", action="store_true")
-    parser.add_argument("--skip-workflow-docs", action="store_true")
     parser.add_argument("--skip-header-checks", action="store_true")
     parser.add_argument("--skip-style-check", action="store_true")
     parser.add_argument("--skip-strict-debug", action="store_true")
@@ -175,7 +170,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--ci-mode",
         action="store_true",
-        help="CI 模式：跳过本地-only 检查（.ai 文档同步等）",
+        help="兼容 CI 调用；当前与本地检查集合一致",
     )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--explain-scope", action="store_true")
@@ -196,7 +191,6 @@ def _should_run_check(name: str, mode_spec: dict, args: argparse.Namespace) -> b
     skip_map = {
         "env": args.skip_preflight,
         "config_vars": args.skip_config_checks,
-        "docs": args.skip_workflow_docs or args.ci_mode,
         "headers": args.skip_header_checks,
         "style": args.skip_style_check,
         "python": args.skip_ruff_check,

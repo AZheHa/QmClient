@@ -1,3 +1,4 @@
+# 请抬头享受阳光｜日子很好 我很我---------致咩子
 #!/usr/bin/env python3
 """环境前置检查。"""
 
@@ -24,7 +25,6 @@ def run(results: ResultCollector, included: list[str], dry_run: bool = False) ->
         REPO_ROOT / "qmclient_scripts" / "extract_identifiers.py",
         REPO_ROOT / "scripts" / "check_identifiers.py",
         REPO_ROOT / "qmclient_scripts" / "gate" / "check_gate.py",
-        REPO_ROOT / "qmclient_scripts" / "gate" / "check_docs.py",
     ]
     ok = True
     for p in required:
