@@ -4124,6 +4124,14 @@ if(CLIENT AND DMGBUILD)
     endforeach()
   endif()
 
+  set(DMG_FFMPEG_COPY_COMMANDS)
+  if(VIDEORECORDER AND FFMPEG_FOUND AND FFMPEG_COPY_FILES)
+    foreach(file ${FFMPEG_COPY_FILES})
+      list(APPEND DMG_FFMPEG_COPY_COMMANDS
+        COMMAND ${CMAKE_COMMAND} -E copy "${file}" "${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/")
+    endforeach()
+  endif()
+
   add_custom_command(OUTPUT ${CPACK_PACKAGE_FILE_NAME}.dmg
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${DMG_TMPDIR}
     ${DMG_MKDIR_COMMANDS}
@@ -4138,11 +4146,7 @@ if(CLIENT AND DMGBUILD)
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/ddnet-libs/discord/${LIB_DIR}/discord_game_sdk.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/ddnet-libs/freetype/${LIB_DIR}/libfreetype.6.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/ddnet-libs/png/${LIB_DIR}/libpng16.16.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/ddnet-libs/ffmpeg/${LIB_DIR}/libavcodec.61.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/ddnet-libs/ffmpeg/${LIB_DIR}/libavformat.61.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/ddnet-libs/ffmpeg/${LIB_DIR}/libavutil.59.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/ddnet-libs/ffmpeg/${LIB_DIR}/libswresample.5.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/ddnet-libs/ffmpeg/${LIB_DIR}/libswscale.8.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
+    ${DMG_FFMPEG_COPY_COMMANDS}
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/libsteam_api.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
 	COMMAND ${CMAKE_COMMAND} -E copy ${WEBP_LIB_DIR}/libwebp.7.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
 	COMMAND ${CMAKE_COMMAND} -E copy ${WEBP_LIB_DIR}/libwebpdemux.2.dylib ${DMG_TMPDIR}/${CLIENT_EXECUTABLE}.app/Contents/Frameworks/
