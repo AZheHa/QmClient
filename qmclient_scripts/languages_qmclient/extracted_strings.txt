@@ -1,4 +1,3 @@
-# 请抬头享受阳光｜日子很好 我很我---------致咩子
  min
  seconds
  seconds (never)
@@ -431,7 +430,6 @@ Click to copy this player's name to clipboard
 Click to remove this clan from your friends list.
 Click to remove this community from favorites
 Click to remove this player from your friends list.
-Click to restore full match
 Click to select server. Double click to join your friend.
 Click to set color
 Client
@@ -633,7 +631,6 @@ Direct touch input while spectating
 Direction Keys
 disable
 Disable after picking up other weapons
-Disable QmLive team preview/render filter
 Disabled
 Disagree
 Discard
@@ -860,9 +857,6 @@ File
 File '%s' already exists, do you want to overwrite it?
 File already exists, do you want to overwrite it?
 Filter connecting players
-Filter off
-Filter Team %d
-Filter: Team %d
 Find all ban records for the specified IP address
 Finish data source
 Finish Name
@@ -911,7 +905,6 @@ Frozen Margin
 FSAA samples
 FTAPI
 FTAPI auto-translate is disabled to prevent overload. Enable in settings if needed.
-Full demo + sidecar
 Full map listen in same room
 Fullscreen
 Fun
@@ -982,7 +975,6 @@ Heart
 Height
 Hello from ui_widget::Modal
 Help: %s
-Hide Chat
 Hide death/respawn effects
 Hide direction indicators
 Hide Echo messages
@@ -1614,8 +1606,6 @@ Preview dummy nameplate
 Preview import file
 Preview player nameplate
 Preview selected file
-Preview/render only one DDRace team from a full match demo
-Preview/render only this team
 Previous
 Previous page in console
 Primary
@@ -1691,7 +1681,6 @@ Receiving
 Recent
 Reconnect in %d sec
 Record demo
-Record match
 Record to a file
 Red
 Red team
@@ -2197,7 +2186,6 @@ Start and connect to local server
 Start here to quickly diagnose if the issue is with device, server, or room
 Start holding the hook before loading the savegame to keep the hook
 Start playback of ghosts
-Start QmLive full match demo recording
 Start recording a demo
 Start recording a video
 Statboard
@@ -2211,9 +2199,7 @@ Status bar color
 Status bar height
 Status normal, check details below if still experiencing issues
 Status Scheme:
-Stop match record
 Stop practice
-Stop QmLive full match demo recording
 Stop record
 Stop recording
 Stop recording a demo

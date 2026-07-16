@@ -12,6 +12,7 @@
 
 #include <engine/console.h>
 #include <engine/server.h>
+#include <engine/shared/client_brand.h>
 #include <engine/shared/demo.h>
 #include <engine/shared/econ.h>
 #include <engine/shared/fifo.h>
@@ -19,9 +20,7 @@
 #include <engine/shared/netban.h>
 #include <engine/shared/network.h>
 #include <engine/shared/protocol.h>
-#include <engine/shared/client_brand.h>
 #include <engine/shared/snapshot.h>
-#include <engine/shared/qm_live_protocol.h>
 #include <engine/shared/uuid_manager.h>
 
 #include <memory>
@@ -126,7 +125,6 @@ public:
 			STATE_CONNECTING,
 			STATE_READY,
 			STATE_INGAME,
-			STATE_LIVE_OBSERVER,
 		};
 
 		enum
@@ -174,9 +172,6 @@ public:
 		int m_Flags;
 		bool m_ShowIps;
 		bool m_DebugDummy;
-		bool m_QmLiveObserver;
-		bool m_IsLiveObserver;
-		int m_QmLiveCapabilities;
 		bool m_ForceHighBandwidthOnSpectate;
 		NETADDR m_DebugDummyAddr;
 		std::array<char, NETADDR_MAXSTRSIZE> m_aDebugDummyAddrString;
@@ -219,7 +214,7 @@ public:
 
 		bool IncludedInServerInfo() const
 		{
-			return m_State != STATE_EMPTY && !m_DebugDummy && !m_IsLiveObserver;
+			return m_State != STATE_EMPTY && !m_DebugDummy;
 		}
 	};
 
@@ -341,7 +336,6 @@ public:
 	int ClientCountry(int ClientId) const override;
 	bool ClientSlotEmpty(int ClientId) const override;
 	bool ClientIngame(int ClientId) const override;
-	bool ClientIsQmLiveObserver(int ClientId) const override;
 	int Port() const override;
 	int MaxClients() const override;
 	int ClientCount() const override;
@@ -364,10 +358,6 @@ public:
 	void SendClientBrandsToKnownClients();
 	void UpdateClientBrand(int ClientId, const char *pVersionString);
 	bool CanReceiveClientBrands(int ClientId) const;
-	int QmLiveCapabilities() const;
-	int NumQmLiveObservers() const;
-	void SendQmLiveObserverAccept(int ClientId);
-	void SendQmLiveObserverDeny(int ClientId, EQmLiveDenyReason Reason);
 	void SendKcpFallback(int ClientId, const char *pReason);
 	void SendKcpFallbackLegacy(int ClientId, const char *pReason);
 	void SendMap(int ClientId);

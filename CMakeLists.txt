@@ -2307,10 +2307,6 @@ set_src(ENGINE_SHARED GLOB_RECURSE src/engine/shared
   protocol_ex_msgs.h
   protocolglue.cpp
   protocolglue.h
-  qm_live_observer_session.cpp
-  qm_live_observer_session.h
-  qm_live_protocol.cpp
-  qm_live_protocol.h
   ringbuffer.cpp
   ringbuffer.h
   serverinfo.cpp
@@ -2893,18 +2889,6 @@ if(CLIENT)
     laser_data.h
     lineinput.cpp
     lineinput.h
-    live/live_director.cpp
-    live/live_director.h
-    live/live_finish_ranking.cpp
-    live/live_finish_ranking.h
-    live/live_match_replay.cpp
-    live/live_match_replay.h
-    live/live_replay_buffer.cpp
-    live/live_replay_buffer.h
-    live/live_replay_sidecar.cpp
-    live/live_replay_sidecar.h
-    live/live_team_render_filter.cpp
-    live/live_team_render_filter.h
     pickup_data.cpp
     pickup_data.h
     prediction/entities/character.cpp
@@ -3054,21 +3038,6 @@ if(CLIENT)
     render_map.cpp
     render_map.h
   )
-  set(GAME_LIVE_CLIENT
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_director.cpp
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_director.h
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_finish_ranking.cpp
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_finish_ranking.h
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_match_replay.cpp
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_match_replay.h
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_replay_buffer.cpp
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_replay_buffer.h
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_replay_sidecar.cpp
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_replay_sidecar.h
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_team_render_filter.cpp
-    ${PROJECT_SOURCE_DIR}/src/game/client/live/live_team_render_filter.h
-  )
-  list(REMOVE_ITEM GAME_CLIENT ${GAME_LIVE_CLIENT})
   set(GAME_GENERATED_CLIENT
     src/generated/checksum.cpp
     src/generated/client_data.cpp
@@ -3077,7 +3046,6 @@ if(CLIENT)
     src/generated/client_data7.h
   )
   set(CLIENT_SRC ${ENGINE_CLIENT} ${PLATFORM_CLIENT} ${GAME_CLIENT} ${GAME_EDITOR} ${GAME_MAP} ${GAME_GENERATED_CLIENT})
-  set(LIVE_CLIENT_SRC ${CLIENT_SRC} ${GAME_LIVE_CLIENT})
 
   set(DEPS_CLIENT ${DEPS} ${GLEW_DEP} ${WAVPACK_DEP})
 
@@ -3249,64 +3217,6 @@ if(CLIENT)
   list(APPEND TARGETS_OWN game-client)
   list(APPEND TARGETS_LINK game-client)
 
-  if(NOT TARGET_OS STREQUAL "android")
-    if(TARGET_OS STREQUAL "windows")
-      set(VERSION_EXECUTABLE "QmLiveClient")
-      set(VERSION_COMPANY "QmLiveClient Team")
-      configure_file("other/versioninfo/versioninfo.rc.in" "live_client.versioninfo.rc")
-      configure_file("other/manifest/live_client.manifest.in" "live_client.manifest")
-      set(LIVE_CLIENT_VERSIONINFO "${CMAKE_CURRENT_BINARY_DIR}/live_client.versioninfo.rc")
-      if(NOT MINGW)
-        set(LIVE_CLIENT_MANIFEST "${CMAKE_CURRENT_BINARY_DIR}/live_client.manifest")
-      else()
-        set(LIVE_CLIENT_MANIFEST "other/manifest/client.rc")
-      endif()
-    else()
-      set(LIVE_CLIENT_VERSIONINFO)
-      set(LIVE_CLIENT_MANIFEST)
-    endif()
-
-    add_executable(game-live-client WIN32
-      ${LIVE_CLIENT_SRC}
-      ${CLIENT_ICON}
-      ${LIVE_CLIENT_VERSIONINFO}
-      ${LIVE_CLIENT_MANIFEST}
-      ${DEPS_CLIENT}
-      $<TARGET_OBJECTS:engine-gfx>
-      $<TARGET_OBJECTS:engine-shared>
-      $<TARGET_OBJECTS:game-shared>
-      $<TARGET_OBJECTS:rust-bridge-shared>
-    )
-    set_property(TARGET game-live-client
-        PROPERTY OUTPUT_NAME QmLiveClient
-    )
-    target_link_libraries(game-live-client game-client-common)
-    target_compile_definitions(game-live-client PRIVATE CONF_QM_LIVE_CLIENT)
-    if(STEAMAPI_RUNTIME_FILE)
-      add_custom_command(TARGET game-live-client POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${STEAMAPI_RUNTIME_FILE}" "$<TARGET_FILE_DIR:game-live-client>/${STEAMAPI_RUNTIME_FILE_NAME}"
-        COMMENT "Copying official Steam API runtime for QmLiveClient")
-    endif()
-    if(MSVC)
-      target_compile_options(game-live-client PRIVATE /bigobj)
-      target_link_options(game-live-client PRIVATE /ENTRY:mainCRTStartup)
-    endif()
-
-    if(WIN32 AND NOT MSVC)
-      target_compile_options(game-live-client PRIVATE -Wa,-mbig-obj)
-    endif()
-
-    if(STEAMAPI_KIND STREQUAL SHARED OR DISCORD_DYNAMIC)
-      set_own_rpath(game-live-client)
-    endif()
-
-    if(TARGET sync_runtime_data)
-      add_dependencies(game-live-client sync_runtime_data)
-    endif()
-
-    list(APPEND TARGETS_OWN game-live-client)
-    list(APPEND TARGETS_LINK game-live-client)
-  endif()
 endif()
 
 
@@ -3487,61 +3397,6 @@ if(SERVER)
   list(APPEND TARGETS_OWN game-server)
   list(APPEND TARGETS_LINK game-server)
 
-  if(TARGET_OS STREQUAL "windows")
-    set(VERSION_EXECUTABLE "QmLiveServer")
-    set(VERSION_COMPANY "${CLIENT_EXECUTABLE} Team")
-    configure_file("other/versioninfo/versioninfo.rc.in" "live_server.versioninfo.rc")
-    set(LIVE_SERVER_VERSIONINFO "${CMAKE_CURRENT_BINARY_DIR}/live_server.versioninfo.rc")
-  else()
-    set(LIVE_SERVER_VERSIONINFO)
-  endif()
-
-  add_library(game-live-server-without-main OBJECT
-      ${DEPS}
-      ${SERVER_SRC}
-      $<TARGET_OBJECTS:engine-shared>
-      $<TARGET_OBJECTS:game-shared>
-      $<TARGET_OBJECTS:rust-bridge-shared>
-  )
-  set_property(TARGET game-live-server-without-main
-      PROPERTY OUTPUT_NAME QmLiveServer
-  )
-  target_compile_definitions(game-live-server-without-main PRIVATE CONF_QM_LIVE_SERVER)
-  target_link_libraries(game-live-server-without-main game-server-common)
-  list(APPEND TARGETS_OWN game-live-server-without-main)
-  list(APPEND TARGETS_LINK game-live-server-without-main)
-
-  if(TARGET_OS STREQUAL "android")
-    add_library(game-live-server SHARED
-      ${DEPS}
-      $<TARGET_OBJECTS:game-live-server-without-main>
-      "${PROJECT_SOURCE_DIR}/src/engine/server/main.cpp"
-      ${SERVER_ICON}
-      ${LIVE_SERVER_VERSIONINFO}
-      $<TARGET_OBJECTS:engine-shared>
-      $<TARGET_OBJECTS:game-shared>
-      $<TARGET_OBJECTS:rust-bridge-shared>
-    )
-  else()
-    add_executable(game-live-server
-      ${DEPS}
-      "${PROJECT_SOURCE_DIR}/src/engine/server/main.cpp"
-      ${SERVER_ICON}
-      ${LIVE_SERVER_VERSIONINFO}
-      $<TARGET_OBJECTS:game-live-server-without-main>
-      $<TARGET_OBJECTS:engine-shared>
-      $<TARGET_OBJECTS:game-shared>
-      $<TARGET_OBJECTS:rust-bridge-shared>
-    )
-  endif()
-  set_property(TARGET game-live-server
-      PROPERTY OUTPUT_NAME QmLiveServer
-  )
-  target_compile_definitions(game-live-server PRIVATE CONF_QM_LIVE_SERVER)
-  target_link_libraries(game-live-server game-server-common)
-  list(APPEND TARGETS_OWN game-live-server)
-  list(APPEND TARGETS_LINK game-live-server)
-
   if(TARGET_OS AND TARGET_OS STREQUAL "mac")
     set(SERVER_LAUNCHER_SRC src/macos/server.mm)
     add_executable(game-server-launcher ${SERVER_LAUNCHER_SRC})
@@ -3560,18 +3415,9 @@ if(CMAKE_GENERATOR MATCHES ".*Makefiles.*")
     add_custom_target(${CLIENT_EXECUTABLE})
     add_dependencies(${CLIENT_EXECUTABLE} game-client)
   endif()
-  if(TARGET game-live-client)
-    add_custom_target(QmLiveClient)
-    add_dependencies(QmLiveClient game-live-client)
-  endif()
-
   if(TARGET game-server)
     add_custom_target(${SERVER_EXECUTABLE})
     add_dependencies(${SERVER_EXECUTABLE} game-server)
-  endif()
-  if(TARGET game-live-server)
-    add_custom_target(QmLiveServer)
-    add_dependencies(QmLiveServer game-live-server)
   endif()
 endif()
 
@@ -3736,7 +3582,6 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     qm_hud_media_island_logic_test.cpp
     qm_hud_notifications_test.cpp
     qm_new_ui_menu_branch_test.cpp
-    qm_live_client_test.cpp
     qm_lyrics_cache_test.cpp
     qm_lyrics_clock_test.cpp
     qm_lyrics_match_test.cpp
@@ -3827,11 +3672,6 @@ if((GTEST_FOUND OR DOWNLOAD_GTEST) AND SERVER)
     src/game/client/components/qmclient/qm_lyrics/qm_lyrics_source_lyricify_cn.cpp
     src/game/client/components/qmclient/qm_lyrics/qm_lyrics_source_lrclib.cpp
     src/game/client/components/qmclient/qm_lyrics/qm_lyrics_song_search_map.cpp
-    src/game/client/live/live_director.cpp
-    src/game/client/live/live_finish_ranking.cpp
-    src/game/client/live/live_replay_buffer.cpp
-    src/game/client/live/live_replay_sidecar.cpp
-    src/game/client/live/live_team_render_filter.cpp
     src/game/client/components/qmclient/modes.cpp
     src/game/client/components/qmclient/settings_resource_preview.cpp
     src/game/client/components/qmclient/tee_hue_cycle.cpp
@@ -4613,10 +4453,10 @@ foreach(target ${TARGETS_OWN})
   if(TEST_MYSQL)
     target_compile_definitions(${target} PRIVATE CONF_TEST_MYSQL)
   endif()
-  if(AUTOUPDATE AND NOT "${target}" STREQUAL "game-live-client")
+  if(AUTOUPDATE)
     target_compile_definitions(${target} PRIVATE CONF_AUTOUPDATE)
   endif()
-  if(INFORM_UPDATE AND NOT "${target}" STREQUAL "game-live-client")
+  if(INFORM_UPDATE)
     target_compile_definitions(${target} PRIVATE CONF_INFORM_UPDATE)
   endif()
   # if(STEAM)

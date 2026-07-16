@@ -1294,9 +1294,6 @@ Click to remove this community from favorites
 Click to remove this player from your friends list.
 == 클릭하여 친구 목록에서 이 플레이어를 제거
 
-Click to restore full match
-== Click to restore full match
-
 Click to select server. Double click to join your friend.
 == 클릭하여 서버 선택. 더블 클릭하여 친구에게 접속
 
@@ -1899,9 +1896,6 @@ disable
 
 Disable after picking up other weapons
 == 다른 무기를 집으면 비활성화
-
-Disable QmLive team preview/render filter
-== Disable QmLive team preview/render filter
 
 Disabled
 == 비활성화
@@ -2581,15 +2575,6 @@ File already exists, do you want to overwrite it?
 Filter connecting players
 == 연결 중인 플레이어 필터링
 
-Filter off
-== Filter off
-
-Filter Team %d
-== Filter Team %d
-
-Filter: Team %d
-== Filter: Team %d
-
 Find all ban records for the specified IP address
 == 지정된 IP 주소의 모든 차단 기록 찾기
 
@@ -2733,9 +2718,6 @@ FTAPI
 
 FTAPI auto-translate is disabled to prevent overload. Enable in settings if needed.
 == 과부하 방지를 위해 FTAPI 자동 번역이 비활성화되었습니다. 필요 시 설정에서 활성화하세요.
-
-Full demo + sidecar
-== Full demo + sidecar
 
 Full map listen in same room
 == 같은 방에서 전체 맵 듣기
@@ -2946,9 +2928,6 @@ Hello from ui_widget::Modal
 
 Help: %s
 == 도움말: %s
-
-Hide Chat
-== 채팅 숨기기
 
 Hide death/respawn effects
 == 죽음/부활 효과 숨기기
@@ -4843,12 +4822,6 @@ Preview player nameplate
 Preview selected file
 == 선택한 파일 미리 듣기
 
-Preview/render only one DDRace team from a full match demo
-== Preview/render only one DDRace team from a full match demo
-
-Preview/render only this team
-== Preview/render only this team
-
 Previous
 == 이전
 
@@ -5073,9 +5046,6 @@ Reconnect in %d sec
 
 Record demo
 == 데모 녹화
-
-Record match
-== Record match
 
 Record to a file
 == 파일에 기록
@@ -6592,9 +6562,6 @@ Start holding the hook before loading the savegame to keep the hook
 Start playback of ghosts
 == 고스트 재생 시작
 
-Start QmLive full match demo recording
-== Start QmLive full match demo recording
-
 Start recording a demo
 == 데모 녹화 시작
 
@@ -6634,14 +6601,8 @@ Status normal, check details below if still experiencing issues
 Status Scheme:
 == 상태 구성:
 
-Stop match record
-== Stop match record
-
 Stop practice
 == 연습 중지
-
-Stop QmLive full match demo recording
-== Stop QmLive full match demo recording
 
 Stop record
 == 녹화 중지

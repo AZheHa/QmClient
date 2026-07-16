@@ -1,12 +1,12 @@
 // 请抬头享受阳光｜日子很好 我很我---------致咩子
-#include <gtest/gtest.h>
-#include <test/test.h>
+#include <engine/storage.h>
 
 #include <game/client/components/camera.h>
 #include <game/client/ui.h>
 #include <game/localization.h>
 
-#include <engine/storage.h>
+#include <gtest/gtest.h>
+#include <test/test.h>
 
 #include <algorithm>
 #include <regex>
@@ -1365,24 +1365,6 @@ TEST(QmNewUiMenuBranches, GraphicsDriverCrashRecoveryUsesSafeStartupFallback)
 	ASSERT_NE(HookCall, std::string::npos);
 	ASSERT_NE(CommandLineParse, std::string::npos);
 	EXPECT_LT(HookCall, CommandLineParse);
-}
-
-TEST(QmNewUiMenuBranches, LiveDirectorChatToggleIsHandledByOverlayInput)
-{
-	const std::string Source = ReadTextFile("src/game/client/gameclient.cpp");
-	const std::string Contains = FunctionBody(Source, "bool CGameClient::LiveObserverOverlayContains");
-	const std::string Input = FunctionBody(Source, "bool CGameClient::HandleLiveObserverInput");
-	const std::string Render = FunctionBody(Source, "void CGameClient::RenderLiveObserverOverlay");
-
-	EXPECT_NE(Source.find("constexpr float LIVE_OBSERVER_CHAT_TOGGLE_W"), std::string::npos);
-	EXPECT_NE(Source.find("constexpr float LIVE_OBSERVER_CHAT_TOGGLE_H"), std::string::npos);
-	EXPECT_NE(Source.find("CUIRect LiveObserverChatToggleRect(float Height)"), std::string::npos);
-	EXPECT_NE(Contains.find("LiveObserverChatToggleRect(LIVE_OBSERVER_UI_HEIGHT).Inside(MousePos)"), std::string::npos);
-	EXPECT_NE(Input.find("g_Config.m_ClShowChat = g_Config.m_ClShowChat == 0 ? 1 : 0;"), std::string::npos);
-	EXPECT_NE(Input.find("Input()->MouseModeAbsolute();"), std::string::npos);
-	EXPECT_LT(Input.find("LiveObserverChatToggleRect(LIVE_OBSERVER_UI_HEIGHT).Inside(MousePos)"), Input.find("if(Panel.Inside(MousePos))"));
-	EXPECT_NE(Render.find("const CUIRect ChatToggle = LiveObserverChatToggleRect(Height);"), std::string::npos);
-	EXPECT_NE(Render.find("ChatVisible ? Localize(\"Hide Chat\") : Localize(\"Show chat\")"), std::string::npos);
 }
 
 TEST(QmNewUiMenuBranches, ImplausibleRefreshRatesAreNotPersisted)

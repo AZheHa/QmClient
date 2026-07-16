@@ -2002,9 +2002,6 @@ void CChat::AddLine(int ClientId, int Team, const char *pLine, bool ForceVisible
 
 void CChat::AddLine(int ClientId, int Team, const char *pLine, bool ForceVisible, std::optional<QmHudNotifications::EServerMessageClass> KnownServerMessageClass)
 {
-	if(ClientId >= 0 && !GameClient()->LiveTeamFilterAllowsClient(ClientId))
-		return;
-
 	if(*pLine == 0 ||
 		(ClientId == SERVER_MSG && !g_Config.m_ClShowChatSystem) ||
 		(ClientId >= 0 && (GameClient()->m_aClients[ClientId].m_aName[0] == '\0' || // unknown client
@@ -3312,11 +3309,6 @@ static bool ShouldSyncTeamCommandToOther(const char *pLine)
 
 void CChat::SendChat(int Team, const char *pLine)
 {
-#if defined(CONF_QM_LIVE_CLIENT)
-	if(GameClient()->LivePresentationMode() == CGameClient::EQmLivePresentationMode::LIVE_OBSERVER && ShouldBlockLiveDirectorChatCommand(pLine))
-		return;
-#endif
-
 	// don't send empty messages
 	if(*str_utf8_skip_whitespaces(pLine) == '\0')
 		return;
@@ -3353,11 +3345,6 @@ void CChat::SendChat(int Team, const char *pLine)
 
 void CChat::SendChatOnConn(int Conn, int Team, const char *pLine)
 {
-#if defined(CONF_QM_LIVE_CLIENT)
-	if(GameClient()->LivePresentationMode() == CGameClient::EQmLivePresentationMode::LIVE_OBSERVER && ShouldBlockLiveDirectorChatCommand(pLine))
-		return;
-#endif
-
 	if(pLine == nullptr)
 		return;
 

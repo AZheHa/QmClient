@@ -282,8 +282,6 @@ MACRO_CONFIG_INT(SvTournamentMode, sv_tournament_mode, 0, 0, 1, CFGFLAG_SERVER, 
 MACRO_CONFIG_INT(SvSpamprotection, sv_spamprotection, 1, 0, 1, CFGFLAG_SERVER, "刷屏保护：防止切换队伍、聊天、换皮肤、表情和投票的刷屏")
 
 MACRO_CONFIG_INT(SvSpectatorSlots, sv_spectator_slots, 0, 0, SERVER_MAX_CLIENTS, CFGFLAG_SERVER, "为观众保留的槽位数")
-MACRO_CONFIG_INT(SvQmLiveObserver, sv_qm_live_observer, 1, 0, 1, CFGFLAG_SERVER, "允许 QmLiveClient 以隐藏只读 observer 连接")
-MACRO_CONFIG_INT(SvQmLiveMaxObservers, sv_qm_live_max_observers, 4, 0, SERVER_MAX_CLIENTS, CFGFLAG_SERVER, "最多允许的 QmLive observer 连接数")
 MACRO_CONFIG_INT(SvInactiveKickTime, sv_inactivekick_time, 0, 0, 1000, CFGFLAG_SERVER, "处理不活跃玩家前等待的时间（单位：分钟）")
 MACRO_CONFIG_INT(SvInactiveKick, sv_inactivekick, 0, 0, 2, CFGFLAG_SERVER, "如何处理不活跃玩家（0 = 移到观众，1 = 移到空闲观众槽位/踢出，2 = 踢出）")
 

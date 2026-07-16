@@ -37,9 +37,6 @@
 using namespace std::chrono_literals;
 
 static constexpr int SKIN_QUEUE_INTERVAL_UNITS_PER_SECOND = 10;
-#if defined(CONF_QM_LIVE_CLIENT)
-static constexpr size_t LIVE_OBSERVER_SKINS_LOADED_MAX = 96;
-#endif
 
 static int SettingsSkinDecodeJobWorkerBudget()
 {
@@ -1298,10 +1295,6 @@ void CSkins::UpdateForSettingsWarmup()
 
 size_t CSkins::LoadedSkinLimit() const
 {
-#if defined(CONF_QM_LIVE_CLIENT)
-	if(GameClient()->LivePresentationMode() == CGameClient::EQmLivePresentationMode::LIVE_OBSERVER)
-		return minimum((size_t)g_Config.m_ClSkinsLoadedMax, LIVE_OBSERVER_SKINS_LOADED_MAX);
-#endif
 	return (size_t)g_Config.m_ClSkinsLoadedMax;
 }
 

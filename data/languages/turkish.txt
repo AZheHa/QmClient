@@ -1294,9 +1294,6 @@ Click to remove this community from favorites
 Click to remove this player from your friends list.
 == Bu oyuncuyu arkadaş listenizden kaldırmak için tıklayın.
 
-Click to restore full match
-== Click to restore full match
-
 Click to select server. Double click to join your friend.
 == Sunucuyu seçmek için tıklayın. Arkadaşınıza katılmak için çift tıklayın.
 
@@ -1899,9 +1896,6 @@ disable
 
 Disable after picking up other weapons
 == Diğer silahları aldıktan sonra devre dışı bırak
-
-Disable QmLive team preview/render filter
-== Disable QmLive team preview/render filter
 
 Disabled
 == Devre dışı
@@ -2581,15 +2575,6 @@ File already exists, do you want to overwrite it?
 Filter connecting players
 == Bağlanan oyuncuları filtrele
 
-Filter off
-== Filter off
-
-Filter Team %d
-== Filter Team %d
-
-Filter: Team %d
-== Filter: Team %d
-
 Find all ban records for the specified IP address
 == Belirtilen IP adresi için tüm yasak kayıtlarını bul
 
@@ -2733,9 +2718,6 @@ FTAPI
 
 FTAPI auto-translate is disabled to prevent overload. Enable in settings if needed.
 == Aşırı yüklemeyi önlemek için FTAPI otomatik çevirisi devre dışı bırakıldı. Gerekirse ayarlardan etkinleştirin.
-
-Full demo + sidecar
-== Full demo + sidecar
 
 Full map listen in same room
 == Aynı odada tam harita dinleme
@@ -2946,9 +2928,6 @@ Hello from ui_widget::Modal
 
 Help: %s
 == Yardım: %s
-
-Hide Chat
-== Sohbeti gizle
 
 Hide death/respawn effects
 == Ölüm/yeniden doğma efektlerini gizle
@@ -4843,12 +4822,6 @@ Preview player nameplate
 Preview selected file
 == Seçili dosyayı önizle
 
-Preview/render only one DDRace team from a full match demo
-== Preview/render only one DDRace team from a full match demo
-
-Preview/render only this team
-== Preview/render only this team
-
 Previous
 == Önceki
 
@@ -5073,9 +5046,6 @@ Reconnect in %d sec
 
 Record demo
 == Demo kaydet
-
-Record match
-== Record match
 
 Record to a file
 == Bir dosyaya kaydet
@@ -6592,9 +6562,6 @@ Start holding the hook before loading the savegame to keep the hook
 Start playback of ghosts
 == Hayaletlerin oynatımını başlat
 
-Start QmLive full match demo recording
-== Start QmLive full match demo recording
-
 Start recording a demo
 == Bir demo kaydetmeye başla
 
@@ -6634,14 +6601,8 @@ Status normal, check details below if still experiencing issues
 Status Scheme:
 == Durum Şeması:
 
-Stop match record
-== Stop match record
-
 Stop practice
 == Pratiği durdur
-
-Stop QmLive full match demo recording
-== Stop QmLive full match demo recording
 
 Stop record
 == Kaydı durdur

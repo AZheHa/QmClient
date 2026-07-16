@@ -555,22 +555,6 @@ TEST(QmChatInteractions, ChatInputClipPaddingDoesNotExpandContentScrollArea)
 	EXPECT_EQ(Body.find("CaretPositionY < InputClippingRect.y"), std::string::npos);
 }
 
-TEST(QmChatInteractions, LiveDirectorBlocksOnlyPauseCommand)
-{
-	EXPECT_TRUE(CChat::ShouldBlockLiveDirectorChatCommand("/pause"));
-	EXPECT_TRUE(CChat::ShouldBlockLiveDirectorChatCommand("   /pause"));
-	EXPECT_TRUE(CChat::ShouldBlockLiveDirectorChatCommand("/pause "));
-	EXPECT_TRUE(CChat::ShouldBlockLiveDirectorChatCommand("/pause 1"));
-	EXPECT_TRUE(CChat::ShouldBlockLiveDirectorChatCommand("/PAUSE"));
-
-	EXPECT_FALSE(CChat::ShouldBlockLiveDirectorChatCommand(nullptr));
-	EXPECT_FALSE(CChat::ShouldBlockLiveDirectorChatCommand(""));
-	EXPECT_FALSE(CChat::ShouldBlockLiveDirectorChatCommand("please /pause"));
-	EXPECT_FALSE(CChat::ShouldBlockLiveDirectorChatCommand("/paused"));
-	EXPECT_FALSE(CChat::ShouldBlockLiveDirectorChatCommand("/team 1"));
-	EXPECT_FALSE(CChat::ShouldBlockLiveDirectorChatCommand("hello"));
-}
-
 TEST(QmChatInteractions, AppendsBlockWordsWithSeparator)
 {
 	char aList[32] = "";

@@ -2,16 +2,25 @@
 """
 Batch-add signature line to all QmClient original source files.
 """
+
 import os
 import fnmatch
 
 SIGNATURE = "请抬头享受阳光｜日子很好 我很我---------致咩子"
 
 LINE_PREFIX = {
-    ".cpp": "// ", ".cc": "// ", ".cxx": "// ", ".c": "// ",
-    ".h": "// ", ".hpp": "// ", ".hh": "// ",
+    ".cpp": "// ",
+    ".cc": "// ",
+    ".cxx": "// ",
+    ".c": "// ",
+    ".h": "// ",
+    ".hpp": "// ",
+    ".hh": "// ",
     ".rs": "// ",
-    ".ts": "// ", ".tsx": "// ", ".js": "// ", ".jsx": "// ",
+    ".ts": "// ",
+    ".tsx": "// ",
+    ".js": "// ",
+    ".jsx": "// ",
     ".inc": "// ",
     ".py": "# ",
     ".toml": "# ",
@@ -22,6 +31,7 @@ LINE_PREFIX = {
     ".md": "> ",
     ".sh": "# ",
 }
+
 
 def add_signature(filepath):
     ext = os.path.splitext(filepath)[1].lower()
@@ -45,6 +55,7 @@ def add_signature(filepath):
         f.write(line + content)
     return True
 
+
 def main():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     supported_exts = tuple(LINE_PREFIX.keys())
@@ -53,7 +64,6 @@ def main():
     safe_dirs = [
         "src/game/client/QmUi",
         "src/game/client/components/qmclient",
-        "src/game/client/live",
         "src/test",
         "qmclient_scripts",
     ]
@@ -113,6 +123,7 @@ def main():
                         count += 1
 
     print(f"\nDone. {count} files updated.")
+
 
 if __name__ == "__main__":
     main()

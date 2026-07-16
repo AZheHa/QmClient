@@ -1,13 +1,9 @@
 // 请抬头享受阳光｜日子很好 我很我---------致咩子
 #include "collision_hitbox.h"
 
-#include <algorithm>
-#include <cmath>
-#include <limits>
-#include <vector>
-
 #include <base/log.h>
 #include <base/math.h>
+
 #include <engine/graphics.h>
 #include <engine/shared/config.h>
 
@@ -20,6 +16,11 @@
 #include <game/client/projectile_data.h>
 #include <game/gamecore.h>
 #include <game/mapitems.h>
+
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <vector>
 
 // 地图层类型
 enum class HitboxLayer
@@ -484,8 +485,8 @@ void CCollisionHitbox::RenderTeeHitboxes()
 			   Player.m_RenderPos.y >= ScreenY0 && Player.m_RenderPos.y <= ScreenY1))
 			continue;
 
-		float PlayerAlpha = Alpha * GameClient()->LiveObserverClientAlpha(ClientId);
-		if(PlayerAlpha >= Alpha && GameClient()->IsOtherTeam(ClientId))
+		float PlayerAlpha = Alpha;
+		if(GameClient()->IsOtherTeam(ClientId))
 			PlayerAlpha *= (float)g_Config.m_ClShowOthersAlpha / 100.0f;
 
 		if(PlayerAlpha <= 0.0f)
@@ -560,7 +561,7 @@ void CCollisionHitbox::RenderPickupHitboxes()
 			continue;
 
 		if(Data.m_Pos.x + PickupRadius < ScreenX0 || Data.m_Pos.x - PickupRadius > ScreenX1 ||
-		   Data.m_Pos.y + PickupRadius < ScreenY0 || Data.m_Pos.y - PickupRadius > ScreenY1)
+			Data.m_Pos.y + PickupRadius < ScreenY0 || Data.m_Pos.y - PickupRadius > ScreenY1)
 			continue;
 
 		DrawBoxOutline(Data.m_Pos, PickupRadius, ShieldColor);
@@ -592,8 +593,8 @@ void CCollisionHitbox::RenderHammerHitboxes()
 			continue;
 		const vec2 RenderHitPosition = HitPosition + RenderDelta;
 
-		float PlayerAlpha = Alpha * GameClient()->LiveObserverClientAlpha(ClientId);
-		if(PlayerAlpha >= Alpha && GameClient()->IsOtherTeam(ClientId))
+		float PlayerAlpha = Alpha;
+		if(GameClient()->IsOtherTeam(ClientId))
 			PlayerAlpha *= g_Config.m_ClShowOthersAlpha / 100.0f;
 		if(PlayerAlpha <= 0.0f)
 			continue;
@@ -644,8 +645,7 @@ void CCollisionHitbox::RenderProjectileHitboxes()
 		float ProjectileAlpha = Alpha;
 		if(Data.m_ExtraInfo && Data.m_Owner >= 0)
 		{
-			ProjectileAlpha *= GameClient()->LiveObserverClientAlpha(Data.m_Owner);
-			if(ProjectileAlpha >= Alpha && GameClient()->IsOtherTeam(Data.m_Owner))
+			if(GameClient()->IsOtherTeam(Data.m_Owner))
 				ProjectileAlpha *= g_Config.m_ClShowOthersAlpha / 100.0f;
 		}
 		if(ProjectileAlpha <= 0.0f)
@@ -683,8 +683,7 @@ void CCollisionHitbox::RenderLaserHitboxes()
 		float LaserAlpha = Alpha;
 		if(Data.m_ExtraInfo && Data.m_Owner >= 0)
 		{
-			LaserAlpha *= GameClient()->LiveObserverClientAlpha(Data.m_Owner);
-			if(LaserAlpha >= Alpha && GameClient()->IsOtherTeam(Data.m_Owner))
+			if(GameClient()->IsOtherTeam(Data.m_Owner))
 				LaserAlpha *= g_Config.m_ClShowOthersAlpha / 100.0f;
 		}
 		if(LaserAlpha <= 0.0f)
@@ -725,8 +724,8 @@ void CCollisionHitbox::RenderHookHitboxes()
 		if(!IsLineOnScreen(StartPosition, HookPosition, CCharacterCore::PhysicalSize()))
 			continue;
 
-		float HookAlpha = Alpha * GameClient()->LiveObserverClientAlpha(ClientId);
-		if(HookAlpha >= Alpha && GameClient()->IsOtherTeam(ClientId))
+		float HookAlpha = Alpha;
+		if(GameClient()->IsOtherTeam(ClientId))
 			HookAlpha *= g_Config.m_ClShowOthersAlpha / 100.0f;
 		if(HookAlpha <= 0.0f)
 			continue;

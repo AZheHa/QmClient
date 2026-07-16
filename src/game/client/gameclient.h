@@ -111,13 +111,6 @@
 #include "components/touch_controls.h"
 #include "components/ui_effects.h"
 #include "components/voting.h"
-#if defined(CONF_QM_LIVE_CLIENT)
-#include "live/live_director.h"
-#include "live/live_finish_ranking.h"
-#include "live/live_match_replay.h"
-#include "live/live_replay_buffer.h"
-#include "live/live_team_render_filter.h"
-#endif
 
 #include <array>
 #include <chrono>
@@ -214,13 +207,6 @@ public:
 		int m_TargetY = 0;
 		unsigned m_WheelMask = 0;
 		uint64_t m_WheelSequence = 0;
-	};
-
-	enum class EQmLivePresentationMode
-	{
-		NORMAL,
-		LIVE_OBSERVER,
-		QMLIVE_DEMO,
 	};
 
 	friend class CTClient;
@@ -380,61 +366,6 @@ private:
 	void HandleHammerSkinSwap(const SQmHammerHitRecord &Hit);
 	void HandleRandomGrenadeEmoteOnHit(CCharacter *pLocalChar, int DummyIndex);
 	void HandleConfirmedHammerHit(const SQmHammerHitRecord &Hit);
-	bool LivePresentationUsesLiveObserverOverlay() const;
-	bool LivePresentationUsesQmLiveDemo() const;
-	bool LivePresentationUsesOnlineDirector() const;
-#if defined(CONF_QM_LIVE_CLIENT)
-	void ResetQmLiveDemoPlaybackState();
-	void SaveLiveObserverStateForQmLiveDemo();
-	void RestoreLiveObserverStateAfterQmLiveDemo();
-	bool TryLoadQmLiveDemoSidecar();
-	void UpdateQmLiveDemoPlaybackState();
-	void RebuildQmLiveDemoTeams(int CurrentTick);
-	int QmLiveDemoPlaybackTick() const;
-	int QmLiveDemoTeamForClient(int ClientId) const;
-	int LiveObserverDDRaceTeam(int ClientId) const;
-	int LiveFinishTimeForTeam(int Team) const;
-	int QmLiveDemoPrimaryTargetForTeam(int Team, int CurrentTick) const;
-	int QmLiveDemoFallbackPlayerForTeam(int Team, int CurrentTick) const;
-	void UpdateLiveObserverSnapshot();
-	void PushLiveReplaySnapshot();
-	void RenderLiveObserverOverlay();
-	bool HandleLiveObserverInput(const IInput::CEvent &Event);
-	bool LiveObserverOverlayContains(vec2 MousePos) const;
-	bool LiveObserverTeamPanelContains(vec2 MousePos) const;
-	vec2 LiveObserverMousePos() const;
-	vec2 LiveObserverMouseWorldPos() const;
-	void UpdateLiveObserverMouseMode();
-	bool LiveObserverGlobalPlayerActive(int ClientId) const;
-	bool LiveObserverActivePlayerInTeam(int ClientId, int Team) const;
-	bool LiveObserverTeamActive(int Team) const;
-	int LiveObserverTeamMemberCount(int Team) const;
-	float LiveObserverPanelContentHeight() const;
-	float LiveObserverPanelMaxScroll() const;
-	void ClampLiveObserverPanelScroll();
-	int LiveObserverFallbackPlayerForTeam(int Team) const;
-	int FindLiveObserverClosestTeam(vec2 WorldPos) const;
-	int RandomLiveObserverPlayerForTeam(int Team, unsigned Seed) const;
-	void RequestLiveCompatSpectator();
-	void SanitizeLiveCompatInput(int *pData, int Size);
-	void FinishLiveObserverHoldFreeview();
-	void SetLiveObserverTeam(int Team);
-	void SetLiveObserverTeamPlayer(int Team, int ClientId);
-	void SetLiveObserverPlayer(int ClientId);
-	void SetLiveObserverFreeview();
-	void HandleLiveFinishMessage(int MsgId, void *pRawMsg, int Conn);
-	void QueueLiveFinishResult(const CLiveFinishRanking::CResult &Result);
-	void ResolveLiveFinishPending(int CurrentTick);
-	void UpdateLiveFinishTimeline();
-	bool TryRebuildLiveFinishRankingFromSidecar(int CurrentTick);
-	void ResetLiveFinishRanking();
-	void RenderLiveFinishRankHud();
-	void UpdateLiveTeamFilterConfig();
-	void ResetLiveTeamFilterTransientState();
-	bool ShouldFilterLiveTeamMessage(int MsgId, void *pRawMsg) const;
-	bool ShouldSuppressComponentForQmLiveDemo(const CComponent *pComponent) const;
-#endif
-
 	int m_PredictedTick;
 	int m_aLastNewPredictedTick[NUM_DUMMIES];
 	int m_aLastPredictedAirJumpTick[NUM_DUMMIES];
@@ -465,12 +396,6 @@ private:
 	static void ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static void ConTuneZone(IConsole::IResult *pResult, void *pUserData);
 	static void ConMapbug(IConsole::IResult *pResult, void *pUserData);
-#if defined(CONF_QM_LIVE_CLIENT)
-	static void ConQmLiveMatchRecordStart(IConsole::IResult *pResult, void *pUserData);
-	static void ConQmLiveMatchRecordStop(IConsole::IResult *pResult, void *pUserData);
-	static void ConQmLiveTeamFilter(IConsole::IResult *pResult, void *pUserData);
-	static void ConQmLiveTeamFilterOff(IConsole::IResult *pResult, void *pUserData);
-#endif
 
 	static void ConchainMenuMap(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
@@ -953,10 +878,6 @@ public:
 	int ClientVersion7() const override;
 	const SDemoHudPlaybackState *DemoHudPlaybackState() const { return m_DemoHudPlaybackState.m_Valid ? &m_DemoHudPlaybackState : nullptr; }
 	const SDemoInputPlaybackState *DemoInputPlaybackState() const { return m_DemoInputPlaybackState.m_Valid ? &m_DemoInputPlaybackState : nullptr; }
-	EQmLivePresentationMode LivePresentationMode() const;
-	bool IsQmLiveDemoPlayback() const { return LivePresentationMode() == EQmLivePresentationMode::QMLIVE_DEMO; }
-	bool ShouldSuppressStandardHud() const { return IsQmLiveDemoPlayback(); }
-
 	void DoTeamChangeMessage7(const char *pName, int ClientId, int Team, const char *pPrefix = "");
 
 	// actions
@@ -972,9 +893,6 @@ public:
 	void SendKill();
 	void SendKill() const;
 	void SendReadyChange7();
-#if defined(CONF_QM_LIVE_CLIENT)
-	void SetLiveObserverSpectatorId(int SpectatorId);
-#endif
 
 	void ApplyPreInputs(int Tick, bool Direct, CGameWorld &GameWorld);
 	bool GetDummyFastInput(CNetObj_PlayerInput &DummyFastInput, const CNetObj_PlayerInput *pDummyInputData, const class CCharacter *pDummyChar, int LocalTee, int DummyTee) const;
@@ -1047,47 +965,6 @@ public:
 	void Echo(const char *pString) override;
 	void Echo(const char *pString, bool ForceVisible);
 	bool IsOtherTeam(int ClientId) const;
-#if defined(CONF_QM_LIVE_CLIENT)
-	bool LiveObserverDimClient(int ClientId) const;
-	float LiveObserverClientAlpha(int ClientId) const;
-	bool LiveTeamFilterActive() const { return m_LiveTeamRenderFilter.Active(); }
-	int LiveTeamFilterTeam() const { return m_LiveTeamRenderFilter.Team(); }
-	bool LiveTeamFilterAllowsTeam(int Team) const { return m_LiveTeamRenderFilter.AllowsTeam(Team); }
-	bool LiveTeamFilterAllowsClient(int ClientId) const { return m_LiveTeamRenderFilter.AllowsClient(ClientId); }
-	bool LiveTeamFilterAllowsKnownOwner(int ClientId) const { return m_LiveTeamRenderFilter.AllowsKnownOwner(ClientId); }
-	bool LiveTeamFilterAllowsUnknownPlayerEvent() const { return m_LiveTeamRenderFilter.AllowsUnknownPlayerEvent(); }
-	bool LiveTeamFilterAudioEnabled() const { return !m_LiveTeamRenderFilter.Active() || m_LiveTeamRenderFilter.AudioEnabled(); }
-#else
-	bool LiveObserverDimClient(int ClientId) const
-	{
-		(void)ClientId;
-		return false;
-	}
-	float LiveObserverClientAlpha(int ClientId) const
-	{
-		(void)ClientId;
-		return 1.0f;
-	}
-	bool LiveTeamFilterActive() const { return false; }
-	int LiveTeamFilterTeam() const { return -1; }
-	bool LiveTeamFilterAllowsTeam(int Team) const
-	{
-		(void)Team;
-		return true;
-	}
-	bool LiveTeamFilterAllowsClient(int ClientId) const
-	{
-		(void)ClientId;
-		return true;
-	}
-	bool LiveTeamFilterAllowsKnownOwner(int ClientId) const
-	{
-		(void)ClientId;
-		return true;
-	}
-	bool LiveTeamFilterAllowsUnknownPlayerEvent() const { return true; }
-	bool LiveTeamFilterAudioEnabled() const { return true; }
-#endif
 	int SwitchStateTeam() const;
 	bool IsLocalCharSuper() const;
 	bool CanDisplayWarning() const override;
@@ -1293,45 +1170,6 @@ public:
 
 private:
 	std::vector<CSnapEntities> m_vSnapEntities;
-#if defined(CONF_QM_LIVE_CLIENT)
-	CLiveDirector m_LiveDirector;
-	CLiveFinishRanking m_LiveFinishRanking;
-	CLiveMatchReplay m_LiveMatchReplay;
-	CLiveReplayBuffer m_LiveReplayBuffer;
-	CLiveTeamRenderFilter m_LiveTeamRenderFilter;
-	SLiveReplaySidecarData m_QmLiveDemoSidecar;
-	std::array<int, MAX_CLIENTS> m_aQmLiveDemoTeams{};
-	std::vector<uint8_t> m_vLiveReplayScratch;
-	char m_aQmLiveDemoSidecarPath[IO_MAX_PATH_LENGTH] = "";
-	int m_LiveObserverCurrentTeam = -1;
-	int m_LiveObserverReturnTeam = -1;
-	int m_LiveObserverFollowClientId = SPEC_FREEVIEW;
-	int m_LiveObserverExpandedTeam = -1;
-	int m_QmLiveDemoLastTick = -1;
-	int m_QmLiveDemoWantedTeam = -1;
-	int m_QmLiveDemoFilterTeam = -1;
-	int m_QmLiveDemoFollowClientId = SPEC_FREEVIEW;
-	int m_QmLiveDemoSavedCurrentTeam = -1;
-	int m_QmLiveDemoSavedReturnTeam = -1;
-	int m_QmLiveDemoSavedFollowClientId = SPEC_FREEVIEW;
-	int m_QmLiveDemoSavedExpandedTeam = -1;
-	vec2 m_LiveObserverLastMousePos = vec2(0.0f, 0.0f);
-	int64_t m_LiveCompatLastSpectatorRequestTime = 0;
-	float m_LiveObserverPanelScroll = 0.0f;
-	float m_QmLiveDemoSavedPanelScroll = 0.0f;
-	bool m_LiveObserverMouseAbsolute = false;
-	bool m_LiveObserverFreeview = true;
-	bool m_LiveObserverHoldFreeview = false;
-	bool m_QmLiveDemoSidecarLoadAttempted = false;
-	bool m_QmLiveDemoSidecarValid = false;
-	bool m_QmLiveDemoManualFollow = false;
-	bool m_QmLiveDemoSavedObserverState = false;
-	bool m_QmLiveDemoSavedFreeview = true;
-	bool m_QmLiveDemoSavedHoldFreeview = false;
-	bool m_LiveFinishTeamsStateKnown = false;
-	int m_LiveFinishTeamsStateTick = -1;
-	int m_LiveTeamFilterResetSerial = 0;
-#endif
 	void SnapCollectEntities();
 	int GetFastInputPredictionAmountMs();
 	int GetFastInputPredictionTicks();
