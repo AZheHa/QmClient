@@ -2,6 +2,7 @@
 #include <engine/storage.h>
 
 #include <game/client/components/camera.h>
+#include <game/client/components/qmclient/axiom_auto_login.h>
 #include <game/client/ui.h>
 #include <game/localization.h>
 
@@ -1040,6 +1041,15 @@ TEST(QmNewUiMenuBranches, ScoreboardBackgroundsUseScoreboardOpacity)
 	EXPECT_NE(Source.find("Row.Draw(ScoreboardDecorationColor(ColorRGBA(0.7f, 0.7f, 0.7f, 0.7f * ItemAlpha))"), std::string::npos);
 }
 
+TEST(QmNewUiMenuBranches, ScoreboardFewPlayerDdTeamLabelIsLeftAligned)
+{
+	const std::string Source = ReadTextFile("src/game/client/components/scoreboard.cpp");
+	const std::string RenderScoreboard = FunctionBody(Source, "void CScoreboard::RenderScoreboard(");
+
+	EXPECT_NE(RenderScoreboard.find("TextRender()->Text(Row.x + 5.0f, Row.y + Row.h, TeamFontSize, aBuf);"), std::string::npos);
+	EXPECT_EQ(RenderScoreboard.find("Row.x + Row.w / 2.0f - TextRender()->TextWidth(TeamFontSize, aBuf) / 2.0f + 5.0f"), std::string::npos);
+}
+
 TEST(QmNewUiMenuBranches, ScoreboardMediaButtonSymbolsFollowContentAlpha)
 {
 	const std::string Source = ReadTextFile("src/game/client/components/scoreboard.cpp");
@@ -1200,18 +1210,13 @@ TEST(QmNewUiMenuBranches, QmClientAxiomAutoLoginLivesInQmClientComponent)
 	EXPECT_NE(Source.find("void CQmAxiomAutoLogin::TrySendLogin()"), std::string::npos);
 	EXPECT_NE(Source.find("void CQmAxiomAutoLogin::TrySendDummyLogin()"), std::string::npos);
 	EXPECT_NE(Source.find("bool CQmAxiomAutoLogin::IsAxiomCommunity() const"), std::string::npos);
-	EXPECT_NE(Source.find("QMCLIENT_AXIOM_AUTO_LOGIN_SLOW_RETRY_SECONDS"), std::string::npos);
-	EXPECT_NE(Source.find("m_AutoLoginSlowRetryMode"), std::string::npos);
-	EXPECT_NE(Source.find("m_AutoLoginHardFailed"), std::string::npos);
-	EXPECT_NE(Source.find("ScheduleSlowRetry"), std::string::npos);
-	EXPECT_NE(Source.find("IsHardLoginFailure"), std::string::npos);
-	EXPECT_NE(Source.find("IsLoginContextMessage"), std::string::npos);
-	EXPECT_NE(Source.find("return IsLoginContextMessage(pText) &&"), std::string::npos);
-	const size_t HardFailureCheck = Source.find("IsHardLoginFailure(pText)");
-	const size_t LoginMessageFilter = Source.find("const bool IsLoginMessage");
-	EXPECT_NE(HardFailureCheck, std::string::npos);
-	EXPECT_NE(LoginMessageFilter, std::string::npos);
-	EXPECT_LT(HardFailureCheck, LoginMessageFilter);
+	EXPECT_NE(Header.find("QMCLIENT_AXIOM_AUTO_LOGIN_SLOW_RETRY_SECONDS"), std::string::npos);
+	EXPECT_NE(Header.find("SQmAxiomAutoLoginState m_AutoLoginState;"), std::string::npos);
+	EXPECT_NE(Header.find("m_SlowRetryMode"), std::string::npos);
+	EXPECT_NE(Header.find("m_HardFailed"), std::string::npos);
+	EXPECT_NE(Header.find("QmScheduleAxiomAutoLoginRetry"), std::string::npos);
+	EXPECT_NE(Source.find("QmClassifyAxiomLoginReply(pText)"), std::string::npos);
+	EXPECT_NE(Source.find("QmApplyAxiomLoginReply"), std::string::npos);
 	EXPECT_NE(Source.find("Localize(\"Trying Axiom auto login\")"), std::string::npos);
 	EXPECT_NE(Source.find("Localize(\"Axiom auto login succeeded\")"), std::string::npos);
 	EXPECT_NE(Source.find("Localize(\"Axiom auto login failed, retrying\")"), std::string::npos);
@@ -1223,6 +1228,123 @@ TEST(QmNewUiMenuBranches, QmClientAxiomAutoLoginLivesInQmClientComponent)
 	EXPECT_EQ(TClientHeader.find("HandleAxiomAutoLoginMessage"), std::string::npos);
 	EXPECT_EQ(TClientSource.find("TrySendAxiomLogin"), std::string::npos);
 	EXPECT_EQ(TClientSource.find("HandleAxiomAutoLoginMessage"), std::string::npos);
+}
+
+TEST(QmAxiomAutoLogin, ClassifiesOfficialServerReplies)
+{
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[登录] 验证中..."), EQmAxiomLoginReply::PENDING);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[登录] 欢迎回来 Q1menG"), EQmAxiomLoginReply::SUCCESS);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[登录] 重连成功！欢迎回来 Q1menG"), EQmAxiomLoginReply::SUCCESS);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[登录] 您已经登录过了"), EQmAxiomLoginReply::SUCCESS);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[登入] 您已經登入過了"), EQmAxiomLoginReply::SUCCESS);
+}
+
+TEST(QmAxiomAutoLogin, DistinguishesFailuresAndUnrelatedMessages)
+{
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[登录] 密码错误"), EQmAxiomLoginReply::HARD_FAILURE);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[login] invalid token"), EQmAxiomLoginReply::HARD_FAILURE);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[login] not authenticated"), EQmAxiomLoginReply::HARD_FAILURE);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[登录] 服务器错误，请稍后重试"), EQmAxiomLoginReply::RETRYABLE_FAILURE);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[login] login was unsuccessful"), EQmAxiomLoginReply::RETRYABLE_FAILURE);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[login] Something went wrong, please retry"), EQmAxiomLoginReply::RETRYABLE_FAILURE);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[登录] 1 无法连接到中心服务器，请稍后重试"), EQmAxiomLoginReply::RETRYABLE_FAILURE);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("[登录] 该凭证已有玩家在线，超时重连请等待目标玩家超时后重新登录"), EQmAxiomLoginReply::RETRYABLE_FAILURE);
+	EXPECT_EQ(QmClassifyAxiomLoginReply("welcome to the server"), EQmAxiomLoginReply::IGNORE);
+	EXPECT_EQ(QmClassifyAxiomLoginReply(nullptr), EQmAxiomLoginReply::IGNORE);
+}
+
+TEST(QmAxiomAutoLogin, KeepsVerificationPendingThroughServerTimeoutWindow)
+{
+	constexpr int64_t TimeFreq = 10;
+	SQmAxiomAutoLoginState State;
+
+	EXPECT_TRUE(QmUpdateAxiomAutoLoginState(State, 100, TimeFreq));
+	QmMarkAxiomAutoLoginAttempt(State, 100, TimeFreq);
+	EXPECT_EQ(State.m_Attempts, 1);
+	EXPECT_TRUE(State.m_WaitingReply);
+	EXPECT_EQ(State.m_NextTryTick, 400);
+
+	EXPECT_EQ(QmApplyAxiomLoginReply(State, EQmAxiomLoginReply::PENDING, 200, TimeFreq), EQmAxiomLoginReply::PENDING);
+	EXPECT_EQ(State.m_NextTryTick, 500);
+	EXPECT_FALSE(QmUpdateAxiomAutoLoginState(State, 499, TimeFreq));
+	EXPECT_TRUE(State.m_WaitingReply);
+}
+
+TEST(QmAxiomAutoLogin, SchedulesFastThenSlowRetriesAtExactDeadlines)
+{
+	constexpr int64_t TimeFreq = 10;
+	SQmAxiomAutoLoginState State;
+	State.m_Attempts = 1;
+	State.m_WaitingReply = true;
+	State.m_NextTryTick = 500;
+
+	EXPECT_FALSE(QmUpdateAxiomAutoLoginState(State, 500, TimeFreq));
+	EXPECT_FALSE(State.m_WaitingReply);
+	EXPECT_FALSE(State.m_SlowRetryMode);
+	EXPECT_EQ(State.m_NextTryTick, 520);
+	EXPECT_FALSE(QmUpdateAxiomAutoLoginState(State, 519, TimeFreq));
+	EXPECT_TRUE(QmUpdateAxiomAutoLoginState(State, 520, TimeFreq));
+
+	State = {};
+	State.m_Attempts = QMCLIENT_AXIOM_AUTO_LOGIN_MAX_ATTEMPTS;
+	State.m_WaitingReply = true;
+	State.m_NextTryTick = 800;
+	EXPECT_FALSE(QmUpdateAxiomAutoLoginState(State, 800, TimeFreq));
+	EXPECT_TRUE(State.m_SlowRetryMode);
+	EXPECT_EQ(State.m_NextTryTick, 1100);
+	EXPECT_FALSE(QmUpdateAxiomAutoLoginState(State, 1099, TimeFreq));
+	EXPECT_TRUE(QmUpdateAxiomAutoLoginState(State, 1100, TimeFreq));
+}
+
+TEST(QmAxiomAutoLogin, DelayedSuccessClosesBackoffAndStopsFurtherAttempts)
+{
+	constexpr int64_t TimeFreq = 10;
+	SQmAxiomAutoLoginState State;
+	State.m_Attempts = 1;
+	State.m_NextTryTick = 200;
+
+	EXPECT_EQ(QmApplyAxiomLoginReply(State, EQmAxiomLoginReply::SUCCESS, 150, TimeFreq), EQmAxiomLoginReply::SUCCESS);
+	EXPECT_TRUE(State.m_Succeeded);
+	EXPECT_FALSE(State.m_WaitingReply);
+	EXPECT_EQ(State.m_NextTryTick, 0);
+	EXPECT_FALSE(QmUpdateAxiomAutoLoginState(State, 200, TimeFreq));
+}
+
+TEST(QmAxiomAutoLogin, AppliesRetryableAndHardFailuresToState)
+{
+	constexpr int64_t TimeFreq = 10;
+	SQmAxiomAutoLoginState State;
+	State.m_Attempts = 1;
+	State.m_WaitingReply = true;
+
+	EXPECT_EQ(QmApplyAxiomLoginReply(State, EQmAxiomLoginReply::RETRYABLE_FAILURE, 100, TimeFreq), EQmAxiomLoginReply::RETRYABLE_FAILURE);
+	EXPECT_FALSE(State.m_WaitingReply);
+	EXPECT_EQ(State.m_NextTryTick, 120);
+
+	State.m_WaitingReply = false;
+	EXPECT_EQ(QmApplyAxiomLoginReply(State, EQmAxiomLoginReply::HARD_FAILURE, 110, TimeFreq), EQmAxiomLoginReply::HARD_FAILURE);
+	EXPECT_TRUE(State.m_HardFailed);
+	EXPECT_EQ(State.m_NextTryTick, 0);
+	EXPECT_FALSE(QmUpdateAxiomAutoLoginState(State, 120, TimeFreq));
+}
+
+TEST(QmAxiomAutoLogin, AcceptsDelayedTerminalRepliesOnlyAfterAnAttempt)
+{
+	EXPECT_TRUE(QmShouldHandleAxiomLoginReply(EQmAxiomLoginReply::SUCCESS, 1, false));
+	EXPECT_TRUE(QmShouldHandleAxiomLoginReply(EQmAxiomLoginReply::HARD_FAILURE, 1, false));
+	EXPECT_FALSE(QmShouldHandleAxiomLoginReply(EQmAxiomLoginReply::PENDING, 1, false));
+	EXPECT_FALSE(QmShouldHandleAxiomLoginReply(EQmAxiomLoginReply::SUCCESS, 0, false));
+	EXPECT_TRUE(QmShouldHandleAxiomLoginReply(EQmAxiomLoginReply::PENDING, 1, true));
+}
+
+TEST(QmAxiomAutoLogin, WaitsLongEnoughForAxiomVerificationAndUsesMainConnection)
+{
+	EXPECT_GE(QMCLIENT_AXIOM_AUTO_LOGIN_REPLY_TIMEOUT_SECONDS, 25);
+
+	const std::string Source = ReadTextFile("src/game/client/components/qmclient/axiom_auto_login.cpp");
+	EXPECT_NE(Source.find("SendChatOnConn(IClient::CONN_MAIN, 0, aLoginCommand)"), std::string::npos);
+	EXPECT_NE(Source.find("SendChatOnConn(IClient::CONN_DUMMY, 0, aLoginCommand)"), std::string::npos);
+	EXPECT_EQ(Source.find("m_Chat.SendChat(0, aLoginCommand)"), std::string::npos);
 }
 
 TEST(QmNewUiMenuBranches, TClientSettingsTabsPreserveHiddenStateAndVisibleCorners)
@@ -1400,6 +1522,53 @@ TEST(QmNewUiMenuBranches, GraphicsCurrentModeLabelSanitizesScaleAndAspectRatio)
 	EXPECT_NE(Source.find("const int AspectGcd = G > 0 ? G : 1;"), std::string::npos);
 	EXPECT_NE(Source.find("g_Config.m_GfxScreenWidth / AspectGcd"), std::string::npos);
 	EXPECT_NE(Source.find("g_Config.m_GfxScreenHeight / AspectGcd"), std::string::npos);
+}
+
+TEST(QmCameraAspectRatio, KeepsUiAspectPhysicalAndOverridesOnlyGameWorld)
+{
+	const std::string GraphicsHeader = ReadTextFile("src/engine/graphics.h");
+	const std::string GraphicsSource = ReadTextFile("src/engine/graphics.cpp");
+	const std::string TClientSource = ReadTextFile("src/game/client/components/tclient/tclient.cpp");
+	const std::string GameClientSource = ReadTextFile("src/game/client/gameclient.cpp");
+	const std::string ControlsSource = ReadTextFile("src/game/client/components/controls.cpp");
+	const std::string HudSource = ReadTextFile("src/game/client/components/hud.cpp");
+	const std::string TouchControlsSource = ReadTextFile("src/game/client/components/touch_controls.cpp");
+	const std::string CollisionHitboxSource = ReadTextFile("src/game/client/components/qmclient/collision_hitbox.cpp");
+	const std::string BackgroundParticlesSource = ReadTextFile("src/game/client/components/tclient/background_particles.cpp");
+	const std::string RenderLayerSource = ReadTextFile("src/game/map/render_layer.cpp");
+	const std::string MapRendererSource = ReadTextFile("src/game/map/map_renderer.cpp");
+	const std::string MovingTilesSource = ReadTextFile("src/game/client/components/tclient/moving_tiles.cpp");
+	const std::string NameplatesSource = ReadTextFile("src/game/client/components/nameplates.cpp");
+	const std::string UiSource = ReadTextFile("src/game/client/ui.cpp");
+
+	EXPECT_NE(GraphicsHeader.find("float ScreenAspect() const { return (float)ScreenWidth() / (float)ScreenHeight(); }"), std::string::npos);
+	EXPECT_NE(GraphicsHeader.find("float GameScreenAspect() const { return m_GameScreenAspectOverride > 0.0f ? m_GameScreenAspectOverride : ScreenAspect(); }"), std::string::npos);
+	EXPECT_NE(TClientSource.find("Graphics()->SetGameScreenAspectOverride(GameScreenAspectOverride);"), std::string::npos);
+	EXPECT_EQ(TClientSource.find("SetScreenAspectOverride"), std::string::npos);
+	EXPECT_NE(RenderLayerSource.find("Graphics()->GameScreenAspect()"), std::string::npos);
+	EXPECT_NE(RenderLayerSource.find("Graphics()->MapScreenToGameInterface("), std::string::npos);
+	EXPECT_NE(MapRendererSource.find("Graphics()->MapScreenToGameInterface("), std::string::npos);
+	EXPECT_NE(MovingTilesSource.find("Graphics()->MapScreenToGameInterface("), std::string::npos);
+	EXPECT_NE(NameplatesSource.find("This.Graphics()->MapScreenToGameInterface("), std::string::npos);
+	EXPECT_NE(GameClientSource.find("CalcScreenParams(Graphics()->GameScreenAspect(), ShowDistanceZoom"), std::string::npos);
+	EXPECT_NE(GameClientSource.find("m_LastScreenAspect = Graphics()->GameScreenAspect();"), std::string::npos);
+	EXPECT_NE(GameClientSource.find("CalcScreenParams(Graphics()->GameScreenAspect(), m_Camera.m_Zoom"), std::string::npos);
+	EXPECT_NE(ControlsSource.find("CalcScreenParams(Graphics()->GameScreenAspect(), 1.0f"), std::string::npos);
+	EXPECT_NE(HudSource.find("CalcScreenParams(pGraphics->GameScreenAspect(), GameClient.m_Camera.m_Zoom"), std::string::npos);
+	EXPECT_NE(HudSource.find("Graphics()->GameScreenAspect(), MiniZoom, aPoints"), std::string::npos);
+	EXPECT_NE(HudSource.find("Graphics()->GameScreenAspect(), 1.0f, aPoints"), std::string::npos);
+	EXPECT_NE(TouchControlsSource.find("CalcScreenParams(m_pTouchControls->Graphics()->GameScreenAspect()"), std::string::npos);
+	EXPECT_NE(TouchControlsSource.find("CalcScreenParams(Graphics()->GameScreenAspect(), Zoom"), std::string::npos);
+	EXPECT_NE(CollisionHitboxSource.find("Graphics()->GameScreenAspect(), GameClient()->m_Camera.m_Zoom"), std::string::npos);
+	EXPECT_NE(BackgroundParticlesSource.find("Graphics()->GameScreenAspect(), Zoom, aPoints"), std::string::npos);
+
+	const std::string MapScreenToInterface = FunctionBody(GraphicsSource, "void IGraphics::MapScreenToInterface(");
+	const std::string MapScreenToGameInterface = FunctionBody(GraphicsSource, "void IGraphics::MapScreenToGameInterface(");
+	EXPECT_NE(MapScreenToInterface.find("ScreenAspect()"), std::string::npos);
+	EXPECT_EQ(MapScreenToInterface.find("GameScreenAspect()"), std::string::npos);
+	EXPECT_NE(MapScreenToGameInterface.find("GameScreenAspect()"), std::string::npos);
+	EXPECT_NE(UiSource.find("Graphics()->ScreenAspect()"), std::string::npos);
+	EXPECT_EQ(UiSource.find("GameScreenAspect()"), std::string::npos);
 }
 
 TEST(QmNewUiMenuBranches, GraphicsBackendDropdownUsesQmClientDisplayNames)

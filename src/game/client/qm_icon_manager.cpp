@@ -34,6 +34,16 @@ EQmIcon IconFromName(const char *pName)
 		return EQmIcon::PLUS;
 	if(str_comp(pName, "trash") == 0)
 		return EQmIcon::TRASH;
+	if(str_comp(pName, "satellite-swap-incoming") == 0)
+		return EQmIcon::SATELLITE_SWAP_INCOMING;
+	if(str_comp(pName, "satellite-swap-outgoing") == 0)
+		return EQmIcon::SATELLITE_SWAP_OUTGOING;
+	if(str_comp(pName, "satellite-switch") == 0)
+		return EQmIcon::SATELLITE_SWITCH;
+	if(str_comp(pName, "satellite-mute") == 0)
+		return EQmIcon::SATELLITE_MUTE;
+	if(str_comp(pName, "satellite-check") == 0)
+		return EQmIcon::SATELLITE_CHECK;
 	return EQmIcon::COUNT;
 }
 

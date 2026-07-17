@@ -1390,15 +1390,17 @@ void CTClient::HandleSwapCountdownMessage(const char *pText, int Dummy)
 		return;
 
 	ESwapCountdownMessageAction Action = ESwapCountdownMessageAction::None;
-	char aRequester[MAX_NAME_LENGTH] = "";
-	if(!ParseSwapCountdownMessage(pText, Action, aRequester, sizeof(aRequester)))
+	ESwapCountdownMessageDirection Direction = ESwapCountdownMessageDirection::Incoming;
+	char aCounterpart[MAX_NAME_LENGTH] = "";
+	if(!ParseSwapCountdownMessage(pText, Action, Direction, aCounterpart, sizeof(aCounterpart)))
 		return;
 
 	if(Action == ESwapCountdownMessageAction::Start)
-		StartSwapCountdown(Dummy, aRequester);
+		StartSwapCountdown(Dummy, aCounterpart, Direction == ESwapCountdownMessageDirection::Outgoing);
 	else if(Action == ESwapCountdownMessageAction::Cancel)
 	{
-		if(str_comp_nocase(aRequester, m_aaSwapCountdownRequester[Dummy]) == 0)
+		const bool Outgoing = Direction == ESwapCountdownMessageDirection::Outgoing;
+		if(Outgoing == m_aSwapCountdownOutgoing[Dummy] && str_comp_nocase(aCounterpart, m_aaSwapCountdownCounterpart[Dummy]) == 0)
 		{
 			ClearSwapCountdown(Dummy);
 		}
@@ -1411,14 +1413,15 @@ void CTClient::HandleSwapCountdownMessage(const char *pText, int Dummy)
 	}
 }
 
-void CTClient::StartSwapCountdown(int Dummy, const char *pRequester)
+void CTClient::StartSwapCountdown(int Dummy, const char *pCounterpart, bool Outgoing)
 {
 	if(Dummy < 0 || Dummy >= NUM_DUMMIES)
 		return;
 
 	m_aSwapCountdownActive[Dummy] = true;
+	m_aSwapCountdownOutgoing[Dummy] = Outgoing;
 	m_aSwapCountdownStartTick[Dummy] = Client()->GameTick(Dummy);
-	str_copy(m_aaSwapCountdownRequester[Dummy], pRequester != nullptr ? pRequester : "", sizeof(m_aaSwapCountdownRequester[Dummy]));
+	str_copy(m_aaSwapCountdownCounterpart[Dummy], pCounterpart != nullptr ? pCounterpart : "", sizeof(m_aaSwapCountdownCounterpart[Dummy]));
 }
 
 void CTClient::ClearSwapCountdown(int Dummy)
@@ -1433,8 +1436,9 @@ void CTClient::ClearSwapCountdown(int Dummy)
 		return;
 
 	m_aSwapCountdownActive[Dummy] = false;
+	m_aSwapCountdownOutgoing[Dummy] = false;
 	m_aSwapCountdownStartTick[Dummy] = 0;
-	m_aaSwapCountdownRequester[Dummy][0] = '\0';
+	m_aaSwapCountdownCounterpart[Dummy][0] = '\0';
 }
 
 bool CTClient::HasSwapCountdown(int Dummy) const
@@ -1457,11 +1461,16 @@ int CTClient::GetSwapCountdownStartTick(int Dummy) const
 	return 0;
 }
 
-const char *CTClient::GetSwapCountdownRequester(int Dummy) const
+const char *CTClient::GetSwapCountdownCounterpart(int Dummy) const
 {
 	if(Dummy < 0 || Dummy >= NUM_DUMMIES)
 		return "";
-	return m_aaSwapCountdownRequester[Dummy];
+	return m_aaSwapCountdownCounterpart[Dummy];
+}
+
+bool CTClient::IsSwapCountdownOutgoing(int Dummy) const
+{
+	return Dummy >= 0 && Dummy < NUM_DUMMIES && m_aSwapCountdownOutgoing[Dummy];
 }
 
 void CTClient::ConSpecId(IConsole::IResult *pResult, void *pUserData)
@@ -2857,7 +2866,7 @@ void CTClient::SetForcedAspect()
 	// TODO: Fix flashing on windows
 	int State = Client()->State();
 	bool Force = true;
-	float ScreenAspectOverride = 0.0f;
+	float GameScreenAspectOverride = 0.0f;
 	if(g_Config.m_TcAllowAnyRes == 0)
 		;
 	else if(State == CClient::EClientState::STATE_DEMOPLAYBACK)
@@ -2880,10 +2889,10 @@ void CTClient::SetForcedAspect()
 		}
 
 		if(AspectRatio > 0)
-			ScreenAspectOverride = AspectRatio / 100.0f;
+			GameScreenAspectOverride = AspectRatio / 100.0f;
 	}
 
-	Graphics()->SetScreenAspectOverride(ScreenAspectOverride);
+	Graphics()->SetGameScreenAspectOverride(GameScreenAspectOverride);
 	Graphics()->SetForcedAspect(Force);
 }
 
