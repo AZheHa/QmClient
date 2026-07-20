@@ -7,10 +7,30 @@ from pathlib import Path
 from unittest import mock
 import tempfile
 
-from qmclient_scripts.languages_qmclient import i18n_store
+from qmclient_scripts.languages_qmclient import i18n_store, normalize_simplified_chinese
 
 
 class I18nTomlTest(unittest.TestCase):
+    def test_typography_normalizer_does_not_rewrite_editor_blueprint(self):
+        store = {
+            "editor": {
+                ("%dms", "Editor"): {"simplified_chinese": "%d毫秒"},
+            }
+        }
+        with (
+            mock.patch.object(
+                normalize_simplified_chinese.i18n_store,
+                "load_language_store",
+                return_value=store,
+            ),
+            mock.patch.object(
+                normalize_simplified_chinese.i18n_store, "patch_module_store"
+            ) as patch_module_store,
+        ):
+            normalize_simplified_chinese.main()
+
+        patch_module_store.assert_not_called()
+
     def test_dump_module_writes_context_and_multilang(self):
         text = i18n_store.dump_module(
             [
@@ -28,6 +48,23 @@ class I18nTomlTest(unittest.TestCase):
         self.assertEqual(parsed["message"][0]["context"], "Start menu")
         self.assertEqual(
             parsed["message"][0]["translations"]["simplified_chinese"], "开始游戏"
+        )
+
+    def test_dump_editor_module_preserves_authoritative_translation_verbatim(self):
+        text = i18n_store.dump_module(
+            [
+                (
+                    i18n_store.Message("%dms", "Editor"),
+                    {"simplified_chinese": "%d毫秒"},
+                )
+            ],
+            module_name="editor",
+        )
+
+        parsed = tomllib.loads(text)
+        self.assertEqual(
+            parsed["message"][0]["translations"]["simplified_chinese"],
+            "%d毫秒",
         )
 
     def test_dump_module_keeps_translation_lines_contiguous(self):
@@ -155,6 +192,24 @@ japanese = "適用"
         self.assertEqual(
             i18n_store.module_name_for_source(Path("src/game/client/gameclient.cpp")),
             "loading",
+        )
+        self.assertEqual(
+            i18n_store.module_name_for_source(Path("src/game/editor/editor.cpp")),
+            "editor",
+        )
+
+    def test_editor_module_identities_fall_back_to_english(self):
+        store = {
+            "editor": {
+                ("Open map", ""): {"simplified_chinese": "打开地图"},
+            },
+            "menus": {
+                ("Play", ""): {"simplified_chinese": "开始游戏"},
+            },
+        }
+        self.assertEqual(
+            i18n_store.english_fallback_identities(store),
+            {("Open map", "")},
         )
 
     def test_language_map_for_flattens_selected_language(self):

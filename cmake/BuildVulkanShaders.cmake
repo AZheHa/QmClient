@@ -148,10 +148,18 @@ if(NOT FOUND_MATCHING_SHA256_FILE)
   generate_shader_file("" "-DTW_TILE_TEXTURED" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/tile_border.frag" "data/shader/vulkan/tile_border_textured.frag.spv")
   generate_shader_file("" "-DTW_TILE_TEXTURED" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/tile_border.vert" "data/shader/vulkan/tile_border_textured.vert.spv")
 
+  # gaussian blur
+  generate_shader_file("" "" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/gaussian_blur.frag" "data/shader/vulkan/gaussian_blur.frag.spv")
+  generate_shader_file("" "" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/gaussian_blur.vert" "data/shader/vulkan/gaussian_blur.vert.spv")
+
+  # media island SDF
+  generate_shader_file("" "" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/media_island_sdf.frag" "data/shader/vulkan/media_island_sdf.frag.spv")
+  generate_shader_file("" "" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/media_island_sdf.vert" "data/shader/vulkan/media_island_sdf.vert.spv")
+
   # quad layer
   generate_shader_file("" "" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/quad.frag" "data/shader/vulkan/quad.frag.spv")
   generate_shader_file("" "" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/quad.vert" "data/shader/vulkan/quad.vert.spv")
-  
+
   generate_shader_file("-DTW_QUAD_GROUPED" "" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/quad.frag" "data/shader/vulkan/quad_grouped.frag.spv")
   generate_shader_file("-DTW_QUAD_GROUPED" "" "${PROJECT_SOURCE_DIR}/data/shader/vulkan/quad.vert" "data/shader/vulkan/quad_grouped.vert.spv")
   

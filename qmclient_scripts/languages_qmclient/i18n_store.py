@@ -31,6 +31,9 @@ LANGUAGE_ORDER = (
     "polish",
 )
 
+BILINGUAL_FALLBACK_MODULES = frozenset({"editor"})
+VERBATIM_TRANSLATION_MODULES = frozenset({"editor"})
+
 
 @dataclass(frozen=True)
 class Message:
@@ -57,6 +60,8 @@ def module_name_for_source(source: Path | None) -> str:
         return "misc"
 
     normalized = source.as_posix()
+    if "/game/editor/" in normalized:
+        return "editor"
     if "/menus_browser." in normalized:
         return "server_browser"
     if "/menus_demo." in normalized:
@@ -102,19 +107,32 @@ def sorted_translation_languages(translations: dict[str, str]) -> list[str]:
     return known + extra
 
 
-def normalize_translation(language: str, translation: str) -> str:
+def normalize_translation(
+    language: str, translation: str, *, preserve_verbatim: bool = False
+) -> str:
+    if preserve_verbatim:
+        return translation
     if language == "simplified_chinese":
         return chinese_text_style.normalize_simplified_chinese_text(translation)
     return translation
 
 
-def dump_message_block(message: Message, translations: dict[str, str]) -> str:
+def dump_message_block(
+    message: Message,
+    translations: dict[str, str],
+    *,
+    preserve_verbatim: bool = False,
+) -> str:
     lines = ["[[message]]", f"key = {toml_quote(message.key)}"]
     if message.context:
         lines.append(f"context = {toml_quote(message.context)}")
     lines.append("[message.translations]")
     for language in sorted_translation_languages(translations):
-        translation = normalize_translation(language, translations.get(language, ""))
+        translation = normalize_translation(
+            language,
+            translations.get(language, ""),
+            preserve_verbatim=preserve_verbatim,
+        )
         if translation:
             lines.append(f"{language} = {toml_quote(translation)}")
     return "\n".join(lines)
@@ -142,6 +160,26 @@ def language_map_for(
     return flattened
 
 
+def english_fallback_identities(
+    store: dict[str, dict[tuple[str, str], dict[str, str]]],
+) -> set[tuple[str, str]]:
+    return {
+        identity
+        for module_name in BILINGUAL_FALLBACK_MODULES
+        for identity in store.get(module_name, {})
+    }
+
+
+def verbatim_translation_identities(
+    store: dict[str, dict[tuple[str, str], dict[str, str]]],
+) -> set[tuple[str, str]]:
+    return {
+        identity
+        for module_name in VERBATIM_TRANSLATION_MODULES
+        for identity in store.get(module_name, {})
+    }
+
+
 def missing_translations_for(
     store: dict[str, dict[tuple[str, str], dict[str, str]]],
     identities: list[tuple[str, str]] | tuple[tuple[str, str], ...],
@@ -151,10 +189,17 @@ def missing_translations_for(
     return [identity for identity in identities if not flattened.get(identity, "")]
 
 
-def dump_module(messages: list[tuple[Message, dict[str, str]]]) -> str:
+def dump_module(
+    messages: list[tuple[Message, dict[str, str]]], module_name: str | None = None
+) -> str:
+    preserve_verbatim = module_name in VERBATIM_TRANSLATION_MODULES
     return (
         "\n\n".join(
-            dump_message_block(message, translations)
+            dump_message_block(
+                message,
+                translations,
+                preserve_verbatim=preserve_verbatim,
+            )
             for message, translations in sorted_records(messages)
         ).rstrip()
         + "\n"
@@ -179,7 +224,7 @@ def write_language_store(
             (Message(key, context), translations)
             for (key, context), translations in entries.items()
         ]
-        write_text_lf(path, dump_module(messages))
+        write_text_lf(path, dump_module(messages, module_name=module_name))
 
 
 def _parse_assignment_value(line: str, name: str) -> str | None:
@@ -252,7 +297,12 @@ def parse_module_toml(text: str) -> dict[tuple[str, str], dict[str, str]]:
     return entries
 
 
-def _patch_message_block(lines: list[str], entries: dict[str, str]) -> list[str]:
+def _patch_message_block(
+    lines: list[str],
+    entries: dict[str, str],
+    *,
+    preserve_verbatim: bool = False,
+) -> list[str]:
     identity = _block_identity(lines)
     if identity is None:
         return lines
@@ -260,7 +310,11 @@ def _patch_message_block(lines: list[str], entries: dict[str, str]) -> list[str]
     for language, translation in entries.items():
         if translation:
             translations[language] = translation
-    return dump_message_block(Message(*identity), translations).splitlines()
+    return dump_message_block(
+        Message(*identity),
+        translations,
+        preserve_verbatim=preserve_verbatim,
+    ).splitlines()
 
 
 def patch_module_store(
@@ -276,7 +330,7 @@ def patch_module_store(
             (Message(key, context), translations)
             for (key, context), translations in entries.items()
         ]
-        write_text_lf(path, dump_module(messages))
+        write_text_lf(path, dump_module(messages, module_name=module_name))
         return
 
     original = path.read_text(encoding="utf-8")
@@ -302,7 +356,11 @@ def patch_module_store(
             output.extend(block)
             continue
 
-        patched_block = _patch_message_block(block, entries[identity])
+        patched_block = _patch_message_block(
+            block,
+            entries[identity],
+            preserve_verbatim=module_name in VERBATIM_TRANSLATION_MODULES,
+        )
         patched_identities.add(identity)
         output.extend(patched_block)
 
@@ -314,7 +372,9 @@ def patch_module_store(
     if missing:
         if output and output[-1] != "":
             output.append("")
-        output.extend(dump_module(missing).rstrip("\n").splitlines())
+        output.extend(
+            dump_module(missing, module_name=module_name).rstrip("\n").splitlines()
+        )
 
     text = "\n".join(output)
     if has_trailing_newline or missing:

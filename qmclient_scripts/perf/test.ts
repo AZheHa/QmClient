@@ -32,6 +32,7 @@ import {
   budgetCorrelationSummary,
   settingsTextAnalysis,
   settingsUiBudgetSummary,
+  stutterDiagnosticsSummary,
   textRuntimeBudgetSummary,
   snapshot,
 } from './lib/stats.ts';
@@ -1490,6 +1491,44 @@ function testAnalyzeWritesBundleAndArchiveSummaryFiles() {
   assert.match(source, /summarizeForBundle/);
 }
 
+function testStutterDiagnosticsRanksMeasuredComponentsAndKeepsFeatureState() {
+  const entries = parseLog([
+    '2026-07-18 12:00:00 I perf/stutter: schema=1 event=stutter_event stutter_id=7 segment=2 classification=sustained_low end_reason=periodic target_fps=300 target_ms=3.333 sample_frames=2500 sample_seconds=10.000 fps_avg=250.000 fps_min=120.000 fps_1pct_low=180.000 frame_ms_avg=4.000 frame_ms_p95=5.500 frame_ms_p99=8.000 frame_ms_max=12.000 window_start_frame=100 window_end_frame=2599 worst_frame=600 cap_limited=0 cap_reason=none page=game tab=none',
+    '2026-07-18 12:00:00 I perf/stutter: schema=1 event=component_sample stutter_id=7 segment=2 module=players callback=on_render sample_count=2500 total_ms=4000.000 avg_ms=1.600 p95_ms=2.100 max_ms=4.000 max_frame=600',
+    '2026-07-18 12:00:00 I perf/stutter: schema=1 event=component_sample stutter_id=7 segment=2 module=particles callback=on_update sample_count=2500 total_ms=1000.000 avg_ms=0.400 p95_ms=0.800 max_ms=2.000 max_frame=601',
+    '2026-07-18 12:00:00 I perf/stutter: schema=1 event=feature_snapshot stutter_id=7 segment=2 frame=600 owner=qmclient feature=qm_3d_particles config_enabled=1 config_value=1 hud_visible=-1 settings_visible=-1 executed_in_frame=-1 executed_in_window=-1',
+    '2026-07-18 12:00:00 I perf/main_thread: stage=graphics_swap duration_ms=6.000 frame=600',
+  ].join('\n'));
+
+  const summary = stutterDiagnosticsSummary(entries);
+  assert.equal(summary.available, true);
+  assert.equal(summary.windows.length, 1);
+  assert.equal(summary.windows[0].targetFps, 300);
+  assert.equal(summary.components[0].component, 'players');
+  assert.equal(summary.components[0].phase, 'render');
+  assert.equal(summary.featureStates[0].name, 'qm_3d_particles');
+  assert.equal(summary.stages[0].stage, 'graphics_swap');
+
+  const html = generateReport(entries, 'qm_perf_stutter.log', null);
+  assert.match(html, /客户端卡顿诊断/);
+  assert.match(html, /players/);
+  assert.match(html, /qm_3d_particles/);
+  assert.match(html, /CPU 模块耗时排名/);
+}
+
+function testStutterDiagnosticsKeepsFrameLimitNonCausal() {
+  const entries = parseLog([
+    '2026-07-18 12:10:00 I perf/stutter: event=stutter_event stutter_id=8 segment=0 classification=sustained_low end_reason=periodic target_fps=300 target_ms=3.333 sample_frames=1440 sample_seconds=10 fps_avg=144 fps_min=140 fps_1pct_low=141 frame_ms_avg=6.944 frame_ms_p95=7 frame_ms_p99=7.1 frame_ms_max=8 window_start_frame=1 window_end_frame=1440 worst_frame=42 cap_limited=1 cap_reason=vsync page=game tab=none',
+    '2026-07-18 12:10:00 I perf/stutter: event=component_sample stutter_id=8 segment=0 module=players callback=on_render sample_count=1440 total_ms=500 avg_ms=0.347 p95_ms=0.5 max_ms=1 max_frame=42',
+  ].join('\n'));
+
+  const summary = stutterDiagnosticsSummary(entries);
+  assert.equal(summary.status, 'cap_limited');
+  const html = generateReport(entries, 'qm_perf_stutter_vsync.log', null);
+  assert.match(html, /仅作为优化候选，不判定任何模块为卡顿原因/);
+  assert.match(html, /vsync/);
+}
+
 testParseKeepsEventOnlyPerfLines();
 testParseSupportsJsonLinesEvents();
 testParseLogWithDiagnosticsCountsInvalidLines();
@@ -1566,5 +1605,7 @@ testReportSamplesLargeEmbeddedChartData();
 testSummaryJsonCanBeSerializedForDebugBundle();
 testSummaryJsonMarksUnavailableVerdictForEmptyFrameSamples();
 testAnalyzeWritesBundleAndArchiveSummaryFiles();
+testStutterDiagnosticsRanksMeasuredComponentsAndKeepsFeatureState();
+testStutterDiagnosticsKeepsFrameLimitNonCausal();
 
 console.log('qmclient perf tests passed');

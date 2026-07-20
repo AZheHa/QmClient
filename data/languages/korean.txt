@@ -31,9 +31,6 @@
 %d more cut segments
 == 추가로 %d개의 잘라낸 구간
 
-%d new mentions
-== %d 개의 새로운 언급
-
 %d of %d server
 == %d 개의 %d 서버 중
 
@@ -214,9 +211,6 @@
 /times ?s?i shows last 5 times of the server or of a player beginning with name s starting with time i (i = 1 by default, -1 for first)
 == /times ?s?i 는 이름 s로 시작하는 서버 또는 플레이어의 최근 5개 기록을 시간 i부터 표시합니다 (i = 기본값 1, -1은 처음)
 
-1 new mention
-== 1개의 새 멘션
-
 1 star
 == 1성
 
@@ -237,9 +231,6 @@
 
 5 stars
 == 5성
-
-9+ new mentions
-== 9개 이상의 새 멘션
 
 === All Local Saves ===
 == === 모든 로컬 저장 ===
@@ -949,6 +940,9 @@ Best
 Best match
 == Best match
 
+Better scoreboard
+== 더 나은 점수판
+
 Bind key to execute a command or view keybindings
 == 키를 바인딩하여 명령 실행 또는 키바인딩 보기
 
@@ -963,6 +957,9 @@ Black
 
 Blend mode
 == 혼합 모드
+
+Block enemy chat
+== 적대 플레이어 채팅 차단
 
 Blue
 == 파랑
@@ -3070,9 +3067,6 @@ https://ddnet.org/discord
 https://wiki.ddnet.org/
 == https://wiki.ddnet.org/
 
-https://wiki.ddnet.org/wiki/Mapping
-== https://wiki.ddnet.org/wiki/Mapping
-
 https://wiki.ddnet.org/wiki/Touch_controls
 == https://wiki.ddnet.org/wiki/Touch_controls
 
@@ -3868,9 +3862,6 @@ Message to send in chat:
 Messages
 == 메시지
 
-Messages that already look like the target language will skip auto-translate
-== 이미 대상 언어처럼 보이는 메시지는 자동 번역을 건너뜁니다
-
 Microphone
 == 마이크
 
@@ -3942,9 +3933,6 @@ Move right
 
 Move to category
 == 카테고리로 이동
-
-Moved ingame
-== 게임 내에서 이동됨
 
 Movement
 == 이동
@@ -4309,9 +4297,6 @@ Notify when only one tee is still alive:
 Novice
 == 초보자
 
-Numeric-only messages will be skipped
-== 숫자만 있는 메시지는 건너뜁니다.
-
 o = Send rate
 == o = 전송 속도
 
@@ -4347,9 +4332,6 @@ Online Players
 
 Only .wv files are supported right now.
 == 현재 .wv 파일만 지원됩니다.
-
-Only affects custom Tee colors.
-== 사용자 지정 Tee 색상에만 적용됩니다.
 
 Only Apple Can Do
 == 오직 Apple만 할 수 있는
@@ -4572,6 +4554,9 @@ Pause/unpause game
 
 Per-word highlight (karaoke)
 == Per-word highlight (karaoke)
+
+Performance mode (placeholder)
+== 성능 모드 (자리 표시자)
 
 Personal best:
 == 개인 최고 기록:
@@ -5991,9 +5976,6 @@ Show DDNet map finishes in server browser
 
 Show DDRace HUD
 == DDRace HUD 표시
-
-Show Directory
-== 디렉터리 표시
 
 Show dotted map route debug
 == 점선 맵 경로 디버그 표시
@@ -7789,9 +7771,6 @@ What's done is done, no use saying more
 Wheel animate
 == 휠 애니메이션
 
-When TClient rainbow Tee is enabled, this feature has no effect.
-== TClient 무지개 Tee가 켜져 있으면 이 기능은 적용되지 않습니다.
-
 When you cross the start line, show a ghost tee replicating the movements of your best time
 == 시작선을 넘으면 최고 기록의 움직임을 재현하는 고스트 티를 표시
 
@@ -8461,10 +8440,6 @@ AUTO
 [Start menu]
 Play
 == 플레이
-
-[Team and size]
-%d\n(%d/%d)
-== %d\n(%d/%d)
 
 [Team size]
 maximum

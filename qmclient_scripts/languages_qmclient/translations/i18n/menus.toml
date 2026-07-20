@@ -896,6 +896,22 @@ turkish = "Temel"
 polish = "Podstawowe"
 
 [[message]]
+key = "Better scoreboard"
+[message.translations]
+japanese = "より良いスコアボード"
+korean = "더 나은 점수판"
+simplified_chinese = "更好的计分板"
+traditional_chinese = "更好的計分板"
+russian = "Улучшенная таблица лидеров"
+german = "Verbesserte Bestenliste"
+spanish = "Tabla de puntuaciones mejorada"
+french = "Tableau des scores amélioré"
+brazilian_portuguese = "Placar aprimorado"
+portuguese = "Placar melhorado"
+turkish = "Geliştirilmiş skor tablosu"
+polish = "Ulepszona tablica wyników"
+
+[[message]]
 key = "Blend mode"
 [message.translations]
 japanese = "ブレンドモード"
@@ -5146,6 +5162,22 @@ brazilian_portuguese = "Prever eventos (experimental)"
 portuguese = "Prever eventos (experimental)"
 turkish = "Olayları tahmin et (deneysel)"
 polish = "Przewiduj zdarzenia (eksperymentalne)"
+
+[[message]]
+key = "Performance mode (placeholder)"
+[message.translations]
+japanese = "パフォーマンスモード（プレースホルダー）"
+korean = "성능 모드 (자리 표시자)"
+simplified_chinese = "性能模式（占位符）"
+traditional_chinese = "效能模式（佔位符）"
+russian = "Режим производительности (заполнитель)"
+german = "Leistungsmodus (Platzhalter)"
+spanish = "Modo de rendimiento (marcador de posición)"
+french = "Mode performances (espace réservé)"
+brazilian_portuguese = "Modo de desempenho (espaço reservado)"
+portuguese = "Modo de desempenho (espaço reservado)"
+turkish = "Performans modu (yer tutucu)"
+polish = "Tryb wydajności (symbol zastępczy)"
 
 [[message]]
 key = "Preset bar"

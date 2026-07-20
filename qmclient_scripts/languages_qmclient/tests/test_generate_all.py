@@ -24,6 +24,68 @@ class GenerateAllTest(unittest.TestCase):
             "[ctx]\nLine one\\nLine two\n== 第一行\\n第二行",
         )
 
+    def test_language_parser_accepts_bracket_prefixed_editor_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "simplified_chinese.txt"
+            path.write_text(
+                "[Editor]\n"
+                "[Ctrl+S] Save the current map.\n"
+                "== 按下[Ctrl+S] 保存当前地图.\n",
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                generate_all.read_existing_language_entries(path),
+                {
+                    (
+                        "[Ctrl+S] Save the current map.",
+                        "Editor",
+                    ): "按下[Ctrl+S] 保存当前地图."
+                },
+            )
+
+    def test_non_chinese_languages_omit_editor_bilingual_keys(self):
+        strings = [
+            generate_all.SourceString("Open map", "Editor"),
+            generate_all.SourceString("Server"),
+        ]
+        store = {
+            "editor": {
+                ("Open map", "Editor"): {
+                    "simplified_chinese": "打开地图",
+                },
+            },
+            "menus": {
+                ("Server", ""): {
+                    "russian": "Сервер",
+                },
+            },
+        }
+        with mock.patch.object(
+            generate_all.i18n_store, "load_language_store", return_value=store
+        ):
+            self.assertEqual(
+                generate_all.generate_language_entries(strings, "russian"),
+                [(("Server", ""), "Сервер")],
+            )
+
+    def test_simplified_chinese_preserves_editor_translation_verbatim(self):
+        strings = [generate_all.SourceString("%dms", "Editor")]
+        store = {
+            "editor": {
+                ("%dms", "Editor"): {
+                    "simplified_chinese": "%d毫秒",
+                },
+            },
+        }
+        with mock.patch.object(
+            generate_all.i18n_store, "load_language_store", return_value=store
+        ):
+            self.assertEqual(
+                generate_all.generate_language_entries(strings, "simplified_chinese"),
+                [(("%dms", "Editor"), "%d毫秒")],
+            )
+
     def test_generate_configured_languages_writes_each_language(self):
         strings = [
             generate_all.SourceString("Server"),

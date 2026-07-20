@@ -240,6 +240,20 @@ inline float ResolveSkinChangeTransitionProgress(float ElapsedSeconds, int Durat
 	return ClampSkinChangeTransitionProgress(ElapsedSeconds / DurationSeconds);
 }
 
+enum class ESkinChangeTransitionAction
+{
+	KEEP,
+	START,
+	CANCEL,
+};
+
+inline ESkinChangeTransitionAction ResolveSkinChangeTransitionAction(bool HasPreviousAppearance, bool SkinChanged, bool AppearanceChanged)
+{
+	if(!HasPreviousAppearance || !AppearanceChanged)
+		return ESkinChangeTransitionAction::KEEP;
+	return SkinChanged ? ESkinChangeTransitionAction::START : ESkinChangeTransitionAction::CANCEL;
+}
+
 inline SSkinChangeTransitionBlend ComputeSkinChangeTransitionBlend(float Progress, vec2 BodyScale, vec2 FeetScale, int TransitionType)
 {
 	Progress = ClampSkinChangeTransitionProgress(Progress);

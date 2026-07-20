@@ -28,6 +28,7 @@
 #include <game/client/components/message_gradient.h>
 #include <game/client/components/qmclient/perf_logging.h>
 #include <game/client/components/qmclient/settings_resource_preview.h>
+#include <game/client/components/qmclient/tee_color_code.h>
 #include <game/client/components/qmclient/tee_hue_cycle.h>
 #include <game/client/components/sounds.h>
 #include <game/client/gameclient.h>
@@ -151,6 +152,11 @@ namespace
 			       m_ColorBody == Other.m_ColorBody &&
 			       m_ColorFeet == Other.m_ColorFeet;
 		}
+
+		bool SameSkin(const SSettingsPreviewSkinKey &Other) const
+		{
+			return str_comp(m_aSkinName, Other.m_aSkinName) == 0;
+		}
 	};
 
 	struct SSettingsPreviewSkinTransitionState
@@ -173,10 +179,16 @@ namespace
 				return;
 			}
 
-			if(m_HasKey && !(m_Key == Key) && m_LastInfo.Valid() && Info.Valid())
+			const ESkinChangeTransitionAction Action = ResolveSkinChangeTransitionAction(m_HasKey, !m_Key.SameSkin(Key), !(m_Key == Key));
+			if(Action == ESkinChangeTransitionAction::START && m_LastInfo.Valid() && Info.Valid())
 			{
 				m_PreviousInfo = m_LastInfo;
 				m_StartTime = Now;
+			}
+			else if(Action != ESkinChangeTransitionAction::KEEP)
+			{
+				m_PreviousInfo.Reset();
+				m_StartTime.reset();
 			}
 
 			m_Key = Key;
@@ -767,9 +779,8 @@ void CMenus::RenderSettingsGeneral(CUIRect MainView)
 
 		Left.HSplitTop(10.0f, nullptr, &Left);
 		Left.HSplitTop(20.0f, &Button, &Left);
-		str_copy(aBuf, " ");
-		str_append(aBuf, Localize("Hz", "Hertz"));
-		DoSettingsScrollbarOption(SETTINGS_GENERAL, -1, "general-refresh-rate", &g_Config.m_ClRefreshRate, &g_Config.m_ClRefreshRate, &Button, Localize("Refresh Rate"), 10, 1000, &CUi::ms_LinearScrollbarScale, CUi::SCROLLBAR_OPTION_INFINITE | CUi::SCROLLBAR_OPTION_NOCLAMPVALUE | CUi::SCROLLBAR_OPTION_DELAYUPDATE, aBuf);
+		if(DoSettingsButton_CheckBox(SETTINGS_GENERAL, -1, &g_Config.m_QmPerformanceMode, "general-performance-mode", Localize("Performance mode (placeholder)"), g_Config.m_QmPerformanceMode, &Button))
+			g_Config.m_QmPerformanceMode ^= 1;
 		Left.HSplitTop(5.0f, nullptr, &Left);
 		Left.HSplitTop(20.0f, &Button, &Left);
 		static int s_LowerRefreshRate;
@@ -894,15 +905,6 @@ void CMenus::SetNeedSendInfo(bool Dummy)
 {
 	bool &NeedSendInfo = Dummy ? m_NeedSendDummyinfo : m_NeedSendinfo;
 	NeedSendInfo = true;
-
-	if(Client()->State() != IClient::STATE_ONLINE)
-		return;
-
-	if(Dummy)
-		GameClient()->SendDummyInfo(false);
-	else
-		GameClient()->SendInfo(false);
-	NeedSendInfo = false;
 }
 
 CUi::EPopupMenuFunctionResult CMenus::PopupSettingsCountrySelection(void *pContext, CUIRect View, bool Active)
@@ -1635,11 +1637,32 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 
 		unsigned *apColors[] = {pColorBody, pColorFeet};
 		const char *apParts[] = {Localize("Body"), Localize("Feet")};
+		static CLineInputBuffered<QM_TEE_COLOR_CODE_INPUT_SIZE> s_aaTeeColorCodeInputs[NUM_DUMMIES][2];
 
 		for(int i = 0; i < 2; i++)
 		{
 			aRects[i].HSplitTop(20.0f, &Label, &aRects[i]);
-			Ui()->DoLabel(&Label, apParts[i], 14.0f, TEXTALIGN_ML);
+			CUIRect PartLabel, ColorCodeEditBox;
+			Label.VSplitRight(80.0f, &PartLabel, &ColorCodeEditBox);
+			ColorCodeEditBox.VSplitLeft(5.0f, nullptr, &ColorCodeEditBox);
+			Ui()->DoLabel(&PartLabel, apParts[i], 14.0f, TEXTALIGN_ML);
+
+			CLineInput &ColorCodeInput = s_aaTeeColorCodeInputs[m_Dummy][i];
+			if(!ColorCodeInput.IsActive())
+			{
+				const std::array<char, 8> aColorCode = QmFormatTeeColorCode(*apColors[i]);
+				if(str_comp(ColorCodeInput.GetString(), aColorCode.data()) != 0)
+					ColorCodeInput.Set(aColorCode.data());
+			}
+			if(Ui()->DoEditBox(&ColorCodeInput, &ColorCodeEditBox, 12.0f, IGraphics::CORNER_ALL, {}, TEXTALIGN_MC))
+			{
+				const std::optional<unsigned> Color = QmParseTeeColorCode(ColorCodeInput.GetString());
+				if(Color.has_value() && *Color != *apColors[i])
+				{
+					*apColors[i] = *Color;
+					SetNeedSendInfo();
+				}
+			}
 			if(RenderHslaScrollbars(&aRects[i], apColors[i], false, ColorHSLA::DARKEST_LGT))
 			{
 				SetNeedSendInfo();

@@ -4049,7 +4049,7 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 			TextRender()->TextColor(TextRender()->DefaultTextColor());
 		}
 
-		Column2.HSplitBottom(150.0f, nullptr, &Column2);
+		Column2.HSplitBottom(170.0f, nullptr, &Column2);
 		Column2.HSplitTop(HeadlineHeight, &Label, &Column2);
 		DoSettingsLabel(SETTINGS_TCLIENT, TCLIENT_TAB_WARLIST, "tclient-warlist-settings-title", &Label, Localize("Settings"), HeadlineFontSize, TEXTALIGN_ML);
 		Column2.HSplitTop(MarginSmall, nullptr, &Column2);
@@ -4060,6 +4060,9 @@ void CMenus::RenderSettingsTClientWarList(CUIRect MainView)
 		Column2.HSplitTop(LineSize, &CheckBoxRect, &Column2);
 		if(DoSettingsButton_CheckBox(SETTINGS_TCLIENT, TCLIENT_TAB_WARLIST, TCLIENT_TAB_WARLIST, &g_Config.m_TcWarList, "tclient-warlist-enable", Localize("Enable warlist"), g_Config.m_TcWarList, &CheckBoxRect))
 			g_Config.m_TcWarList ^= 1;
+		Column2.HSplitTop(LineSize, &CheckBoxRect, &Column2);
+		if(DoSettingsButton_CheckBox(SETTINGS_TCLIENT, TCLIENT_TAB_WARLIST, TCLIENT_TAB_WARLIST, &g_Config.m_QmWarListBlockEnemyChat, "tclient-warlist-block-enemy-chat", Localize("Block enemy chat"), g_Config.m_QmWarListBlockEnemyChat, &CheckBoxRect))
+			g_Config.m_QmWarListBlockEnemyChat ^= 1;
 		Column2.HSplitTop(LineSize, &CheckBoxRect, &Column2);
 		if(DoSettingsButton_CheckBox(SETTINGS_TCLIENT, TCLIENT_TAB_WARLIST, TCLIENT_TAB_WARLIST, &g_Config.m_TcWarListChat, "tclient-warlist-colors-chat", Localize("Colors in chat"), g_Config.m_TcWarListChat, &CheckBoxRect))
 			g_Config.m_TcWarListChat ^= 1;

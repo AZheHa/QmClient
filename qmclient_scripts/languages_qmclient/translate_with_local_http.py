@@ -895,7 +895,9 @@ def write_draft_module(
         (i18n_store.Message(key, context), translation_map)
         for (key, context), translation_map in merged.items()
     ]
-    i18n_store.write_text_lf(out_path, i18n_store.dump_module(messages))
+    i18n_store.write_text_lf(
+        out_path, i18n_store.dump_module(messages, module_name=module)
+    )
     return out_path
 
 

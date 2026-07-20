@@ -23,6 +23,14 @@ TEST(SkinTransition, ProgressEndsExactlyAtConfiguredDuration)
 	EXPECT_FLOAT_EQ(ResolveSkinChangeTransitionProgress(0.501f, 500), 1.0f);
 }
 
+TEST(SkinTransition, AppearanceChangesOnlyAnimateWhenTheSkinChanges)
+{
+	EXPECT_EQ(ResolveSkinChangeTransitionAction(false, false, false), ESkinChangeTransitionAction::KEEP);
+	EXPECT_EQ(ResolveSkinChangeTransitionAction(true, false, false), ESkinChangeTransitionAction::KEEP);
+	EXPECT_EQ(ResolveSkinChangeTransitionAction(true, true, true), ESkinChangeTransitionAction::START);
+	EXPECT_EQ(ResolveSkinChangeTransitionAction(true, false, true), ESkinChangeTransitionAction::CANCEL);
+}
+
 TEST(SkinTransition, BlendAtStartShowsCurrentSkinImmediately)
 {
 	const SSkinChangeTransitionBlend Blend = ComputeSkinChangeTransitionBlend(0.0f, SKIN_CHANGE_TRANSITION_GHOST_POP);

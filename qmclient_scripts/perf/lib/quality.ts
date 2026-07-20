@@ -20,11 +20,13 @@ import {
   previewBudgetSummary,
   selectFrameTimeEntries,
   settingsUiBudgetSummary,
+  stutterDiagnosticsSummary,
   textRuntimeBudgetSummary,
   targetSettingsSnapshot,
   type AttributionEntry,
   type FpsSummary,
   type Percentiles,
+  type StutterDiagnosticsSummary,
   type TargetSettingsSnapshot,
   type Verdict,
   computeVerdict,
@@ -95,6 +97,7 @@ export interface PerfBundleSummary {
     summaries: FpsSummary[];
   };
   targetSettings: TargetSettingsSnapshot;
+  stutterDiagnostics: StutterDiagnosticsSummary;
   assetsPreviewAdmission: {
     available: boolean;
     visibleFirstAvailable: boolean;
@@ -372,6 +375,7 @@ export function summarizeForBundle(entries: PerfEntry[], sourceFile: string, dia
   const settingsUiBudget = settingsUiBudgetSummary(entries);
   const textRuntimeBudget = textRuntimeBudgetSummary(entries);
   const budgetCorrelation = budgetCorrelationSummary(entries);
+  const stutterDiagnostics = stutterDiagnosticsSummary(entries);
   const quality = reportQuality(entries, diagnostics);
   return {
     generatedAt: new Date().toISOString(),
@@ -389,6 +393,7 @@ export function summarizeForBundle(entries: PerfEntry[], sourceFile: string, dia
       summaries: fps,
     },
     targetSettings,
+    stutterDiagnostics,
     assetsPreviewAdmission,
     assetsVisibleReady,
     previewBudget,

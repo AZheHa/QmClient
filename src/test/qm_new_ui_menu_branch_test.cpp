@@ -487,6 +487,16 @@ TEST(QmNewUiMenuBranches, QmClientTabLabelsDoNotCacheLocalizedPointers)
 	EXPECT_NE(RenderSettingsQmClient.find("apQmTabNames[QMCLIENT_SETTINGS_TAB_CONFIG] = Localize(\"Config\");"), std::string::npos);
 }
 
+TEST(QmNewUiMenuBranches, TranslateTargetRatioDoesNotRenderSkipNotes)
+{
+	const std::string Source = ReadTextFile("src/game/client/components/qmclient/menus_qmclient.cpp");
+	const std::string TranslateModule = BlockBodyAfter(Source, "case EQmModuleId::Translate:\n\t\t\t{");
+
+	EXPECT_NE(TranslateModule.find("RenderSliderWithNumberInput(&s_LocalDetectRatioSelectorId"), std::string::npos);
+	EXPECT_EQ(TranslateModule.find("qmclient-translate-skip-target-language-note"), std::string::npos);
+	EXPECT_EQ(TranslateModule.find("qmclient-translate-skip-numeric-note"), std::string::npos);
+}
+
 TEST(QmNewUiMenuBranches, QmClientUpdateFlowUsesQmClientNamingAndComparisonHelper)
 {
 	const std::string TClientSource = ReadTextFile("src/game/client/components/tclient/tclient.cpp");
@@ -625,6 +635,21 @@ TEST(QmNewUiMenuBranches, AssetsPreviewUsesInnerFrameRectForPreviewImage)
 	EXPECT_EQ(Source.find("const CUIRect PreviewRect = ComputePreviewDrawRect(HeaderLayout.m_TextureRect, TextureWidth, TextureWidth);"), std::string::npos);
 }
 
+TEST(QmNewUiMenuBranches, BetterScoreboardSettingIsOptInLocalizedAndVersioned)
+{
+	const std::string ConfigSource = ReadTextFile("src/engine/shared/config_variables_qmclient.h");
+	const std::string MenusSource = ReadTextFile("src/game/client/components/qmclient/menus_qmclient.cpp");
+	const std::string MiniFeatures = BlockBodyAfter(MenusSource, "case EQmModuleId::MiniFeatures:");
+	const std::string MenusToml = ReadTextFile("qmclient_scripts/languages_qmclient/translations/i18n/menus.toml");
+	const std::string VersionSource = ReadTextFile("src/game/version.h");
+
+	EXPECT_NE(ConfigSource.find("MACRO_CONFIG_INT(QmBetterScoreboard, qm_better_scoreboard, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE"), std::string::npos);
+	EXPECT_NE(MiniFeatures.find("DoQmSettingsCheckboxAuto(&g_Config.m_QmBetterScoreboard, \"Better scoreboard\", Localize(\"Better scoreboard\"), &g_Config.m_QmBetterScoreboard, &Row, LgLineHeight);"), std::string::npos);
+	EXPECT_NE(MenusToml.find("key = \"Better scoreboard\""), std::string::npos);
+	EXPECT_NE(MenusToml.find("simplified_chinese = \"更好的计分板\""), std::string::npos);
+	EXPECT_NE(VersionSource.find("#define QMCLIENT_VERSION \"2.76.16\""), std::string::npos);
+}
+
 TEST(QmNewUiMenuBranches, SettingsColorLabelsUseQmLocalizedKeys)
 {
 	const std::string Source = ReadTextFile("src/game/client/components/menus_settings.cpp");
@@ -710,6 +735,17 @@ TEST(QmNewUiMenuBranches, QmFeatureDefaultsAreDisabledExceptRequiredLyricsDefaul
 	EXPECT_EQ(ConfigSource.find("MACRO_CONFIG_INT(QmUiMotionLevel, qm_ui_motion_level, 2, 0, 2"), std::string::npos);
 	EXPECT_EQ(ConfigSource.find("MACRO_CONFIG_INT(QmWeaponTrajectory, qm_weapon_trajectory, 1, 0, 2"), std::string::npos);
 	EXPECT_EQ(ConfigSource.find("MACRO_CONFIG_INT(QmVoiceNoiseSuppressEnable, qm_voice_noise_suppress_enable, 2, 0, 2"), std::string::npos);
+}
+
+TEST(QmNewUiMenuBranches, SkinTransitionTeeHueControlsDoNotRenderExplanatoryNotes)
+{
+	const std::string Source = ReadTextFile("src/game/client/components/qmclient/menus_qmclient.cpp");
+	const std::string SkinTransitionModule = BlockBodyAfter(Source, "case EQmModuleId::SkinTransition:\n\t\t\t{");
+
+	EXPECT_NE(SkinTransitionModule.find("DoQmSettingsCheckboxAuto(&g_Config.m_QmCycleTeeHue"), std::string::npos);
+	EXPECT_NE(SkinTransitionModule.find("RenderSliderWithValueInput(&s_QmCycleTeeHueSpeedInputId"), std::string::npos);
+	EXPECT_EQ(SkinTransitionModule.find("qmclient-cycle-tee-hue-custom-note"), std::string::npos);
+	EXPECT_EQ(SkinTransitionModule.find("qmclient-cycle-tee-hue-tclient-note"), std::string::npos);
 }
 
 TEST(QmNewUiMenuBranches, SkinTransitionAnimationToggleOwnsAdvancedControls)
@@ -1041,12 +1077,19 @@ TEST(QmNewUiMenuBranches, ScoreboardBackgroundsUseScoreboardOpacity)
 	EXPECT_NE(Source.find("Row.Draw(ScoreboardDecorationColor(ColorRGBA(0.7f, 0.7f, 0.7f, 0.7f * ItemAlpha))"), std::string::npos);
 }
 
-TEST(QmNewUiMenuBranches, ScoreboardFewPlayerDdTeamLabelIsLeftAligned)
+TEST(QmNewUiMenuBranches, ScoreboardDdTeamLabelUsesUnifiedBelowRowLayout)
 {
 	const std::string Source = ReadTextFile("src/game/client/components/scoreboard.cpp");
 	const std::string RenderScoreboard = FunctionBody(Source, "void CScoreboard::RenderScoreboard(");
 
-	EXPECT_NE(RenderScoreboard.find("TextRender()->Text(Row.x + 5.0f, Row.y + Row.h, TeamFontSize, aBuf);"), std::string::npos);
+	EXPECT_NE(RenderScoreboard.find("ResolveScoreboardTeamLabelLayout("), std::string::npos);
+	EXPECT_NE(RenderScoreboard.find("if(EndsDDTeam)"), std::string::npos);
+	EXPECT_NE(RenderScoreboard.find("TextRender()->Text(TeamLabelLayout.m_X, TeamLabelLayout.m_Y, TeamFontSize, aBuf);"), std::string::npos);
+	EXPECT_NE(RenderScoreboard.find("TeamLabelLayout.m_IconY"), std::string::npos);
+	EXPECT_NE(RenderScoreboard.find("SCOREBOARD_TEAM_MODE_ICON_SIZE"), std::string::npos);
+	EXPECT_EQ(RenderScoreboard.find("TeamLabelLayout.m_Y,\n\t\t\t\t\tTeamFontSize"), std::string::npos);
+	EXPECT_EQ(RenderScoreboard.find("NumPlayers > 8"), std::string::npos);
+	EXPECT_EQ(RenderScoreboard.find("State.m_TeamStartX"), std::string::npos);
 	EXPECT_EQ(RenderScoreboard.find("Row.x + Row.w / 2.0f - TextRender()->TextWidth(TeamFontSize, aBuf) / 2.0f + 5.0f"), std::string::npos);
 }
 
@@ -1065,6 +1108,41 @@ TEST(QmNewUiMenuBranches, ScoreboardMediaButtonSymbolsFollowContentAlpha)
 	EXPECT_EQ(Source.find("Ui()->DoButton_FontIcon(&s_SmtcPrevButton"), std::string::npos);
 	EXPECT_EQ(Source.find("Ui()->DoButton_FontIcon(&s_SmtcPlayButton"), std::string::npos);
 	EXPECT_EQ(Source.find("Ui()->DoButton_FontIcon(&s_SmtcNextButton"), std::string::npos);
+}
+
+TEST(QmNewUiMenuBranches, BetterScoreboardUsesOneRowPlanAndDenseTeeLod)
+{
+	const std::string Source = ReadTextFile("src/game/client/components/scoreboard.cpp");
+	const std::string OnRender = FunctionBody(Source, "void CScoreboard::OnRender()");
+	const std::string RenderScoreboard = FunctionBody(Source, "void CScoreboard::RenderScoreboard(");
+
+	EXPECT_NE(OnRender.find("BuildPlayerRowPlan"), std::string::npos);
+	EXPECT_NE(RenderScoreboard.find("TEE_PREVIEW_LAYER_BODY"), std::string::npos);
+	EXPECT_EQ(RenderScoreboard.find("for(int j ="), std::string::npos);
+	EXPECT_NE(RenderScoreboard.find("const bool HasWar ="), std::string::npos);
+
+	// The rendering optimization must not alter point lookup or display behavior.
+	EXPECT_NE(OnRender.find("m_PlayerPoints.EnsureQueried"), std::string::npos);
+	EXPECT_NE(RenderScoreboard.find("m_PlayerPoints.GetPoints"), std::string::npos);
+}
+
+TEST(QmNewUiMenuBranches, BetterScoreboardBuildsOneSharedBlurWithFallback)
+{
+	const std::string Source = ReadTextFile("src/game/client/components/scoreboard.cpp");
+	const std::string PrepareBlur = FunctionBody(Source, "bool CScoreboard::PrepareBetterScoreboardBlur()");
+	const std::string RenderBlur = FunctionBody(Source, "void CScoreboard::RenderBetterScoreboardBlur(");
+	const std::string OnRelease = FunctionBody(Source, "void CScoreboard::OnRelease()");
+
+	EXPECT_NE(PrepareBlur.find("IsBackbufferCaptureSupported"), std::string::npos);
+	EXPECT_NE(PrepareBlur.find("IsRenderTargetGaussianBlurSupported"), std::string::npos);
+	EXPECT_NE(PrepareBlur.find("CaptureBackbufferToRenderTarget"), std::string::npos);
+	EXPECT_NE(PrepareBlur.find("GaussianBlurRenderTarget"), std::string::npos);
+	EXPECT_NE(RenderBlur.find("m_BetterScoreboardBlurTarget"), std::string::npos);
+	EXPECT_NE(RenderBlur.find("m_Visibility"), std::string::npos);
+	EXPECT_NE(OnRelease.find("DestroyBetterScoreboardBlurTargets"), std::string::npos);
+
+	// Existing translucent surfaces remain the unsupported-backend fallback.
+	EXPECT_NE(Source.find("Scoreboard.Draw(ScoreboardGlassSurface(BackgroundAlphaFinal)"), std::string::npos);
 }
 
 TEST(QmNewUiMenuBranches, IngameMenuPrimaryActionLabelsUseEnglishKeys)
@@ -1195,6 +1273,36 @@ TEST(QmNewUiMenuBranches, ClientSourceDoesNotUseChineseLocalizeKeys)
 	EXPECT_NE(StartSource.find("Localize(\"(Update required)\")"), std::string::npos);
 	EXPECT_NE(PieMenuSource.find("Localize(\"Spectate\")"), std::string::npos);
 	EXPECT_NE(ScoreboardSource.find("Localize(\"Spectators\")"), std::string::npos);
+}
+
+TEST(QmNewUiMenuBranches, PieMenuSeparatesSelfRenameFromOtherPlayerActions)
+{
+	const std::string Source = ReadTextFile("src/game/client/components/pie_menu.cpp");
+	const std::string FindNearestPlayer = FunctionBody(Source, "int CPieMenu::FindNearestPlayer()");
+	const std::string OpenMenu = FunctionBody(Source, "void CPieMenu::OpenMenu()");
+	const std::string OnInput = FunctionBody(Source, "bool CPieMenu::OnInput(");
+	const std::string UpdateSelection = FunctionBody(Source, "void CPieMenu::UpdateSelection()");
+	const std::string OnRender = FunctionBody(Source, "void CPieMenu::OnRender()");
+	const std::string RenderCenterInfo = FunctionBody(Source, "void CPieMenu::RenderCenterInfo()");
+	const std::string ExecuteRenameOption = FunctionBody(Source, "void CPieMenu::ExecuteRenameOption(");
+
+	// Both local connections belong to the user and must never become inner-ring targets.
+	EXPECT_NE(FindNearestPlayer.find("GameClient()->IsLocalClientId(i)"), std::string::npos);
+
+	// A connected local identity and at least one usable ring are required to open the menu.
+	EXPECT_NE(OpenMenu.find("Client()->State() != IClient::STATE_ONLINE"), std::string::npos);
+	EXPECT_NE(OpenMenu.find("LocalClientId < 0 || LocalClientId >= MAX_CLIENTS"), std::string::npos);
+	EXPECT_NE(OpenMenu.find("if(TargetId < 0 && m_vRenameQueue.empty())"), std::string::npos);
+
+	// Without another player the hidden inner ring cannot be selected or triggered by number keys.
+	EXPECT_NE(OnInput.find("if(!HasTargetPlayer())"), std::string::npos);
+	EXPECT_NE(UpdateSelection.find("if(HasTargetPlayer() && MouseDistance <= OuterRadius)"), std::string::npos);
+	EXPECT_NE(OnRender.find("if(HasTargetPlayer())"), std::string::npos);
+
+	// Targetless mode displays self, and hovering the outer ring identifies rename as a self action.
+	EXPECT_NE(RenderCenterInfo.find("const int DisplayClientId = HasTargetPlayer() ? m_TargetClientId : LocalClientId;"), std::string::npos);
+	EXPECT_NE(RenderCenterInfo.find("Localize(\"Self\")"), std::string::npos);
+	EXPECT_EQ(ExecuteRenameOption.find("m_TargetClientId"), std::string::npos);
 }
 
 TEST(QmNewUiMenuBranches, QmClientAxiomAutoLoginLivesInQmClientComponent)
@@ -1487,6 +1595,26 @@ TEST(QmNewUiMenuBranches, GraphicsDriverCrashRecoveryUsesSafeStartupFallback)
 	ASSERT_NE(HookCall, std::string::npos);
 	ASSERT_NE(CommandLineParse, std::string::npos);
 	EXPECT_LT(HookCall, CommandLineParse);
+}
+
+TEST(QmNewUiMenuBranches, GraphicsDriverCrashRecoveryIgnoresStaleAndConsumedReports)
+{
+	const std::string Source = ReadTextFile("src/engine/client/client.cpp");
+	const std::string FindLatest = FunctionBody(Source, "static int FindLatestQmCrashReportCallback");
+	const std::string ReadStartedAt = FunctionBody(Source, "static bool ReadQmLifecycleMarkerStartedAt");
+	const std::string FormatFingerprint = FunctionBody(Source, "static void FormatQmGraphicsCrashReportFingerprint");
+	const std::string StartupHook = FunctionBody(Source, "static void RecoverQmGraphicsSettingsAfterDriverCrash");
+
+	EXPECT_NE(Source.find("gs_pQmGraphicsRecoveryStateFile"), std::string::npos);
+	EXPECT_NE(ReadStartedAt.find("started_at="), std::string::npos);
+	EXPECT_NE(FindLatest.find("pInfo->m_TimeModified < pLatest->m_MinTimeModified"), std::string::npos);
+	EXPECT_NE(FormatFingerprint.find("Report.m_TimeModified"), std::string::npos);
+	EXPECT_NE(FormatFingerprint.find("Report.m_aPath"), std::string::npos);
+	EXPECT_NE(StartupHook.find("ReadQmLifecycleMarkerStartedAt"), std::string::npos);
+	EXPECT_NE(StartupHook.find("WasQmGraphicsCrashReportRecovered"), std::string::npos);
+	EXPECT_NE(StartupHook.find("MarkQmGraphicsCrashReportRecovered"), std::string::npos);
+	EXPECT_LT(StartupHook.find("WasQmGraphicsCrashReportRecovered"), StartupHook.find("ApplyQmSafeGraphicsRecovery"));
+	EXPECT_GT(StartupHook.find("MarkQmGraphicsCrashReportRecovered"), StartupHook.find("ApplyQmSafeGraphicsRecovery"));
 }
 
 TEST(QmNewUiMenuBranches, ImplausibleRefreshRatesAreNotPersisted)

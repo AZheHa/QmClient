@@ -31,9 +31,6 @@
 %d more cut segments
 == Mais %d segmentos de corte
 
-%d new mentions
-== %d novas menções
-
 %d of %d server
 == %d de %d servidor
 
@@ -214,9 +211,6 @@
 /times ?s?i shows last 5 times of the server or of a player beginning with name s starting with time i (i = 1 by default, -1 for first)
 == /times ?s?i mostra os últimos 5 tempos do servidor ou de um jogador começando com nome s a partir do tempo i (i = 1 por padrão, -1 para o primeiro)
 
-1 new mention
-== 1 nova menção
-
 1 star
 == 1 estrela
 
@@ -237,9 +231,6 @@
 
 5 stars
 == 5 estrelas
-
-9+ new mentions
-== 9+ novas menções
 
 === All Local Saves ===
 == === Todos os saves locais ===
@@ -949,6 +940,9 @@ Best
 Best match
 == Best match
 
+Better scoreboard
+== Placar aprimorado
+
 Bind key to execute a command or view keybindings
 == Vincular tecla para executar um comando ou ver atalhos
 
@@ -963,6 +957,9 @@ Black
 
 Blend mode
 == Modo de mesclagem
+
+Block enemy chat
+== Bloquear chat de inimigos
 
 Blue
 == Azul
@@ -3070,9 +3067,6 @@ https://ddnet.org/discord
 https://wiki.ddnet.org/
 == https://wiki.ddnet.org/
 
-https://wiki.ddnet.org/wiki/Mapping
-== https://wiki.ddnet.org/wiki/Mapping
-
 https://wiki.ddnet.org/wiki/Touch_controls
 == https://wiki.ddnet.org/wiki/Touch_controls
 
@@ -3868,9 +3862,6 @@ Message to send in chat:
 Messages
 == Mensagens
 
-Messages that already look like the target language will skip auto-translate
-== Mensagens que já parecem estar no idioma alvo pularão a tradução automática
-
 Microphone
 == Microfone
 
@@ -3942,9 +3933,6 @@ Move right
 
 Move to category
 == Mover para categoria
-
-Moved ingame
-== Movido no jogo
 
 Movement
 == Movimento
@@ -4309,9 +4297,6 @@ Notify when only one tee is still alive:
 Novice
 == Novato
 
-Numeric-only messages will be skipped
-== Mensagens apenas numéricas serão ignoradas
-
 o = Send rate
 == o = Taxa de envio
 
@@ -4347,9 +4332,6 @@ Online Players
 
 Only .wv files are supported right now.
 == Apenas arquivos .wv são suportados no momento.
-
-Only affects custom Tee colors.
-== Afeta apenas as cores personalizadas do Tee.
 
 Only Apple Can Do
 == Só a Apple Consegue Fazer
@@ -4572,6 +4554,9 @@ Pause/unpause game
 
 Per-word highlight (karaoke)
 == Per-word highlight (karaoke)
+
+Performance mode (placeholder)
+== Modo de desempenho (espaço reservado)
 
 Personal best:
 == Melhor pessoal:
@@ -5991,9 +5976,6 @@ Show DDNet map finishes in server browser
 
 Show DDRace HUD
 == Mostrar HUD DDRace
-
-Show Directory
-== Mostrar diretório
 
 Show dotted map route debug
 == Mostrar debug de rota pontilhada do mapa
@@ -7789,9 +7771,6 @@ What's done is done, no use saying more
 Wheel animate
 == Animação da roda
 
-When TClient rainbow Tee is enabled, this feature has no effect.
-== Quando o Tee arco-íris do TClient está ativado, este recurso não tem efeito.
-
 When you cross the start line, show a ghost tee replicating the movements of your best time
 == Quando você cruza a linha de largada, mostre um fantasma replicando os movimentos do seu melhor tempo
 
@@ -8461,10 +8440,6 @@ AUTO
 [Start menu]
 Play
 == Jogar
-
-[Team and size]
-%d\n(%d/%d)
-== %d\n(%d/%d)
 
 [Team size]
 maximum

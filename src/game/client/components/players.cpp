@@ -20,6 +20,7 @@
 #include <game/client/components/controls.h>
 #include <game/client/components/effects.h>
 #include <game/client/components/flow.h>
+#include <game/client/components/qmclient/afk_presentation.h>
 #include <game/client/components/qmclient/jelly_tee.h>
 #include <game/client/components/qmclient/modes.h>
 #include <game/client/components/qmclient/tee_hue_cycle.h>
@@ -614,6 +615,13 @@ void CPlayers::RenderHook(
 		Alpha = g_Config.m_ClRaceGhostAlpha / 100.0f;
 	if(ClientId >= 0 && GameClient()->m_FastPractice.Enabled() && !GameClient()->m_Snap.m_SpecInfo.m_Active && !GameClient()->m_FastPractice.IsPracticeParticipant(ClientId))
 		Alpha = std::min(Alpha, 0.5f);
+	const bool Afk = ClientId >= 0 && IsQmAfkForPresentation(
+		GameClient()->m_aClients[ClientId].m_Afk,
+		Client()->State() == IClient::STATE_ONLINE,
+		GameClient()->m_Menus.IsActive(),
+		ClientId,
+		GameClient()->m_Snap.m_LocalClientId);
+	Alpha = ApplyQmAfkPresentationAlpha(Alpha, Afk);
 
 	RenderInfo.m_Size = 64.0f;
 
@@ -624,7 +632,7 @@ void CPlayers::RenderHook(
 		Position = mix(vec2(Prev.m_X, Prev.m_Y), vec2(Player.m_X, Player.m_Y), Intra);
 
 	// draw hook
-	Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+	Graphics()->SetColor(1.0f, 1.0f, 1.0f, Afk ? Alpha : 1.0f);
 	if(ClientId < 0)
 		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 0.5f);
 
@@ -719,6 +727,13 @@ void CPlayers::RenderPlayer(
 		Alpha = g_Config.m_ClRaceGhostAlpha / 100.0f;
 	if(ClientId >= 0 && GameClient()->m_FastPractice.Enabled() && !GameClient()->m_Snap.m_SpecInfo.m_Active && !GameClient()->m_FastPractice.IsPracticeParticipant(ClientId))
 		Alpha = std::min(Alpha, 0.5f);
+	const bool Afk = ClientId >= 0 && IsQmAfkForPresentation(
+		GameClient()->m_aClients[ClientId].m_Afk,
+		Client()->State() == IClient::STATE_ONLINE,
+		GameClient()->m_Menus.IsActive(),
+		ClientId,
+		GameClient()->m_Snap.m_LocalClientId);
+	Alpha = ApplyQmAfkPresentationAlpha(Alpha, Afk);
 	// TODO: snd_game_volume_others
 	const float Volume = 1.0f;
 	const bool AllowEffects = !GameClient()->IsRenderingDummyMiniMap();
@@ -816,7 +831,7 @@ void CPlayers::RenderPlayer(
 		InAir = !Collision()->CheckPoint(Position.x, Position.y + 16);
 	bool Running = Player.m_VelX >= 5000 || Player.m_VelX <= -5000;
 	bool WantOtherDir = (Player.m_Direction == -1 && Vel.x > 0) || (Player.m_Direction == 1 && Vel.x < 0);
-	bool Inactive = ClientId >= 0 && (GameClient()->m_aClients[ClientId].m_Afk || GameClient()->m_aClients[ClientId].m_Paused);
+	bool Inactive = ClientId >= 0 && (Afk || GameClient()->m_aClients[ClientId].m_Paused);
 	SQmJellyDeform JellyDeform;
 	if(g_Config.m_QmJellyTee && ClientId >= 0)
 	{
@@ -1143,7 +1158,8 @@ void CPlayers::RenderPlayer(
 				vec2(GameClient()->m_Snap.m_aCharacters[ClientId].m_Cur.m_X, GameClient()->m_Snap.m_aCharacters[ClientId].m_Cur.m_Y),
 				Client()->IntraGameTick(g_Config.m_ClDummy));
 
-		RenderTools()->RenderTee(&State, &RenderInfo, Player.m_Emote, Direction, ShadowPosition, 0.5f, JellyDeform.m_BodyScale, JellyDeform.m_FeetScale, JellyDeform.m_BodyAngle, JellyDeform.m_FeetAngle); // render ghost
+		const float ShadowAlpha = ApplyQmAfkPresentationAlpha(0.5f, Afk);
+		RenderTools()->RenderTee(&State, &RenderInfo, Player.m_Emote, Direction, ShadowPosition, ShadowAlpha, JellyDeform.m_BodyScale, JellyDeform.m_FeetScale, JellyDeform.m_BodyAngle, JellyDeform.m_FeetAngle); // render ghost
 	}
 
 	const std::chrono::nanoseconds Now = time_get_nanoseconds();
@@ -1216,7 +1232,7 @@ void CPlayers::RenderPlayer(
 		return;
 
 	int QuadOffsetToEmoticon = NUM_WEAPONS * 2 + 4;
-	if((Player.m_PlayerFlags & PLAYERFLAG_CHATTING) && !GameClient()->m_aClients[ClientId].m_Afk)
+	if((Player.m_PlayerFlags & PLAYERFLAG_CHATTING) && !Afk)
 	{
 		int CurEmoticon = (SPRITE_DOTDOT - SPRITE_OOP);
 		Graphics()->TextureSet(GameClient()->m_EmoticonsSkin.m_aSpriteEmoticons[CurEmoticon]);
@@ -1228,7 +1244,7 @@ void CPlayers::RenderPlayer(
 		Graphics()->QuadsSetRotation(0);
 	}
 
-	if(g_Config.m_ClAfkEmote && GameClient()->m_aClients[ClientId].m_Afk && ClientId != GameClient()->m_aLocalIds[!g_Config.m_ClDummy])
+	if(g_Config.m_ClAfkEmote && Afk && ClientId != GameClient()->m_aLocalIds[!g_Config.m_ClDummy])
 	{
 		int CurEmoticon = (SPRITE_ZZZ - SPRITE_OOP);
 		Graphics()->TextureSet(GameClient()->m_EmoticonsSkin.m_aSpriteEmoticons[CurEmoticon]);
@@ -1305,6 +1321,13 @@ void CPlayers::RenderPlayerGhost(
 
 	if(!OtherTeam && FrozenSwappingHide)
 		Alpha = 1.0f;
+	const bool Afk = ClientId >= 0 && IsQmAfkForPresentation(
+		GameClient()->m_aClients[ClientId].m_Afk,
+		Client()->State() == IClient::STATE_ONLINE,
+		GameClient()->m_Menus.IsActive(),
+		ClientId,
+		GameClient()->m_Snap.m_LocalClientId);
+	Alpha = ApplyQmAfkPresentationAlpha(Alpha, Afk);
 
 	// set size
 	RenderInfo.m_Size = 64.0f;
@@ -1396,7 +1419,7 @@ void CPlayers::RenderPlayerGhost(
 	bool InAir = !Collision()->CheckPoint(Player.m_X, Player.m_Y + 16);
 	bool Running = Player.m_VelX >= 5000 || Player.m_VelX <= -5000;
 	bool WantOtherDir = (Player.m_Direction == -1 && Vel.x > 0) || (Player.m_Direction == 1 && Vel.x < 0);
-	bool Inactive = GameClient()->m_aClients[ClientId].m_Afk || GameClient()->m_aClients[ClientId].m_Paused;
+	bool Inactive = Afk || GameClient()->m_aClients[ClientId].m_Paused;
 	SQmJellyDeform JellyDeform;
 	if(g_Config.m_QmJellyTee && ClientId >= 0)
 	{
@@ -1460,7 +1483,7 @@ void CPlayers::RenderPlayerGhost(
 	{
 		if(!(RenderInfo.m_TeeRenderFlags & TEE_NO_WEAPON))
 		{
-			Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
+			Graphics()->SetColor(1.0f, 1.0f, 1.0f, Afk ? Alpha : 1.0f);
 			Graphics()->QuadsSetRotation(State.GetAttach()->m_Angle * pi * 2 + Angle);
 
 			if(ClientId < 0)

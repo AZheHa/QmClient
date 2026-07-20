@@ -12,11 +12,10 @@
 
 const char *Localize(const char *pStr, const char *pContext)
 {
-	const char *pNewStr = g_Localization.FindString(str_quickhash(pStr), str_quickhash(pContext));
+	const bool AllowDefaultContextFallback = !std::string_view(pContext).starts_with("Editor");
+	const char *pNewStr = g_Localization.FindString(str_quickhash(pStr), str_quickhash(pContext), AllowDefaultContextFallback);
 	return pNewStr ? pNewStr : pStr;
 }
-
-
 
 void CLocalizationDatabase::LoadIndexfile(IStorage *pStorage, IConsole *pConsole)
 {
@@ -256,7 +255,7 @@ void CLocalizationDatabase::AddString(const char *pOrgStr, const char *pNewStr, 
 		It->m_pReplacement = m_StringsHeap.StoreString(*pNewStr ? pNewStr : pOrgStr);
 }
 
-const char *CLocalizationDatabase::FindString(unsigned Hash, unsigned ContextHash) const
+const char *CLocalizationDatabase::FindString(unsigned Hash, unsigned ContextHash, bool AllowDefaultContextFallback) const
 {
 	CString String;
 	String.m_Hash = Hash;
@@ -267,7 +266,7 @@ const char *CLocalizationDatabase::FindString(unsigned Hash, unsigned ContextHas
 		return Range1.first->m_pReplacement;
 
 	const unsigned DefaultHash = str_quickhash("");
-	if(ContextHash != DefaultHash)
+	if(AllowDefaultContextFallback && ContextHash != DefaultHash)
 	{
 		// Do another lookup with the default context hash
 		String.m_ContextHash = DefaultHash;

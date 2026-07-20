@@ -78,6 +78,7 @@
 #include "components/qmclient/qm_lyrics/qm_lyrics.h"
 #include "components/qmclient/qmclient.h"
 #include "components/qmclient/scripting.h"
+#include "components/qmclient/stutter_diagnostics.h"
 #include "components/qmclient/translate/translate.h"
 #include "components/qmclient/voice/voice_component.h"
 #include "components/qmclient/weapon_trajectory.h"
@@ -116,6 +117,8 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 class CQmJelly;
@@ -301,8 +304,35 @@ public:
 	CMovingTiles m_MovingTilesForeground = CMovingTiles{true};
 
 private:
+	struct SQmStutterComponentWindowSamples
+	{
+		CQmStutterSampleSeries m_Update;
+		CQmStutterSampleSeries m_Render;
+	};
+
+	void ProcessQmStutterFrame();
+	void RecordComponentUpdate(size_t ComponentIndex, double DurationMs);
+	void RecordComponentRender(size_t ComponentIndex, double DurationMs);
+	void CaptureQmStutterFeatureSnapshot();
+	void FlushQmStutterWindow(const SQmStutterFrameDecision &Decision, bool ForceLog);
+	void ResetQmStutterWindowSamples();
+
 	std::vector<class CComponent *> m_vpAll;
+	std::vector<const char *> m_vpAllPerfNames;
 	std::vector<class CComponent *> m_vpInput;
+	std::vector<double> m_vQmStutterPendingUpdateMs;
+	std::vector<double> m_vQmStutterPendingRenderMs;
+	std::vector<SQmStutterComponentWindowSamples> m_vQmStutterComponentSamples;
+	std::vector<std::pair<std::string, int>> m_vQmStutterFeatureSnapshot;
+	CQmStutterEpisodeTracker m_QmStutterEpisodeTracker;
+	CQmStutterSampleSeries m_QmStutterFrameSamples;
+	bool m_QmStutterDiagnosticsWasEnabled = false;
+	uint64_t m_QmStutterWindowStartFrame = 0;
+	uint64_t m_QmStutterWorstFrame = 0;
+	double m_QmStutterWorstFrameMs = 0.0;
+	EQmStutterLimitCause m_QmStutterLimitCause = EQmStutterLimitCause::NONE;
+	std::string m_QmStutterPage;
+	std::string m_QmStutterOperation;
 	std::unique_ptr<CQmJelly> m_pJellyTee;
 
 	CNetObjHandler m_NetObjHandler;
@@ -414,6 +444,7 @@ private:
 	int m_LastDemoPlaybackStateTick = -1;
 
 	void PrewarmSettingsRuntimeCachesDuringLoading(const char *pLoadingCaption, const char *pLoadingMessage);
+	bool ShouldUseServerControlledLocalSkin() const;
 
 public:
 	// 将 IInterface 的 protected Kernel() 暴露给客户端组件的既有访问模式。
@@ -605,7 +636,7 @@ public:
 		friend class CGameClient;
 		CGameClient *m_pGameClient;
 		int m_ClientId;
-		int LocalDummyIndex() const;
+		int LocalSkinConfigIndex() const;
 		void BuildLocalSkinDescriptor(CSkinDescriptor &SkinDescriptor, int Dummy) const;
 
 	public:

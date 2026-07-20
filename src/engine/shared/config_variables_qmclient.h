@@ -11,9 +11,11 @@
 // QmClient specific variables - 栖梦客户端配置项
 
 // Log / 日志
+MACRO_CONFIG_INT(QmPerformanceMode, qm_performance_mode, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "性能模式占位开关")
 MACRO_CONFIG_INT(QmPerfDebug, qm_perf_debug, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用主线程与渲染阶段性能调试日志")
 MACRO_CONFIG_INT(QmPerfLogfile, qm_perf_logfile, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "将性能调试日志写入专用文件")
 MACRO_CONFIG_INT(QmPerfDebugThresholdMs, qm_perf_debug_threshold_ms, 4, 1, 1000, CFGFLAG_CLIENT | CFGFLAG_SAVE, "性能调试日志阈值（毫秒）")
+MACRO_CONFIG_INT(QmPerfStutterDiagnostics, qm_perf_stutter_diagnostics, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用 300 FPS 客户端卡顿诊断（启动前开启）")
 MACRO_CONFIG_INT(QmProcessHighPriority, qm_process_high_priority, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "仅 Windows：启动时将进程优先级设置为高")
 MACRO_CONFIG_INT(QmAssetsPreviewBudgetMbOverride, qm_assets_preview_budget_mb_override, 0, 0, 16384, CFGFLAG_CLIENT | CFGFLAG_SAVE, "资源预览显存预算覆盖（MB，0=自动）")
 MACRO_CONFIG_INT(QmAssetsPreviewBudgetPercent, qm_assets_preview_budget_percent, 8, 0, 100, CFGFLAG_CLIENT | CFGFLAG_SAVE, "资源预览显存预算百分比（基于设备本地显存预算）")
@@ -41,6 +43,7 @@ MACRO_CONFIG_STR(QmReportAppId, qm_report_app_id, 128, "desktop", CFGFLAG_CLIENT
 MACRO_CONFIG_STR(QmReportSecret, qm_report_secret, 128, "SsF-7wLdC9dO-RCb5sGieLII9gVW0v5lPpiK6zitUNo", CFGFLAG_CLIENT | CFGFLAG_SAVE, "举报服务签名密钥")
 
 // Scoreboard / 计分板
+MACRO_CONFIG_INT(QmBetterScoreboard, qm_better_scoreboard, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用更好的计分板")
 MACRO_CONFIG_INT(QmScoreboardPoints, qm_scoreboard_points, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "在记分牌中显示分数列（从 DDNet API 获取）")
 MACRO_CONFIG_INT(QmScoreboardSortMode, qm_scoreboard_sort_mode, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "记分牌排序模式（0=分数，1=分）")
 MACRO_CONFIG_INT(QmScoreboardOnDeath, qm_scoreboard_on_death, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "死亡后显示记分牌")
@@ -54,6 +57,7 @@ MACRO_CONFIG_STR(ClMessageGradient, cl_message_gradient, 128, "", CFGFLAG_CLIENT
 MACRO_CONFIG_STR(ClMessageFriendGradient, cl_message_friend_gradient, 128, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "好友消息文字渐变颜色")
 MACRO_CONFIG_INT(QmChatLogAutoSave, qm_chat_log_auto_save, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "自动保存聊天记录")
 MACRO_CONFIG_INT(QmChatLogKeepDays, qm_chat_log_keep_days, 30, 0, 3650, CFGFLAG_CLIENT | CFGFLAG_SAVE, "聊天记录保留天数")
+MACRO_CONFIG_INT(QmWarListBlockEnemyChat, qm_warlist_block_enemy_chat, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "屏蔽敌对分组玩家的聊天消息")
 
 // Rainbow Name / 彩虹名字
 MACRO_CONFIG_INT(QmRainbowName, qm_rainbow_name, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用自己名字的彩虹色渲染")
@@ -247,10 +251,11 @@ MACRO_CONFIG_STR(QmFriendEnterGreetText, qm_friend_enter_greet_text, 128, "你�
 
 // Block Words / 屏蔽词
 MACRO_CONFIG_INT(QmBlockWordsEnabled, qm_block_words_enabled, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "启用屏蔽词列表")
+MACRO_CONFIG_INT(QmBlockWordsAction, qm_block_words_action, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "屏蔽词动作 0=替换命中词 1=隐藏整条消息")
 MACRO_CONFIG_INT(QmBlockWordsShowConsole, qm_block_words_show_console, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "控制台显示被屏蔽词")
 MACRO_CONFIG_COL(QmBlockWordsConsoleColor, qm_block_words_console_color, 0xFFFFFFFF, CFGFLAG_CLIENT | CFGFLAG_SAVE, "被屏蔽词控制台颜色")
 MACRO_CONFIG_INT(QmBlockWordsMultiReplace, qm_block_words_multi_replace, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "按屏蔽词长度多字符替换")
-MACRO_CONFIG_INT(QmBlockWordsMode, qm_block_words_mode, 2, 0, 2, CFGFLAG_CLIENT | CFGFLAG_SAVE, "替换方式 0=Regex 1=Full 2=Both")
+MACRO_CONFIG_INT(QmBlockWordsMode, qm_block_words_mode, 2, 0, 2, CFGFLAG_CLIENT | CFGFLAG_SAVE, "匹配方式 0=Regex 1=Full 2=Both")
 MACRO_CONFIG_STR(QmBlockWordsReplacementChar, qm_block_words_replacement_char, 8, "*", CFGFLAG_CLIENT | CFGFLAG_SAVE, "屏蔽词替换字符")
 MACRO_CONFIG_STR(QmBlockWordsList, qm_block_words_list, 1024, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "屏蔽词列表（用,分隔）")
 MACRO_CONFIG_STR(QmSidebarCardOrder, qm_sidebar_card_order, 2048, "", CFGFLAG_CLIENT | CFGFLAG_SAVE, "栖梦侧栏模块排序")

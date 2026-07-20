@@ -165,7 +165,7 @@ void CEditor::AddTileart(bool IgnoreHistory)
 	if(vColorImages.size() != vaColorGroups.size())
 	{
 		m_TileartImageInfo.Free();
-		ShowFileDialogError("无法生成图块画图像。");
+		ShowFileDialogError(Localize("Could not generate the tile art image.", "Editor"));
 		return;
 	}
 
@@ -220,7 +220,7 @@ bool CEditor::CallbackAddTileart(const char *pFilepath, int StorageType, void *p
 
 	if(!pEditor->Graphics()->LoadPng(pEditor->m_TileartImageInfo, pFilepath, StorageType))
 	{
-		pEditor->ShowFileDialogError("无法从文件“%s”加载图像。", pFilepath);
+		pEditor->ShowFileDialogError(Localize("Failed to load image from file '%s'.", "Editor"), pFilepath);
 		return false;
 	}
 

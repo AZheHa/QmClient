@@ -24,6 +24,7 @@
 #include <engine/shared/datafile.h>
 #include <engine/shared/http.h>
 #include <engine/shared/jobs.h>
+#include <engine/shared/localization.h>
 
 #include <game/client/ui.h>
 #include <game/client/ui_listbox.h>
@@ -44,6 +45,7 @@
 #include <game/editor/mapitems/map.h>
 #include <game/editor/prompt.h>
 #include <game/editor/quick_action.h>
+#include <game/localization.h>
 #include <game/map/render_interfaces.h>
 #include <game/mapitems.h>
 
@@ -223,7 +225,6 @@ public:
 		m_aFilename[0] = '\0';
 		m_aFilenamePending[0] = '\0';
 		m_ValidSaveFilename = false;
-
 		m_PopupEventActivated = false;
 		m_PopupEventWasActivated = false;
 
@@ -364,7 +365,7 @@ public:
 	std::shared_ptr<CHttpRequest> m_pCollabPullTask;
 	char m_aCollabClientId[64] = "";
 	char m_aCollabRoomCode[16] = "";
-	char m_aCollabStatus[160] = "未加入协作房间";
+	char m_aCollabStatus[160] = "Not in a collaboration room";
 	int m_CollabRevision = 0;
 	int m_CollabMemberCount = 0;
 	int m_CollabMaxMembers = 4;

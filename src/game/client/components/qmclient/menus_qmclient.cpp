@@ -4295,6 +4295,10 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 					CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 
 					CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
+					DoQmSettingsCheckboxAuto(&g_Config.m_QmBetterScoreboard, "Better scoreboard", Localize("Better scoreboard"), &g_Config.m_QmBetterScoreboard, &Row, LgLineHeight);
+					CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
+
+					CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
 					DoQmSettingsCheckboxAuto(&g_Config.m_QmScoreboardPoints, "Scoreboard point check", Localize("Scoreboard point check"), &g_Config.m_QmScoreboardPoints, &Row, LgLineHeight);
 					CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 
@@ -4485,18 +4489,6 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 					if(!g_Config.m_QmCycleTeeHue)
 						TextRender()->TextColor(TextRender()->DefaultTextColor());
 				}
-				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
-
-				CardContent.HSplitTop(LgBodySize, &Row, &CardContent);
-				TextRender()->TextColor(ColorRGBA(0.85f, 0.85f, 0.85f, 0.72f));
-				DoQmSettingsLabel("qmclient-cycle-tee-hue-custom-note", &Row, Localize("Only affects custom Tee colors."), LgBodySize * 0.82f);
-				TextRender()->TextColor(TextRender()->DefaultTextColor());
-				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
-
-				CardContent.HSplitTop(LgBodySize, &Row, &CardContent);
-				TextRender()->TextColor(g_Config.m_TcRainbowTees ? ColorRGBA(1.0f, 0.78f, 0.45f, 0.9f) : ColorRGBA(0.85f, 0.85f, 0.85f, 0.72f));
-				DoQmSettingsLabel("qmclient-cycle-tee-hue-tclient-note", &Row, Localize("When TClient rainbow Tee is enabled, this feature has no effect."), LgBodySize * 0.82f);
-				TextRender()->TextColor(TextRender()->DefaultTextColor());
 				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 
 				CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
@@ -4757,38 +4749,55 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 
 				CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
-				DoQmSettingsCheckboxAuto(&g_Config.m_QmBlockWordsMultiReplace, "Use multi-char replacement based on word length", Localize("Use multi-char replacement based on word length"), &g_Config.m_QmBlockWordsMultiReplace, &Row, LgLineHeight);
+				Row.VSplitLeft(LgLabelWidth, &LabelCol, &ControlCol);
+				DoQmSettingsLabel("qmclient-word-filter-action", &LabelCol, Localize("Behavior"), LgBodySize);
+				CUIRect ActionRow = ControlCol;
+				CUIRect ActionButton;
+				static CButtonContainer s_BlockWordsActionReplace, s_BlockWordsActionHide;
+				const float ActionWidth = ActionRow.w / 2.0f;
+				ActionRow.VSplitLeft(ActionWidth, &ActionButton, &ActionRow);
+				if(DoButtonLineSize_Menu(&s_BlockWordsActionReplace, Localize("Replace mode"), g_Config.m_QmBlockWordsAction == 0, &ActionButton, LgLineHeight, false, 0, IGraphics::CORNER_L, 5.0f, 0.0f, ColorRGBA(0.0f, 0.0f, 0.0f, 0.25f)))
+					g_Config.m_QmBlockWordsAction = 0;
+				if(DoButtonLineSize_Menu(&s_BlockWordsActionHide, Localize("Hide player messages"), g_Config.m_QmBlockWordsAction == 1, &ActionRow, LgLineHeight, false, 0, IGraphics::CORNER_R, 5.0f, 0.0f, ColorRGBA(0.0f, 0.0f, 0.0f, 0.25f)))
+					g_Config.m_QmBlockWordsAction = 1;
 				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 
-				static CLineInputBuffered<8> s_BlockWordsReplaceInput;
-				static bool s_BlockWordsReplaceInited = false;
-				if(!s_BlockWordsReplaceInited)
+				if(g_Config.m_QmBlockWordsAction == 0)
 				{
-					s_BlockWordsReplaceInput.Set(g_Config.m_QmBlockWordsReplacementChar);
-					s_BlockWordsReplaceInited = true;
+					CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
+					DoQmSettingsCheckboxAuto(&g_Config.m_QmBlockWordsMultiReplace, "Use multi-char replacement based on word length", Localize("Use multi-char replacement based on word length"), &g_Config.m_QmBlockWordsMultiReplace, &Row, LgLineHeight);
+					CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
+
+					static CLineInputBuffered<8> s_BlockWordsReplaceInput;
+					static bool s_BlockWordsReplaceInited = false;
+					if(!s_BlockWordsReplaceInited)
+					{
+						s_BlockWordsReplaceInput.Set(g_Config.m_QmBlockWordsReplacementChar);
+						s_BlockWordsReplaceInited = true;
+					}
+					else if(!s_BlockWordsReplaceInput.IsActive() && str_comp(s_BlockWordsReplaceInput.GetString(), g_Config.m_QmBlockWordsReplacementChar) != 0)
+					{
+						s_BlockWordsReplaceInput.Set(g_Config.m_QmBlockWordsReplacementChar);
+					}
+					s_BlockWordsReplaceInput.SetEmptyText("*");
+
+					CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
+					Row.VSplitLeft(LgLabelWidth, &LabelCol, &ControlCol);
+					DoQmSettingsLabel("qmclient-word-filter-replacement-chars", &LabelCol, Localize("Replacement chars"), LgBodySize);
+					if(Ui()->DoEditBox(&s_BlockWordsReplaceInput, &ControlCol, LgBodySize))
+					{
+						char aReplacement[8];
+						str_utf8_truncate(aReplacement, sizeof(aReplacement), s_BlockWordsReplaceInput.GetString(), 1);
+						if(aReplacement[0] == '\0')
+							str_copy(aReplacement, "*", sizeof(aReplacement));
+						str_copy(g_Config.m_QmBlockWordsReplacementChar, aReplacement, sizeof(g_Config.m_QmBlockWordsReplacementChar));
+					}
+					CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 				}
-				else if(!s_BlockWordsReplaceInput.IsActive() && str_comp(s_BlockWordsReplaceInput.GetString(), g_Config.m_QmBlockWordsReplacementChar) != 0)
-				{
-					s_BlockWordsReplaceInput.Set(g_Config.m_QmBlockWordsReplacementChar);
-				}
-				s_BlockWordsReplaceInput.SetEmptyText("*");
 
 				CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
 				Row.VSplitLeft(LgLabelWidth, &LabelCol, &ControlCol);
-				DoQmSettingsLabel("qmclient-word-filter-replacement-chars", &LabelCol, Localize("Replacement chars"), LgBodySize);
-				if(Ui()->DoEditBox(&s_BlockWordsReplaceInput, &ControlCol, LgBodySize))
-				{
-					char aReplacement[8];
-					str_utf8_truncate(aReplacement, sizeof(aReplacement), s_BlockWordsReplaceInput.GetString(), 1);
-					if(aReplacement[0] == '\0')
-						str_copy(aReplacement, "*", sizeof(aReplacement));
-					str_copy(g_Config.m_QmBlockWordsReplacementChar, aReplacement, sizeof(g_Config.m_QmBlockWordsReplacementChar));
-				}
-				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
-
-				CardContent.HSplitTop(LgLineHeight, &Row, &CardContent);
-				Row.VSplitLeft(LgLabelWidth, &LabelCol, &ControlCol);
-				DoQmSettingsLabel("qmclient-word-filter-replace-mode", &LabelCol, Localize("Replace mode"), LgBodySize);
+				DoQmSettingsLabel("qmclient-word-filter-match-mode", &LabelCol, Localize("Mode"), LgBodySize);
 				CUIRect ModeRow = ControlCol;
 				CUIRect ModeButton;
 				static CButtonContainer s_BlockWordsModeRegex, s_BlockWordsModeFull, s_BlockWordsModeBoth;
@@ -4986,15 +4995,6 @@ void CMenus::RenderSettingsQmClient(CUIRect MainView, bool ContributorsPage, boo
 					static int s_LocalDetectRatioSelectorId;
 					RenderSliderWithNumberInput(&s_LocalDetectRatioSelectorId, ControlCol, &g_Config.m_QmTranslateLocalDetectRatio, 50, 100);
 				}
-				CardContent.HSplitTop(LgLineSpacing * 0.5f, nullptr, &CardContent);
-
-				CardContent.HSplitTop(LgLineHeight * 0.8f, &Row, &CardContent);
-				Row.VMargin(LgLabelWidth, &Row);
-				DoQmSettingsLabel("qmclient-translate-skip-target-language-note", &Row, Localize("Messages that already look like the target language will skip auto-translate"), LgBodySize * 0.8f);
-				CardContent.HSplitTop(LgLineSpacing * 0.35f, nullptr, &CardContent);
-				CardContent.HSplitTop(LgLineHeight * 0.8f, &Row, &CardContent);
-				Row.VMargin(LgLabelWidth, &Row);
-				DoQmSettingsLabel("qmclient-translate-skip-numeric-note", &Row, Localize("Numeric-only messages will be skipped"), LgBodySize * 0.8f);
 				CardContent.HSplitTop(LgLineSpacing, nullptr, &CardContent);
 				// Endpoint 配置 - 根据后端类型显示不同的端点输入
 				if(IsTencentCloudBackend)

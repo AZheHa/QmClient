@@ -65,7 +65,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuFile(void *pContext, CUIRect Vie
 
 	CUIRect Slot;
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_NewMapButton, "新建", 0, &Slot, BUTTONFLAG_LEFT, "[Ctrl+N] 创建新地图."))
+	if(pEditor->DoButton_MenuItem(&s_NewMapButton, Localize("New", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("[Ctrl+N] Create a new map.", "Editor")))
 	{
 		if(pEditor->HasUnsavedData())
 		{
@@ -82,7 +82,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuFile(void *pContext, CUIRect Vie
 
 	View.HSplitTop(10.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_OpenButton, "加载", 0, &Slot, BUTTONFLAG_LEFT, "按下[Ctrl+L] 打开地图进行编辑."))
+	if(pEditor->DoButton_MenuItem(&s_OpenButton, Localize("Load", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("[Ctrl+L] Open a map for editing.", "Editor")))
 	{
 		if(pEditor->HasUnsavedData())
 		{
@@ -91,7 +91,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuFile(void *pContext, CUIRect Vie
 		}
 		else
 		{
-			pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::MAP, "加载地图", "加载", "maps", "", CallbackOpenMap, pEditor);
+			pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::MAP, Localize("Load map", "Editor"), Localize("Load", "Editor"), "maps", "", CallbackOpenMap, pEditor);
 		}
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
@@ -106,15 +106,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuFile(void *pContext, CUIRect Vie
 
 	View.HSplitTop(10.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_AppendButton, "添加", 0, &Slot, BUTTONFLAG_LEFT, "[Ctrl+A] 将所选地图文件的所有内容添加到当前地图中."))
+	if(pEditor->DoButton_MenuItem(&s_AppendButton, Localize("Add", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("[Ctrl+A] Open a map and add everything from that map to the current one.", "Editor")))
 	{
-		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::MAP, "添加地图", "添加", "maps", "", CallbackAppendMap, pEditor);
+		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::MAP, Localize("Append map", "Editor"), Localize("Add", "Editor"), "maps", "", CallbackAppendMap, pEditor);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
 
 	View.HSplitTop(10.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_SaveButton, "保存", 0, &Slot, BUTTONFLAG_LEFT, "按下[Ctrl+S] 保存当前地图."))
+	if(pEditor->DoButton_MenuItem(&s_SaveButton, Localize("Save", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("[Ctrl+S] Save the current map.", "Editor")))
 	{
 		if(pEditor->m_aFilename[0] != '\0' && pEditor->m_ValidSaveFilename)
 		{
@@ -122,7 +122,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuFile(void *pContext, CUIRect Vie
 		}
 		else
 		{
-			pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::MAP, "保存地图", "保存", "maps", "", CallbackSaveMap, pEditor);
+			pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::MAP, Localize("Save map", "Editor"), Localize("Save", "Editor"), "maps", "", CallbackSaveMap, pEditor);
 		}
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
@@ -137,11 +137,11 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuFile(void *pContext, CUIRect Vie
 
 	View.HSplitTop(2.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_SaveCopyButton, "保存副本", 0, &Slot, BUTTONFLAG_LEFT, "按下[Ctrl+Shift+Alt+S] 将当前地图另存为新名称."))
+	if(pEditor->DoButton_MenuItem(&s_SaveCopyButton, Localize("Save copy", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("[Ctrl+Shift+Alt+S] Save a copy of the current map under a new name.", "Editor")))
 	{
 		char aDefaultName[IO_MAX_PATH_LENGTH];
 		fs_split_file_extension(fs_filename(pEditor->m_aFilename), aDefaultName, sizeof(aDefaultName));
-		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::MAP, "保存地图", "保存副本", "maps", aDefaultName, CallbackSaveCopyMap, pEditor);
+		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::MAP, Localize("Save map", "Editor"), Localize("Save copy", "Editor"), "maps", aDefaultName, CallbackSaveCopyMap, pEditor);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
 
@@ -163,7 +163,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuFile(void *pContext, CUIRect Vie
 
 	View.HSplitTop(10.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_ExitButton, "退出", 0, &Slot, BUTTONFLAG_LEFT, "[Escape] 退出编辑器."))
+	if(pEditor->DoButton_MenuItem(&s_ExitButton, Localize("Exit", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("[Escape] Exit from the editor.", "Editor")))
 	{
 		if(pEditor->HasUnsavedData())
 		{
@@ -189,11 +189,11 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuTools(void *pContext, CUIRect Vi
 	View.HSplitTop(12.0f, &Slot, &View);
 	static int s_RemoveUnusedEnvelopesButton = 0;
 	static CUi::SConfirmPopupContext s_ConfirmPopupContext;
-	if(pEditor->DoButton_MenuItem(&s_RemoveUnusedEnvelopesButton, "删除未使用的导入", 0, &Slot, BUTTONFLAG_LEFT, "从地图中删除已导入但未使用的文件."))
+	if(pEditor->DoButton_MenuItem(&s_RemoveUnusedEnvelopesButton, Localize("Remove unused envelopes", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Remove all unused envelopes from the map.", "Editor")))
 	{
 		s_ConfirmPopupContext.Reset();
 		s_ConfirmPopupContext.YesNoButtons();
-		str_copy(s_ConfirmPopupContext.m_aMessage, "确定要从此地图中删除所有未使用的导入吗?");
+		str_copy(s_ConfirmPopupContext.m_aMessage, Localize("Are you sure that you want to remove all unused envelopes from this map?", "Editor"));
 		pEditor->Ui()->ShowPopupConfirm(Slot.x + Slot.w, Slot.y, &s_ConfirmPopupContext);
 	}
 	if(s_ConfirmPopupContext.m_Result == CUi::SConfirmPopupContext::CONFIRMED)
@@ -207,7 +207,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuTools(void *pContext, CUIRect Vi
 	static int s_BorderButton = 0;
 	View.HSplitTop(2.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_BorderButton, "放置边框", 0, &Slot, BUTTONFLAG_LEFT, "使用选定层的索引为2的贴图向当前层添加两层宽的边框."))
+	if(pEditor->DoButton_MenuItem(&s_BorderButton, Localize("Place border", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Place tiles in a 2-tile wide border at the edges of the selected tile layer.", "Editor")))
 	{
 		std::shared_ptr<CLayerTiles> pT = std::static_pointer_cast<CLayerTiles>(pEditor->GetSelectedLayerType(0, LAYERTYPE_TILES));
 		if(pT && !pT->m_HasTele && !pT->m_HasSpeedup && !pT->m_HasSwitch && !pT->m_HasFront && !pT->m_HasTune)
@@ -217,14 +217,14 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuTools(void *pContext, CUIRect Vi
 		}
 		else
 		{
-			pEditor->ShowFileDialogError("未选择图块层");
+			pEditor->ShowFileDialogError(Localize("No tile layer selected", "Editor"));
 		}
 	}
 
 	static int s_GotoButton = 0;
 	View.HSplitTop(2.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_GotoButton, "转到位置", 0, &Slot, BUTTONFLAG_LEFT, "将视图移动到地图的特定坐标."))
+	if(pEditor->DoButton_MenuItem(&s_GotoButton, Localize("Goto position", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Go to a specified coordinate point on the map.", "Editor")))
 	{
 		static SPopupMenuId s_PopupGotoId;
 		pEditor->Ui()->DoPopupMenu(&s_PopupGotoId, Slot.x, Slot.y + Slot.h, 120, 52, pEditor, PopupGoto);
@@ -233,18 +233,18 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuTools(void *pContext, CUIRect Vi
 	static int s_TileartButton = 0;
 	View.HSplitTop(2.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_TileartButton, "添加图块画", 0, &Slot, BUTTONFLAG_LEFT, "从图像生成图块画。"))
+	if(pEditor->DoButton_MenuItem(&s_TileartButton, Localize("Add tileart", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Generate tileart from image.", "Editor")))
 	{
-		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::IMAGE, "添加图块画", "打开", "mapres", "", CallbackAddTileart, pEditor);
+		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::IMAGE, Localize("Add tileart", "Editor"), Localize("Open", "Editor"), "mapres", "", CallbackAddTileart, pEditor);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
 
 	static int s_QuadArtButton = 0;
 	View.HSplitTop(2.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_QuadArtButton, "添加四边形画", 0, &Slot, BUTTONFLAG_LEFT, "从图像生成四边形画。"))
+	if(pEditor->DoButton_MenuItem(&s_QuadArtButton, Localize("Add quadart", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Generate quadart from image.", "Editor")))
 	{
-		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::IMAGE, "添加四边形画", "打开", "mapres", "", CallbackAddQuadArt, pEditor);
+		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::IMAGE, Localize("Add quadart", "Editor"), Localize("Open", "Editor"), "mapres", "", CallbackAddQuadArt, pEditor);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
 
@@ -259,21 +259,21 @@ CUi::EPopupMenuFunctionResult CEditor::PopupCollab(void *pContext, CUIRect View,
 	View.Margin(8.0f, &View);
 
 	View.HSplitTop(16.0f, &Slot, &View);
-	pEditor->Ui()->DoLabel(&Slot, "协作制图", 14.0f, TEXTALIGN_ML);
+	pEditor->Ui()->DoLabel(&Slot, Localize("Collaboration", "Editor"), 14.0f, TEXTALIGN_ML);
 
 	View.HSplitTop(4.0f, nullptr, &View);
 	View.HSplitTop(28.0f, &Slot, &View);
 	SLabelProperties TextProps;
 	TextProps.m_MaxWidth = Slot.w;
-	pEditor->Ui()->DoLabel(&Slot, "通过房间码同步当前编辑器地图快照，最多 4 人同时协作。", 10.0f, TEXTALIGN_ML, TextProps);
+	pEditor->Ui()->DoLabel(&Slot, Localize("Sync the current editor map snapshot by room code, with up to 4 people collaborating.", "Editor"), 10.0f, TEXTALIGN_ML, TextProps);
 
 	View.HSplitTop(6.0f, nullptr, &View);
 	View.HSplitTop(18.0f, &Slot, &View);
 	char aRoomStatus[64];
 	if(pEditor->m_aCollabRoomCode[0] != '\0')
-		str_format(aRoomStatus, sizeof(aRoomStatus), "当前房间：%s（%d/%d 人）", pEditor->m_aCollabRoomCode, pEditor->m_CollabMemberCount, pEditor->m_CollabMaxMembers);
+		str_format(aRoomStatus, sizeof(aRoomStatus), Localize("Current room: %s (%d/%d people)", "Editor"), pEditor->m_aCollabRoomCode, pEditor->m_CollabMemberCount, pEditor->m_CollabMaxMembers);
 	else
-		str_copy(aRoomStatus, "当前未加入协作房间");
+		str_copy(aRoomStatus, Localize("Not currently in a collaboration room", "Editor"));
 	pEditor->Ui()->DoLabel(&Slot, aRoomStatus, 10.0f, TEXTALIGN_ML, TextProps);
 
 	View.HSplitTop(4.0f, nullptr, &View);
@@ -282,13 +282,13 @@ CUi::EPopupMenuFunctionResult CEditor::PopupCollab(void *pContext, CUIRect View,
 	Slot.VSplitLeft(48.0f, &Label, &Slot);
 	Slot.VSplitRight(64.0f, &Input, &Copy);
 	Slot.VSplitRight(6.0f, &Input, nullptr);
-	pEditor->Ui()->DoLabel(&Label, "房间码", 10.0f, TEXTALIGN_ML);
-	pEditor->DoEditBox(&pEditor->m_CollabRoomInput, &Input, 10.0f, IGraphics::CORNER_ALL, "输入房间码以加入协作房间。");
+	pEditor->Ui()->DoLabel(&Label, Localize("Room code", "Editor"), 10.0f, TEXTALIGN_ML);
+	pEditor->DoEditBox(&pEditor->m_CollabRoomInput, &Input, 10.0f, IGraphics::CORNER_ALL, Localize("Enter a room code to join a collaboration room.", "Editor"));
 	static int s_CopyRoomCodeButton = 0;
-	if(pEditor->DoButton_Editor(&s_CopyRoomCodeButton, "复制", pEditor->m_aCollabRoomCode[0] == '\0' ? -1 : 0, &Copy, BUTTONFLAG_LEFT, "复制当前协作房间码。"))
+	if(pEditor->DoButton_Editor(&s_CopyRoomCodeButton, Localize("Duplicate", "Editor"), pEditor->m_aCollabRoomCode[0] == '\0' ? -1 : 0, &Copy, BUTTONFLAG_LEFT, Localize("Copy the current collaboration room code.", "Editor")))
 	{
 		pEditor->Input()->SetClipboardText(pEditor->m_aCollabRoomCode);
-		pEditor->SetCollabStatus("房间码已复制");
+		pEditor->SetCollabStatus(Localizable("Room code copied", "Editor"));
 	}
 
 	View.HSplitTop(8.0f, nullptr, &View);
@@ -302,15 +302,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupCollab(void *pContext, CUIRect View,
 
 	const bool Disconnected = pEditor->m_CollabState == ECollabState::DISCONNECTED;
 	static int s_CreateRoomButton = 0;
-	if(pEditor->DoButton_Editor(&s_CreateRoomButton, "创建房间", Disconnected ? 0 : -1, &Create, BUTTONFLAG_LEFT, "创建最多 4 人的协作制图房间。"))
+	if(pEditor->DoButton_Editor(&s_CreateRoomButton, Localize("Create room", "Editor"), Disconnected ? 0 : -1, &Create, BUTTONFLAG_LEFT, Localize("Create a collaboration room for up to 4 people.", "Editor")))
 		pEditor->CreateCollabRoom();
 
 	static int s_JoinRoomButton = 0;
-	if(pEditor->DoButton_Editor(&s_JoinRoomButton, "加入房间", Disconnected ? 0 : -1, &Join, BUTTONFLAG_LEFT, "使用房间码加入协作制图房间。"))
+	if(pEditor->DoButton_Editor(&s_JoinRoomButton, Localize("Join room", "Editor"), Disconnected ? 0 : -1, &Join, BUTTONFLAG_LEFT, Localize("Use a room code to join a collaboration room.", "Editor")))
 		pEditor->JoinCollabRoom();
 
 	static int s_LeaveRoomButton = 0;
-	if(pEditor->DoButton_Editor(&s_LeaveRoomButton, "离开房间", Disconnected ? -1 : 0, &Leave, BUTTONFLAG_LEFT, "离开当前协作制图房间。"))
+	if(pEditor->DoButton_Editor(&s_LeaveRoomButton, Localize("Leave room", "Editor"), Disconnected ? -1 : 0, &Leave, BUTTONFLAG_LEFT, Localize("Leave the current collaboration room.", "Editor")))
 		pEditor->LeaveCollabRoom();
 
 	View.HSplitTop(8.0f, nullptr, &View);
@@ -345,13 +345,13 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 	View.HSplitTop(12.0f, &Slot, &View);
 	static int s_EntitiesButtonId = 0;
 	char aButtonText[64];
-	str_format(aButtonText, sizeof(aButtonText), "实体：%s", EntitiesDisplayName(pEditor->m_SelectEntitiesImage.c_str()));
-	if(pEditor->DoButton_MenuItem(&s_EntitiesButtonId, aButtonText, 0, &Slot, BUTTONFLAG_LEFT, "为不同游戏类型选择游戏层实体图像。"))
+	str_format(aButtonText, sizeof(aButtonText), Localize("Entities: %s", "Editor"), EntitiesDisplayName(pEditor->m_SelectEntitiesImage.c_str()));
+	if(pEditor->DoButton_MenuItem(&s_EntitiesButtonId, aButtonText, 0, &Slot, BUTTONFLAG_LEFT, Localize("Choose game layer entities image for different gametypes.", "Editor")))
 	{
 		pEditor->m_vSelectEntitiesFiles.clear();
 		pEditor->Storage()->ListDirectory(IStorage::TYPE_ALL, "editor/entities", EntitiesListdirCallback, pEditor);
 		std::sort(pEditor->m_vSelectEntitiesFiles.begin(), pEditor->m_vSelectEntitiesFiles.end());
-		pEditor->m_vSelectEntitiesFiles.emplace_back("自定义…");
+		pEditor->m_vSelectEntitiesFiles.emplace_back(Localize("Custom…", "Editor"));
 
 		static SPopupMenuId s_PopupEntitiesId;
 		pEditor->Ui()->DoPopupMenu(&s_PopupEntitiesId, Slot.x, Slot.y + Slot.h, 250, pEditor->m_vSelectEntitiesFiles.size() * 14.0f + 10.0f, pEditor, PopupEntities);
@@ -367,14 +367,14 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "画笔着色", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Brush coloring", "Editor"), 10.0f, TEXTALIGN_ML);
 		static int s_ButtonNo = 0;
 		static int s_ButtonYes = 0;
-		if(pEditor->DoButton_Ex(&s_ButtonNo, "否", !pEditor->m_BrushColorEnabled, &No, BUTTONFLAG_LEFT, "禁用画笔着色。", IGraphics::CORNER_L))
+		if(pEditor->DoButton_Ex(&s_ButtonNo, Localize("No", "Editor"), !pEditor->m_BrushColorEnabled, &No, BUTTONFLAG_LEFT, Localize("Disable brush coloring.", "Editor"), IGraphics::CORNER_L))
 		{
 			pEditor->m_BrushColorEnabled = false;
 		}
-		if(pEditor->DoButton_Ex(&s_ButtonYes, "是", pEditor->m_BrushColorEnabled, &Yes, BUTTONFLAG_LEFT, "启用画笔着色。", IGraphics::CORNER_R))
+		if(pEditor->DoButton_Ex(&s_ButtonYes, Localize("Yes", "Editor"), pEditor->m_BrushColorEnabled, &Yes, BUTTONFLAG_LEFT, Localize("Enable brush coloring.", "Editor"), IGraphics::CORNER_R))
 		{
 			pEditor->m_BrushColorEnabled = true;
 		}
@@ -390,16 +390,16 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "允许无效实体层", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Allow unused", "Editor"), 10.0f, TEXTALIGN_ML);
 		if(pEditor->m_AllowPlaceUnusedTiles != EUnusedEntities::ALLOWED_IMPLICIT)
 		{
 			static int s_ButtonNo = 0;
 			static int s_ButtonYes = 0;
-			if(pEditor->DoButton_Ex(&s_ButtonNo, "否", pEditor->m_AllowPlaceUnusedTiles == EUnusedEntities::NOT_ALLOWED, &No, BUTTONFLAG_LEFT, "[Ctrl+U] 禁止放置无效实体层图块。", IGraphics::CORNER_L))
+			if(pEditor->DoButton_Ex(&s_ButtonNo, Localize("No", "Editor"), pEditor->m_AllowPlaceUnusedTiles == EUnusedEntities::NOT_ALLOWED, &No, BUTTONFLAG_LEFT, Localize("[Ctrl+U] Disallow placing unused tiles.", "Editor"), IGraphics::CORNER_L))
 			{
 				pEditor->m_AllowPlaceUnusedTiles = EUnusedEntities::NOT_ALLOWED;
 			}
-			if(pEditor->DoButton_Ex(&s_ButtonYes, "是", pEditor->m_AllowPlaceUnusedTiles == EUnusedEntities::ALLOWED_EXPLICIT, &Yes, BUTTONFLAG_LEFT, "[Ctrl+U] 允许放置无效实体层图块。", IGraphics::CORNER_R))
+			if(pEditor->DoButton_Ex(&s_ButtonYes, Localize("Yes", "Editor"), pEditor->m_AllowPlaceUnusedTiles == EUnusedEntities::ALLOWED_EXPLICIT, &Yes, BUTTONFLAG_LEFT, Localize("[Ctrl+U] Allow placing unused tiles.", "Editor"), IGraphics::CORNER_R))
 			{
 				pEditor->m_AllowPlaceUnusedTiles = EUnusedEntities::ALLOWED_EXPLICIT;
 			}
@@ -417,7 +417,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		Selector.VSplitLeft(Selector.w / 3.0f, &Off, &Selector);
 		Selector.VSplitMid(&Dec, &Hex);
 
-		pEditor->Ui()->DoLabel(&Label, "显示图块编号", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Show info", "Editor"), 10.0f, TEXTALIGN_ML);
 		static int s_ButtonOff = 0;
 		static int s_ButtonDec = 0;
 		static int s_ButtonHex = 0;
@@ -448,16 +448,16 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "预览四边形动画", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Preview quad envelopes", "Editor"), 10.0f, TEXTALIGN_ML);
 
 		static int s_ButtonNo = 0;
 		static int s_ButtonYes = 0;
-		if(pEditor->DoButton_Ex(&s_ButtonNo, "否", !pEditor->m_ShowEnvelopePreview, &No, BUTTONFLAG_LEFT, "选中四边形图层时，不预览带位置动画的四边形路径。", IGraphics::CORNER_L))
+		if(pEditor->DoButton_Ex(&s_ButtonNo, Localize("No", "Editor"), !pEditor->m_ShowEnvelopePreview, &No, BUTTONFLAG_LEFT, Localize("Do not preview the paths of quads with a position envelope when a quad layer is selected.", "Editor"), IGraphics::CORNER_L))
 		{
 			pEditor->m_ShowEnvelopePreview = false;
 			pEditor->m_ActiveEnvelopePreview = EEnvelopePreview::NONE;
 		}
-		if(pEditor->DoButton_Ex(&s_ButtonYes, "是", pEditor->m_ShowEnvelopePreview, &Yes, BUTTONFLAG_LEFT, "选中四边形图层时，预览带位置动画的四边形路径。", IGraphics::CORNER_R))
+		if(pEditor->DoButton_Ex(&s_ButtonYes, Localize("Yes", "Editor"), pEditor->m_ShowEnvelopePreview, &Yes, BUTTONFLAG_LEFT, Localize("Preview the paths of quads with a position envelope when a quad layer is selected.", "Editor"), IGraphics::CORNER_R))
 		{
 			pEditor->m_ShowEnvelopePreview = true;
 			pEditor->m_ActiveEnvelopePreview = EEnvelopePreview::NONE;
@@ -474,15 +474,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "四边形对齐", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Align quads", "Editor"), 10.0f, TEXTALIGN_ML);
 
 		static int s_ButtonNo = 0;
 		static int s_ButtonYes = 0;
-		if(pEditor->DoButton_Ex(&s_ButtonNo, "否", !g_Config.m_EdAlignQuads, &No, BUTTONFLAG_LEFT, "移动四边形时不与其他四边形/点进行对齐。", IGraphics::CORNER_L))
+		if(pEditor->DoButton_Ex(&s_ButtonNo, Localize("No", "Editor"), !g_Config.m_EdAlignQuads, &No, BUTTONFLAG_LEFT, Localize("Do not perform quad alignment to other quads/points when moving quads.", "Editor"), IGraphics::CORNER_L))
 		{
 			g_Config.m_EdAlignQuads = false;
 		}
-		if(pEditor->DoButton_Ex(&s_ButtonYes, "是", g_Config.m_EdAlignQuads, &Yes, BUTTONFLAG_LEFT, "移动四边形时允许与其他四边形/点对齐。", IGraphics::CORNER_R))
+		if(pEditor->DoButton_Ex(&s_ButtonYes, Localize("Yes", "Editor"), g_Config.m_EdAlignQuads, &Yes, BUTTONFLAG_LEFT, Localize("Allow quad alignment to other quads/points when moving quads.", "Editor"), IGraphics::CORNER_R))
 		{
 			g_Config.m_EdAlignQuads = true;
 		}
@@ -498,15 +498,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "显示四边形边界", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Show quads bounds", "Editor"), 10.0f, TEXTALIGN_ML);
 
 		static int s_ButtonNo = 0;
 		static int s_ButtonYes = 0;
-		if(pEditor->DoButton_Ex(&s_ButtonNo, "否", !g_Config.m_EdShowQuadsRect, &No, BUTTONFLAG_LEFT, "移动四边形时不显示边界。", IGraphics::CORNER_L))
+		if(pEditor->DoButton_Ex(&s_ButtonNo, Localize("No", "Editor"), !g_Config.m_EdShowQuadsRect, &No, BUTTONFLAG_LEFT, Localize("Do not show quad bounds when moving quads.", "Editor"), IGraphics::CORNER_L))
 		{
 			g_Config.m_EdShowQuadsRect = false;
 		}
-		if(pEditor->DoButton_Ex(&s_ButtonYes, "是", g_Config.m_EdShowQuadsRect, &Yes, BUTTONFLAG_LEFT, "移动四边形时显示边界。", IGraphics::CORNER_R))
+		if(pEditor->DoButton_Ex(&s_ButtonYes, Localize("Yes", "Editor"), g_Config.m_EdShowQuadsRect, &Yes, BUTTONFLAG_LEFT, Localize("Show quad bounds when moving quads.", "Editor"), IGraphics::CORNER_R))
 		{
 			g_Config.m_EdShowQuadsRect = true;
 		}
@@ -522,15 +522,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "自动重载地图", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Auto map reload", "Editor"), 10.0f, TEXTALIGN_ML);
 
 		static int s_ButtonNo = 0;
 		static int s_ButtonYes = 0;
-		if(pEditor->DoButton_Ex(&s_ButtonNo, "否", !g_Config.m_EdAutoMapReload, &No, BUTTONFLAG_LEFT, "保存地图时（RCON 已认证）不在本地服务器执行“hot_reload”。", IGraphics::CORNER_L))
+		if(pEditor->DoButton_Ex(&s_ButtonNo, Localize("No", "Editor"), !g_Config.m_EdAutoMapReload, &No, BUTTONFLAG_LEFT, Localize("Do not run 'hot_reload' on the local server while rcon authed on map save.", "Editor"), IGraphics::CORNER_L))
 		{
 			g_Config.m_EdAutoMapReload = false;
 		}
-		if(pEditor->DoButton_Ex(&s_ButtonYes, "是", g_Config.m_EdAutoMapReload, &Yes, BUTTONFLAG_LEFT, "保存地图时（RCON 已认证）在本地服务器执行“hot_reload”。", IGraphics::CORNER_R))
+		if(pEditor->DoButton_Ex(&s_ButtonYes, Localize("Yes", "Editor"), g_Config.m_EdAutoMapReload, &Yes, BUTTONFLAG_LEFT, Localize("Run 'hot_reload' on the local server while rcon authed on map save.", "Editor"), IGraphics::CORNER_R))
 		{
 			g_Config.m_EdAutoMapReload = true;
 		}
@@ -546,15 +546,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "按图块选择图层", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Select layers by tile", "Editor"), 10.0f, TEXTALIGN_ML);
 
 		static int s_ButtonNo = 0;
 		static int s_ButtonYes = 0;
-		if(pEditor->DoButton_Ex(&s_ButtonNo, "否", !g_Config.m_EdLayerSelector, &No, BUTTONFLAG_LEFT, "Ctrl+右键图块时不选择图层。", IGraphics::CORNER_L))
+		if(pEditor->DoButton_Ex(&s_ButtonNo, Localize("No", "Editor"), !g_Config.m_EdLayerSelector, &No, BUTTONFLAG_LEFT, Localize("Do not select layers when ctrl+right clicking on a tile.", "Editor"), IGraphics::CORNER_L))
 		{
 			g_Config.m_EdLayerSelector = false;
 		}
-		if(pEditor->DoButton_Ex(&s_ButtonYes, "是", g_Config.m_EdLayerSelector, &Yes, BUTTONFLAG_LEFT, "Ctrl+右键图块时选择图层。", IGraphics::CORNER_R))
+		if(pEditor->DoButton_Ex(&s_ButtonYes, Localize("Yes", "Editor"), g_Config.m_EdLayerSelector, &Yes, BUTTONFLAG_LEFT, Localize("Select layers when ctrl+right clicking on a tile.", "Editor"), IGraphics::CORNER_R))
 		{
 			g_Config.m_EdLayerSelector = true;
 		}
@@ -570,15 +570,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMenuSettings(void *pContext, CUIRect
 		CUIRect No, Yes;
 		Selector.VSplitMid(&No, &Yes);
 
-		pEditor->Ui()->DoLabel(&Label, "显示游戏内实体", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Show ingame entities", "Editor"), 10.0f, TEXTALIGN_ML);
 
 		static int s_ButtonNo = 0;
 		static int s_ButtonYes = 0;
-		if(pEditor->DoButton_Ex(&s_ButtonNo, "否", !g_Config.m_EdShowIngameEntities, &No, BUTTONFLAG_LEFT, "不显示武器、护盾、爱心和旗帜在游戏中的表现。", IGraphics::CORNER_L))
+		if(pEditor->DoButton_Ex(&s_ButtonNo, Localize("No", "Editor"), !g_Config.m_EdShowIngameEntities, &No, BUTTONFLAG_LEFT, Localize("Do not show how weapons, shields, hearts and flags appear ingame.", "Editor"), IGraphics::CORNER_L))
 		{
 			g_Config.m_EdShowIngameEntities = false;
 		}
-		if(pEditor->DoButton_Ex(&s_ButtonYes, "是", g_Config.m_EdShowIngameEntities, &Yes, BUTTONFLAG_LEFT, "显示武器、护盾、爱心和旗帜在游戏中的表现。", IGraphics::CORNER_R))
+		if(pEditor->DoButton_Ex(&s_ButtonYes, Localize("Yes", "Editor"), g_Config.m_EdShowIngameEntities, &Yes, BUTTONFLAG_LEFT, Localize("Show how weapons, shields, hearts and flags appear ingame.", "Editor"), IGraphics::CORNER_R))
 		{
 			g_Config.m_EdShowIngameEntities = true;
 		}
@@ -599,7 +599,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupGroup(void *pContext, CUIRect View, 
 	// don't allow deletion of game group
 	if(pEditor->m_Map.m_pGameGroup != pEditor->GetSelectedGroup())
 	{
-		if(pEditor->DoButton_Editor(&s_DeleteButton, "删除组", 0, &Button, BUTTONFLAG_LEFT, "删除该组。"))
+		if(pEditor->DoButton_Editor(&s_DeleteButton, Localize("Delete group", "Editor"), 0, &Button, BUTTONFLAG_LEFT, Localize("Delete the group.", "Editor")))
 		{
 			pEditor->m_Map.m_EditorHistory.RecordAction(std::make_shared<CEditorActionGroup>(&pEditor->m_Map, pEditor->m_SelectedGroup, true));
 			pEditor->m_Map.DeleteGroup(pEditor->m_SelectedGroup);
@@ -609,7 +609,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupGroup(void *pContext, CUIRect View, 
 	}
 	else
 	{
-		if(pEditor->DoButton_Editor(&s_DeleteButton, "清理游戏图块", 0, &Button, BUTTONFLAG_LEFT, "移除未基于任何图层的游戏图块。"))
+		if(pEditor->DoButton_Editor(&s_DeleteButton, Localize("Clean up game tiles", "Editor"), 0, &Button, BUTTONFLAG_LEFT, Localize("Remove game tiles that aren't based on a layer.", "Editor")))
 		{
 			// gather all tile layers
 			std::vector<std::shared_ptr<CLayerTiles>> vpLayers;
@@ -661,7 +661,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupGroup(void *pContext, CUIRect View, 
 				else
 				{
 					// record undo
-					pEditor->m_Map.m_EditorHistory.RecordAction(std::make_shared<CEditorActionTileChanges>(&pEditor->m_Map, pEditor->m_SelectedGroup, GameLayerIndex, "清理游戏图块", pGameLayer->m_TilesHistory));
+					pEditor->m_Map.m_EditorHistory.RecordAction(std::make_shared<CEditorActionTileChanges>(&pEditor->m_Map, pEditor->m_SelectedGroup, GameLayerIndex, Localize("Clean up game tiles", "Editor"), pGameLayer->m_TilesHistory));
 				}
 				pGameLayer->ClearHistory();
 			}
@@ -762,7 +762,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupGroup(void *pContext, CUIRect View, 
 	{
 		View.HSplitBottom(5.0f, &View, nullptr);
 		View.HSplitBottom(12.0f, &View, &Button);
-		pEditor->Ui()->DoLabel(&Button, "名称:", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Button, Localize("Name:", "Editor property label"), 10.0f, TEXTALIGN_ML);
 		Button.VSplitLeft(40.0f, nullptr, &Button);
 		static CLineInput s_NameInput;
 		s_NameInput.SetBuffer(pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_aName, sizeof(pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_aName));
@@ -771,16 +771,16 @@ CUi::EPopupMenuFunctionResult CEditor::PopupGroup(void *pContext, CUIRect View, 
 	}
 
 	CProperty aProps[] = {
-		{"顺序", pEditor->m_SelectedGroup, PROPTYPE_INT, 0, (int)pEditor->m_Map.m_vpGroups.size() - 1},
-		{"位置横", -pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_OffsetX, PROPTYPE_INT, -1000000, 1000000},
-		{"位置纵", -pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_OffsetY, PROPTYPE_INT, -1000000, 1000000},
-		{"视差横", pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ParallaxX, PROPTYPE_INT, -1000000, 1000000},
-		{"视差纵", pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ParallaxY, PROPTYPE_INT, -1000000, 1000000},
-		{"使用裁剪", pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_UseClipping, PROPTYPE_BOOL, 0, 1},
-		{"裁剪横", pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ClipX, PROPTYPE_INT, -1000000, 1000000},
-		{"裁剪纵", pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ClipY, PROPTYPE_INT, -1000000, 1000000},
-		{"裁剪宽", pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ClipW, PROPTYPE_INT, 0, 1000000},
-		{"裁剪高", pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ClipH, PROPTYPE_INT, 0, 1000000},
+		{Localize("Order", "Editor"), pEditor->m_SelectedGroup, PROPTYPE_INT, 0, (int)pEditor->m_Map.m_vpGroups.size() - 1},
+		{Localize("Pos X", "Editor"), -pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_OffsetX, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Pos Y", "Editor"), -pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_OffsetY, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Para X", "Editor"), pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ParallaxX, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Para Y", "Editor"), pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ParallaxY, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Use Clipping", "Editor"), pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_UseClipping, PROPTYPE_BOOL, 0, 1},
+		{Localize("Clip X", "Editor"), pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ClipX, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Clip Y", "Editor"), pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ClipY, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Clip W", "Editor"), pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ClipW, PROPTYPE_INT, 0, 1000000},
+		{Localize("Clip H", "Editor"), pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->m_ClipH, PROPTYPE_INT, 0, 1000000},
 		{nullptr},
 	};
 
@@ -886,7 +886,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupLayer(void *pContext, CUIRect View, 
 		View.HSplitBottom(4.0f, &View, nullptr);
 		View.HSplitBottom(12.0f, &View, &DuplicateButton);
 		static int s_DuplicationButton = 0;
-		if(pEditor->DoButton_Editor(&s_DuplicationButton, "复制层", 0, &DuplicateButton, BUTTONFLAG_LEFT, "创建所选层的相同副本."))
+		if(pEditor->DoButton_Editor(&s_DuplicationButton, Localize("Duplicate layer", "Editor"), 0, &DuplicateButton, BUTTONFLAG_LEFT, Localize("Create an identical copy of the selected layer.", "Editor")))
 		{
 			pEditor->m_Map.m_vpGroups[pEditor->m_SelectedGroup]->DuplicateLayer(pEditor->m_vSelectedLayers[0]);
 			pEditor->m_Map.m_EditorHistory.RecordAction(std::make_shared<CEditorActionAddLayer>(&pEditor->m_Map, pEditor->m_SelectedGroup, pEditor->m_vSelectedLayers[0] + 1, true));
@@ -901,7 +901,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupLayer(void *pContext, CUIRect View, 
 		View.HSplitBottom(5.0f, &View, nullptr);
 		View.HSplitBottom(12.0f, &View, &Label);
 		Label.VSplitLeft(40.0f, &Label, &EditBox);
-		pEditor->Ui()->DoLabel(&Label, "名称:", 10.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Name:", "Editor property label"), 10.0f, TEXTALIGN_ML);
 		static CLineInput s_NameInput;
 		s_NameInput.SetBuffer(pCurrentLayer->m_aName, sizeof(pCurrentLayer->m_aName));
 		if(pEditor->DoEditBox(&s_NameInput, &EditBox, 10.0f))
@@ -913,9 +913,9 @@ CUi::EPopupMenuFunctionResult CEditor::PopupLayer(void *pContext, CUIRect View, 
 		View.HSplitBottom(10.0f, &View, nullptr);
 
 	CProperty aProps[] = {
-		{"组", pEditor->m_SelectedGroup, PROPTYPE_INT, 0, (int)pEditor->m_Map.m_vpGroups.size() - 1},
-		{"顺序", pEditor->m_vSelectedLayers[0], PROPTYPE_INT, 0, (int)pCurrentGroup->m_vpLayers.size() - 1},
-		{"细节", pCurrentLayer->m_Flags & LAYERFLAG_DETAIL, PROPTYPE_BOOL, 0, 1},
+		{Localize("Group", "Editor"), pEditor->m_SelectedGroup, PROPTYPE_INT, 0, (int)pEditor->m_Map.m_vpGroups.size() - 1},
+		{Localize("Order", "Editor"), pEditor->m_vSelectedLayers[0], PROPTYPE_INT, 0, (int)pCurrentGroup->m_vpLayers.size() - 1},
+		{Localize("Detail", "Editor"), pCurrentLayer->m_Flags & LAYERFLAG_DETAIL, PROPTYPE_BOOL, 0, 1},
 		{nullptr},
 	};
 
@@ -978,7 +978,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuad(void *pContext, CUIRect View, b
 	// delete button
 	View.HSplitBottom(12.0f, &View, &Button);
 	static int s_DeleteButton = 0;
-	if(pEditor->DoButton_Editor(&s_DeleteButton, "删除", 0, &Button, BUTTONFLAG_LEFT, "删除当前方块."))
+	if(pEditor->DoButton_Editor(&s_DeleteButton, Localize("Delete", "Editor"), 0, &Button, BUTTONFLAG_LEFT, Localize("Delete the current quad.", "Editor")))
 	{
 		if(pLayer)
 		{
@@ -994,7 +994,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuad(void *pContext, CUIRect View, b
 	if(pLayer && pLayer->m_Image >= 0 && (size_t)pLayer->m_Image < pEditor->m_Map.m_vpImages.size())
 	{
 		static int s_AspectRatioButton = 0;
-		if(pEditor->DoButton_Editor(&s_AspectRatioButton, "纵横比", 0, &Button, BUTTONFLAG_LEFT, "根据其图像的纵横比调整当前方块的大小."))
+		if(pEditor->DoButton_Editor(&s_AspectRatioButton, Localize("Aspect ratio", "Editor"), 0, &Button, BUTTONFLAG_LEFT, Localize("Resize the current quad based on the aspect ratio of its image.", "Editor")))
 		{
 			pEditor->m_Map.m_QuadTracker.BeginQuadTrack(pLayer, pEditor->m_vSelectedQuads);
 			for(auto &pQuad : vpQuads)
@@ -1035,7 +1035,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuad(void *pContext, CUIRect View, b
 	View.HSplitBottom(6.0f, &View, nullptr);
 	View.HSplitBottom(12.0f, &View, &Button);
 	static int s_CenterButton = 0;
-	if(pEditor->DoButton_Editor(&s_CenterButton, "居中枢轴", 0, &Button, BUTTONFLAG_LEFT, "将当前方块的枢轴点居中."))
+	if(pEditor->DoButton_Editor(&s_CenterButton, Localize("Center pivot", "Editor"), 0, &Button, BUTTONFLAG_LEFT, Localize("Center the pivot of the current quad.", "Editor")))
 	{
 		pEditor->m_Map.m_QuadTracker.BeginQuadTrack(pLayer, pEditor->m_vSelectedQuads);
 		int Top = pCurrentQuad->m_aPoints[0].y;
@@ -1066,7 +1066,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuad(void *pContext, CUIRect View, b
 	View.HSplitBottom(6.0f, &View, nullptr);
 	View.HSplitBottom(12.0f, &View, &Button);
 	static int s_AlignButton = 0;
-	if(pEditor->DoButton_Editor(&s_AlignButton, "对齐", 0, &Button, BUTTONFLAG_LEFT, "对齐方块点的坐标."))
+	if(pEditor->DoButton_Editor(&s_AlignButton, Localize("Align", "Editor"), 0, &Button, BUTTONFLAG_LEFT, Localize("Align coordinates of the quad points.", "Editor")))
 	{
 		pEditor->m_Map.m_QuadTracker.BeginQuadTrack(pLayer, pEditor->m_vSelectedQuads);
 		for(auto &pQuad : vpQuads)
@@ -1086,7 +1086,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuad(void *pContext, CUIRect View, b
 	View.HSplitBottom(6.0f, &View, nullptr);
 	View.HSplitBottom(12.0f, &View, &Button);
 	static int s_Button = 0;
-	if(pEditor->DoButton_Editor(&s_Button, "方形化", 0, &Button, BUTTONFLAG_LEFT, "将当前方块调整为正方形."))
+	if(pEditor->DoButton_Editor(&s_Button, Localize("Square", "Editor"), 0, &Button, BUTTONFLAG_LEFT, Localize("Square the current quad.", "Editor")))
 	{
 		pEditor->m_Map.m_QuadTracker.BeginQuadTrack(pLayer, pEditor->m_vSelectedQuads);
 		for(auto &pQuad : vpQuads)
@@ -1126,7 +1126,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuad(void *pContext, CUIRect View, b
 	View.HSplitBottom(6.0f, &View, nullptr);
 	View.HSplitBottom(12.0f, &View, &Button);
 	static int s_SliceButton = 0;
-	if(pEditor->DoButton_Editor(&s_SliceButton, "切割", 0, &Button, BUTTONFLAG_LEFT, "启用方块刀模式."))
+	if(pEditor->DoButton_Editor(&s_SliceButton, Localize("Slice", "Editor"), 0, &Button, BUTTONFLAG_LEFT, Localize("Enable quad knife mode.", "Editor")))
 	{
 		pEditor->m_QuadKnifeCount = 0;
 		pEditor->m_QuadKnifeActive = true;
@@ -1137,7 +1137,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuad(void *pContext, CUIRect View, b
 	View.HSplitBottom(8.0f, &View, nullptr);
 	static int s_ScalePercent = 100;
 	CProperty aScaleProps[] = {
-		{"缩放 %", s_ScalePercent, PROPTYPE_INT, 1, 1000},
+		{Localize("Scale %", "Editor"), s_ScalePercent, PROPTYPE_INT, 1, 1000},
 		{nullptr},
 	};
 	static int s_ScaleId = 0;
@@ -1169,13 +1169,13 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuad(void *pContext, CUIRect View, b
 
 	const int NumQuads = pLayer ? (int)pLayer->m_vQuads.size() : 0;
 	CProperty aProps[] = {
-		{"顺序", pEditor->m_vSelectedQuads[pEditor->m_SelectedQuadIndex], PROPTYPE_INT, 0, NumQuads},
-		{"位置横", fx2i(pCurrentQuad->m_aPoints[4].x), PROPTYPE_INT, -1000000, 1000000},
-		{"位置纵", fx2i(pCurrentQuad->m_aPoints[4].y), PROPTYPE_INT, -1000000, 1000000},
-		{"位置动画", pCurrentQuad->m_PosEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
-		{"位置偏移", pCurrentQuad->m_PosEnvOffset, PROPTYPE_INT, -1000000, 1000000},
-		{"颜色动画", pCurrentQuad->m_ColorEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
-		{"颜色偏移", pCurrentQuad->m_ColorEnvOffset, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Order", "Editor"), pEditor->m_vSelectedQuads[pEditor->m_SelectedQuadIndex], PROPTYPE_INT, 0, NumQuads},
+		{Localize("Pos X", "Editor"), fx2i(pCurrentQuad->m_aPoints[4].x), PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Pos Y", "Editor"), fx2i(pCurrentQuad->m_aPoints[4].y), PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Pos. Env", "Editor"), pCurrentQuad->m_PosEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
+		{Localize("Pos. TO", "Editor"), pCurrentQuad->m_PosEnvOffset, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Color Env", "Editor"), pCurrentQuad->m_ColorEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
+		{Localize("Color TO", "Editor"), pCurrentQuad->m_ColorEnvOffset, PROPTYPE_INT, -1000000, 1000000},
 		{nullptr},
 	};
 
@@ -1271,7 +1271,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSource(void *pContext, CUIRect View,
 	// delete button
 	View.HSplitBottom(12.0f, &View, &Button);
 	static int s_DeleteButton = 0;
-	if(pEditor->DoButton_Editor(&s_DeleteButton, "删除", 0, &Button, BUTTONFLAG_LEFT, "删除当前声音源."))
+	if(pEditor->DoButton_Editor(&s_DeleteButton, Localize("Delete", "Editor"), 0, &Button, BUTTONFLAG_LEFT, Localize("Delete the current sound source.", "Editor")))
 	{
 		std::shared_ptr<CLayerSounds> pLayer = std::static_pointer_cast<CLayerSounds>(pEditor->GetSelectedLayerType(0, LAYERTYPE_SOUNDS));
 		if(pLayer)
@@ -1286,29 +1286,29 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSource(void *pContext, CUIRect View,
 	View.HSplitBottom(3.0f, &View, nullptr);
 	View.HSplitBottom(12.0f, &View, &ShapeButton);
 
-	static const char *s_apShapeNames[CSoundShape::NUM_SHAPES] = {
-		"矩形",
-		"圆形"};
+	const char *s_apShapeNames[CSoundShape::NUM_SHAPES] = {
+		Localize("Rectangle", "Editor"),
+		Localize("Circle", "Editor")};
 
 	pSource->m_Shape.m_Type = pSource->m_Shape.m_Type % CSoundShape::NUM_SHAPES; // prevent out of array errors
 
 	static int s_ShapeTypeButton = 0;
-	if(pEditor->DoButton_Editor(&s_ShapeTypeButton, s_apShapeNames[pSource->m_Shape.m_Type], 0, &ShapeButton, BUTTONFLAG_LEFT, "更改声音源形状."))
+	if(pEditor->DoButton_Editor(&s_ShapeTypeButton, s_apShapeNames[pSource->m_Shape.m_Type], 0, &ShapeButton, BUTTONFLAG_LEFT, Localize("Change sound source shape.", "Editor")))
 	{
 		pEditor->m_Map.m_EditorHistory.Execute(std::make_shared<CEditorActionEditSoundSourceShape>(&pEditor->m_Map, pEditor->m_SelectedGroup, pEditor->m_vSelectedLayers[0], pEditor->m_SelectedSource, (pSource->m_Shape.m_Type + 1) % CSoundShape::NUM_SHAPES));
 	}
 
 	CProperty aProps[] = {
-		{"位置横", pSource->m_Position.x / 1000, PROPTYPE_INT, -1000000, 1000000},
-		{"位置纵", pSource->m_Position.y / 1000, PROPTYPE_INT, -1000000, 1000000},
-		{"循环", pSource->m_Loop, PROPTYPE_BOOL, 0, 1},
-		{"声像", pSource->m_Pan, PROPTYPE_BOOL, 0, 1},
-		{"延迟", pSource->m_TimeDelay, PROPTYPE_INT, 0, 1000000},
-		{"衰减", pSource->m_Falloff, PROPTYPE_INT, 0, 255},
-		{"位置动画", pSource->m_PosEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
-		{"位置偏移", pSource->m_PosEnvOffset, PROPTYPE_INT, -1000000, 1000000},
-		{"声音动画", pSource->m_SoundEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
-		{"声音偏移", pSource->m_SoundEnvOffset, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Pos X", "Editor"), pSource->m_Position.x / 1000, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Pos Y", "Editor"), pSource->m_Position.y / 1000, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Loop", "Editor"), pSource->m_Loop, PROPTYPE_BOOL, 0, 1},
+		{Localize("Pan", "Editor"), pSource->m_Pan, PROPTYPE_BOOL, 0, 1},
+		{Localize("Delay", "Editor"), pSource->m_TimeDelay, PROPTYPE_INT, 0, 1000000},
+		{Localize("Falloff", "Editor"), pSource->m_Falloff, PROPTYPE_INT, 0, 255},
+		{Localize("Pos. Env", "Editor"), pSource->m_PosEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
+		{Localize("Pos. TO", "Editor"), pSource->m_PosEnvOffset, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Sound Env", "Editor"), pSource->m_SoundEnv + 1, PROPTYPE_ENVELOPE, 0, 0},
+		{Localize("Sound. TO", "Editor"), pSource->m_SoundEnvOffset, PROPTYPE_INT, -1000000, 1000000},
 		{nullptr},
 	};
 
@@ -1389,7 +1389,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSource(void *pContext, CUIRect View,
 	case CSoundShape::SHAPE_CIRCLE:
 	{
 		CProperty aCircleProps[] = {
-			{"半径", pSource->m_Shape.m_Circle.m_Radius, PROPTYPE_INT, 0, 1000000},
+			{Localize("Radius", "Editor"), pSource->m_Shape.m_Circle.m_Radius, PROPTYPE_INT, 0, 1000000},
 			{nullptr},
 		};
 
@@ -1415,8 +1415,8 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSource(void *pContext, CUIRect View,
 	case CSoundShape::SHAPE_RECTANGLE:
 	{
 		CProperty aRectangleProps[] = {
-			{"宽度", pSource->m_Shape.m_Rectangle.m_Width / 1024, PROPTYPE_INT, 0, 1000000},
-			{"高度", pSource->m_Shape.m_Rectangle.m_Height / 1024, PROPTYPE_INT, 0, 1000000},
+			{Localize("Width", "Editor"), pSource->m_Shape.m_Rectangle.m_Width / 1024, PROPTYPE_INT, 0, 1000000},
+			{Localize("Height", "Editor"), pSource->m_Shape.m_Rectangle.m_Height / 1024, PROPTYPE_INT, 0, 1000000},
 			{nullptr},
 		};
 
@@ -1462,11 +1462,11 @@ CUi::EPopupMenuFunctionResult CEditor::PopupPoint(void *pContext, CUIRect View, 
 	const int TextureV = fx2f(pCurrentQuad->m_aTexcoords[pEditor->m_SelectedQuadPoint].y) * 1024;
 
 	CProperty aProps[] = {
-		{"位置横", X, PROPTYPE_INT, -1000000, 1000000},
-		{"位置纵", Y, PROPTYPE_INT, -1000000, 1000000},
-		{"颜色", PackColor(pCurrentQuad->m_aColors[pEditor->m_SelectedQuadPoint]), PROPTYPE_COLOR, 0, 0},
-		{"纹理横", TextureU, PROPTYPE_INT, -1000000, 1000000},
-		{"纹理纵", TextureV, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Pos X", "Editor"), X, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Pos Y", "Editor"), Y, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Color", "Editor"), PackColor(pCurrentQuad->m_aColors[pEditor->m_SelectedQuadPoint]), PROPTYPE_COLOR, 0, 0},
+		{Localize("Tex U", "Editor"), TextureU, PROPTYPE_INT, -1000000, 1000000},
+		{Localize("Tex V", "Editor"), TextureV, PROPTYPE_INT, -1000000, 1000000},
 		{nullptr},
 	};
 
@@ -1545,7 +1545,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPoint(void *pContext, CUIRect Vie
 		View.HSplitTop(4.0f, nullptr, &View);
 		Row.VSplitLeft(60.0f, &Label, &Row);
 		Row.VSplitLeft(10.0f, nullptr, &EditBox);
-		pEditor->Ui()->DoLabel(&Label, "颜色：", RowHeight - 2.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Color:", "Editor"), RowHeight - 2.0f, TEXTALIGN_ML);
 
 		const auto SelectedPoint = pEditor->m_vSelectedEnvelopePoints.front();
 		const int SelectedIndex = SelectedPoint.first;
@@ -1575,7 +1575,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPoint(void *pContext, CUIRect Vie
 				}
 
 				char aDisplay[256];
-				str_format(aDisplay, sizeof(aDisplay), "编辑动画 %d 的第 %d 个点颜色", pEditor->m_SelectedEnvelope, SelectedIndex);
+				str_format(aDisplay, sizeof(aDisplay), Localize("Edit envelope %d point %d color", "Editor"), pEditor->m_SelectedEnvelope, SelectedIndex);
 				pEditor->m_Map.m_EnvelopeEditorHistory.RecordAction(std::make_shared<CEditorActionBulk>(&pEditor->m_Map, vpActions, aDisplay));
 			}
 
@@ -1609,15 +1609,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPoint(void *pContext, CUIRect Vie
 	View.HSplitTop(RowHeight, &Row, &View);
 	Row.VSplitLeft(60.0f, &Label, &Row);
 	Row.VSplitLeft(10.0f, nullptr, &EditBox);
-	pEditor->Ui()->DoLabel(&Label, "数值：", RowHeight - 2.0f, TEXTALIGN_ML);
-	pEditor->DoEditBox(&s_CurValueInput, &EditBox, RowHeight - 2.0f, IGraphics::CORNER_ALL, "当前选中动画点的数值。");
+	pEditor->Ui()->DoLabel(&Label, Localize("Value:", "Editor"), RowHeight - 2.0f, TEXTALIGN_ML);
+	pEditor->DoEditBox(&s_CurValueInput, &EditBox, RowHeight - 2.0f, IGraphics::CORNER_ALL, Localize("The value of the selected envelope point.", "Editor"));
 
 	View.HSplitTop(4.0f, nullptr, &View);
 	View.HSplitTop(RowHeight, &Row, &View);
 	Row.VSplitLeft(60.0f, &Label, &Row);
 	Row.VSplitLeft(10.0f, nullptr, &EditBox);
-	pEditor->Ui()->DoLabel(&Label, "时间（秒）：", RowHeight - 2.0f, TEXTALIGN_ML);
-	pEditor->DoEditBox(&s_CurTimeInput, &EditBox, RowHeight - 2.0f, IGraphics::CORNER_ALL, "当前选中动画点的时间。");
+	pEditor->Ui()->DoLabel(&Label, Localize("Time (in s):", "Editor"), RowHeight - 2.0f, TEXTALIGN_ML);
+	pEditor->DoEditBox(&s_CurTimeInput, &EditBox, RowHeight - 2.0f, IGraphics::CORNER_ALL, Localize("The time of the selected envelope point.", "Editor"));
 
 	if(pEditor->Input()->KeyIsPressed(KEY_RETURN) || pEditor->Input()->KeyIsPressed(KEY_KP_ENTER))
 	{
@@ -1668,8 +1668,8 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPoint(void *pContext, CUIRect Vie
 	View.HSplitTop(6.0f, nullptr, &View);
 	View.HSplitTop(RowHeight, &Row, &View);
 	static int s_DeleteButtonId = 0;
-	const char *pButtonText = pEditor->IsTangentSelected() ? "重置" : "删除";
-	const char *pTooltip = pEditor->IsTangentSelected() ? "将切线点重置为默认值。" : "删除当前动画点在所有通道上的数据。";
+	const char *pButtonText = pEditor->IsTangentSelected() ? Localize("Reset", "Editor") : Localize("Delete", "Editor");
+	const char *pTooltip = pEditor->IsTangentSelected() ? Localize("Reset tangent point to default value.", "Editor") : Localize("Delete current envelope point in all channels.", "Editor");
 	if(pEditor->DoButton_Editor(&s_DeleteButtonId, pButtonText, 0, &Row, BUTTONFLAG_LEFT, pTooltip))
 	{
 		if(pEditor->IsTangentInSelected())
@@ -1702,7 +1702,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPointMulti(void *pContext, CUIRec
 	static int s_CurveButtonId = 0;
 	CUIRect CurveButton;
 	View.HSplitTop(RowHeight, &CurveButton, &View);
-	if(pEditor->DoButton_Editor(&s_CurveButtonId, "投影到", 0, &CurveButton, BUTTONFLAG_LEFT, "将所有选中的动画点投影到首尾两点之间的曲线上。"))
+	if(pEditor->DoButton_Editor(&s_CurveButtonId, Localize("Project onto", "Editor"), 0, &CurveButton, BUTTONFLAG_LEFT, Localize("Project all selected envelopes onto the curve between the first and last selected envelope.", "Editor")))
 	{
 		static SPopupMenuId s_PopupCurveTypeId;
 		pEditor->Ui()->DoPopupMenu(&s_PopupCurveTypeId, pEditor->Ui()->MouseX(), pEditor->Ui()->MouseY(), 80, 80, pEditor, PopupEnvPointCurveType);
@@ -1721,31 +1721,31 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPointCurveType(void *pContext, CU
 	static int s_ButtonLinearId;
 	CUIRect ButtonLinear;
 	View.HSplitTop(RowHeight, &ButtonLinear, &View);
-	if(pEditor->DoButton_MenuItem(&s_ButtonLinearId, "线性", 0, &ButtonLinear))
+	if(pEditor->DoButton_MenuItem(&s_ButtonLinearId, Localize("Linear", "Editor"), 0, &ButtonLinear))
 		CurveType = CURVETYPE_LINEAR;
 
 	static int s_ButtonSlowId;
 	CUIRect ButtonSlow;
 	View.HSplitTop(RowHeight, &ButtonSlow, &View);
-	if(pEditor->DoButton_MenuItem(&s_ButtonSlowId, "慢入", 0, &ButtonSlow))
+	if(pEditor->DoButton_MenuItem(&s_ButtonSlowId, Localize("Slow", "Editor curve menu"), 0, &ButtonSlow))
 		CurveType = CURVETYPE_SLOW;
 
 	static int s_ButtonFastId;
 	CUIRect ButtonFast;
 	View.HSplitTop(RowHeight, &ButtonFast, &View);
-	if(pEditor->DoButton_MenuItem(&s_ButtonFastId, "快出", 0, &ButtonFast))
+	if(pEditor->DoButton_MenuItem(&s_ButtonFastId, Localize("Fast", "Editor curve menu"), 0, &ButtonFast))
 		CurveType = CURVETYPE_FAST;
 
 	static int s_ButtonStepId;
 	CUIRect ButtonStep;
 	View.HSplitTop(RowHeight, &ButtonStep, &View);
-	if(pEditor->DoButton_MenuItem(&s_ButtonStepId, "阶梯", 0, &ButtonStep))
+	if(pEditor->DoButton_MenuItem(&s_ButtonStepId, Localize("Step", "Editor"), 0, &ButtonStep))
 		CurveType = CURVETYPE_STEP;
 
 	static int s_ButtonSmoothId;
 	CUIRect ButtonSmooth;
 	View.HSplitTop(RowHeight, &ButtonSmooth, &View);
-	if(pEditor->DoButton_MenuItem(&s_ButtonSmoothId, "平滑", 0, &ButtonSmooth))
+	if(pEditor->DoButton_MenuItem(&s_ButtonSmoothId, Localize("Smooth", "Editor"), 0, &ButtonSmooth))
 		CurveType = CURVETYPE_SMOOTH;
 
 	std::vector<std::shared_ptr<IEditorAction>> vpActions;
@@ -1799,7 +1799,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvPointCurveType(void *pContext, CU
 
 		if(!vpActions.empty())
 		{
-			pEditor->m_Map.m_EnvelopeEditorHistory.RecordAction(std::make_shared<CEditorActionBulk>(&pEditor->m_Map, vpActions, "投影点"));
+			pEditor->m_Map.m_EnvelopeEditorHistory.RecordAction(std::make_shared<CEditorActionBulk>(&pEditor->m_Map, vpActions, Localize("Project points", "Editor")));
 		}
 
 		pEditor->m_Map.OnModify();
@@ -1843,7 +1843,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupImage(void *pContext, CUIRect View, 
 		Slot.VMargin(5.0f, &Slot);
 		Slot.VSplitLeft(35.0f, &Label, &Slot);
 		Slot.VSplitLeft(RowHeight - 2.0f, nullptr, &EditBox);
-		pEditor->Ui()->DoLabel(&Label, "名称:", RowHeight - 2.0f, TEXTALIGN_ML);
+		pEditor->Ui()->DoLabel(&Label, Localize("Name:", "Editor property label"), RowHeight - 2.0f, TEXTALIGN_ML);
 
 		s_RenameInput.SetBuffer(pImg->m_aName, sizeof(pImg->m_aName));
 		if(pEditor->DoEditBox(&s_RenameInput, &EditBox, RowHeight - 2.0f))
@@ -1855,11 +1855,11 @@ CUi::EPopupMenuFunctionResult CEditor::PopupImage(void *pContext, CUIRect View, 
 
 	if(pImg->m_External)
 	{
-		if(pEditor->DoButton_MenuItem(&s_ExternalButton, "嵌入", 0, &Slot, BUTTONFLAG_LEFT, "将图像嵌入到地图文件中."))
+		if(pEditor->DoButton_MenuItem(&s_ExternalButton, Localize("Embed", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Embed the image into the map file.", "Editor")))
 		{
 			if(pImg->m_pData == nullptr)
 			{
-				pEditor->ShowFileDialogError("无法嵌入，因为图像无法加载.");
+				pEditor->ShowFileDialogError(Localize("Embedding is not possible because the image could not be loaded.", "Editor"));
 				return CUi::POPUP_KEEP_OPEN;
 			}
 			pImg->m_External = 0;
@@ -1870,7 +1870,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupImage(void *pContext, CUIRect View, 
 	}
 	else if(CEditor::IsVanillaImage(pImg->m_aName))
 	{
-		if(pEditor->DoButton_MenuItem(&s_ExternalButton, "设为外部", 0, &Slot, BUTTONFLAG_LEFT, "从地图文件中移除图像."))
+		if(pEditor->DoButton_MenuItem(&s_ExternalButton, Localize("Make external", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Remove the image from the map file.", "Editor")))
 		{
 			pImg->m_External = 1;
 			return CUi::POPUP_CLOSE_CURRENT;
@@ -1882,7 +1882,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupImage(void *pContext, CUIRect View, 
 	static CUi::SSelectionPopupContext s_SelectionPopupContext;
 	static CScrollRegion s_SelectionPopupScrollRegion;
 	s_SelectionPopupContext.m_pScrollRegion = &s_SelectionPopupScrollRegion;
-	if(pEditor->DoButton_MenuItem(&s_ReimportButton, "重新导入", 0, &Slot, BUTTONFLAG_LEFT, "从mapres文件夹重新导入图像."))
+	if(pEditor->DoButton_MenuItem(&s_ReimportButton, Localize("Re-import", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Re-import the image from the mapres folder.", "Editor")))
 	{
 		char aFilename[IO_MAX_PATH_LENGTH];
 		str_format(aFilename, sizeof(aFilename), "%s.png", pImg->m_aName);
@@ -1893,7 +1893,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupImage(void *pContext, CUIRect View, 
 			s_SelectionPopupContext.m_vEntries.push_back(Entry);
 		if(s_SelectionPopupContext.m_vEntries.empty())
 		{
-			pEditor->ShowFileDialogError("错误: 无法在mapres文件夹中找到图像'%s'.", aFilename);
+			pEditor->ShowFileDialogError(Localize("Error: could not find image '%s' in the mapres folder.", "Editor"), aFilename);
 		}
 		else if(s_SelectionPopupContext.m_vEntries.size() == 1)
 		{
@@ -1901,7 +1901,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupImage(void *pContext, CUIRect View, 
 		}
 		else
 		{
-			str_copy(s_SelectionPopupContext.m_aMessage, "选择所需的图像:");
+			str_copy(s_SelectionPopupContext.m_aMessage, Localize("Select the wanted image:", "Editor"));
 			pEditor->Ui()->ShowPopupSelection(pEditor->Ui()->MouseX(), pEditor->Ui()->MouseY(), &s_SelectionPopupContext);
 		}
 	}
@@ -1916,15 +1916,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupImage(void *pContext, CUIRect View, 
 
 	View.HSplitTop(5.0f, nullptr, &View);
 	View.HSplitTop(RowHeight, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_ReplaceButton, "替换", 0, &Slot, BUTTONFLAG_LEFT, "用新图像替换该图像."))
+	if(pEditor->DoButton_MenuItem(&s_ReplaceButton, Localize("Replace", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Replace the image with a new one.", "Editor")))
 	{
-		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::IMAGE, "替换图像", "替换", "mapres", "", ReplaceImageCallback, pEditor);
+		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::IMAGE, Localize("Replace image", "Editor"), Localize("Replace", "Editor"), "mapres", "", ReplaceImageCallback, pEditor);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
 
 	View.HSplitTop(5.0f, nullptr, &View);
 	View.HSplitTop(RowHeight, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_RemoveButton, "移除", 0, &Slot, BUTTONFLAG_LEFT, "从地图中移除图像."))
+	if(pEditor->DoButton_MenuItem(&s_RemoveButton, Localize("Remove", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Remove the image from the map.", "Editor")))
 	{
 		if(pEditor->m_Map.IsImageUsed(pEditor->m_Map.m_SelectedImage))
 		{
@@ -1943,14 +1943,14 @@ CUi::EPopupMenuFunctionResult CEditor::PopupImage(void *pContext, CUIRect View, 
 	{
 		View.HSplitTop(5.0f, nullptr, &View);
 		View.HSplitTop(RowHeight, &Slot, &View);
-		if(pEditor->DoButton_MenuItem(&s_ExportButton, "导出", 0, &Slot, BUTTONFLAG_LEFT, "将图像导出为单独的文件."))
+		if(pEditor->DoButton_MenuItem(&s_ExportButton, Localize("Export", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Export the image to a separate file.", "Editor")))
 		{
 			if(pImg->m_pData == nullptr)
 			{
-				pEditor->ShowFileDialogError("无法导出，因为图像无法加载.");
+				pEditor->ShowFileDialogError(Localize("Exporting is not possible because the image could not be loaded.", "Editor"));
 				return CUi::POPUP_KEEP_OPEN;
 			}
-			pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::IMAGE, "保存图像", "保存", "mapres", pImg->m_aName, CallbackSaveImage, pEditor);
+			pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::IMAGE, Localize("Save image", "Editor"), Localize("Save", "Editor"), "mapres", pImg->m_aName, CallbackSaveImage, pEditor);
 			return CUi::POPUP_CLOSE_CURRENT;
 		}
 	}
@@ -1984,7 +1984,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSound(void *pContext, CUIRect View, 
 	Slot.VMargin(5.0f, &Slot);
 	Slot.VSplitLeft(35.0f, &Label, &Slot);
 	Slot.VSplitLeft(RowHeight - 2.0f, nullptr, &EditBox);
-	pEditor->Ui()->DoLabel(&Label, "名称:", RowHeight - 2.0f, TEXTALIGN_ML);
+	pEditor->Ui()->DoLabel(&Label, Localize("Name:", "Editor property label"), RowHeight - 2.0f, TEXTALIGN_ML);
 
 	s_RenameInput.SetBuffer(pSound->m_aName, sizeof(pSound->m_aName));
 	if(pEditor->DoEditBox(&s_RenameInput, &EditBox, RowHeight - 2.0f))
@@ -1993,7 +1993,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSound(void *pContext, CUIRect View, 
 	View.HSplitTop(5.0f, nullptr, &View);
 	View.HSplitTop(RowHeight, &Slot, &View);
 
-	if(pEditor->DoButton_MenuItem(&s_ReimportButton, "重新导入", 0, &Slot, BUTTONFLAG_LEFT, "从mapres文件夹重新导入声音."))
+	if(pEditor->DoButton_MenuItem(&s_ReimportButton, Localize("Re-import", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Re-import the sound from the mapres folder.", "Editor")))
 	{
 		char aFilename[IO_MAX_PATH_LENGTH];
 		str_format(aFilename, sizeof(aFilename), "%s.opus", pSound->m_aName);
@@ -2004,7 +2004,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSound(void *pContext, CUIRect View, 
 			s_SelectionPopupContext.m_vEntries.push_back(Entry);
 		if(s_SelectionPopupContext.m_vEntries.empty())
 		{
-			pEditor->ShowFileDialogError("错误: 无法在mapres文件夹中找到声音'%s'.", aFilename);
+			pEditor->ShowFileDialogError(Localize("Error: could not find sound '%s' in the mapres folder.", "Editor"), aFilename);
 		}
 		else if(s_SelectionPopupContext.m_vEntries.size() == 1)
 		{
@@ -2012,7 +2012,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSound(void *pContext, CUIRect View, 
 		}
 		else
 		{
-			str_copy(s_SelectionPopupContext.m_aMessage, "选择所需的声音:");
+			str_copy(s_SelectionPopupContext.m_aMessage, Localize("Select the wanted sound:", "Editor"));
 			pEditor->Ui()->ShowPopupSelection(pEditor->Ui()->MouseX(), pEditor->Ui()->MouseY(), &s_SelectionPopupContext);
 		}
 	}
@@ -2025,15 +2025,15 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSound(void *pContext, CUIRect View, 
 
 	View.HSplitTop(5.0f, nullptr, &View);
 	View.HSplitTop(RowHeight, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_ReplaceButton, "替换", 0, &Slot, BUTTONFLAG_LEFT, "用新声音替换该声音."))
+	if(pEditor->DoButton_MenuItem(&s_ReplaceButton, Localize("Replace", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Replace the sound with a new one.", "Editor")))
 	{
-		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::SOUND, "替换声音", "替换", "mapres", "", ReplaceSoundCallback, pEditor);
+		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::SOUND, Localize("Replace sound", "Editor"), Localize("Replace", "Editor"), "mapres", "", ReplaceSoundCallback, pEditor);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
 
 	View.HSplitTop(5.0f, nullptr, &View);
 	View.HSplitTop(RowHeight, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_RemoveButton, "移除", 0, &Slot, BUTTONFLAG_LEFT, "从地图中移除声音."))
+	if(pEditor->DoButton_MenuItem(&s_RemoveButton, Localize("Remove", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Remove the sound from the map.", "Editor")))
 	{
 		if(pEditor->m_Map.IsSoundUsed(pEditor->m_Map.m_SelectedSound))
 		{
@@ -2051,14 +2051,14 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSound(void *pContext, CUIRect View, 
 
 	View.HSplitTop(5.0f, nullptr, &View);
 	View.HSplitTop(RowHeight, &Slot, &View);
-	if(pEditor->DoButton_MenuItem(&s_ExportButton, "导出", 0, &Slot, BUTTONFLAG_LEFT, "将声音导出为单独的文件."))
+	if(pEditor->DoButton_MenuItem(&s_ExportButton, Localize("Export", "Editor"), 0, &Slot, BUTTONFLAG_LEFT, Localize("Export the sound to a separate file.", "Editor")))
 	{
 		if(pSound->m_pData == nullptr)
 		{
-			pEditor->ShowFileDialogError("无法导出，因为声音无法加载.");
+			pEditor->ShowFileDialogError(Localize("Exporting is not possible because the sound could not be loaded.", "Editor"));
 			return CUi::POPUP_KEEP_OPEN;
 		}
-		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::SOUND, "保存声音", "保存", "mapres", pSound->m_aName, CallbackSaveSound, pEditor);
+		pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_SAVE, CFileBrowser::EFileType::SOUND, Localize("Save sound", "Editor"), Localize("Save", "Editor"), "mapres", pSound->m_aName, CallbackSaveSound, pEditor);
 		return CUi::POPUP_CLOSE_CURRENT;
 	}
 
@@ -2076,12 +2076,12 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMapInfo(void *pContext, CUIRect View
 
 	// title
 	View.HSplitTop(20.0f, &Label, &View);
-	pEditor->Ui()->DoLabel(&Label, "地图详情", 20.0f, TEXTALIGN_MC);
+	pEditor->Ui()->DoLabel(&Label, Localize("Map details", "Editor"), 20.0f, TEXTALIGN_MC);
 	View.HSplitTop(10.0f, nullptr, &View);
 
 	// author box
 	View.HSplitTop(20.0f, &Label, &View);
-	pEditor->Ui()->DoLabel(&Label, "作者:", 10.0f, TEXTALIGN_ML);
+	pEditor->Ui()->DoLabel(&Label, Localize("Author:", "Editor"), 10.0f, TEXTALIGN_ML);
 	Label.VSplitLeft(60.0f, nullptr, &Button);
 	Button.HMargin(3.0f, &Button);
 	static CLineInput s_AuthorInput;
@@ -2090,7 +2090,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMapInfo(void *pContext, CUIRect View
 
 	// version box
 	View.HSplitTop(20.0f, &Label, &View);
-	pEditor->Ui()->DoLabel(&Label, "版本:", 10.0f, TEXTALIGN_ML);
+	pEditor->Ui()->DoLabel(&Label, Localize("Version:", "Editor"), 10.0f, TEXTALIGN_ML);
 	Label.VSplitLeft(60.0f, nullptr, &Button);
 	Button.HMargin(3.0f, &Button);
 	static CLineInput s_VersionInput;
@@ -2099,7 +2099,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMapInfo(void *pContext, CUIRect View
 
 	// credits box
 	View.HSplitTop(20.0f, &Label, &View);
-	pEditor->Ui()->DoLabel(&Label, "致谢:", 10.0f, TEXTALIGN_ML);
+	pEditor->Ui()->DoLabel(&Label, Localize("Credits:", "Editor"), 10.0f, TEXTALIGN_ML);
 	Label.VSplitLeft(60.0f, nullptr, &Button);
 	Button.HMargin(3.0f, &Button);
 	static CLineInput s_CreditsInput;
@@ -2108,7 +2108,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMapInfo(void *pContext, CUIRect View
 
 	// license box
 	View.HSplitTop(20.0f, &Label, &View);
-	pEditor->Ui()->DoLabel(&Label, "许可证:", 10.0f, TEXTALIGN_ML);
+	pEditor->Ui()->DoLabel(&Label, Localize("License:", "Editor"), 10.0f, TEXTALIGN_ML);
 	Label.VSplitLeft(60.0f, nullptr, &Button);
 	Button.HMargin(3.0f, &Button);
 	static CLineInput s_LicenseInput;
@@ -2118,12 +2118,12 @@ CUi::EPopupMenuFunctionResult CEditor::PopupMapInfo(void *pContext, CUIRect View
 	// button bar
 	ButtonBar.VSplitLeft(110.0f, &Label, &ButtonBar);
 	static int s_CancelButton = 0;
-	if(pEditor->DoButton_Editor(&s_CancelButton, "取消", 0, &Label, BUTTONFLAG_LEFT, nullptr))
+	if(pEditor->DoButton_Editor(&s_CancelButton, Localize("Cancel", "Editor"), 0, &Label, BUTTONFLAG_LEFT, nullptr))
 		return CUi::POPUP_CLOSE_CURRENT;
 
 	ButtonBar.VSplitRight(110.0f, &ButtonBar, &Label);
 	static int s_ConfirmButton = 0;
-	if(pEditor->DoButton_Editor(&s_ConfirmButton, "确认", 0, &Label, BUTTONFLAG_LEFT, nullptr) || (Active && pEditor->Ui()->ConsumeHotkey(CUi::HOTKEY_ENTER)))
+	if(pEditor->DoButton_Editor(&s_ConfirmButton, Localize("Confirm", "Editor"), 0, &Label, BUTTONFLAG_LEFT, nullptr) || (Active && pEditor->Ui()->ConsumeHotkey(CUi::HOTKEY_ENTER)))
 	{
 		bool AuthorDifferent = str_comp(pEditor->m_Map.m_MapInfoTmp.m_aAuthor, pEditor->m_Map.m_MapInfo.m_aAuthor) != 0;
 		bool VersionDifferent = str_comp(pEditor->m_Map.m_MapInfoTmp.m_aVersion, pEditor->m_Map.m_MapInfo.m_aVersion) != 0;
@@ -2149,90 +2149,90 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEvent(void *pContext, CUIRect View, 
 	char aMessageBuf[128];
 	if(pEditor->m_PopupEventType == POPEVENT_EXIT)
 	{
-		pTitle = "退出编辑器";
-		pMessage = "地图包含未保存内容，建议先保存再退出编辑器。\n\n仍要继续吗？";
+		pTitle = Localize("Exit the editor", "Editor");
+		pMessage = Localize("The map contains unsaved data, you might want to save it before you exit the editor.\n\nContinue anyway?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_LOAD || pEditor->m_PopupEventType == POPEVENT_LOADCURRENT || pEditor->m_PopupEventType == POPEVENT_LOADDROP)
 	{
-		pTitle = "加载地图";
-		pMessage = "地图包含未保存内容，建议先保存再加载新地图。\n\n仍要继续吗？";
+		pTitle = Localize("Load map", "Editor");
+		pMessage = Localize("The map contains unsaved data, you might want to save it before you load a new map.\n\nContinue anyway?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_NEW)
 	{
-		pTitle = "新建地图";
-		pMessage = "地图包含未保存内容，建议先保存再新建地图。\n\n仍要继续吗？";
+		pTitle = Localize("New map", "Editor");
+		pMessage = Localize("The map contains unsaved data, you might want to save it before you create a new map.\n\nContinue anyway?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_LARGELAYER)
 	{
-		pTitle = "大图层";
-		pMessage = "你正在将图层宽度或高度设置为超过 1000 个图块。虽然可行，但通常没有必要。这样会降低编辑器性能，并增大文件体积及客户端/服务器内存占用。";
+		pTitle = Localize("Large layer", "Editor");
+		pMessage = Localize("You are trying to set the height or width of a layer to more than 1000 tiles. This is actually possible, but only rarely necessary. It may cause the editor to work slower and will result in a larger file size as well as higher memory usage for client and server.", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_PREVENTUNUSEDTILES)
 	{
-		pTitle = "未使用图块已禁用";
-		pMessage = "默认不允许放置无效实体层图块，因为它们后续可能被启用并破坏地图。\n\n启用“允许无效实体层”后可放置所有实体层图块。";
+		pTitle = Localize("Unused tiles disabled", "Editor");
+		pMessage = Localize("Unused tiles can't be placed by default because they could get a use later and then destroy your map.\n\nActivate the 'Allow unused' setting to be able to place every tile.", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_IMAGEDIV16)
 	{
-		pTitle = "图像宽高";
-		pMessage = "该图像的宽或高不能被 16 整除。图块图层使用的图像必须满足此条件。";
+		pTitle = Localize("Image width/height", "Editor");
+		pMessage = Localize("The width or height of this image is not divisible by 16. This is required for images used in tile layers.", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_IMAGE_MAX)
 	{
-		pTitle = "图像数量上限";
-		str_format(aMessageBuf, sizeof(aMessageBuf), "客户端最多只允许 %" PRIzu " 个图像。", MAX_MAPIMAGES);
+		pTitle = Localize("Max images", "Editor");
+		str_format(aMessageBuf, sizeof(aMessageBuf), Localize("The client only allows a maximum of %zu images.", "Editor"), MAX_MAPIMAGES);
 		pMessage = aMessageBuf;
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_SOUND_MAX)
 	{
-		pTitle = "最大声音数";
-		str_format(aMessageBuf, sizeof(aMessageBuf), "客户端最多只允许 %" PRIzu " 个声音。", MAX_MAPSOUNDS);
+		pTitle = Localize("Max sounds", "Editor");
+		str_format(aMessageBuf, sizeof(aMessageBuf), Localize("The client only allows a maximum of %zu sounds.", "Editor"), MAX_MAPSOUNDS);
 		pMessage = aMessageBuf;
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_PLACE_BORDER_TILES)
 	{
-		pTitle = "放置边框图块";
-		pMessage = "这将覆盖图层边缘周围的所有现有图块。\n\n继续吗？";
+		pTitle = Localize("Place border tiles", "Editor");
+		pMessage = Localize("This is going to overwrite any existing tiles around the edges of the layer.\n\nContinue?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_TILEART_BIG_IMAGE)
 	{
-		pTitle = "大图片";
-		pMessage = "所选图像很大。将其转换为图块画可能需要一些时间。\n\n仍要继续吗？";
+		pTitle = Localize("Big image", "Editor");
+		pMessage = Localize("The selected image is big. Converting it to tileart may take some time.\n\nContinue anyway?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_TILEART_MANY_COLORS)
 	{
-		pTitle = "颜色过多";
-		pMessage = "所选图像包含很多颜色，这将导致地图文件变大。你可能需要考虑减少颜色数量。\n\n仍要继续吗？";
+		pTitle = Localize("Too many colors", "Editor");
+		pMessage = Localize("The selected image contains many colors, which will lead to a big mapfile. You may want to consider reducing the number of colors.\n\nContinue anyway?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_TILEART_TOO_MANY_COLORS)
 	{
-		pTitle = "颜色过多";
-		pMessage = "客户端最多支持 64 个图像，但将所选图像作为图块画添加需要更多图像。";
+		pTitle = Localize("Too many colors", "Editor");
+		pMessage = Localize("The client only supports 64 images but more would be needed to add the selected image as tileart.", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_QUADART_BIG_IMAGE)
 	{
-		pTitle = "大图片";
-		pMessage = "所选图像非常大，可能会出现性能问题！\n\n仍要继续吗？";
+		pTitle = Localize("Big image", "Editor");
+		pMessage = Localize("The selected image is really big. Expect performance issues!\n\nContinue anyway?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_REMOVE_USED_IMAGE)
 	{
-		pTitle = "移除图像";
-		pMessage = "此图像在地图中被使用。移除它将把使用此图像的所有图层重置为默认值。\n\n仍要移除吗？";
+		pTitle = Localize("Remove image", "Editor");
+		pMessage = Localize("This image is used in the map. Removing it will reset all layers that use this image to their default.\n\nRemove anyway?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_REMOVE_USED_SOUND)
 	{
-		pTitle = "移除声音";
-		pMessage = "此声音在地图中被使用。移除它将把使用此声音的所有图层重置为默认值。\n\n仍要移除吗？";
+		pTitle = Localize("Remove sound", "Editor");
+		pMessage = Localize("This sound is used in the map. Removing it will reset all layers that use this sound to their default.\n\nRemove anyway?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_RESTART_SERVER)
 	{
-		pTitle = "重启服务器";
-		pMessage = "你有一个正在运行的本地服务器，但你未获得授权或未连接。\n\n你想重启服务器并重新连接吗？";
+		pTitle = Localize("Restart server", "Editor");
+		pMessage = Localize("You have a local server running, but you are not authorized or connected.\n\nDo you want to restart the server and reconnect?", "Editor");
 	}
 	else if(pEditor->m_PopupEventType == POPEVENT_RESTARTING_SERVER)
 	{
-		pTitle = "正在重启服务器";
-		pMessage = "本地服务器正在重启。请稍候…";
+		pTitle = Localize("Restarting server", "Editor");
+		pMessage = Localize("Local server is restarting. Please wait…", "Editor");
 
 		CGameClient *pGameClient = (CGameClient *)pEditor->Kernel()->RequestInterface<IGameClient>();
 		if(!pGameClient->m_LocalServer.IsServerRunning())
@@ -2270,7 +2270,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEvent(void *pContext, CUIRect View, 
 		pEditor->m_PopupEventType != POPEVENT_TILEART_TOO_MANY_COLORS)
 	{
 		static int s_CancelButton = 0;
-		if(pEditor->DoButton_Editor(&s_CancelButton, "取消", 0, &Button, BUTTONFLAG_LEFT, nullptr))
+		if(pEditor->DoButton_Editor(&s_CancelButton, Localize("Cancel", "Editor"), 0, &Button, BUTTONFLAG_LEFT, nullptr))
 		{
 			if(pEditor->m_PopupEventType == POPEVENT_LOADDROP)
 				pEditor->m_aFilenamePending[0] = 0;
@@ -2291,7 +2291,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEvent(void *pContext, CUIRect View, 
 
 	ButtonBar.VSplitRight(110.0f, &ButtonBar, &Button);
 	static int s_ConfirmButton = 0;
-	if(pEditor->DoButton_Editor(&s_ConfirmButton, "确认", 0, &Button, BUTTONFLAG_LEFT, nullptr) || (Active && pEditor->Ui()->ConsumeHotkey(CUi::HOTKEY_ENTER)))
+	if(pEditor->DoButton_Editor(&s_ConfirmButton, Localize("Confirm", "Editor"), 0, &Button, BUTTONFLAG_LEFT, nullptr) || (Active && pEditor->Ui()->ConsumeHotkey(CUi::HOTKEY_ENTER)))
 	{
 		if(pEditor->m_PopupEventType == POPEVENT_EXIT)
 		{
@@ -2300,7 +2300,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEvent(void *pContext, CUIRect View, 
 		}
 		else if(pEditor->m_PopupEventType == POPEVENT_LOAD)
 		{
-			pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::MAP, "加载地图", "加载", "maps", "", CallbackOpenMap, pEditor);
+			pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::MAP, Localize("Load map", "Editor"), Localize("Load", "Editor"), "maps", "", CallbackOpenMap, pEditor);
 		}
 		else if(pEditor->m_PopupEventType == POPEVENT_LOADCURRENT)
 		{
@@ -2310,7 +2310,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEvent(void *pContext, CUIRect View, 
 		{
 			int Result = pEditor->Load(pEditor->m_aFilenamePending, IStorage::TYPE_ALL_OR_ABSOLUTE);
 			if(!Result)
-				dbg_msg("editor", "编辑指定地图文件“%s”失败", pEditor->m_aFilenamePending);
+				dbg_msg("editor", Localize("editing passed map file '%s' failed", "Editor"), pEditor->m_aFilenamePending);
 			pEditor->m_aFilenamePending[0] = 0;
 		}
 		else if(pEditor->m_PopupEventType == POPEVENT_NEW)
@@ -2395,7 +2395,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSelectImage(void *pContext, CUIRect 
 		SLabelProperties Props;
 		Props.m_MaxWidth = Label.w;
 		Props.m_EllipsisAtEnd = true;
-		pEditor->Ui()->DoLabel(&Label, i == 0 ? "无" : pEditor->m_Map.m_vpImages[i - 1]->m_aName, EditorFontSizes::MENU, TEXTALIGN_ML, Props);
+		pEditor->Ui()->DoLabel(&Label, i == 0 ? Localize("None", "Editor") : pEditor->m_Map.m_vpImages[i - 1]->m_aName, EditorFontSizes::MENU, TEXTALIGN_ML, Props);
 	}
 
 	int NewSelected = s_ListBox.DoEnd() - 1;
@@ -2469,7 +2469,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSelectSound(void *pContext, CUIRect 
 		SLabelProperties Props;
 		Props.m_MaxWidth = Label.w;
 		Props.m_EllipsisAtEnd = true;
-		pEditor->Ui()->DoLabel(&Label, i == 0 ? "无" : pEditor->m_Map.m_vpSounds[i - 1]->m_aName, EditorFontSizes::MENU, TEXTALIGN_ML, Props);
+		pEditor->Ui()->DoLabel(&Label, i == 0 ? Localize("None", "Editor") : pEditor->m_Map.m_vpSounds[i - 1]->m_aName, EditorFontSizes::MENU, TEXTALIGN_ML, Props);
 	}
 
 	int NewSelected = s_ListBox.DoEnd() - 1;
@@ -2500,19 +2500,19 @@ int CEditor::PopupSelectSoundResult()
 static int s_GametileOpSelected = -1;
 
 static const char *s_apGametileOpButtonNames[] = {
-	"空气",
-	"可钩",
-	"死亡",
-	"不可钩",
-	"可穿透钩",
-	"冻结",
-	"解冻",
-	"深度冻结",
-	"深度解冻",
-	"蓝色检查点传送",
-	"红色检查点传送",
-	"实时冻结",
-	"实时解冻",
+	Localizable("Air", "Editor"),
+	Localizable("Hookable", "Editor"),
+	Localizable("Death", "Editor"),
+	Localizable("Unhookable", "Editor"),
+	Localizable("Hookthrough", "Editor quick action"),
+	Localizable("Freeze", "Editor"),
+	Localizable("Unfreeze", "Editor"),
+	Localizable("Deep Freeze", "Editor"),
+	Localizable("Deep Unfreeze", "Editor"),
+	Localizable("Blue Check-Tele", "Editor"),
+	Localizable("Red Check-Tele", "Editor"),
+	Localizable("Live Freeze", "Editor"),
+	Localizable("Live Unfreeze", "Editor"),
 };
 
 CUi::EPopupMenuFunctionResult CEditor::PopupSelectGametileOp(void *pContext, CUIRect View, bool Active)
@@ -2526,7 +2526,8 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSelectGametileOp(void *pContext, CUI
 	{
 		View.HSplitTop(2.0f, nullptr, &View);
 		View.HSplitTop(12.0f, &Button, &View);
-		if(pEditor->DoButton_Editor(&s_apGametileOpButtonNames[i], s_apGametileOpButtonNames[i], 0, &Button, BUTTONFLAG_LEFT, nullptr))
+		const char *pLocalizationContext = i == static_cast<size_t>(EGameTileOp::HOOKTHROUGH) ? "Editor quick action" : "Editor";
+		if(pEditor->DoButton_Editor(&s_apGametileOpButtonNames[i], Localize(s_apGametileOpButtonNames[i], pLocalizationContext), 0, &Button, BUTTONFLAG_LEFT, nullptr))
 			s_GametileOpSelected = i;
 	}
 
@@ -2580,7 +2581,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSelectConfigAutoMap(void *pContext, 
 		SLabelProperties Props;
 		Props.m_MaxWidth = Label.w;
 		Props.m_EllipsisAtEnd = true;
-		pEditor->Ui()->DoLabel(&Label, i == 0 ? "无" : pAutoMapper->GetConfigName(i - 1), EditorFontSizes::MENU, TEXTALIGN_ML, Props);
+		pEditor->Ui()->DoLabel(&Label, i == 0 ? Localize("None", "Editor") : pAutoMapper->GetConfigName(i - 1), EditorFontSizes::MENU, TEXTALIGN_ML, Props);
 	}
 
 	int NewSelected = s_ListBox.DoEnd() - 1;
@@ -2639,7 +2640,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSelectAutoMapReference(void *pContex
 		SLabelProperties Props;
 		Props.m_MaxWidth = Label.w;
 		Props.m_EllipsisAtEnd = true;
-		pEditor->Ui()->DoLabel(&Label, i == 0 ? "无" : AUTOMAP_REFERENCE_NAMES[i - 1], EditorFontSizes::MENU, TEXTALIGN_ML, Props);
+		pEditor->Ui()->DoLabel(&Label, i == 0 ? Localize("None", "Editor") : Localize(AUTOMAP_REFERENCE_NAMES[i - 1], "Editor"), EditorFontSizes::MENU, TEXTALIGN_ML, Props);
 	}
 
 	int NewSelected = s_ListBox.DoEnd() - 1;
@@ -2728,7 +2729,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupTele(void *pContext, CUIRect View, b
 		// Pressing ctrl+f will find next free numbers for both tele and checkpoints
 
 		static int s_NextFreeTelePid = 0;
-		if(pEditor->DoButton_Editor(&s_NextFreeTelePid, "F", 0, &FindFreeTeleSlot, BUTTONFLAG_LEFT, "[Ctrl+F] 查找下一个可用传送编号.") ||
+		if(pEditor->DoButton_Editor(&s_NextFreeTelePid, "F", 0, &FindFreeTeleSlot, BUTTONFLAG_LEFT, Localize("[Ctrl+F] Find next free tele number.", "Editor")) ||
 			(Active && pEditor->Input()->ModifierIsPressed() && pEditor->Input()->KeyPress(KEY_F)))
 		{
 			int TeleNumber = pEditor->m_Map.m_pTeleLayer->FindNextFreeNumber(false);
@@ -2740,7 +2741,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupTele(void *pContext, CUIRect View, b
 		}
 
 		static int s_NextFreeCheckpointPid = 0;
-		if(pEditor->DoButton_Editor(&s_NextFreeCheckpointPid, "F", 0, &FindFreeCheckpointSlot, BUTTONFLAG_LEFT, "[Ctrl+F] 查找下一个可用检查点编号.") ||
+		if(pEditor->DoButton_Editor(&s_NextFreeCheckpointPid, "F", 0, &FindFreeCheckpointSlot, BUTTONFLAG_LEFT, Localize("[Ctrl+F] Find next free checkpoint number.", "Editor")) ||
 			(Active && pEditor->Input()->ModifierIsPressed() && pEditor->Input()->KeyPress(KEY_F)))
 		{
 			int CheckpointNumber = pEditor->m_Map.m_pTeleLayer->FindNextFreeNumber(true);
@@ -2752,7 +2753,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupTele(void *pContext, CUIRect View, b
 		}
 
 		static int s_NextFreeViewPid = 0;
-		if(pEditor->DoButton_Editor(&s_NextFreeViewPid, "N", 0, &FindFreeViewSlot, BUTTONFLAG_LEFT, "[N] 显示具有此编号的下一个传送点.") ||
+		if(pEditor->DoButton_Editor(&s_NextFreeViewPid, "N", 0, &FindFreeViewSlot, BUTTONFLAG_LEFT, Localize("[N] Show next tele with this number.", "Editor")) ||
 			(Active && pEditor->Input()->KeyPress(KEY_N)))
 		{
 			s_vColors[PROP_TELE_VIEW] = ViewTele(pEditor) ? ColorRGBA(0.5f, 1, 0.5f, 0.5f) : ColorRGBA(1, 0.5f, 0.5f, 0.5f);
@@ -2762,9 +2763,9 @@ CUi::EPopupMenuFunctionResult CEditor::PopupTele(void *pContext, CUIRect View, b
 	// number picker
 	{
 		CProperty aProps[] = {
-			{"编号", pEditor->m_TeleNumber, PROPTYPE_INT, 1, 255},
-			{"检查点", pEditor->m_TeleCheckpointNumber, PROPTYPE_INT, 1, 255},
-			{"查看", pEditor->m_ViewTeleNumber, PROPTYPE_INT, 1, 255},
+			{Localize("Number", "Editor"), pEditor->m_TeleNumber, PROPTYPE_INT, 1, 255},
+			{Localize("Checkpoint", "Editor"), pEditor->m_TeleCheckpointNumber, PROPTYPE_INT, 1, 255},
+			{Localize("View", "Editor"), pEditor->m_ViewTeleNumber, PROPTYPE_INT, 1, 255},
 			{nullptr},
 		};
 
@@ -2817,9 +2818,9 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSpeedup(void *pContext, CUIRect View
 	};
 
 	CProperty aProps[] = {
-		{"力量", pEditor->m_SpeedupForce, PROPTYPE_INT, 1, 255},
-		{"最大速度", pEditor->m_SpeedupMaxSpeed, PROPTYPE_INT, 0, 255},
-		{"角度", pEditor->m_SpeedupAngle, PROPTYPE_ANGLE_SCROLL, 0, 359},
+		{Localize("Force", "Editor"), pEditor->m_SpeedupForce, PROPTYPE_INT, 1, 255},
+		{Localize("Max Speed", "Editor"), pEditor->m_SpeedupMaxSpeed, PROPTYPE_INT, 0, 255},
+		{Localize("Angle", "Editor"), pEditor->m_SpeedupAngle, PROPTYPE_ANGLE_SCROLL, 0, 359},
 		{nullptr},
 	};
 
@@ -2892,7 +2893,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSwitch(void *pContext, CUIRect View,
 	// find empty number button
 	{
 		static int s_EmptySlotPid = 0;
-		if(pEditor->DoButton_Editor(&s_EmptySlotPid, "F", 0, &FindEmptySlot, BUTTONFLAG_LEFT, "[Ctrl+F] 查找空闲插槽.") ||
+		if(pEditor->DoButton_Editor(&s_EmptySlotPid, "F", 0, &FindEmptySlot, BUTTONFLAG_LEFT, Localize("[Ctrl+F] Find empty slot.", "Editor")) ||
 			(Active && pEditor->Input()->ModifierIsPressed() && pEditor->Input()->KeyPress(KEY_F)))
 		{
 			int Number = pEditor->m_Map.m_pSwitchLayer->FindNextFreeNumber();
@@ -2901,7 +2902,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSwitch(void *pContext, CUIRect View,
 		}
 
 		static int s_NextViewPid = 0;
-		if(pEditor->DoButton_Editor(&s_NextViewPid, "N", 0, &ViewEmptySlot, BUTTONFLAG_LEFT, "[N] 显示具有此编号的下一个开关.") ||
+		if(pEditor->DoButton_Editor(&s_NextViewPid, "N", 0, &ViewEmptySlot, BUTTONFLAG_LEFT, Localize("[N] Show next switcher with this number.", "Editor")) ||
 			(Active && pEditor->Input()->KeyPress(KEY_N)))
 		{
 			s_vColors[PROP_SWITCH_VIEW] = ViewSwitch() ? ColorRGBA(0.5f, 1, 0.5f, 0.5f) : ColorRGBA(1, 0.5f, 0.5f, 0.5f);
@@ -2913,9 +2914,9 @@ CUi::EPopupMenuFunctionResult CEditor::PopupSwitch(void *pContext, CUIRect View,
 	static int s_PreviousView = -1;
 	{
 		CProperty aProps[] = {
-			{"编号", pEditor->m_SwitchNumber, PROPTYPE_INT, 0, 255},
-			{"延迟", pEditor->m_SwitchDelay, PROPTYPE_INT, 0, 255},
-			{"查看", pEditor->m_ViewSwitch, PROPTYPE_INT, 0, 255},
+			{Localize("Number", "Editor"), pEditor->m_SwitchNumber, PROPTYPE_INT, 0, 255},
+			{Localize("Delay", "Editor"), pEditor->m_SwitchDelay, PROPTYPE_INT, 0, 255},
+			{Localize("View", "Editor"), pEditor->m_ViewSwitch, PROPTYPE_INT, 0, 255},
 			{nullptr},
 		};
 
@@ -2992,7 +2993,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupTune(void *pContext, CUIRect View, b
 	// find empty number button
 	{
 		static int s_EmptySlotPid = 0;
-		if(pEditor->DoButton_Editor(&s_EmptySlotPid, "F", 0, &FindEmptySlot, BUTTONFLAG_LEFT, "[Ctrl+F] 查找未使用区域.") ||
+		if(pEditor->DoButton_Editor(&s_EmptySlotPid, "F", 0, &FindEmptySlot, BUTTONFLAG_LEFT, Localize("[Ctrl+F] Find unused zone.", "Editor")) ||
 			(Active && pEditor->Input()->ModifierIsPressed() && pEditor->Input()->KeyPress(KEY_F)))
 		{
 			int Number = pEditor->m_Map.m_pTuneLayer->FindNextFreeNumber();
@@ -3001,7 +3002,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupTune(void *pContext, CUIRect View, b
 		}
 
 		static int s_NextViewPid = 0;
-		if(pEditor->DoButton_Editor(&s_NextViewPid, "N", 0, &ViewEmptySlot, BUTTONFLAG_LEFT, "[N] 显示具有此编号的下一个物理图块.") ||
+		if(pEditor->DoButton_Editor(&s_NextViewPid, "N", 0, &ViewEmptySlot, BUTTONFLAG_LEFT, Localize("[N] Show next tune tile with this number.", "Editor")) ||
 			(Active && pEditor->Input()->KeyPress(KEY_N)))
 		{
 			s_vColors[PROP_TUNE_VIEW] = ViewTune() ? ColorRGBA(0.5f, 1, 0.5f, 0.5f) : ColorRGBA(1, 0.5f, 0.5f, 0.5f);
@@ -3013,8 +3014,8 @@ CUi::EPopupMenuFunctionResult CEditor::PopupTune(void *pContext, CUIRect View, b
 	static int s_PreviousView = -1;
 	{
 		CProperty aProps[] = {
-			{"区域", pEditor->m_TuningNumber, PROPTYPE_INT, 1, 255},
-			{"查看", pEditor->m_ViewTuning, PROPTYPE_INT, 1, 255},
+			{Localize("Zone", "Editor"), pEditor->m_TuningNumber, PROPTYPE_INT, 1, 255},
+			{Localize("View", "Editor"), pEditor->m_ViewTuning, PROPTYPE_INT, 1, 255},
 			{nullptr},
 		};
 
@@ -3057,8 +3058,8 @@ CUi::EPopupMenuFunctionResult CEditor::PopupGoto(void *pContext, CUIRect View, b
 	static ivec2 s_GotoPos(0, 0);
 
 	CProperty aProps[] = {
-		{"横坐标", s_GotoPos.x, PROPTYPE_INT, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()},
-		{"纵坐标", s_GotoPos.y, PROPTYPE_INT, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()},
+		{Localize("X", "Editor coordinate label"), s_GotoPos.x, PROPTYPE_INT, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()},
+		{Localize("Y", "Editor coordinate label"), s_GotoPos.y, PROPTYPE_INT, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()},
 		{nullptr},
 	};
 
@@ -3079,7 +3080,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupGoto(void *pContext, CUIRect View, b
 	View.HSplitBottom(12.0f, &View, &Button);
 
 	static int s_Button;
-	if(pEditor->DoButton_Editor(&s_Button, "前往", 0, &Button, BUTTONFLAG_LEFT, nullptr))
+	if(pEditor->DoButton_Editor(&s_Button, Localize("Go", "Editor"), 0, &Button, BUTTONFLAG_LEFT, nullptr))
 	{
 		pEditor->MapView()->SetWorldOffset({32.0f * s_GotoPos.x + 0.5f, 32.0f * s_GotoPos.y + 0.5f});
 	}
@@ -3104,7 +3105,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEntities(void *pContext, CUIRect Vie
 			{
 				if(i == pEditor->m_vSelectEntitiesFiles.size() - 1)
 				{
-					pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::IMAGE, "加载自定义实体", "加载", "assets/entities", "", CallbackCustomEntities, pEditor);
+					pEditor->m_FileBrowser.ShowFileDialog(IStorage::TYPE_ALL, CFileBrowser::EFileType::IMAGE, Localize("Load custom entities", "Editor"), Localize("Load", "Editor"), "assets/entities", "", CallbackCustomEntities, pEditor);
 					return CUi::POPUP_CLOSE_CURRENT;
 				}
 
@@ -3132,7 +3133,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupProofMode(void *pContext, CUIRect Vi
 	CUIRect Button;
 	View.HSplitTop(12.0f, &Button, &View);
 	static int s_ButtonIngame;
-	if(pEditor->DoButton_MenuItem(&s_ButtonIngame, "游戏内", pEditor->MapView()->ProofMode()->IsModeIngame(), &Button, BUTTONFLAG_LEFT, "这些边框代表玩家最大可见范围."))
+	if(pEditor->DoButton_MenuItem(&s_ButtonIngame, Localize("Ingame", "Editor"), pEditor->MapView()->ProofMode()->IsModeIngame(), &Button, BUTTONFLAG_LEFT, Localize("These borders represent what a player maximum can see.", "Editor")))
 	{
 		pEditor->MapView()->ProofMode()->SetModeIngame();
 		return CUi::POPUP_CLOSE_CURRENT;
@@ -3141,7 +3142,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupProofMode(void *pContext, CUIRect Vi
 	View.HSplitTop(2.0f, nullptr, &View);
 	View.HSplitTop(12.0f, &Button, &View);
 	static int s_ButtonMenu;
-	if(pEditor->DoButton_MenuItem(&s_ButtonMenu, "菜单", pEditor->MapView()->ProofMode()->IsModeMenu(), &Button, BUTTONFLAG_LEFT, "这些边框代表菜单中显示的内容."))
+	if(pEditor->DoButton_MenuItem(&s_ButtonMenu, Localize("Menu", "Editor"), pEditor->MapView()->ProofMode()->IsModeMenu(), &Button, BUTTONFLAG_LEFT, Localize("These borders represent what will be shown in the menu.", "Editor")))
 	{
 		pEditor->MapView()->ProofMode()->SetModeMenu();
 		return CUi::POPUP_CLOSE_CURRENT;
@@ -3164,10 +3165,10 @@ CUi::EPopupMenuFunctionResult CEditor::PopupAnimateSettings(void *pContext, CUIR
 	Row.VSplitLeft(10.0f, &ButtonDecrease, &Row);
 	Row.VSplitRight(10.0f, &EditBox, &ButtonIncrease);
 	View.HSplitBottom(12.0f, &View, &ButtonReset);
-	pEditor->Ui()->DoLabel(&Label, "速度", 10.0f, TEXTALIGN_ML);
+	pEditor->Ui()->DoLabel(&Label, Localize("Speed", "Editor"), 10.0f, TEXTALIGN_ML);
 
 	static char s_DecreaseButton;
-	if(pEditor->DoButton_FontIcon(&s_DecreaseButton, FONT_ICON_MINUS, 0, &ButtonDecrease, BUTTONFLAG_LEFT, "减少动画速度.", IGraphics::CORNER_L, 7.0f))
+	if(pEditor->DoButton_FontIcon(&s_DecreaseButton, FONT_ICON_MINUS, 0, &ButtonDecrease, BUTTONFLAG_LEFT, Localize("Decrease animation speed.", "Editor"), IGraphics::CORNER_L, 7.0f))
 	{
 		pEditor->m_AnimateSpeed -= pEditor->m_AnimateSpeed <= 1.0f ? 0.1f : 0.5f;
 		pEditor->m_AnimateSpeed = maximum(pEditor->m_AnimateSpeed, MIN_ANIM_SPEED);
@@ -3175,7 +3176,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupAnimateSettings(void *pContext, CUIR
 	}
 
 	static char s_IncreaseButton;
-	if(pEditor->DoButton_FontIcon(&s_IncreaseButton, FONT_ICON_PLUS, 0, &ButtonIncrease, BUTTONFLAG_LEFT, "增加动画速度.", IGraphics::CORNER_R, 7.0f))
+	if(pEditor->DoButton_FontIcon(&s_IncreaseButton, FONT_ICON_PLUS, 0, &ButtonIncrease, BUTTONFLAG_LEFT, Localize("Increase animation speed.", "Editor"), IGraphics::CORNER_R, 7.0f))
 	{
 		if(pEditor->m_AnimateSpeed < 0.1f)
 			pEditor->m_AnimateSpeed = 0.1f;
@@ -3186,7 +3187,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupAnimateSettings(void *pContext, CUIR
 	}
 
 	static char s_DefaultButton;
-	if(pEditor->DoButton_Ex(&s_DefaultButton, "默认", 0, &ButtonReset, BUTTONFLAG_LEFT, "重置为正常动画速度.", IGraphics::CORNER_ALL))
+	if(pEditor->DoButton_Ex(&s_DefaultButton, Localize("Default", "Editor"), 0, &ButtonReset, BUTTONFLAG_LEFT, Localize("Reset to normal animation speed.", "Editor"), IGraphics::CORNER_ALL))
 	{
 		pEditor->m_AnimateSpeed = 1.0f;
 		pEditor->m_AnimateUpdatePopup = true;
@@ -3199,7 +3200,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupAnimateSettings(void *pContext, CUIR
 		pEditor->m_AnimateUpdatePopup = false;
 	}
 
-	if(pEditor->DoEditBox(&s_SpeedInput, &EditBox, 10.0f, IGraphics::CORNER_NONE, "动画速度."))
+	if(pEditor->DoEditBox(&s_SpeedInput, &EditBox, 10.0f, IGraphics::CORNER_NONE, Localize("The animation speed.", "Editor")))
 	{
 		pEditor->m_AnimateSpeed = std::clamp(s_SpeedInput.GetFloat(), MIN_ANIM_SPEED, MAX_ANIM_SPEED);
 	}
@@ -3223,7 +3224,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupEnvelopeCurvetype(void *pContext, CU
 	}
 	CEnvPoint_runtime &SelectedPoint = pEnvelope->m_vPoints[pEditor->m_PopupEnvelopeSelectedPoint];
 
-	static const char *const TYPE_NAMES[NUM_CURVETYPES] = {"阶梯", "线性", "缓慢", "快速", "平滑", "贝塞尔"};
+	const char *const TYPE_NAMES[NUM_CURVETYPES] = {Localize("Step", "Editor"), Localize("Linear", "Editor"), Localize("Slow", "Editor explanation speed"), Localize("Fast", "Editor explanation speed"), Localize("Smooth", "Editor"), Localize("Bezier", "Editor")};
 	static char s_aButtonIds[NUM_CURVETYPES] = {0};
 
 	for(int Type = 0; Type < NUM_CURVETYPES; Type++)
@@ -3262,10 +3263,10 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuadArt(void *pContext, CUIRect View
 	};
 
 	CProperty aProps[] = {
-		{"图像像素大小", pEditor->m_QuadArtParameters.m_ImagePixelSize, PROPTYPE_INT, 1, 1024},
-		{"方块像素大小", pEditor->m_QuadArtParameters.m_QuadPixelSize, PROPTYPE_INT, 1, 1024},
-		{"优化", pEditor->m_QuadArtParameters.m_Optimize, PROPTYPE_BOOL, false, true},
-		{"居中", pEditor->m_QuadArtParameters.m_Centralize, PROPTYPE_BOOL, false, true},
+		{Localize("Image pixelsize", "Editor"), pEditor->m_QuadArtParameters.m_ImagePixelSize, PROPTYPE_INT, 1, 1024},
+		{Localize("Quad pixelsize", "Editor"), pEditor->m_QuadArtParameters.m_QuadPixelSize, PROPTYPE_INT, 1, 1024},
+		{Localize("Optimize", "Editor"), pEditor->m_QuadArtParameters.m_Optimize, PROPTYPE_BOOL, false, true},
+		{Localize("Centralize", "Editor"), pEditor->m_QuadArtParameters.m_Centralize, PROPTYPE_BOOL, false, true},
 		{nullptr},
 	};
 
@@ -3275,7 +3276,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuadArt(void *pContext, CUIRect View
 	// Title
 	CUIRect Label;
 	View.HSplitTop(20.0f, &Label, &View);
-	pEditor->Ui()->DoLabel(&Label, "配置四边形画", 20.0f, TEXTALIGN_MC);
+	pEditor->Ui()->DoLabel(&Label, Localize("Configure Quadart", "Editor"), 20.0f, TEXTALIGN_MC);
 	View.HSplitTop(10.0f, nullptr, &View);
 
 	// Properties
@@ -3304,7 +3305,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuadArt(void *pContext, CUIRect View
 	BottomBar.VSplitLeft(110.f, &Left, &BottomBar);
 
 	static int s_Cancel;
-	if(pEditor->DoButton_Editor(&s_Cancel, "取消", 0, &Left, BUTTONFLAG_LEFT, nullptr))
+	if(pEditor->DoButton_Editor(&s_Cancel, Localize("Cancel", "Editor"), 0, &Left, BUTTONFLAG_LEFT, nullptr))
 	{
 		pEditor->m_QuadArtImageInfo.Free();
 		return CUi::POPUP_CLOSE_CURRENT;
@@ -3313,7 +3314,7 @@ CUi::EPopupMenuFunctionResult CEditor::PopupQuadArt(void *pContext, CUIRect View
 	BottomBar.VSplitRight(110.f, &BottomBar, &Right);
 	static int s_Confirm;
 	constexpr int MaximumQuadThreshold = 100'000;
-	if(pEditor->DoButton_Editor(&s_Confirm, "确认", 0, &Right, BUTTONFLAG_LEFT, nullptr))
+	if(pEditor->DoButton_Editor(&s_Confirm, Localize("Confirm", "Editor"), 0, &Right, BUTTONFLAG_LEFT, nullptr))
 	{
 		size_t MaximumQuadNumber = (pEditor->m_QuadArtImageInfo.m_Width / pEditor->m_QuadArtParameters.m_ImagePixelSize) *
 					   (pEditor->m_QuadArtImageInfo.m_Height / pEditor->m_QuadArtParameters.m_ImagePixelSize);

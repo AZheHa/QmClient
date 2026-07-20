@@ -31,9 +31,6 @@
 %d more cut segments
 == さらに %d 個のカットセグメント
 
-%d new mentions
-== %d 件の新しいメンション
-
 %d of %d server
 == %d/%d サーバー
 
@@ -214,9 +211,6 @@
 /times ?s?i shows last 5 times of the server or of a player beginning with name s starting with time i (i = 1 by default, -1 for first)
 == /times ?s?i は、サーバーの直近 5 回のタイム、または名前が s で始まるプレイヤーのタイムを i 番目から表示します（i は既定で 1、-1 は最初）
 
-1 new mention
-== 1 件の新しいメンション
-
 1 star
 == 1 つ星
 
@@ -237,9 +231,6 @@
 
 5 stars
 == 5 つ星
-
-9+ new mentions
-== 9+ 件の新しいメンション
 
 === All Local Saves ===
 == === すべてのローカルセーブ ===
@@ -949,6 +940,9 @@ Best
 Best match
 == Best match
 
+Better scoreboard
+== より良いスコアボード
+
 Bind key to execute a command or view keybindings
 == キーをバインドしてコマンドを実行、またはキーバインドを表示
 
@@ -963,6 +957,9 @@ Black
 
 Blend mode
 == ブレンドモード
+
+Block enemy chat
+== 敵対プレイヤーのチャットをブロック
 
 Blue
 == 青
@@ -3070,9 +3067,6 @@ https://ddnet.org/discord
 https://wiki.ddnet.org/
 == https://wiki.ddnet.org/
 
-https://wiki.ddnet.org/wiki/Mapping
-== https://wiki.ddnet.org/wiki/Mapping
-
 https://wiki.ddnet.org/wiki/Touch_controls
 == https://wiki.ddnet.org/wiki/Touch_controls
 
@@ -3868,9 +3862,6 @@ Message to send in chat:
 Messages
 == メッセージ
 
-Messages that already look like the target language will skip auto-translate
-== すでにターゲット言語のように見えるメッセージは自動翻訳をスキップします
-
 Microphone
 == マイク
 
@@ -3942,9 +3933,6 @@ Move right
 
 Move to category
 == カテゴリに移動
-
-Moved ingame
-== ゲーム内で移動しました
 
 Movement
 == 移動
@@ -4309,9 +4297,6 @@ Notify when only one tee is still alive:
 Novice
 == Novice
 
-Numeric-only messages will be skipped
-== 数字のみのメッセージはスキップされます
-
 o = Send rate
 == o = 送信レート
 
@@ -4347,9 +4332,6 @@ Online Players
 
 Only .wv files are supported right now.
 == 現在は .wv ファイルのみ対応しています。
-
-Only affects custom Tee colors.
-== カスタムTee色にのみ適用されます。
 
 Only Apple Can Do
 == Appleにしかできない
@@ -4572,6 +4554,9 @@ Pause/unpause game
 
 Per-word highlight (karaoke)
 == Per-word highlight (karaoke)
+
+Performance mode (placeholder)
+== パフォーマンスモード（プレースホルダー）
 
 Personal best:
 == 自己ベスト:
@@ -5991,9 +5976,6 @@ Show DDNet map finishes in server browser
 
 Show DDRace HUD
 == DDRace HUDを表示
-
-Show Directory
-== ディレクトリを表示
 
 Show dotted map route debug
 == 点線マップルートのデバッグ表示
@@ -7789,9 +7771,6 @@ What's done is done, no use saying more
 Wheel animate
 == ホイールアニメーション
 
-When TClient rainbow Tee is enabled, this feature has no effect.
-== TClientのレインボーTeeが有効な場合、この機能は適用されません。
-
 When you cross the start line, show a ghost tee replicating the movements of your best time
 == スタートラインを越えたとき、ベストタイムの動きを再現するゴーストTeeを表示
 
@@ -8461,10 +8440,6 @@ AUTO
 [Start menu]
 Play
 == プレイ
-
-[Team and size]
-%d\n(%d/%d)
-== %d\n(%d/%d)
 
 [Team size]
 maximum

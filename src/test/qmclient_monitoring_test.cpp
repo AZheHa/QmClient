@@ -6,6 +6,7 @@
 #include <game/client/components/qmclient/perf_logging.h>
 #include <game/client/components/qmclient/settings_perf_windows.h>
 #include <game/client/components/qmclient/settings_resource_preview.h>
+#include <game/client/components/qmclient/stutter_diagnostics.h>
 #include <game/client/components/settings_resource_jobs.h>
 #include <game/client/frame_scheduler.h>
 #include <game/client/ui.h>
@@ -1174,13 +1175,30 @@ TEST(QmMonitoringHelpers, PerfConfigDefaultsUseLowThresholdWithoutJsonToggle)
 TEST(QmMonitoringHelpers, PerfDurationGateUsesConfiguredThreshold)
 {
 	const int OldThreshold = g_Config.m_QmPerfDebugThresholdMs;
+	const int OldStutterDiagnostics = g_Config.m_QmPerfStutterDiagnostics;
 	g_Config.m_QmPerfDebugThresholdMs = 4;
+	g_Config.m_QmPerfStutterDiagnostics = 0;
 
 	EXPECT_FALSE(QmPerfShouldLogDuration(3.999));
 	EXPECT_TRUE(QmPerfShouldLogDuration(4.0));
 	EXPECT_TRUE(QmPerfShouldLogDuration(0.0, true));
 
 	g_Config.m_QmPerfDebugThresholdMs = OldThreshold;
+	g_Config.m_QmPerfStutterDiagnostics = OldStutterDiagnostics;
+}
+
+TEST(QmStutterDiagnostics, PerfDurationGateUsesThreeHundredFpsBudgetWhileEnabled)
+{
+	const int OldThreshold = g_Config.m_QmPerfDebugThresholdMs;
+	const int OldStutterDiagnostics = g_Config.m_QmPerfStutterDiagnostics;
+	g_Config.m_QmPerfDebugThresholdMs = 4;
+	g_Config.m_QmPerfStutterDiagnostics = 1;
+
+	EXPECT_FALSE(QmPerfShouldLogDuration(QmStutterFrameBudgetMs() - 0.001));
+	EXPECT_TRUE(QmPerfShouldLogDuration(QmStutterFrameBudgetMs()));
+
+	g_Config.m_QmPerfDebugThresholdMs = OldThreshold;
+	g_Config.m_QmPerfStutterDiagnostics = OldStutterDiagnostics;
 }
 
 TEST(QmMonitoringHelpers, ProcessHighPriorityConfigExistsAndDefaultsOff)
@@ -1916,7 +1934,7 @@ TEST(QmMonitoringHelpers, SettingsTextPlanCoversHighValueTClientAndQmClientStati
 		EXPECT_NE(Settings.find("DoSettingsButton_CheckBox(SETTINGS_GENERAL, -1, &g_Config.m_ClAutoswitchWeapons, \"general-switch-weapon-pickup\""), std::string::npos);
 		EXPECT_NE(Settings.find("DoSettingsButton_CheckBox(SETTINGS_GENERAL, -1, &g_Config.m_ClAutoswitchWeaponsOutOfAmmo, \"general-switch-weapon-out-of-ammo\""), std::string::npos);
 		EXPECT_NE(Settings.find("DoSettingsButton_CheckBox(SETTINGS_GENERAL, -1, &g_Config.m_ClSkipStartMenu, \"general-skip-main-menu\""), std::string::npos);
-		EXPECT_NE(Settings.find("DoSettingsScrollbarOption(SETTINGS_GENERAL, -1, \"general-refresh-rate\""), std::string::npos);
+		EXPECT_NE(Settings.find("DoSettingsButton_CheckBox(SETTINGS_GENERAL, -1, &g_Config.m_QmPerformanceMode, \"general-performance-mode\""), std::string::npos);
 		EXPECT_NE(Settings.find("DoSettingsButton_CheckBox(SETTINGS_GENERAL, -1, &s_LowerRefreshRate, \"general-lower-refresh-rate\""), std::string::npos);
 		EXPECT_NE(Settings.find("DoSettingsButton_Menu(SETTINGS_GENERAL, -1, -1, &s_SettingsButtonId, \"general-settings-file\""), std::string::npos);
 
@@ -1983,6 +2001,22 @@ TEST(QmMonitoringHelpers, SettingsTextPlanCoversHighValueTClientAndQmClientStati
 		EXPECT_NE(PlanBody.find("RenderSettings(MainView);"), std::string::npos);
 		EXPECT_EQ(PlanBody.find("RenderSettingsQmClient(MainView, false, true);"), std::string::npos);
 	}
+}
+
+TEST(QmMonitoringHelpers, GeneralPerformanceModePlaceholderReplacesRefreshRateSlider)
+{
+	const std::string Settings = ReadRepoFile("src/game/client/components/menus_settings.cpp");
+	const std::string Config = ReadRepoFile("src/engine/shared/config_variables_qmclient.h");
+	const std::string MenusTranslations = ReadRepoFile("qmclient_scripts/languages_qmclient/translations/i18n/menus.toml");
+	const std::string Version = ReadRepoFile("src/game/version.h");
+
+	EXPECT_EQ(Settings.find("DoSettingsScrollbarOption(SETTINGS_GENERAL, -1, \"general-refresh-rate\""), std::string::npos);
+	EXPECT_NE(Settings.find("DoSettingsButton_CheckBox(SETTINGS_GENERAL, -1, &g_Config.m_QmPerformanceMode, \"general-performance-mode\""), std::string::npos);
+	EXPECT_NE(Settings.find("DoSettingsButton_CheckBox(SETTINGS_GENERAL, -1, &s_LowerRefreshRate, \"general-lower-refresh-rate\""), std::string::npos);
+	EXPECT_NE(Config.find("MACRO_CONFIG_INT(QmPerformanceMode, qm_performance_mode, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE"), std::string::npos);
+	EXPECT_NE(MenusTranslations.find("key = \"Performance mode (placeholder)\""), std::string::npos);
+	EXPECT_NE(MenusTranslations.find("simplified_chinese = \"性能模式（占位符）\""), std::string::npos);
+	EXPECT_NE(Version.find("#define QMCLIENT_VERSION \"2.76.16\""), std::string::npos);
 }
 
 TEST(QmMonitoringHelpers, SettingsStableTextRegistryCoversVisibleWrappers)
@@ -6219,4 +6253,85 @@ TEST(QmMonitoringHelpers, FrameSchedulerResetClearsConsumerStateAndFrameScope)
 		EXPECT_EQ(Scheduler->LastOutput(Consumer).m_VisibleTokens, 0);
 		EXPECT_EQ(Scheduler->LastOutput(Consumer).m_TextContainerTokens, 0);
 	}
+}
+
+TEST(QmStutterDiagnostics, UsesExactThreeHundredFpsBudget)
+{
+	EXPECT_NEAR(QmStutterFrameBudgetMs(), 1000.0 / 300.0, 0.000001);
+	EXPECT_FALSE(QmStutterFrameBelowTarget(QmStutterFrameBudgetMs()));
+	EXPECT_TRUE(QmStutterFrameBelowTarget(QmStutterFrameBudgetMs() + 0.001));
+}
+
+TEST(QmStutterDiagnostics, GroupsLowFramesUntilOneSecondRecovery)
+{
+	CQmStutterEpisodeTracker Tracker;
+	const SQmStutterFrameDecision Started = Tracker.RecordFrame(10, 4.0);
+	EXPECT_TRUE(Started.m_Started);
+	EXPECT_FALSE(Started.m_FlushWindow);
+	EXPECT_TRUE(Tracker.Active());
+
+	for(int i = 0; i < 499; ++i)
+	{
+		const SQmStutterFrameDecision Recovering = Tracker.RecordFrame(11 + i, 2.0);
+		EXPECT_FALSE(Recovering.m_Ended);
+	}
+	const SQmStutterFrameDecision Ended = Tracker.RecordFrame(510, 2.0);
+	EXPECT_TRUE(Ended.m_Ended);
+	EXPECT_TRUE(Ended.m_FlushWindow);
+	EXPECT_EQ(Ended.m_Reason, EQmStutterFlushReason::RECOVERED);
+	EXPECT_FALSE(Tracker.Active());
+}
+
+TEST(QmStutterDiagnostics, FlushesSustainedLowFpsEveryTenSeconds)
+{
+	CQmStutterEpisodeTracker Tracker;
+	SQmStutterFrameDecision Decision;
+	for(int i = 0; i < 2500; ++i)
+		Decision = Tracker.RecordFrame(100 + i, 4.0);
+
+	EXPECT_TRUE(Decision.m_FlushWindow);
+	EXPECT_FALSE(Decision.m_Ended);
+	EXPECT_EQ(Decision.m_Reason, EQmStutterFlushReason::PERIODIC);
+	EXPECT_TRUE(Tracker.Active());
+}
+
+TEST(QmStutterDiagnostics, DetectsIntentionalFrameLimitBeforeBlamingComponents)
+{
+	EXPECT_EQ(QmDetermineStutterLimitCause(true, 0, 0, true), EQmStutterLimitCause::VSYNC);
+	EXPECT_EQ(QmDetermineStutterLimitCause(false, 240, 0, true), EQmStutterLimitCause::CONFIGURED_LIMIT);
+	EXPECT_EQ(QmDetermineStutterLimitCause(false, 0, 120, false), EQmStutterLimitCause::INACTIVE_LIMIT);
+	EXPECT_EQ(QmDetermineStutterLimitCause(false, 0, 0, true), EQmStutterLimitCause::NONE);
+}
+
+TEST(QmStutterDiagnostics, ComponentSamplesExposeAverageP95MaxAndReset)
+{
+	CQmStutterSampleSeries Samples;
+	for(int i = 1; i <= 20; ++i)
+		Samples.Record((double)i, 100 + i);
+
+	EXPECT_EQ(Samples.Count(), 20u);
+	EXPECT_DOUBLE_EQ(Samples.Average(), 10.5);
+	EXPECT_DOUBLE_EQ(Samples.Percentile(95.0), 19.0);
+	EXPECT_DOUBLE_EQ(Samples.Max(), 20.0);
+	EXPECT_EQ(Samples.MaxFrame(), 120u);
+
+	Samples.Reset();
+	EXPECT_TRUE(Samples.Empty());
+	EXPECT_DOUBLE_EQ(Samples.Total(), 0.0);
+}
+
+TEST(QmStutterDiagnostics, WiresOptInRawFrameAndAllComponentPhases)
+{
+	const std::string Config = ReadRepoFile("src/engine/shared/config_variables_qmclient.h");
+	const std::string Client = ReadRepoFile("src/engine/client/client.cpp");
+	const std::string GameClient = ReadRepoFile("src/game/client/gameclient.cpp");
+
+	EXPECT_NE(Config.find("MACRO_CONFIG_INT(QmPerfStutterDiagnostics, qm_perf_stutter_diagnostics, 0, 0, 1"), std::string::npos);
+	EXPECT_NE(Client.find("g_Config.m_QmPerfStutterDiagnostics"), std::string::npos);
+	EXPECT_NE(GameClient.find("Client()->RenderFrameTime() * 1000.0"), std::string::npos);
+	EXPECT_NE(GameClient.find("RecordComponentUpdate"), std::string::npos);
+	EXPECT_NE(GameClient.find("RecordComponentRender"), std::string::npos);
+	EXPECT_NE(GameClient.find("m_vpAllPerfNames"), std::string::npos);
+	EXPECT_NE(GameClient.find("Kernel()->RequestInterface<IEngineGraphics>()"), std::string::npos);
+	EXPECT_EQ(GameClient.find("Graphics()->WindowActive()"), std::string::npos);
 }
