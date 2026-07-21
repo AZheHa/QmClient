@@ -5,6 +5,7 @@
 #include <game/client/QmUi/QmTheme.h>
 #include <game/client/QmUi/UiTokens.h>
 #include <game/client/lineinput.h>
+#include <game/client/qm_ime_candidate_popup.h>
 
 #include <gtest/gtest.h>
 
@@ -132,20 +133,41 @@ TEST(QmImeOverlay, CandidateViewportKeepsStableStartWhileSelectionStaysVisible)
 	EXPECT_EQ(ShiftLeft.m_Count, 7);
 }
 
+TEST(QmImeOverlay, CandidatePopupOnlyAppearsForCandidateText)
+{
+	SQmImePopupState State;
+	State.m_Visible = true;
+	State.m_Composition = "da'd";
+	EXPECT_FALSE(QmImeHasPopupContent(State));
+
+	State.m_vCandidates.emplace_back("大胆");
+	EXPECT_TRUE(QmImeHasPopupContent(State));
+
+	State.m_Composition.clear();
+	EXPECT_TRUE(QmImeHasPopupContent(State));
+
+	State.m_Disabled = true;
+	EXPECT_FALSE(QmImeHasPopupContent(State));
+}
+
 TEST(QmImePresentationSource, PopupUsesContinuousRedirectablePresentationState)
 {
 	const std::string ManagerSource = ReadTestSourceFile("src/game/client/qm_ime_manager.cpp");
 	const std::string PopupSource = ReadTestSourceFile("src/game/client/qm_ime_candidate_popup.cpp");
 	const std::string PopupHeader = ReadTestSourceFile("src/game/client/qm_ime_candidate_popup.h");
 
-	EXPECT_NE(ManagerSource.find("State.m_Visible = HasComposition;"), std::string::npos);
+	EXPECT_NE(ManagerSource.find("State.m_Visible = HasComposition && CandidateCount > 0;"), std::string::npos);
 	EXPECT_NE(PopupHeader.find("SPresentationTargets"), std::string::npos);
 	EXPECT_NE(PopupSource.find("SImePresentationTarget"), std::string::npos);
 	EXPECT_EQ(PopupSource.find("ResolveImePresentationStateValue"), std::string::npos);
 	EXPECT_NE(PopupSource.find("ResolveUiPresentationStateValue"), std::string::npos);
 	EXPECT_NE(PopupSource.find("SetUiPresentationStateValue"), std::string::npos);
-	EXPECT_NE(PopupSource.find("TargetPresentation.m_TypingAlpha"), std::string::npos);
 	EXPECT_NE(PopupSource.find("TargetPresentation.m_CandidateAlpha"), std::string::npos);
+	EXPECT_EQ(PopupSource.find("TargetPresentation.m_TypingAlpha"), std::string::npos);
+	EXPECT_EQ(PopupSource.find("TypingNode"), std::string::npos);
+	EXPECT_EQ(PopupSource.find("m_CompositionRowHeight"), std::string::npos);
+	EXPECT_EQ(PopupSource.find("DrawState.m_Composition.c_str()"), std::string::npos);
+	EXPECT_NE(PopupSource.find("2.0f * Ime.m_PaddingY + CandidateRowHeight"), std::string::npos);
 	EXPECT_NE(PopupSource.find("IME_CONTENT_TIME_SCALE = 0.40f"), std::string::npos);
 	EXPECT_NE(PopupSource.find("BuildCandidateViewport"), std::string::npos);
 	EXPECT_EQ(PopupSource.find("ResolveMotionValue"), std::string::npos);

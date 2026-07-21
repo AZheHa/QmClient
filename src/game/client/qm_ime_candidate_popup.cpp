@@ -52,8 +52,6 @@ namespace
 		CUIRect m_Rect = {};
 		float m_Radius = 0.0f;
 		float m_Alpha = 0.0f;
-		float m_TypingAlpha = 0.0f;
-		float m_TypingScale = 1.0f;
 		float m_CandidateAlpha = 0.0f;
 		float m_CandidateScale = 1.0f;
 	};
@@ -63,15 +61,13 @@ namespace
 		CUIRect m_Rect = {};
 		float m_Radius = 0.0f;
 		float m_Alpha = 0.0f;
-		float m_TypingAlpha = 0.0f;
-		float m_TypingScale = 1.0f;
 		float m_CandidateAlpha = 0.0f;
 		float m_CandidateScale = 1.0f;
 	};
 
 	bool HasPopupContent(const SQmImePopupState &State)
 	{
-		return State.m_Visible && !State.m_Disabled && !State.m_Composition.empty();
+		return QmImeHasPopupContent(State);
 	}
 
 	ColorRGBA WithAlpha(ColorRGBA Color, float Alpha)
@@ -208,9 +204,6 @@ void CQmImeCandidatePopup::Render(CGameClient *pGameClient, const SQmImePopupSta
 
 	pGraphics->MapScreen(0.0f, 0.0f, Width, Height);
 
-	const SImeTextMetrics CompositionMetrics = MeasureImeText(pTextRender, Ime.m_FontComposition, DrawState.m_Composition.c_str(), Ime);
-	const SImeTextMetrics TypingMetrics = MeasureImeText(pTextRender, Ime.m_FontCandidate, DrawState.m_Composition.c_str(), Ime);
-
 	char aPageText[16] = "";
 	SImeTextMetrics PageTextMetrics;
 	float TrailingWidth = 0.0f;
@@ -254,18 +247,12 @@ void CQmImeCandidatePopup::Render(CGameClient *pGameClient, const SQmImePopupSta
 		CandidateWindowNaturalWidth += CandidateCellWidth(Ime, aCandidateMetrics[Offset], CandidateIndex == SelectedIndex);
 	}
 
-	const float CandidateNaturalWidth = HasCandidates ? CandidateWindowNaturalWidth + TrailingWidth : 0.0f;
-	constexpr float CursorWidth = 0.85f;
-	const float CursorGap = Ime.m_CandidateNumPaddingX;
-	const float TypingContentWidth = TypingMetrics.m_Width + CursorGap + CursorWidth;
-	const float ContentWidth = HasCandidates ? maximum(CandidateNaturalWidth, CompositionMetrics.m_Width) : TypingContentWidth;
+	const float CandidateNaturalWidth = CandidateWindowNaturalWidth + TrailingWidth;
+	const float ContentWidth = CandidateNaturalWidth;
 	const float NeededPanelWidth = ContentWidth + 2.0f * Ime.m_PaddingX;
 	const float PanelWidth = maximum(NeededPanelWidth, Ime.m_MinWidth);
 	const float CandidateRowHeight = maximum(Ime.m_RowHeight, CandidateTextHeight + 2.0f * Ime.m_TextSafePaddingY);
-	const float TypingRowHeight = maximum(Ime.m_RowHeight, TypingMetrics.m_VisualHeight + 2.0f * Ime.m_TextSafePaddingY);
-	const float PanelHeight = HasCandidates ?
-					  (2.0f * Ime.m_PaddingY + Ime.m_CompositionRowHeight + Ime.m_RowGap + CandidateRowHeight) :
-					  (2.0f * Ime.m_PaddingY + TypingRowHeight);
+	const float PanelHeight = 2.0f * Ime.m_PaddingY + CandidateRowHeight;
 
 	vec2 Anchor = DrawState.m_AnchorScreen / vec2((float)ScreenWidth, (float)ScreenHeight) * vec2(Width, Height);
 	const float PopupGap = 2.2f;
@@ -287,18 +274,15 @@ void CQmImeCandidatePopup::Render(CGameClient *pGameClient, const SQmImePopupSta
 
 	CUiV2AnimationRuntime &AnimRuntime = pGameClient->UiRuntimeV2()->AnimRuntime();
 	const uint64_t CapsuleNode = ImePresentationNodeKey("capsule");
-	const uint64_t TypingNode = ImePresentationNodeKey("typing");
 	const uint64_t CandidatesNode = ImePresentationNodeKey("candidates");
 	const uint64_t SelectedNode = ImePresentationNodeKey("selected");
 
 	SImePresentationTarget TargetPresentation;
 	TargetPresentation.m_Rect = {Position.x, Position.y, PanelWidth, PanelHeight};
-	TargetPresentation.m_Radius = HasCandidates ? std::min(PanelHeight * 0.36f, Ime.m_Radius) : PanelHeight * 0.5f;
+	TargetPresentation.m_Radius = std::min(PanelHeight * 0.36f, Ime.m_Radius);
 	TargetPresentation.m_Alpha = TargetVisible ? 1.0f : 0.0f;
-	TargetPresentation.m_TypingAlpha = TargetVisible && !HasCandidates ? 1.0f : 0.0f;
-	TargetPresentation.m_TypingScale = TargetVisible && !HasCandidates ? 1.0f : 0.84f;
-	TargetPresentation.m_CandidateAlpha = TargetVisible && HasCandidates ? 1.0f : 0.0f;
-	TargetPresentation.m_CandidateScale = TargetVisible && HasCandidates ? 1.0f : 0.84f;
+	TargetPresentation.m_CandidateAlpha = TargetVisible ? 1.0f : 0.0f;
+	TargetPresentation.m_CandidateScale = TargetVisible ? 1.0f : 0.84f;
 	if(!TargetVisible)
 	{
 		TargetPresentation.m_Rect.y -= 0.8f;
@@ -333,8 +317,6 @@ void CQmImeCandidatePopup::Render(CGameClient *pGameClient, const SQmImePopupSta
 		SetUiPresentationStateValue(AnimRuntime, CapsuleNode, EUiAnimProperty::HEIGHT, InitialRect.h);
 		SetUiPresentationStateValue(AnimRuntime, CapsuleNode, EUiAnimProperty::SCALE, InitialRect.h * 0.5f);
 		SetUiPresentationStateValue(AnimRuntime, CapsuleNode, EUiAnimProperty::ALPHA, 0.0f);
-		SetUiPresentationStateValue(AnimRuntime, TypingNode, EUiAnimProperty::ALPHA, 0.0f);
-		SetUiPresentationStateValue(AnimRuntime, TypingNode, EUiAnimProperty::SCALE, 0.84f);
 		SetUiPresentationStateValue(AnimRuntime, CandidatesNode, EUiAnimProperty::ALPHA, 0.0f);
 		SetUiPresentationStateValue(AnimRuntime, CandidatesNode, EUiAnimProperty::SCALE, 0.84f);
 		m_Presentation.m_Initialized = true;
@@ -346,8 +328,6 @@ void CQmImeCandidatePopup::Render(CGameClient *pGameClient, const SQmImePopupSta
 	m_Presentation.m_TargetHeight = TargetPresentation.m_Rect.h;
 	m_Presentation.m_TargetRadius = TargetPresentation.m_Radius;
 	m_Presentation.m_TargetAlpha = TargetPresentation.m_Alpha;
-	m_Presentation.m_TargetTypingAlpha = TargetPresentation.m_TypingAlpha;
-	m_Presentation.m_TargetTypingScale = TargetPresentation.m_TypingScale;
 	m_Presentation.m_TargetCandidateAlpha = TargetPresentation.m_CandidateAlpha;
 	m_Presentation.m_TargetCandidateScale = TargetPresentation.m_CandidateScale;
 
@@ -358,8 +338,6 @@ void CQmImeCandidatePopup::Render(CGameClient *pGameClient, const SQmImePopupSta
 	Presentation.m_Rect.h = std::max(0.0f, ResolveUiPresentationStateValue(AnimRuntime, CapsuleNode, EUiAnimProperty::HEIGHT, m_Presentation.m_TargetHeight, CapsuleSpring, 3, 0.01f));
 	Presentation.m_Radius = ResolveUiPresentationStateValue(AnimRuntime, CapsuleNode, EUiAnimProperty::SCALE, m_Presentation.m_TargetRadius, CapsuleSpring, 3, 0.01f);
 	Presentation.m_Alpha = std::clamp(ResolveUiPresentationStateValue(AnimRuntime, CapsuleNode, EUiAnimProperty::ALPHA, m_Presentation.m_TargetAlpha, ContentSpring, 3, 0.004f), 0.0f, 1.0f);
-	Presentation.m_TypingAlpha = std::clamp(ResolveUiPresentationStateValue(AnimRuntime, TypingNode, EUiAnimProperty::ALPHA, m_Presentation.m_TargetTypingAlpha, ContentSpring, 2, 0.004f), 0.0f, 1.0f);
-	Presentation.m_TypingScale = ResolveUiPresentationStateValue(AnimRuntime, TypingNode, EUiAnimProperty::SCALE, m_Presentation.m_TargetTypingScale, ContentSpring, 2, 0.004f);
 	Presentation.m_CandidateAlpha = std::clamp(ResolveUiPresentationStateValue(AnimRuntime, CandidatesNode, EUiAnimProperty::ALPHA, m_Presentation.m_TargetCandidateAlpha, ContentSpring, 2, 0.004f), 0.0f, 1.0f);
 	Presentation.m_CandidateScale = ResolveUiPresentationStateValue(AnimRuntime, CandidatesNode, EUiAnimProperty::SCALE, m_Presentation.m_TargetCandidateScale, ContentSpring, 2, 0.004f);
 
@@ -387,20 +365,7 @@ void CQmImeCandidatePopup::Render(CGameClient *pGameClient, const SQmImePopupSta
 	{
 		const float LayerAlpha = Presentation.m_Alpha * Presentation.m_CandidateAlpha;
 		CUIRect CandidateLayer = ScaleRectAroundCenter(Content, Presentation.m_CandidateScale);
-		CUIRect CompositionRow;
 		CUIRect CandidateRow;
-		CandidateLayer.HSplitTop(Ime.m_CompositionRowHeight, &CompositionRow, &CandidateLayer);
-		DrawImeText(pTextRender,
-			CompositionRow.x,
-			CompositionRow.y,
-			CompositionRow.h,
-			Ime.m_FontComposition,
-			DrawState.m_Composition.c_str(),
-			CompositionMetrics,
-			Ime.m_TextMuted,
-			LayerAlpha);
-
-		CandidateLayer.HSplitTop(Ime.m_RowGap, nullptr, &CandidateLayer);
 		CandidateLayer.HSplitTop(CandidateRowHeight, &CandidateRow, &CandidateLayer);
 		CUIRect Candidates = CandidateRow;
 		CUIRect More = {};
@@ -486,34 +451,6 @@ void CQmImeCandidatePopup::Render(CGameClient *pGameClient, const SQmImePopupSta
 				LayerAlpha);
 		}
 	}
-	else
-	{
-		const float LayerAlpha = Presentation.m_Alpha * Presentation.m_TypingAlpha;
-		CUIRect TypingLayer = ScaleRectAroundCenter(Content, Presentation.m_TypingScale);
-		CUIRect TypingRow;
-		TypingLayer.HSplitTop(TypingRowHeight, &TypingRow, &TypingLayer);
-		const float TextX = TypingRow.x;
-		DrawImeText(pTextRender,
-			TextX,
-			TypingRow.y,
-			TypingRow.h,
-			Ime.m_FontCandidate,
-			DrawState.m_Composition.c_str(),
-			TypingMetrics,
-			Ime.m_Text,
-			LayerAlpha);
-
-		const double NowSec = (double)time_get() / (double)time_freq();
-		const float CursorBlink = std::fmod(NowSec, 0.8) < 0.4 ? 1.0f : 0.18f;
-		const float CursorHeight = maximum(5.0f, TypingRow.h - 2.8f);
-		CUIRect Cursor = {
-			TextX + TypingMetrics.m_Width + CursorGap,
-			TypingRow.y + (TypingRow.h - CursorHeight) * 0.5f,
-			CursorWidth,
-			CursorHeight};
-		Cursor.Draw(WithAlpha(Ime.m_TextSelected, LayerAlpha * CursorBlink), IGraphics::CORNER_ALL, CursorWidth * 0.5f);
-	}
-
 	pTextRender->TextColor(OldTextColor);
 	pTextRender->TextOutlineColor(OldOutlineColor);
 	pTextRender->SetRenderFlags(OldRenderFlags);
