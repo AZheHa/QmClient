@@ -1438,14 +1438,14 @@ TEST(QmMonitoringHelpers, QmClientStableTextCandidateAuditIsEmptyExceptAllowlist
 		{pFile, 974, "animated-style"},
 		{pFile, 983, "animated-style"},
 		{pFile, 991, "animated-style"},
-		{pFile, 1150, "animated-style"},
 		{pFile, 1151, "animated-style"},
-		{pFile, 1158, "animated-style"},
-		{pFile, 1162, "animated-style"},
-		{pFile, 1166, "animated-style"},
+		{pFile, 1152, "animated-style"},
+		{pFile, 1159, "animated-style"},
+		{pFile, 1163, "animated-style"},
 		{pFile, 1167, "animated-style"},
-		{pFile, 1169, "animated-style"},
+		{pFile, 1168, "animated-style"},
 		{pFile, 1170, "animated-style"},
+		{pFile, 1171, "animated-style"},
 		{pFile, 1987, "dynamic-value"},
 		{pFile, 2153, "icon-only"},
 		{pFile, 2480, "animated-style"},
@@ -1494,7 +1494,7 @@ TEST(QmMonitoringHelpers, QmClientStableTextCandidateAuditIsEmptyExceptAllowlist
 		{pFile, 990, "animated-style"},
 		{pFile, 2609, "animated-style"},
 		{pFile, 2610, "user-generated"},
-		{pFile, 5902, "localized-setting-label"},
+		{pFile, 5903, "localized-setting-label"},
 		{pFile, 7202, "stateful-new-label"},
 	};
 	const std::vector<SStableTextCandidate> vUnexpected = FilterCandidatesNotCoveredByMenuPoolOrAllowlist(pFile, vCandidates, vAllowlist);
@@ -2016,7 +2016,7 @@ TEST(QmMonitoringHelpers, GeneralPerformanceModePlaceholderReplacesRefreshRateSl
 	EXPECT_NE(Config.find("MACRO_CONFIG_INT(QmPerformanceMode, qm_performance_mode, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE"), std::string::npos);
 	EXPECT_NE(MenusTranslations.find("key = \"Performance mode (placeholder)\""), std::string::npos);
 	EXPECT_NE(MenusTranslations.find("simplified_chinese = \"性能模式（占位符）\""), std::string::npos);
-	EXPECT_NE(Version.find("#define QMCLIENT_VERSION \"2.76.19\""), std::string::npos);
+	EXPECT_NE(Version.find("#define QMCLIENT_VERSION \"2.76.20\""), std::string::npos);
 }
 
 TEST(QmMonitoringHelpers, SettingsStableTextRegistryCoversVisibleWrappers)
