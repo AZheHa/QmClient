@@ -518,7 +518,7 @@ TEST_F(CNetKcpBypassTest, ClientFlushBypassDrainsQueuedVitalChunk)
 	ASSERT_EQ(m_Client.Send(&BypassChunk), 0);
 
 	std::vector<std::string> vReceived;
-	DrainServerChunks(m_Server, &vReceived);
+	PumpServerChunks(m_Server, m_Client, &vReceived, vCommands.size() + 1);
 	std::vector<std::string> vExpected = vCommands;
 	vExpected.emplace_back(aBypass);
 	EXPECT_EQ(vReceived, vExpected);
@@ -568,7 +568,7 @@ TEST_F(CNetKcpBypassTest, ClientFlushWithoutPendingDataKeepsRawBypass)
 	EXPECT_EQ(m_Client.TransportStats().m_SendQueueDepth, 0);
 
 	std::vector<std::string> vReceived;
-	DrainServerChunks(m_Server, &vReceived);
+	PumpServerChunks(m_Server, m_Client, &vReceived, 1);
 	ASSERT_EQ(vReceived.size(), 1u);
 	EXPECT_EQ(vReceived[0], std::string(reinterpret_cast<const char *>(vInput.data()), vInput.size()));
 }
@@ -592,7 +592,7 @@ TEST_F(CNetKcpBypassTest, ServerFlushBypassDrainsQueuedVitalChunk)
 	ASSERT_EQ(m_Server.Send(&BypassChunk), 0);
 
 	std::vector<std::string> vReceived;
-	DrainClientChunks(m_Client, &vReceived);
+	PumpClientChunks(m_Client, m_Server, &vReceived, 2);
 	EXPECT_EQ(vReceived, (std::vector<std::string>{aVital, aBypass}));
 }
 

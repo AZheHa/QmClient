@@ -2016,7 +2016,7 @@ TEST(QmMonitoringHelpers, GeneralPerformanceModePlaceholderReplacesRefreshRateSl
 	EXPECT_NE(Config.find("MACRO_CONFIG_INT(QmPerformanceMode, qm_performance_mode, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE"), std::string::npos);
 	EXPECT_NE(MenusTranslations.find("key = \"Performance mode (placeholder)\""), std::string::npos);
 	EXPECT_NE(MenusTranslations.find("simplified_chinese = \"性能模式（占位符）\""), std::string::npos);
-	EXPECT_NE(Version.find("#define QMCLIENT_VERSION \"2.76.20\""), std::string::npos);
+	EXPECT_NE(Version.find("#define QMCLIENT_VERSION \"2.76.21\""), std::string::npos);
 }
 
 TEST(QmMonitoringHelpers, SettingsStableTextRegistryCoversVisibleWrappers)
@@ -5722,6 +5722,26 @@ TEST(QmMonitoringHelpers, DefaultGateRunsFullAutomatedTests)
 	EXPECT_NE(ScriptsOverview.find("C++ 全量测试和 Rust 全量测试"), std::string::npos);
 	EXPECT_NE(ScriptsOverview.find("严格构建与静态分析只属于 full gate"), std::string::npos);
 	EXPECT_NE(ScriptsOverview.find("不作为“全量测试”的默认入口"), std::string::npos);
+}
+
+TEST(QmMonitoringHelpers, WindowsBundledFfmpegPackagePathsMatchArchiveInputContract)
+{
+	const std::string FfmpegFinder = ReadRepoFile("cmake/FindFFMPEG.cmake");
+	const std::string Build = ReadRepoFile("CMakeLists.txt");
+	ASSERT_FALSE(FfmpegFinder.empty());
+	ASSERT_FALSE(Build.empty());
+
+	const size_t WindowsBranch = FfmpegFinder.find("if(TARGET_OS STREQUAL \"windows\")");
+	ASSERT_NE(WindowsBranch, std::string::npos);
+	const size_t MacBranch = FfmpegFinder.find("elseif(TARGET_OS STREQUAL \"mac\")", WindowsBranch);
+	ASSERT_NE(MacBranch, std::string::npos);
+	const std::string WindowsSpec = FfmpegFinder.substr(WindowsBranch, MacBranch - WindowsBranch);
+
+	// Archive packaging prefixes CPACK_FILES with PROJECT_SOURCE_DIR, so the
+	// Windows FFmpeg glob must preserve the relative-path input contract.
+	EXPECT_NE(Build.find("${PROJECT_SOURCE_DIR}/${file}"), std::string::npos);
+	EXPECT_NE(WindowsSpec.find("file(GLOB FFMPEG_COPY_FILES"), std::string::npos);
+	EXPECT_NE(WindowsSpec.find("RELATIVE \"${PROJECT_SOURCE_DIR}\""), std::string::npos);
 }
 
 TEST(QmMonitoringHelpers, NightlyWorkflowPublishesPdbFreePrerelease)
